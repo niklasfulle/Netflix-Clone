@@ -41,7 +41,7 @@ const Billboard = () => {
                     transition"
           >
             <AiOutlineInfoCircle className="mr-1" />
-            more info
+            More info
           </button>
         </div>
       </div>
