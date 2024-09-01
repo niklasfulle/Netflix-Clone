@@ -1,13 +1,14 @@
 import { compare } from "bcrypt"
-import NextAuth from "next-auth"
+import { NextAuthOptions } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import prismadb from "@/lib/prismadb"
 import GitHubProvider from 'next-auth/providers/github'
 import GoogleProvider from 'next-auth/providers/google'
 import { getGithubCredentials, getGoogleCredentials } from "@/lib/auth/get-credentials"
+import NextAuth from "next-auth/next"
 
-export default NextAuth({
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prismadb),
   providers: [
     GoogleProvider({
@@ -70,4 +71,6 @@ export default NextAuth({
     secret: process.env.NEXTAUTH_JWT_SECRET
   },
   secret: process.env.NEXTAUTH_SECRET
-})
+}
+
+export default NextAuth(authOptions)
