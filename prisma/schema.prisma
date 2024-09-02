@@ -15,7 +15,7 @@ model User {
   emailVerified  DateTime?
   hashedPassword String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  updatedAt      DateTime  @updatedAt 
   favoriteIds    String[] 
   accounts       Account[]
   sessions       Session[]
@@ -63,6 +63,7 @@ model Movie {
   thumbnailUrl String
   genre        String
   duration     String
+  createdAt    DateTime  @default(now())
 }
 
 model Series {

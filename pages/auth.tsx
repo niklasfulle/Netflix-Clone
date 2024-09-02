@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { signIn } from "next-auth/react";
 
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/Fa";
+import { FaGithub } from "react-icons/fa";
 
 const Auth = () => {
   const [name, setName] = useState("");
@@ -47,12 +47,12 @@ const Auth = () => {
 
   return (
     <div className="relative h-full w-full bg-[url('/images/hero.jpg')] bg-no-repeat bg-center bg-fixed bg-cover">
-      <div className="bg-black w-full h-full lg:bg-opacity-50">
+      <div className="w-full h-full bg-black lg:bg-opacity-50">
         <nav className="px-12 py-5">
           <img src="/images/logo.png" alt="Logo" className="h-12" />
           <div className="flex justify-center">
-            <div className="bg-black bg-opacity-70 px-16 py-16 self-center mt-2 lg:w-2/5 lg:max-w-md rounded-md w-full">
-              <h2 className="text-white text-4xl mb-8 font-semibold">
+            <div className="self-center w-full px-16 py-16 mt-2 bg-black rounded-md bg-opacity-70 lg:w-2/5 lg:max-w-md">
+              <h2 className="mb-8 text-4xl font-semibold text-white">
                 {variant === "login" ? "Sign in" : "Sign up"}
               </h2>
               <div className="flex flex-col gap-4">
@@ -87,31 +87,31 @@ const Auth = () => {
               </div>
               <button
                 onClick={variant === "login" ? login : register}
-                className="bg-red-600 py-3 text-white rounded-md w-full mt-10 hover:bg-red-700 transition font-bold"
+                className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md hover:bg-red-700"
               >
                 {variant === "login" ? "Login" : "Register"}
               </button>
-              <div className="flex flex-row items-center gap-4 mt-8 justify-center">
+              <div className="flex flex-row items-center justify-center gap-4 mt-8">
                 <div
                   onClick={() => signIn("google", { callbackUrl: "/profiles" })}
-                  className="w-40 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition"
+                  className="flex items-center justify-center w-40 h-10 transition bg-white rounded-full cursor-pointer hover:opacity-80"
                 >
                   <FcGoogle size={30} />
                 </div>
                 <div
                   onClick={() => signIn("github", { callbackUrl: "/profiles" })}
-                  className="w-40 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer hover:opacity-80 transition"
+                  className="flex items-center justify-center w-40 h-10 transition bg-white rounded-full cursor-pointer hover:opacity-80"
                 >
                   <FaGithub size={30} />
                 </div>
               </div>
-              <p className="text-neutral-400 mt-12">
+              <p className="mt-12 text-neutral-400">
                 {variant === "login"
                   ? "First time using Netflix?"
                   : "Already have an account?"}
                 <span
                   onClick={toggleVariant}
-                  className="text-white ml-1 hover:underline cursor-pointer"
+                  className="ml-1 text-white cursor-pointer hover:underline"
                 >
                   {variant === "login" ? "Creat an account" : "Login"}
                 </span>
