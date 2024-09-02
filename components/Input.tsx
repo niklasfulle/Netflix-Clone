@@ -15,7 +15,7 @@ const Input: React.FC<InputProps> = ({ id, onChange, value, lable, type }) => {
         id={id}
         value={value}
         type={type}
-        className="block rounded-md px-6 pt-6 pb-1 w-full text-md text-white bg-neutral-700 appearance-none focus:outline-none focus:ring-0 peer"
+        className="block w-full px-3 pt-6 pb-1 text-white rounded-md appearance-none text-md bg-neutral-700 focus:outline-none focus:ring-0 peer"
         placeholder=" "
         onChange={onChange}
       />

@@ -1,7 +1,12 @@
+import Input from "@/components/Input";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import useProfil from "@/hooks/useProfil";
+import { isEmpty } from "lodash";
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import { useState } from "react";
+import { FaArrowLeft, FaPen, FaPlus, FaRegSave } from "react-icons/fa";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -22,30 +27,126 @@ export async function getServerSideProps(context: NextPageContext) {
 
 const Profiles = () => {
   const router = useRouter();
-  const { data: user } = useCurrentUser();
+  const [profileState, setProfileState] = useState("profiles");
+  const { data: profiles } = useProfil();
+  const [name, setName] = useState("");
+  const [profileImg, setProfileImg] = useState("/images/default-blue.png");
+
+  if (isEmpty(profiles)) {
+    return null;
+  }
+
+  let size = 0;
+  if (profiles) {
+    size = profiles.length;
+  }
+
+  console.log(profileState);
 
   return (
-    <div className="flex items-center h-full justify-center">
+    <div className="flex items-center justify-center h-full ">
       <div className="flex flex-col">
-        <h1 className="text-3xl md:text-6xl text-white text-center">
-          Who is watching?
-        </h1>
-        <div className="flex items-center justify-center gap-8 mt-10">
-          <div
-            onClick={() => {
-              router.push("/");
-            }}
-          >
-            <div className="group flex-row w-44 mx-auto">
-              <div className="w-44 h-44 rounded-md flex items-center justify-center border-2 border-transparent group-hover:cursor-pointer group-hover:border-white overflow-hidden">
-                <img src="/images/default-blue.png" alt="Profile" />
-              </div>
-              <div className="mt-4 text-gray-400 text-2xl text-center group-hover:text-white">
-                {user?.name}
+        {size != 0 && profileState == "profiles" && (
+          <>
+            <h1 className="text-3xl text-center text-white md:text-6xl">
+              Who is watching?
+            </h1>
+            <div className="flex items-center justify-center gap-8 mt-10">
+              {profiles.map((profil: any) => (
+                <div
+                  key={profil.id}
+                  onClick={() => {
+                    router.push("/");
+                  }}
+                >
+                  <div className="flex-row mx-auto group w-44">
+                    <div className="flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
+                      <img src="/images/default-blue.png" alt="Profile" />
+                    </div>
+                    <div className="mt-4 text-2xl text-center text-gray-400 group-hover:text-white">
+                      {profil.name}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div
+                onClick={() => {
+                  setProfileState("add");
+                }}
+                className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
+              >
+                <FaPlus className="text-white" size={25} />
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
+        {size == 0 && profileState == "profiles" && (
+          <>
+            <h1 className="text-3xl text-center text-white md:text-6xl">
+              Who is watching?
+            </h1>
+            <div className="flex items-center justify-center gap-8 mt-10">
+              <div
+                onClick={() => {
+                  setProfileState("add");
+                }}
+                className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
+              >
+                <FaPlus className="text-white" size={25} />
+              </div>
+            </div>
+          </>
+        )}
+        {profileState == "add" && (
+          <>
+            <h1 className="text-3xl text-center text-white md:text-6xl">
+              Add Profile
+            </h1>
+            <div className="flex items-center justify-center gap-8 mt-10">
+              <div
+                onClick={() => {
+                  setProfileState("profiles");
+                }}
+                className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+              >
+                <FaArrowLeft
+                  className="text-white transition-all ease-in delay-200 hover:text-neutral-300"
+                  size={25}
+                />
+              </div>
+              <div>
+                <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
+                  <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
+                    <div className="relative" onClick={() => {}}>
+                      <img src={profileImg} alt="Profile" />
+                      <FaPen
+                        className="absolute z-10 transition-all ease-in right-2 top-2"
+                        size={20}
+                      />
+                    </div>
+                  </div>
+                  <div className="w-56 mt-4 -ml-6 text-2xl text-center text-gray-400 group-hover:text-white">
+                    <Input
+                      id="profileName"
+                      value={name}
+                      type="text"
+                      lable="Name"
+                      onChange={(event: any) => {
+                        setName(event.target.value);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 rounded-full cursor-pointer ">
+                <FaRegSave
+                  className="text-white transition-all ease-in delay-200 hover:text-neutral-300"
+                  size={35}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
