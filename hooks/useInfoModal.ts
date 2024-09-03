@@ -1,4 +1,3 @@
-import { tree } from "next/dist/build/templates/app-page";
 import { create } from "zustand"
 
 export interface ModalStoreInterdace {

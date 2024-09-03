@@ -76,3 +76,8 @@ model Movie {
   duration     String
   createdAt    DateTime  @default(now())
 }
+
+model ProfilImg {
+  id           String @id @unique @default(cuid())
+  url          String
+}
