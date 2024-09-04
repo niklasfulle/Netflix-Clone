@@ -5,8 +5,9 @@ import useProfil from "@/hooks/useProfil";
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import axios from "axios";
 import { FaArrowLeft, FaPen, FaPlus, FaRegSave } from "react-icons/fa";
+import { useState } from "react";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -28,14 +29,39 @@ export async function getServerSideProps(context: NextPageContext) {
 const Profiles = () => {
   const router = useRouter();
   const [profileState, setProfileState] = useState("profiles");
-  const { data: profiles } = useProfil();
-  const [name, setName] = useState("");
+  let { data: profiles } = useProfil();
   const [profilImg, setProfilImg] = useState("Frog.png");
+  const [profilName, setProfilName] = useState("");
   const { isOpen, openModal, closeModal } = useProfilModal();
 
   let size = 0;
   if (profiles) {
     size = profiles.length;
+  }
+
+  async function save(profilName: string) {
+    try {
+      await axios.post("/api/profil", {
+        profilName,
+        profilImg,
+      });
+
+      router.reload();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function useProfile(profilId: string) {
+    try {
+      await axios.put("/api/profilUse", {
+        profilId,
+      });
+
+      router.push("/");
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   return (
@@ -62,9 +88,12 @@ const Profiles = () => {
                     }}
                   >
                     <div className="flex-row mx-auto group w-44">
-                      <div className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
+                      <div
+                        onClick={() => useProfile(profil.id)}
+                        className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
+                      >
                         <img
-                          src="/images/profil/default-blue.png"
+                          src={`/images/profil/${profil.image}`}
                           alt="Profile"
                         />
                         <FaPen
@@ -78,14 +107,16 @@ const Profiles = () => {
                     </div>
                   </div>
                 ))}
-                <div
-                  onClick={() => {
-                    setProfileState("add");
-                  }}
-                  className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
-                >
-                  <FaPlus className="text-white" size={25} />
-                </div>
+                {size < 4 && (
+                  <div
+                    onClick={() => {
+                      setProfileState("add");
+                    }}
+                    className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
+                  >
+                    <FaPlus className="text-white" size={25} />
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -120,10 +151,10 @@ const Profiles = () => {
                   onClick={() => {
                     setProfileState("profiles");
                   }}
-                  className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
                 >
                   <FaArrowLeft
-                    className="text-white transition-all ease-in delay-200 hover:text-neutral-300"
+                    className="text-white transition-all ease-in hover:text-neutral-300"
                     size={25}
                   />
                 </div>
@@ -140,20 +171,23 @@ const Profiles = () => {
                     </div>
                     <div className="w-56 mt-4 -ml-6 text-2xl text-center text-gray-400 group-hover:text-white">
                       <Input
-                        id="profileName"
-                        value={name}
-                        type="text"
+                        id="profilName"
                         lable="Name"
+                        type="text"
+                        value={profilName}
                         onChange={(event: any) => {
-                          setName(event.target.value);
+                          setProfilName(event.target.value);
                         }}
                       />
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 rounded-full cursor-pointer ">
+                <div className="flex items-center justify-center w-12 h-12 -mt-12 transition rounded-full cursor-pointer ">
                   <FaRegSave
-                    className="text-white transition-all ease-in delay-200 hover:text-neutral-300"
+                    onClick={() => {
+                      save(profilName);
+                    }}
+                    className="text-white transition-all ease-in hover:text-neutral-300"
                     size={35}
                   />
                 </div>

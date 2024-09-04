@@ -3,9 +3,9 @@ import fetcher from '@/lib/fetcher';
 
 const useFavorites = () => {
   const { data, error, isLoading, mutate } = useSWR('/api/favorites', fetcher, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    revalidateIfStale: true,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   return {
     data,

@@ -9,6 +9,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === "POST") {
       const { currentUser } = await serverAuth(req, res)
 
+      const profil = await prismadb.profil.findMany({
+        where: {
+          userId: currentUser.id,
+          inUse: true
+        }
+      })
+
       const { movieId } = req.body
 
       const existingMovie = await prismadb.movie.findUnique({
@@ -21,9 +28,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error("Invalid ID")
       }
 
-      const updatedUser = await prismadb.user.update({
+      const updatedUser = await prismadb.profil.update({
         where: {
-          email: currentUser.email || "",
+          id: profil[0].id
         },
         data: {
           favoriteIds: {
@@ -38,6 +45,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === "DELETE") {
       const { currentUser } = await serverAuth(req, res)
 
+      const profil = await prismadb.profil.findMany({
+        where: {
+          userId: currentUser.id,
+          inUse: true
+        }
+      })
+
       const { movieId } = req.body
 
       const existingMovie = await prismadb.movie.findUnique({
@@ -50,11 +64,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error("Invalid ID")
       }
 
-      const updateFavoriteIds = without(currentUser.favoriteIds, movieId)
+      const updateFavoriteIds = without(profil[0].favoriteIds, movieId)
 
-      const updatedUser = await prismadb.user.update({
+      const updatedUser = await prismadb.profil.update({
         where: {
-          email: currentUser.email || "",
+          id: profil[0].id,
         },
         data: {
           favoriteIds: updateFavoriteIds

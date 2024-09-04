@@ -44,6 +44,7 @@ model Profil {
   userId         String
   name           String
   image          String?
+  inUse          Boolean   @default(false)
   createdAt      DateTime  @default(now())
   favoriteIds    String[]
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
