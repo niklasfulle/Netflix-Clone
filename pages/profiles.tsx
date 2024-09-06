@@ -29,6 +29,7 @@ export async function getServerSideProps(context: NextPageContext) {
 const Profiles = () => {
   const router = useRouter();
   const [profileState, setProfileState] = useState("profiles");
+  const [profileStateEdit, setProfileStateEdit] = useState("");
   let { data: profiles } = useProfil();
   const [profilImg, setProfilImg] = useState("Frog.png");
   const [profilName, setProfilName] = useState("");
@@ -81,28 +82,32 @@ const Profiles = () => {
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
                 {profiles.map((profil: any) => (
-                  <div
-                    key={profil.id}
-                    onClick={() => {
-                      router.push("/");
-                    }}
-                  >
+                  <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <div
-                        onClick={() => useProfile(profil.id)}
+                        onClick={() => {
+                          useProfile(profil.id);
+                          router.push("/");
+                        }}
                         className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
                       >
                         <img
                           src={`/images/profil/${profil.image}`}
                           alt="Profile"
                         />
+                      </div>
+                      <div className="flex flex-row items-center justify-center gap-4">
+                        <div className="mt-4 text-2xl text-center text-gray-400 group-hover:text-white">
+                          {profil.name}
+                        </div>
                         <FaPen
-                          className="absolute z-10 transition-all ease-in right-2 top-2"
+                          onClick={() => {
+                            setProfileStateEdit(profil.id);
+                            setProfileState("edit");
+                          }}
+                          className="z-10 mt-4 text-white transition-all ease-in cursor-pointer hover:text-neutral-500"
                           size={20}
                         />
-                      </div>
-                      <div className="mt-4 text-2xl text-center text-gray-400 group-hover:text-white">
-                        {profil.name}
                       </div>
                     </div>
                   </div>
@@ -142,6 +147,59 @@ const Profiles = () => {
             </>
           )}
           {profileState == "add" && (
+            <>
+              <h1 className="text-3xl text-center text-white md:text-6xl">
+                Add Profile
+              </h1>
+              <div className="flex items-center justify-center gap-8 mt-10">
+                <div
+                  onClick={() => {
+                    setProfileState("profiles");
+                  }}
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+                >
+                  <FaArrowLeft
+                    className="text-white transition-all ease-in hover:text-neutral-300"
+                    size={25}
+                  />
+                </div>
+                <div>
+                  <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
+                    <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
+                      <div className="relative" onClick={() => openModal("")}>
+                        <img src={`/images/profil/${profilImg}`} alt="Profil" />
+                        <FaPen
+                          className="absolute z-10 transition-all ease-in right-2 top-2"
+                          size={20}
+                        />
+                      </div>
+                    </div>
+                    <div className="w-56 mt-4 -ml-6 text-2xl text-center text-gray-400 group-hover:text-white">
+                      <Input
+                        id="profilName"
+                        lable="Name"
+                        type="text"
+                        value={profilName}
+                        onChange={(event: any) => {
+                          setProfilName(event.target.value);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center w-12 h-12 -mt-12 transition rounded-full cursor-pointer ">
+                  <FaRegSave
+                    onClick={() => {
+                      save(profilName);
+                    }}
+                    className="text-white transition-all ease-in hover:text-neutral-300"
+                    size={35}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+          {profileState == "edit" && profileStateEdit != "" && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
                 Add Profile
