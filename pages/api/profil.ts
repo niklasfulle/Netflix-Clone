@@ -41,4 +41,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).end()
     }
   }
+
+  if (req.method === "PATCH") {
+    try {
+      await prismadb.profil.update({
+        where: {
+          id: req.body.profilId
+        },
+        data: {
+          name: req.body.profilName,
+          image: req.body.profilImg
+        }
+      })
+
+      return res.status(200).end()
+    } catch (error) {
+      console.log(error)
+      return res.status(400).end()
+    }
+  }
+
+  if (req.method === "DELETE") {
+    console.log(req.body)
+
+    try {
+      await prismadb.profil.delete({
+        where: {
+          id: req.body
+        }
+      })
+
+      return res.status(200).end()
+    } catch (error) {
+      console.log(error)
+      return res.status(400).end()
+    }
+  }
 }

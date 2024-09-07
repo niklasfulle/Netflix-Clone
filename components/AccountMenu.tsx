@@ -1,6 +1,7 @@
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { signOut } from "next-auth/react";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -31,18 +32,20 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
           onClick={() => {
             router.push("/profiles");
           }}
-          className="flex flex-row items-center w-full gap-3 px-3 group/item"
+          className="flex flex-row items-center w-full gap-4 px-3 group/item"
         >
-          <img
-            className="w-8 rounded-md"
-            src={`images/profil/${profilImg}`}
+          <Image
+            className="w-10 rounded-md"
+            src={`/images/profil/${profilImg}`}
             alt=""
+            width={320}
+            height={320}
           />
           <p className="text-sm text-white group-hover/item:underline">
             {profil?.name}
           </p>
         </div>
-        <hr className="h-px my-4 bg-gray-600 border-0" />
+        <hr className="h-px my-2 bg-gray-600 border-0" />
         <div
           className="px-3 text-sm text-center text-white hover:underline"
           onClick={() => signOut()}

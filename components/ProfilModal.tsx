@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FaArrowRight } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { FaUserCheck } from "react-icons/fa";
+import Image from "next/image";
 
 interface ProfilModalProps {
   visible?: boolean;
@@ -81,7 +82,12 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
                 />
               </div>
               <div className="relative flex items-center justify-center mt-[4.5rem] overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
-                <img src={`/images/profil/${displayImg}`} alt="Profile" />
+                <Image
+                  src={`/images/profil/${displayImg}`}
+                  alt="Profile"
+                  width={320}
+                  height={320}
+                />
               </div>
               <div
                 onClick={() => {

@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import { isEmpty } from "lodash";
-import MovieCard from "./MovieCard";
 import { BiChevronRight, BiChevronLeft } from "react-icons/Bi";
 import Thumbnail from "./Thumbnail";
 
@@ -10,12 +9,12 @@ interface RowProps {
 }
 
 const Row: React.FC<RowProps> = ({ data, title }) => {
+  const [isMoved, setIsMoved] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
+
   if (isEmpty(data)) {
     return null;
   }
-
-  const rowRef = useRef<HTMLDivElement>(null);
-  const [isMoved, setIsMoved] = useState(false);
 
   const handleClick = (direction: string) => {
     setIsMoved(true);

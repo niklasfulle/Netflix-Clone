@@ -2,7 +2,7 @@ import useSWR from "swr"
 
 import fetcher from "@/lib/fetcher"
 
-const useProfil = () => {
+const getProfils = () => {
   const { data, error, isLoading } = useSWR("/api/profil", fetcher)
 
   return {
@@ -12,4 +12,4 @@ const useProfil = () => {
   }
 }
 
-export default useProfil
+export default getProfils

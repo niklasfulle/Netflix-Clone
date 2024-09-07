@@ -5,6 +5,7 @@ import AccountMenu from "@/components/AccountMenu";
 import { BsChevronDown, BsSearch, BsBell } from "react-icons/Bs";
 import { useCallback, useEffect, useState } from "react";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
+import Image from "next/image";
 
 const TOP_OFFSET = 66;
 
@@ -49,7 +50,13 @@ const Navbar = () => {
           showBackground ? "bg-zinc-900 bg-opacity-90" : ""
         }`}
       >
-        <img className="h-4 lg:h-7" src="/images/logo.png" alt="Logo" />
+        <Image
+          className="h-4 lg:h-7"
+          src="/images/logo.png"
+          alt="Logo"
+          width={100}
+          height={100}
+        />
         <div className="flex-row hidden ml-8 gap-7 lg:flex">
           <NavbarItem label="Home" />
           <NavbarItem label="Series" />
@@ -82,7 +89,12 @@ const Navbar = () => {
             className="relative flex flex-row items-center gap-2 cursor-pointer"
           >
             <div className="w-6 h-6 overflow-hidden rounded-md lg:w-10 lg:h-10">
-              <img src={`/images/profil/${profilImg}`} alt="Profile" />
+              <Image
+                src={`/images/profil/${profilImg}`}
+                alt="Profile"
+                width={320}
+                height={320}
+              />
             </div>
             <BsChevronDown
               className={`text-white transition ${

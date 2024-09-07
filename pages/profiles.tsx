@@ -1,13 +1,20 @@
 import ProfilModal from "@/components/ProfilModal";
 import Input from "@/components/Input";
 import useProfilModal from "@/hooks/useProfilModal";
-import useProfil from "@/hooks/useProfil";
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import axios from "axios";
-import { FaArrowLeft, FaPen, FaPlus, FaRegSave } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaPen,
+  FaPlus,
+  FaRegSave,
+  FaRegTrashAlt,
+} from "react-icons/fa";
 import { useState } from "react";
+import Image from "next/image";
+import getProfils from "@/hooks/getProfils";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -29,8 +36,8 @@ export async function getServerSideProps(context: NextPageContext) {
 const Profiles = () => {
   const router = useRouter();
   const [profileState, setProfileState] = useState("profiles");
-  const [profileStateEdit, setProfileStateEdit] = useState("");
-  let { data: profiles } = useProfil();
+  const [profileStateEdit, setProfileStateEdit] = useState<any>({});
+  let { data: profiles } = getProfils();
   const [profilImg, setProfilImg] = useState("Frog.png");
   const [profilName, setProfilName] = useState("");
   const { isOpen, openModal, closeModal } = useProfilModal();
@@ -53,7 +60,31 @@ const Profiles = () => {
     }
   }
 
-  async function useProfile(profilId: string) {
+  async function update(profilId: string, profilName: string) {
+    try {
+      await axios.patch("/api/profil", {
+        profilId,
+        profilName,
+        profilImg,
+      });
+
+      router.reload();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function remove(profilId: string) {
+    try {
+      await axios.delete("/api/profil", { data: profilId });
+
+      router.reload();
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async function setProfile(profilId: string) {
     try {
       await axios.put("/api/profilUse", {
         profilId,
@@ -85,15 +116,14 @@ const Profiles = () => {
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <div
-                        onClick={() => {
-                          useProfile(profil.id);
-                          router.push("/");
-                        }}
+                        onClick={() => setProfile(profil.id)}
                         className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
                       >
-                        <img
+                        <Image
                           src={`/images/profil/${profil.image}`}
                           alt="Profile"
+                          width={320}
+                          height={320}
                         />
                       </div>
                       <div className="flex flex-row items-center justify-center gap-4">
@@ -102,8 +132,10 @@ const Profiles = () => {
                         </div>
                         <FaPen
                           onClick={() => {
-                            setProfileStateEdit(profil.id);
+                            setProfileStateEdit(profil);
                             setProfileState("edit");
+                            setProfilName(profil.name);
+                            setProfilImg(profil.image);
                           }}
                           className="z-10 mt-4 text-white transition-all ease-in cursor-pointer hover:text-neutral-500"
                           size={20}
@@ -167,7 +199,12 @@ const Profiles = () => {
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
                       <div className="relative" onClick={() => openModal("")}>
-                        <img src={`/images/profil/${profilImg}`} alt="Profil" />
+                        <Image
+                          src={`/images/profil/${profilImg}`}
+                          alt="Profil"
+                          width={320}
+                          height={320}
+                        />
                         <FaPen
                           className="absolute z-10 transition-all ease-in right-2 top-2"
                           size={20}
@@ -220,7 +257,12 @@ const Profiles = () => {
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
                       <div className="relative" onClick={() => openModal("")}>
-                        <img src={`/images/profil/${profilImg}`} alt="Profil" />
+                        <Image
+                          src={`/images/profil/${profilImg}`}
+                          alt="Profil"
+                          width={320}
+                          height={320}
+                        />
                         <FaPen
                           className="absolute z-10 transition-all ease-in right-2 top-2"
                           size={20}
@@ -240,12 +282,19 @@ const Profiles = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 -mt-12 transition rounded-full cursor-pointer ">
+                <div className="flex flex-col items-center justify-center gap-8 -mt-16 transition rounded-full cursor-pointer ">
                   <FaRegSave
                     onClick={() => {
-                      save(profilName);
+                      update(profileStateEdit.id, profilName);
                     }}
                     className="text-white transition-all ease-in hover:text-neutral-300"
+                    size={35}
+                  />
+                  <FaRegTrashAlt
+                    onClick={() => {
+                      remove(profileStateEdit.id);
+                    }}
+                    className="text-red-600 transition-all ease-in hover:text-red-500"
                     size={35}
                   />
                 </div>

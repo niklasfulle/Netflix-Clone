@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import Image from "next/image";
 
 const Auth = () => {
   const [name, setName] = useState("");
@@ -48,7 +49,13 @@ const Auth = () => {
     <div className="relative h-full w-full bg-[url('/images/hero.jpg')] bg-no-repeat bg-center bg-fixed bg-cover">
       <div className="w-full h-full bg-black lg:bg-opacity-50">
         <nav className="px-12 py-5">
-          <img src="/images/logo.png" alt="Logo" className="h-12" />
+          <Image
+            src="/images/logo.png"
+            alt="Logo"
+            className="h-12"
+            width={100}
+            height={100}
+          />
           <div className="flex justify-center">
             <div className="self-center w-full px-16 py-16 mt-2 bg-black rounded-md bg-opacity-70 lg:w-2/5 lg:max-w-md">
               <h2 className="mb-8 text-4xl font-semibold text-white">
@@ -90,20 +97,6 @@ const Auth = () => {
               >
                 {variant === "login" ? "Login" : "Register"}
               </button>
-              <div className="flex flex-row items-center justify-center gap-4 mt-8">
-                <div
-                  onClick={() => signIn("google", { callbackUrl: "/profiles" })}
-                  className="flex items-center justify-center w-40 h-10 transition bg-white rounded-full cursor-pointer hover:opacity-80"
-                >
-                  <FcGoogle size={30} />
-                </div>
-                <div
-                  onClick={() => signIn("github", { callbackUrl: "/profiles" })}
-                  className="flex items-center justify-center w-40 h-10 transition bg-white rounded-full cursor-pointer hover:opacity-80"
-                >
-                  <FaGithub size={30} />
-                </div>
-              </div>
               <p className="mt-12 text-neutral-400">
                 {variant === "login"
                   ? "First time using Netflix?"
