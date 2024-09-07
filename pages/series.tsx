@@ -2,18 +2,15 @@ import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 
 import Navbar from "@/components/Navbar";
-import Row from "@/components/Row";
 import Billboard from "@/components/Billboard";
-import MovieList from "@/components/MovieList";
-import useMovieList from "@/hooks/movies/useMovieList";
-import useFavorites from "@/hooks/useFavorites";
 import InfoModal from "@/components/InfoModal";
 import useInfoModal from "@/hooks/useInfoModal";
-import useNewMovieList from "@/hooks/movies/useNewMovieList";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
-import useSeriesList from "@/hooks/series/useSeriesList";
+import useNewSeriesList from "@/hooks/series/useNewSeriesList";
+import MovieList from "@/components/MovieList";
+import BillboardSeries from "@/components/BillboardSeries";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -22,6 +19,7 @@ export async function getServerSideProps(context: NextPageContext) {
     return {
       redirect: {
         destination: "/auth",
+        permanent: false,
       },
     };
   }
@@ -32,10 +30,7 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 export default function Home() {
-  const { data: newMovies = [] } = useNewMovieList();
-  const { data: movies = [] } = useMovieList();
-  const { data: series = [] } = useSeriesList();
-  const { data: favoriteMovies = [] } = useFavorites();
+  const { data: newSeries = [] } = useNewSeriesList();
   const { data: profil } = useCurrentProfil();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
@@ -52,12 +47,9 @@ export default function Home() {
     <>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
-      <Billboard />
+      <BillboardSeries />
       <div className="pb-40">
-        <MovieList title="New" data={newMovies} />
-        <Row title="Movies" data={movies} />
-        <Row title="Series" data={series} />
-        <Row title="My List" data={favoriteMovies} />
+        <MovieList title="New" data={newSeries} />
       </div>
     </>
   );

@@ -13,8 +13,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const movies = await prismadb.movie.findMany({
       where: {
-        type: "Movie"
-      }
+        type: "Serie"
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 4,
     })
 
     return res.status(200).json(movies)

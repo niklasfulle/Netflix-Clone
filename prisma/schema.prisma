@@ -72,6 +72,7 @@ model Movie {
   description  String
   videoUrl     String
   thumbnailUrl String
+  type         String
   genre        String
   actor        String
   duration     String

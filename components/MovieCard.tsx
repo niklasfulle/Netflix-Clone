@@ -26,6 +26,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
       />
       <div className="z-10 opacity-0 absolute top-0 transition duration-200 w-full scale-0 group-hover:scale-100 group-hover:-translate-y-[6vw]  group-hover:opacity-100">
         <Image
+          onClick={() => openModal(data?.id)}
           className="cursor-pointer oobject-cover transition duration shadow-xl rounded-t-md w-full h-[12vw]"
           src={data.thumbnailUrl}
           alt="Thumbnail"
@@ -54,11 +55,10 @@ const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
           <p className="font-semibold text-green-400">
             New <span className="text-white">{data.title}</span>
           </p>
-          <div className="flex flex-row items-center gap-2 mt-4">
+          <div className="flex flex-row items-center gap-8 mt-4">
             <p className="text-white text-[10px] lg:text-sm">{data.duration}</p>
-          </div>
-          <div className="flex flex-row items-center gap-2 mt-4">
             <p className="text-white text-[10px] lg:text-sm">{data.genre}</p>
+            <p className="text-white text-[10px] lg:text-sm">{data.actor}</p>
           </div>
         </div>
       </div>

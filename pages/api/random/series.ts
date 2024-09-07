@@ -11,13 +11,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await serverAuth(req, res)
 
-    const movies = await prismadb.movie.findMany({
+    const movieCount = await prismadb.movie.count({
       where: {
-        type: "Movie"
+        type: "Serie"
       }
     })
+    const randomIndex = Math.floor(Math.random() * movieCount)
 
-    return res.status(200).json(movies)
+    const randomMovies = await prismadb.movie.findMany({
+      where: {
+        type: "Serie"
+      },
+      take: 1,
+      skip: randomIndex
+    })
+
+    return res.status(200).json(randomMovies[0])
   } catch (error) {
     console.log(error)
     return res.status(400).end()

@@ -1,7 +1,7 @@
 import PlayButton from "./PlayButton";
 import FavoriteButton from "./FavoriteButton";
 import useInfoModal from "@/hooks/useInfoModal";
-import useMovie from "@/hooks/useMovie";
+import useMovie from "@/hooks/movies/useMovie";
 import { useCallback, useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 
@@ -63,9 +63,14 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
             </div>
           </div>
           <div className="px-12 py-8">
-            <p className="text-lg font-semibold text-green-400">New</p>
-            <p className="text-lg text-white">{data?.duration}</p>
-            <p className="text-lg text-white">{data?.genre}</p>
+            <p className="text-lg font-semibold text-green-400">
+              New <span className="ml-4 text-white">{data?.title}</span>
+            </p>
+            <div className="flex flex-row gap-8">
+              <p className="text-lg text-white">{data?.duration}</p>
+              <p className="text-lg text-white">{data?.genre}</p>
+              <p className="text-lg text-white">{data?.actor}</p>
+            </div>
             <p className="text-lg text-white">{data?.description}</p>
           </div>
         </div>

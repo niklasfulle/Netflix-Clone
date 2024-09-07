@@ -6,6 +6,7 @@ import { BsChevronDown, BsSearch, BsBell } from "react-icons/Bs";
 import { useCallback, useEffect, useState } from "react";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 const TOP_OFFSET = 66;
 
@@ -58,12 +59,12 @@ const Navbar = () => {
           height={100}
         />
         <div className="flex-row hidden ml-8 gap-7 lg:flex">
-          <NavbarItem label="Home" />
-          <NavbarItem label="Series" />
-          <NavbarItem label="Films" />
-          <NavbarItem label="New & Popular" />
-          <NavbarItem label="My List" />
-          <NavbarItem label="Browse by languages" />
+          <NavbarItem label="Home" href="/" />
+          <NavbarItem label="Series" href="/series" />
+          <NavbarItem label="Films" href="/movies" />
+          <NavbarItem label="New & Popular" href="/" />
+          <NavbarItem label="My List" href="/" />
+          <NavbarItem label="Browse by languages" href="/" />
         </div>
         <div
           onClick={toggleMobileMenu}

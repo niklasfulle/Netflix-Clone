@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const movies = await prismadb.movie.findMany({
       where: {
-        type: "Movie"
+        type: "Serie"
       }
     })
 
