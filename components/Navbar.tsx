@@ -6,7 +6,7 @@ import { BsChevronDown, BsSearch, BsBell } from "react-icons/Bs";
 import { useCallback, useEffect, useState } from "react";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import SeachItem from "./SearchItem";
 
 const TOP_OFFSET = 66;
 
@@ -32,6 +32,14 @@ const Navbar = () => {
     };
   }, []);
 
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (value: string) => {
+    // Here, you can access the search value when Enter is pressed
+    console.log(value);
+    setSearchValue(value);
+  };
+
   const toggleMobileMenu = useCallback(() => {
     setShowMobileMenu((current) => !current);
   }, []);
@@ -45,51 +53,51 @@ const Navbar = () => {
     profilImg = profil.image;
   }
   return (
-    <nav className="fixed z-40 w-full">
+    <nav className="fixed z-40 w-full bg-black bg-opacity-30">
       <div
         className={`px-4 md:px-16 py-6 flex flex-row items-center transition duration-500 ${
           showBackground ? "bg-zinc-900 bg-opacity-90" : ""
         }`}
       >
         <Image
-          className="h-4 lg:h-7"
+          className="hidden w-auto h-7 lg:h-7 md:block"
           src="/images/logo.png"
           alt="Logo"
           width={100}
           height={100}
         />
+        <Image
+          className="block w-auto h-10 md:hidden"
+          src="/images/Logo2.png"
+          alt="Logo"
+          width={500}
+          height={500}
+        />
         <div className="flex-row hidden ml-8 gap-7 lg:flex">
           <NavbarItem label="Home" href="/" />
           <NavbarItem label="Series" href="/series" />
           <NavbarItem label="Films" href="/movies" />
-          <NavbarItem label="New & Popular" href="/" />
           <NavbarItem label="My List" href="/" />
-          <NavbarItem label="Browse by languages" href="/" />
         </div>
         <div
           onClick={toggleMobileMenu}
-          className="relative flex flex-row items-center gap-2 ml-8 cursor-pointer lg:hidden"
+          className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
         >
           <p className="text-sm text-white">Browse</p>
           <BsChevronDown
-            className={`text-white transition ${
+            className={`text-white transition mr-4 ${
               showMobileMenu ? "rotate-180" : "rotate-0"
             }`}
           />
           <MobileMenu visible={showMobileMenu} />
         </div>
         <div className="flex flex-row items-center ml-auto gap-7">
-          <div className="text-gray-200 transition cursor-pointer hover:text-gray-300">
-            <BsSearch />
-          </div>
-          <div className="text-gray-200 transition cursor-pointer hover:text-gray-300">
-            <BsBell />
-          </div>
+          <SeachItem onSearch={handleSearch} />
           <div
             onClick={toggleAccountMenu}
             className="relative flex flex-row items-center gap-2 cursor-pointer"
           >
-            <div className="w-6 h-6 overflow-hidden rounded-md lg:w-10 lg:h-10">
+            <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
               <Image
                 src={`/images/profil/${profilImg}`}
                 alt="Profile"

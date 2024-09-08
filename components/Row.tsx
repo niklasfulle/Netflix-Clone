@@ -32,9 +32,9 @@ const Row: React.FC<RowProps> = ({ data, title }) => {
   };
 
   return (
-    <div className="h-auto px-4 mt-4 space-y-8 md:px-12">
+    <div className="h-auto px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12">
       <div>
-        <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
+        <p className="-mb-8 font-semibold text-white text-md md:text-xl lg:text-2xl sm:mb-0">
           {title}
         </p>
         <div className="relative h-auto group">
