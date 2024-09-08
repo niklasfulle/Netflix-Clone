@@ -27,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email,
         name,
         hashedPassword,
+        role: "user",
         image: "",
         emailVerified: new Date()
       }

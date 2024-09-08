@@ -11,6 +11,8 @@ import { useRouter } from "next/router";
 import useNewSeriesList from "@/hooks/series/useNewSeriesList";
 import MovieList from "@/components/MovieList";
 import BillboardSeries from "@/components/BillboardSeries";
+import FilterRowSeries from "@/components/FilterRowSeries";
+import useGetActors from "@/hooks/series/useGetActors";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -31,6 +33,7 @@ export async function getServerSideProps(context: NextPageContext) {
 
 export default function Home() {
   const { data: newSeries = [] } = useNewSeriesList();
+  const { data: actors = [] } = useGetActors();
   const { data: profil } = useCurrentProfil();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
@@ -50,6 +53,9 @@ export default function Home() {
       <BillboardSeries />
       <div className="pb-40">
         <MovieList title="New" data={newSeries} />
+        {actors.map((actor: string) => (
+          <FilterRowSeries key={actor} title={actor} />
+        ))}
       </div>
     </>
   );

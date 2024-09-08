@@ -7,11 +7,8 @@ import useInfoModal from "@/hooks/useInfoModal";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
-import useNewMovieList2 from "@/hooks/movies/useNewMovieList2";
-import MovieList from "@/components/MovieList";
-import BillboardMovie from "@/components/BillboardMovie";
-import FilterRowMovies from "@/components/FilterRowMovies";
-import useGetActors from "@/hooks/movies/useGetActors";
+import SearchList from "@/components/SearchList";
+import useFavorites from "@/hooks/useFavorites";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -31,13 +28,12 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 export default function Home() {
-  const { data: newMovies = [] } = useNewMovieList2();
-  const { data: actors = [] } = useGetActors();
   const { data: profil } = useCurrentProfil();
+  const { data: favoriteMovies = [] } = useFavorites();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
-  if (profil == undefined) {
+  if (favoriteMovies == undefined || profil == undefined) {
     return null;
   }
 
@@ -49,12 +45,8 @@ export default function Home() {
     <>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
-      <BillboardMovie />
-      <div className="pb-40">
-        <MovieList title="New" data={newMovies} />
-        {actors.map((actor: string) => (
-          <FilterRowMovies key={actor} title={actor} />
-        ))}
+      <div className="pt-40 pb-40">
+        <SearchList title="My List" data={favoriteMovies} />
       </div>
     </>
   );

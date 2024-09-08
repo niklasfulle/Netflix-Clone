@@ -55,7 +55,7 @@ const Navbar = () => {
   return (
     <nav className="fixed z-40 w-full bg-black bg-opacity-30">
       <div
-        className={`px-4 md:px-16 py-6 flex flex-row items-center transition duration-500 ${
+        className={`px-4 md:px-16 py-3 md:py-6 flex flex-row items-center transition duration-500 ${
           showBackground ? "bg-zinc-900 bg-opacity-90" : ""
         }`}
       >
@@ -77,7 +77,7 @@ const Navbar = () => {
           <NavbarItem label="Home" href="/" />
           <NavbarItem label="Series" href="/series" />
           <NavbarItem label="Films" href="/movies" />
-          <NavbarItem label="My List" href="/" />
+          <NavbarItem label="My List" href="/mylist" />
         </div>
         <div
           onClick={toggleMobileMenu}
