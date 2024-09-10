@@ -18,6 +18,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 4,
     })
 
+    movies.reverse()
+
     return res.status(200).json(movies)
   } catch (error) {
     console.log(error)

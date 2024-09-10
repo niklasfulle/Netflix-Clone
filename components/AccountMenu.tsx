@@ -10,6 +10,7 @@ interface AccountMenuProps {
 }
 
 const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
+  const { data: user } = useCurrentUser();
   const { data: profil } = useCurrentProfil();
   const router = useRouter();
 
@@ -45,6 +46,17 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
             {profil?.name}
           </p>
         </div>
+        {user.role == "admin" && (
+          <>
+            <hr className="h-px my-2 bg-gray-600 border-0" />
+            <div
+              className="px-3 text-sm text-center text-white hover:underline"
+              onClick={() => router.push("/add")}
+            >
+              Add new Movies
+            </div>
+          </>
+        )}
         <hr className="h-px my-2 bg-gray-600 border-0" />
         <div
           className="px-3 text-sm text-center text-white hover:underline"

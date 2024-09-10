@@ -220,6 +220,7 @@ const Profiles = () => {
                         onChange={(event: any) => {
                           setProfilName(event.target.value);
                         }}
+                        onKeyDown={null}
                       />
                     </div>
                   </div>
@@ -278,6 +279,7 @@ const Profiles = () => {
                         onChange={(event: any) => {
                           setProfilName(event.target.value);
                         }}
+                        onKeyDown={null}
                       />
                     </div>
                   </div>

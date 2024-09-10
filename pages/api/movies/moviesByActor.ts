@@ -14,7 +14,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const params = req.query
     const actor = params.actor as string
-    console.log(actor)
 
     const movies = await prismadb.movie.findMany({
       where: {

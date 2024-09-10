@@ -52,7 +52,7 @@ const Billboard = () => {
           alt="Thumbnail"
         />
       )}
-      <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[40%]">
+      <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[60%]">
         <p className="w-full h-full font-bold text-white text-1xl md:text-5xl lg:text-6xl drop-shadow-xl">
           {data?.title}
         </p>
