@@ -25,10 +25,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     let actors = new Set<string>([])
-    movies.forEach((movie) => actors.add(movie.actor));
+    movies.forEach((movie: any) => actors.add(movie.actor));
 
     let actorArray: string[] = []
-    actors.forEach((actor) => actorArray.push(actor));
+    actors.forEach((actor: any) => actorArray.push(actor));
 
     return res.status(200).json(actorArray.sort())
   } catch (error) {

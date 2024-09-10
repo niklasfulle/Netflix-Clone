@@ -1,6 +1,5 @@
 import React from "react";
-import { BsFillPlayFill } from "react-icons/Bs";
-import { BiChevronDown } from "react-icons/Bi";
+import { FaChevronDown, FaPlay } from "react-icons/fa";
 import FavoriteButton from "./FavoriteButton";
 import { useRouter } from "next/router";
 import useInfoModal from "@/hooks/useInfoModal";
@@ -39,14 +38,14 @@ const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
               className="flex items-center justify-center w-8 h-8 transition bg-white rounded-full cursor-pointer lg:w-10 lg:h-10 hover:bg-neutral-300"
               onClick={() => router.push(`/watch/${data?.id}`)}
             >
-              <BsFillPlayFill size={30} />
+              <FaPlay size={20} />
             </div>
             <FavoriteButton movieId={data?.id} />
             <div
               onClick={() => openModal(data?.id)}
               className="flex items-center justify-center w-8 h-8 ml-auto transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300"
             >
-              <BiChevronDown
+              <FaChevronDown
                 className="text-white group-hover/item:text-neutral-300"
                 size={30}
               />

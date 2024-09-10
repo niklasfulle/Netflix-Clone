@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { isEmpty } from "lodash";
-import { BiChevronRight, BiChevronLeft } from "react-icons/Bi";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Thumbnail from "./Thumbnail";
 import useMoviesByActor from "@/hooks/movies/useMoviesByActor";
 
@@ -39,7 +39,7 @@ const FilterRowMovies: React.FC<FilterRowMoviesProps> = ({ title }) => {
           {title}
         </p>
         <div className="relative h-auto group">
-          <BiChevronLeft
+          <FaChevronLeft
             size={30}
             className={`text-white absolute top-0 bottom-0 left-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${
               !isMoved && "hidden"
@@ -54,7 +54,7 @@ const FilterRowMovies: React.FC<FilterRowMoviesProps> = ({ title }) => {
               <Thumbnail key={movie.id} data={movie} />
             ))}
           </div>
-          <BiChevronRight
+          <FaChevronRight
             size={30}
             className={`text-white absolute top-0 bottom-0 right-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100`}
             onClick={() => handleClick("right")}

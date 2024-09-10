@@ -2,7 +2,7 @@ import NavbarItem from "@/components/NavbarItem";
 import MobileMenu from "@/components/MobileMenu";
 import AccountMenu from "@/components/AccountMenu";
 
-import { BsChevronDown, BsSearch, BsBell } from "react-icons/Bs";
+import { FaChevronDown } from "react-icons/fa";
 import { useCallback, useEffect, useState } from "react";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import Image from "next/image";
@@ -84,7 +84,7 @@ const Navbar = () => {
           className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
         >
           <p className="text-sm text-white">Browse</p>
-          <BsChevronDown
+          <FaChevronDown
             className={`text-white transition mr-4 ${
               showMobileMenu ? "rotate-180" : "rotate-0"
             }`}
@@ -105,7 +105,7 @@ const Navbar = () => {
                 height={320}
               />
             </div>
-            <BsChevronDown
+            <FaChevronDown
               className={`text-white transition ${
                 showAccountMenu ? "rotate-180" : "rotate-0"
               }`}
