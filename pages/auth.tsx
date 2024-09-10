@@ -57,7 +57,7 @@ const Auth = () => {
         <nav className="px-12 py-5">
           <Link href={"/"}>
             <Image
-              src="/images/logo.png"
+              src="/images/Logo.png"
               alt="Logo"
               className="h-12"
               width={100}

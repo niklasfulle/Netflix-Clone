@@ -84,3 +84,11 @@ model ProfilImg {
   id           String @id @unique @default(cuid())
   url          String
 }
+
+model MovieWatchTime {
+  id           String @id @unique @default(cuid())
+  userId       String
+  profilId     String
+  movieId      String
+  time         Int
+}

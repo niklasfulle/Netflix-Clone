@@ -61,7 +61,7 @@ const Navbar = () => {
       >
         <Image
           className="hidden w-auto h-7 lg:h-7 md:block"
-          src="/images/logo.png"
+          src="/images/Logo.png"
           alt="Logo"
           width={100}
           height={100}

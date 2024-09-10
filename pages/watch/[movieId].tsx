@@ -1,14 +1,29 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useRouter } from "next/router";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 
 import useMovie from "@/hooks/movies/useMovie";
+import useCurrentProfil from "@/hooks/useCurrentProfil";
+import useCurrentUser from "@/hooks/useCurrentUser";
+import axios from "axios";
 
 const Watch = () => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const router = useRouter();
   const { movieId } = router.query;
-
   const { data } = useMovie(movieId as string);
+
+  async function setMovieWatchTime() {
+    const video = document.getElementById("test") as HTMLVideoElement;
+    try {
+      await axios.post("/api/updateMovieWatchTime", {
+        movieId,
+        watchTime: Math.round(video.currentTime),
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   return (
     <div className="w-screen h-screen bg-black">
@@ -16,7 +31,10 @@ const Watch = () => {
         <AiOutlineArrowLeft
           className="text-white cursor-pointer"
           size={40}
-          onClick={() => router.push("/")}
+          onClick={() => {
+            setMovieWatchTime();
+            router.push("/");
+          }}
         />
         <p className="font-bold text-white text-1xl md:text-3xl">
           <span className="pr-3 font-light">Watching:</span>
@@ -24,10 +42,12 @@ const Watch = () => {
         </p>
       </nav>
       <video
+        id="test"
         autoPlay
         controls
         className="w-full h-full"
         src={data?.videoUrl}
+        ref={videoRef}
       ></video>
     </div>
   );
