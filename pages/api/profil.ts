@@ -16,6 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      prismadb.$disconnect()
       return res.status(200).json(profiles)
     } catch (error) {
       console.log(error)
@@ -35,6 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      prismadb.$disconnect()
       return res.status(200).end()
     } catch (error) {
       console.log(error)
@@ -54,6 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      prismadb.$disconnect()
       return res.status(200).end()
     } catch (error) {
       console.log(error)
@@ -71,6 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      prismadb.$disconnect()
       return res.status(200).end()
     } catch (error) {
       console.log(error)

@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let actorArray: string[] = []
     actors.forEach((actor: any) => actorArray.push(actor));
 
+    prismadb.$disconnect()
     return res.status(200).json(actorArray.sort())
   } catch (error) {
     console.log(error)

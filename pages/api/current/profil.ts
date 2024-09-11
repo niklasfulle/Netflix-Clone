@@ -18,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
+    prismadb.$disconnect()
     if (!isEmpty(profil)) {
       return res.status(200).json(profil[0])
     } else
