@@ -8,6 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { currentUser } = await serverAuth(req, res)
 
+      prismadb.$connect()
+
       const profil = await prismadb.profil.findMany({
         where: {
           userId: currentUser.id,
@@ -23,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      if (isEmpty(check)) {
+      if (check.length == 0) {
         await prismadb.movieWatchTime.create({
           data: {
             userId: currentUser.id,
@@ -45,7 +47,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      prismadb.$disconnect()
       return res.status(200).end()
     } catch (error) {
       console.log(error)
