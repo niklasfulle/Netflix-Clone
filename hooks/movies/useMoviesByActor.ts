@@ -4,8 +4,8 @@ import fetcher from '@/lib/fetcher';
 const useMoviesByActor = (actor: string) => {
   const { data, error, isLoading } = useSWR(`/api/movies/moviesByActor?actor=${actor}`, fetcher, {
     revalidateIfStale: true,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   return {
     data,

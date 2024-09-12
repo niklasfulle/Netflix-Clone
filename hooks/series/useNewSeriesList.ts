@@ -4,8 +4,8 @@ import fetcher from '@/lib/fetcher';
 const useNewSeriesList = () => {
   const { data, error, isLoading } = useSWR('/api/series/newSeries', fetcher, {
     revalidateIfStale: true,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   });
   return {
     data,
