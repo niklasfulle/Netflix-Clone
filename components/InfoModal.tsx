@@ -4,6 +4,8 @@ import useInfoModal from "@/hooks/useInfoModal";
 import useMovie from "@/hooks/movies/useMovie";
 import { useCallback, useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
+import { FaUndo } from "react-icons/fa";
+import { useRouter } from "next/router";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -14,6 +16,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
   const { movieId } = useInfoModal();
   const { data = {} } = useMovie(movieId);
+  const router = useRouter();
 
   useEffect(() => {
     setIsVisible(!!visible);
@@ -39,13 +42,14 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
         >
           <div className="relative h-96">
             <video
-              className="w-full brightness-[60%] object-cover h-full"
+              className="w-full brightness-[60%] object-cover aspect-video h-full"
               autoPlay
               muted
               loop
               poster={data?.thumbnailUrl}
               src={data?.videoUrl}
             ></video>
+
             <div
               onClick={handleClose}
               className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70"
@@ -56,8 +60,14 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
               <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
                 {data?.title}
               </p>
-              <div className="flex flex-row items-center gap-4">
+              <div className="flex flex-row gap-4 justify-items-start">
                 <PlayButton movieId={data?.id} />
+                <div
+                  className="flex items-center justify-center w-8 h-8 transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300"
+                  onClick={() => router.push(`/watch/${data?.id}?start=0`)}
+                >
+                  <FaUndo size={18} className="mt-0.5 text-white" />
+                </div>
                 <FavoriteButton movieId={data?.id} />
               </div>
             </div>
@@ -66,12 +76,14 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
             <p className="text-lg font-semibold text-green-400">
               New <span className="ml-4 text-white">{data?.title}</span>
             </p>
-            <div className="flex flex-row gap-8">
+            <div className="flex flex-row gap-8 mt-3">
               <p className="text-lg text-white">{data?.duration}</p>
               <p className="text-lg text-white">{data?.genre}</p>
               <p className="text-lg text-white">{data?.actor}</p>
             </div>
-            <p className="text-lg text-white">{data?.description}</p>
+            {data?.description != "test" && (
+              <p className="text-lg text-white">{data?.description}</p>
+            )}
           </div>
         </div>
       </div>

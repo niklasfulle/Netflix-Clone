@@ -1,15 +1,20 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { AiOutlineArrowLeft } from "react-icons/ai";
 
 import useMovie from "@/hooks/movies/useMovie";
 import axios from "axios";
+import { useSearchParams } from "next/navigation";
 
 const Watch = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const router = useRouter();
   const { movieId } = router.query;
   const { data } = useMovie(movieId as string);
+
+  const searchParams = useSearchParams();
+
+  const search = searchParams.get("start");
 
   async function setMovieWatchTime() {
     const video = document.getElementById("videoElement") as HTMLVideoElement;
@@ -23,7 +28,11 @@ const Watch = () => {
     }
   }
 
-  const videoURL = data?.videoUrl + "#t=" + data?.watchTime;
+  let watchTime = data?.watchTime;
+  if (search) {
+    watchTime = 0;
+  }
+  const videoURL = data?.videoUrl + "#t=" + watchTime;
 
   return (
     <div className="w-screen h-screen bg-black">

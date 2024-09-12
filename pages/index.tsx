@@ -57,7 +57,7 @@ export default function Home() {
         <MovieList title="New" data={newMovies} />
         <Row title="Movies" data={movies} />
         <Row title="Series" data={series} />
-        <Row title="My List" data={favoriteMovies} />
+        <Row title="Favorites" data={favoriteMovies} />
       </div>
     </>
   );

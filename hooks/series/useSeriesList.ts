@@ -3,7 +3,7 @@ import fetcher from '@/lib/fetcher';
 
 const useSeriesList = () => {
   const { data, error, isLoading } = useSWR('/api/series', fetcher, {
-    revalidateIfStale: false,
+    revalidateIfStale: true,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
