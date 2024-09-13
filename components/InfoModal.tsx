@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { FaUndo } from "react-icons/fa";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -17,6 +18,23 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
   const { movieId } = useInfoModal();
   const { data = {} } = useMovie(movieId);
   const router = useRouter();
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  const checkWindowSize = () => {
+    let windowWidth: number = 0; // Initialize with a default value
+    if (typeof window !== "undefined") {
+      windowWidth = window.innerWidth;
+    }
+    if (windowWidth >= 1024) {
+      setIsDesktop(true);
+    } else {
+      setIsDesktop(false);
+    }
+  };
+
+  useEffect(() => {
+    checkWindowSize();
+  }, [isDesktop]);
 
   useEffect(() => {
     setIsVisible(!!visible);
@@ -41,22 +59,32 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
           } transform duration-300 relative flex-auto bg-zinc-900 drop-shadow-md`}
         >
           <div className="relative h-96">
-            <video
-              className="w-full brightness-[60%] object-cover aspect-video h-full"
-              autoPlay
-              muted
-              loop
-              poster={data?.thumbnailUrl}
-              src={data?.videoUrl}
-            ></video>
-
+            {isDesktop && (
+              <video
+                className="w-full brightness-[60%] object-cover aspect-video h-full"
+                autoPlay
+                muted
+                loop
+                poster={data?.thumbnailUrl}
+                src={data?.videoUrl}
+              ></video>
+            )}
+            {!isDesktop && (
+              <Image
+                className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
+                src={data?.thumbnailUrl}
+                height={1080}
+                width={1920}
+                alt="Thumbnail"
+              />
+            )}
             <div
               onClick={handleClose}
               className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70"
             >
               <AiOutlineClose className="text-white" size={20} />
             </div>
-            <div className="absolute bottom-[10%] left-10">
+            <div className="absolute bottom-[24%] md:bottom-[10%] left-10">
               <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
                 {data?.title}
               </p>

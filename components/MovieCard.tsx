@@ -51,10 +51,10 @@ const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
           </>
         )}
       </div>
-      <div className="z-10 opacity-0 absolute top-0 transition duration-200 scale-0 group-hover:scale-100 group-hover:-translate-y-[6vw] min-w-2/3 lg:w-full group-hover:opacity-100">
+      <div className="z-50 opacity-0 absolute top-0 transition duration-200 scale-0 group-hover:scale-100 group-hover:-translate-y-[6vw] min-w-2/3 lg:w-full group-hover:opacity-100">
         <Image
           onClick={() => openModal(data?.id)}
-          className="cursor-pointer oobject-cover transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw]"
+          className="cursor-pointer object-cover aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw]"
           src={data.thumbnailUrl}
           alt="Thumbnail2"
           width={1920}
