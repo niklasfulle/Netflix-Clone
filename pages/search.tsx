@@ -50,6 +50,7 @@ export default function Home() {
         <title>Netflix - Search</title>
         <meta property="og:title" content="Netflix - Search" key="title" />
         <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <meta name="description" content="Netflix"></meta>
       </Head>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />

@@ -53,6 +53,7 @@ export default function Add() {
         <title>Netflix - Add</title>
         <meta property="og:title" content="Netflix - Add" key="title" />
         <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <meta name="description" content="Netflix"></meta>
       </Head>
       <Navbar />
       <div className="flex justify-center h-full pt-44">

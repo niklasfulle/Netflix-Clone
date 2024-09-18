@@ -103,6 +103,7 @@ const Profiles = () => {
         <title>Netflix - Profiles</title>
         <meta property="og:title" content="Netflix - Profiles" key="title" />
         <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <meta name="description" content="Netflix"></meta>
       </Head>
       <ProfilModal
         visible={isOpen}

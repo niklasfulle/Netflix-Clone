@@ -34,7 +34,11 @@ const SearchItem = (props: SearchProps) => {
         onKeyDown={handleKeyDown}
         value={value}
       />
-      <button type="submit" className="absolute top-0 right-0 my-3 mr-4">
+      <button
+        type="submit"
+        className="absolute top-0 right-0 my-3 mr-4"
+        aria-label="Search"
+      >
         <FaSearch
           size={18}
           className="text-white"

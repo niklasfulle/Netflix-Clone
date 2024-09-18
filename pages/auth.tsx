@@ -58,6 +58,7 @@ const Auth = () => {
         <title>Netflix - Login</title>
         <meta property="og:title" content="Netflix - Login" key="title" />
         <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <meta name="description" content="Netflix"></meta>
       </Head>
       <div className="relative h-full w-full bg-[url('/images/hero.jpg')] bg-no-repeat bg-center bg-fixed bg-cover">
         <div className="w-full h-full bg-black lg:bg-opacity-50">
