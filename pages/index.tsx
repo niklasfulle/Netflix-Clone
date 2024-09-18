@@ -1,4 +1,4 @@
-import { NextPageContext } from "next";
+import { Metadata, NextPageContext } from "next";
 import { getSession } from "next-auth/react";
 
 import Navbar from "@/components/Navbar";
@@ -14,6 +14,7 @@ import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import useSeriesList from "@/hooks/series/useSeriesList";
+import Head from "next/head";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -50,6 +51,11 @@ export default function Home() {
 
   return (
     <>
+      <Head>
+        <title>Netflix - Home</title>
+        <meta property="og:title" content="Netflix - Home" key="title" />
+        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+      </Head>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <Billboard />

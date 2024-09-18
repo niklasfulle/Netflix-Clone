@@ -12,6 +12,7 @@ import MovieList from "@/components/MovieList";
 import BillboardMovie from "@/components/BillboardMovie";
 import FilterRowMovies from "@/components/FilterRowMovies";
 import useGetActors from "@/hooks/movies/useGetActors";
+import Head from "next/head";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -47,6 +48,11 @@ export default function Home() {
 
   return (
     <>
+      <Head>
+        <title>Netflix - Movies</title>
+        <meta property="og:title" content="Netflix - Movies" key="title" />
+        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+      </Head>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <BillboardMovie />

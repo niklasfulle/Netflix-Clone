@@ -10,6 +10,7 @@ import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import useSearchItem from "@/hooks/useSearchItem";
 import SearchList from "@/components/SearchList";
+import Head from "next/head";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -45,6 +46,11 @@ export default function Home() {
 
   return (
     <>
+      <Head>
+        <title>Netflix - Search</title>
+        <meta property="og:title" content="Netflix - Search" key="title" />
+        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+      </Head>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="pt-40 pb-40">

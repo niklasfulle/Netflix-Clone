@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import Input from "@/components/Input";
 import { useState } from "react";
 import axios from "axios";
+import Head from "next/head";
 
 export default function Add() {
   const { data: profil } = useCurrentProfil();
@@ -48,6 +49,11 @@ export default function Add() {
 
   return (
     <>
+      <Head>
+        <title>Netflix - Add</title>
+        <meta property="og:title" content="Netflix - Add" key="title" />
+        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+      </Head>
       <Navbar />
       <div className="flex justify-center h-full pt-44">
         <div className="flex flex-col justify-start">

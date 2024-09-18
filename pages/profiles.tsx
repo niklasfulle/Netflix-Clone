@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import Image from "next/image";
 import getProfils from "@/hooks/getProfils";
+import Head from "next/head";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -98,6 +99,11 @@ const Profiles = () => {
 
   return (
     <>
+      <Head>
+        <title>Netflix - Profiles</title>
+        <meta property="og:title" content="Netflix - Profiles" key="title" />
+        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+      </Head>
       <ProfilModal
         visible={isOpen}
         onClose={closeModal}
