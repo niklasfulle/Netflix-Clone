@@ -8,7 +8,6 @@ export type SearchProps = {
 };
 
 const SearchItem = (props: SearchProps) => {
-  const { onSearch } = props;
   const [value, setValue] = useState("");
   const router = useRouter();
 
