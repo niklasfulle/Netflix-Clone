@@ -13,8 +13,7 @@ import BillboardMovie from "@/components/BillboardMovie";
 import FilterRowMovies from "@/components/FilterRowMovies";
 import useGetActors from "@/hooks/movies/useGetActors";
 import Head from "next/head";
-import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
+import { useState } from "react";
 import useGetActorsCount from "@/hooks/movies/useGetActorsCount";
 
 export async function getServerSideProps(context: NextPageContext) {
