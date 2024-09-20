@@ -1,8 +1,8 @@
 import useSWR from 'swr';
 import fetcher from '@/lib/fetcher';
 
-const useGetActors = (limit: number) => {
-  const { data, error, isLoading } = useSWR('/api/series/getActors?limit=' + limit, fetcher, {
+const useGetActorsCount = () => {
+  const { data, error, isLoading } = useSWR('/api/series/getActorsCount', fetcher, {
     revalidateIfStale: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -13,4 +13,4 @@ const useGetActors = (limit: number) => {
     isLoading
   }
 };
-export default useGetActors;
+export default useGetActorsCount;

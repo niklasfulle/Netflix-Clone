@@ -1,8 +1,6 @@
 import { NextPageContext } from "next";
 import { getSession } from "next-auth/react";
-
 import Navbar from "@/components/Navbar";
-import Billboard from "@/components/Billboard";
 import InfoModal from "@/components/InfoModal";
 import useInfoModal from "@/hooks/useInfoModal";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
@@ -13,7 +11,9 @@ import MovieList from "@/components/MovieList";
 import BillboardSeries from "@/components/BillboardSeries";
 import FilterRowSeries from "@/components/FilterRowSeries";
 import useGetActors from "@/hooks/series/useGetActors";
-import Head from "next/head";
+import Head from "next/head"; // Ensure this path is correct
+import { useState } from "react";
+import useGetActorsCount from "@/hooks/series/useGetActorsCount";
 
 export async function getServerSideProps(context: NextPageContext) {
   const session = await getSession(context);
@@ -33,8 +33,10 @@ export async function getServerSideProps(context: NextPageContext) {
 }
 
 export default function Home() {
+  const [limit, setLimit] = useState(3);
   const { data: newSeries = [] } = useNewSeriesList();
-  const { data: actors = [] } = useGetActors();
+  const { data: actorsCount } = useGetActorsCount();
+  const { data: actors = [] } = useGetActors(limit);
   const { data: profil } = useCurrentProfil();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
@@ -47,6 +49,10 @@ export default function Home() {
     router.push("profiles");
   }
 
+  const loadMore = () => {
+    setLimit(limit + 5);
+  };
+
   return (
     <>
       <Head>
@@ -58,11 +64,25 @@ export default function Home() {
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <BillboardSeries />
-      <div className="pb-40">
+      <div>
         <MovieList title="New" data={newSeries} />
         {actors.map((actor: string) => (
           <FilterRowSeries key={actor} title={actor} />
         ))}
+        {limit < actorsCount && (
+          <div className="flex flex-row items-center justify-center w-full h-8 pt-12 pb-28">
+            <button
+              onClick={() => loadMore()}
+              type="button"
+              className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md cursor-pointer hover:bg-red-700 max-w-32"
+            >
+              Load more
+            </button>
+          </div>
+        )}
+        {limit >= actorsCount && (
+          <div className="flex flex-row items-center justify-center w-full h-8 pb-20"></div>
+        )}
       </div>
     </>
   );
