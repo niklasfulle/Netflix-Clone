@@ -6,6 +6,25 @@ import Input from "@/components/Input";
 import { useState } from "react";
 import axios from "axios";
 import Head from "next/head";
+import { NextPageContext } from "next";
+import { getSession } from "next-auth/react";
+
+export async function getServerSideProps(context: NextPageContext) {
+  const session = await getSession(context);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+}
 
 export default function Add() {
   const { data: profil } = useCurrentProfil();

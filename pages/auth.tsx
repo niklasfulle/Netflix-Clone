@@ -5,17 +5,27 @@ import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
+import { z } from "zod";
+
+const EmailSchema = z.object({
+  emailTest: z.string().email("Invalid email"),
+});
 
 const Auth = () => {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState(false);
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState(false);
   const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
   const [variant, setVariant] = useState("login");
+  const [error, setError] = useState<string>("");
 
   const toggleVariant = useCallback(() => {
     setVariant((currentVariant) =>
       currentVariant === "login" ? "register" : "login"
     );
+    setError("");
   }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -28,11 +38,65 @@ const Auth = () => {
 
   const login = useCallback(async () => {
     try {
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email,
         password,
-        callbackUrl: "/profiles",
+        redirect: false,
       });
+
+      if (result?.error) {
+        if (
+          typeof result.error === "string" &&
+          result.error.charAt(0) === "["
+        ) {
+          const error: any = JSON.parse(result.error);
+
+          setError(error[0].message);
+
+          if (error[0].message.indexOf("Email and password required") == 0) {
+          } else if (error[0].message.indexOf("Invalid email") == 0) {
+            setEmailError(true);
+            setPasswordError(false);
+          } else if (error[0].message.indexOf("Incorrect password") == 0) {
+            setPasswordError(true);
+            setEmailError(false);
+          } else if (error[0].message.indexOf("Email does not exist") == 0) {
+            setPasswordError(false);
+            setEmailError(true);
+          } else if (
+            error[0].message.indexOf(
+              "Password should be minimum 5 characters"
+            ) == 0
+          ) {
+            setPasswordError(true);
+            setEmailError(false);
+          }
+        } else {
+          setError(result.error);
+
+          if (result.error.indexOf("Email and password required") == 0) {
+          } else if (result.error.indexOf("Invalid email") == 0) {
+            setEmailError(true);
+            setPasswordError(false);
+          } else if (result.error.indexOf("Incorrect password") == 0) {
+            setPasswordError(true);
+            setEmailError(false);
+          } else if (result.error.indexOf("Email does not exist") == 0) {
+            setPasswordError(false);
+            setEmailError(true);
+          } else if (
+            result.error.indexOf("Password should be minimum 5 characters") == 0
+          ) {
+            setPasswordError(true);
+            setEmailError(false);
+          }
+        }
+      } else {
+        setError("");
+        setPasswordError(false);
+        setEmailError(false);
+        window.location.href = "/profiles";
+      }
     } catch (error) {
       console.log(error);
     }
@@ -40,17 +104,18 @@ const Auth = () => {
 
   const register = useCallback(async () => {
     try {
-      await axios.post("/api/register", {
-        email,
-        name,
-        password,
-      });
-
-      login();
-    } catch (error) {
-      console.log(error);
-    }
-  }, [email, name, password, login]);
+      await axios
+        .post("/api/register", {
+          email,
+          name: username,
+          password,
+          redirect: false,
+        })
+        .catch(function (error) {
+          console.log(error);
+        });
+    } catch (error) {}
+  }, [email, username, password, login]);
 
   return (
     <>
@@ -73,7 +138,7 @@ const Auth = () => {
               />
             </Link>
             <div className="flex justify-center">
-              <div className="self-center w-full px-16 py-16 mt-2 bg-black rounded-md bg-opacity-70 lg:w-2/5 lg:max-w-md">
+              <div className="self-center w-full px-16 pt-16 pb-12 mt-2 bg-black rounded-md bg-opacity-70 lg:w-2/5 lg:max-w-md">
                 <h2 className="mb-8 text-4xl font-semibold text-white">
                   {variant === "login" ? "Sign in" : "Sign up"}
                 </h2>
@@ -82,11 +147,13 @@ const Auth = () => {
                     <Input
                       id="name"
                       lable="Username"
-                      value={name}
+                      value={username}
                       onChange={(event: any) => {
-                        setName(event.target.value);
+                        setUsername(event.target.value);
                       }}
                       onKeyDown={null}
+                      required={true}
+                      error={usernameError}
                     />
                   )}
                   <Input
@@ -98,6 +165,8 @@ const Auth = () => {
                       setEmail(event.target.value);
                     }}
                     onKeyDown={null}
+                    required={true}
+                    error={emailError}
                   />
                   <Input
                     id="password"
@@ -108,11 +177,20 @@ const Auth = () => {
                       setPassword(event.target.value);
                     }}
                     onKeyDown={handleKeyDown}
+                    required={true}
+                    error={passwordError}
                   />
+                </div>
+                <div
+                  className={`text-red-600 pt-5 w-full text-center text-lg font-semibold ${
+                    error != "" ? "block" : "hidden"
+                  }`}
+                >
+                  {error}
                 </div>
                 <button
                   onClick={variant === "login" ? login : register}
-                  className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md hover:bg-red-700"
+                  className="w-full py-3 mt-6 font-bold text-white transition bg-red-600 rounded-md hover:bg-red-700"
                 >
                   {variant === "login" ? "Login" : "Register"}
                 </button>

@@ -1,6 +1,13 @@
 import bcrypt from "bcrypt"
 import { NextApiRequest, NextApiResponse } from "next"
 import prismadb from "@/lib/prismadb"
+import { z } from 'zod';
+
+const registerUserSchema = z.object({
+  username: z.string().regex(/^[a-zA-Z0-9]{3,15}$/g, 'Invalid username'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(5, 'Password should be minimum 5 characters'),
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -8,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { email, name, password } = req.body
+    const { email, username, password } = registerUserSchema.parse(req.body)
 
     const existingUser = await prismadb.user.findUnique({
       where: {
@@ -25,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await prismadb.user.create({
       data: {
         email,
-        name,
+        name: username,
         hashedPassword,
         role: "user",
         image: "",
@@ -36,7 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     prismadb.$disconnect()
     return res.status(200).json(user)
   } catch (error) {
-    console.log(error)
-    return res.status(400).end()
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues, success: false })
+    }
   }
 }

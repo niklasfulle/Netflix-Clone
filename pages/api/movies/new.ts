@@ -19,7 +19,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 4,
     })
 
-    movies.reverse()
 
     const { currentUser } = await serverAuth(req, res)
 

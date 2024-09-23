@@ -2,6 +2,7 @@ import useCurrentProfil from "@/hooks/useCurrentProfil";
 import useCurrentUser from "@/hooks/useCurrentUser";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -48,18 +49,17 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
         </div>
         {user.role == "admin" && (
           <>
-            <hr className="h-px my-2 bg-gray-600 border-0" />
-            <div
-              className="px-3 text-sm text-center text-white hover:underline"
-              onClick={() => router.push("/add")}
-            >
-              Add new Movies
-            </div>
+            <hr className="h-px bg-gray-600 border-0" />
+            <Link href="/add">
+              <div className="flex flex-row items-center justify-center p-2 text-center text-white px-3text-sm hover:underline">
+                Add new Movies
+              </div>
+            </Link>
           </>
         )}
-        <hr className="h-px my-2 bg-gray-600 border-0" />
+        <hr className="h-px bg-gray-600 border-0" />
         <div
-          className="px-3 text-sm text-center text-white hover:underline"
+          className="flex flex-row items-center justify-center pt-2 text-center text-white px-3text-sm hover:underline"
           onClick={() => signOut()}
         >
           Sign out of Netflix
