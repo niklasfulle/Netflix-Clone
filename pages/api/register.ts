@@ -4,7 +4,7 @@ import prismadb from "@/lib/prismadb"
 import { z } from 'zod';
 
 const registerUserSchema = z.object({
-  username: z.string().regex(/^[a-zA-Z0-9]{3,15}$/g, 'Invalid username'),
+  name: z.string().regex(/^[a-zA-Z0-9]{3,15}$/g, 'Invalid username'),
   email: z.string().email('Invalid email'),
   password: z.string().min(5, 'Password should be minimum 5 characters'),
 });
@@ -15,7 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { email, username, password } = registerUserSchema.parse(req.body)
+    if (!req.body.email || !req.body.name || !req.body.password) {
+      return res.status(400).json({ error: "Username, Email and password required", success: false })
+    }
+
+    const { email, name, password } = registerUserSchema.parse(req.body)
 
     const existingUser = await prismadb.user.findUnique({
       where: {
@@ -24,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (existingUser) {
-      return res.status(422).json({ error: "Email taken" })
+      return res.status(422).json({ error: "Email taken", success: false })
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
@@ -32,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await prismadb.user.create({
       data: {
         email,
-        name: username,
+        name,
         hashedPassword,
         role: "user",
         image: "",
@@ -44,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(user)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.issues, success: false })
+      return res.status(400).json({ error: error.errors[0].message, success: false })
     }
   }
 }

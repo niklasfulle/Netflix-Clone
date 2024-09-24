@@ -7,10 +7,6 @@ import Link from "next/link";
 import Head from "next/head";
 import { z } from "zod";
 
-const EmailSchema = z.object({
-  emailTest: z.string().email("Invalid email"),
-});
-
 const Auth = () => {
   const [username, setUsername] = useState("");
   const [usernameError, setUsernameError] = useState(false);
@@ -111,8 +107,11 @@ const Auth = () => {
           password,
           redirect: false,
         })
+        .then(function () {
+          login();
+        })
         .catch(function (error) {
-          console.log(error);
+          setError(error?.response.data.error);
         });
     } catch (error) {}
   }, [email, username, password, login]);

@@ -29,30 +29,46 @@ export async function getServerSideProps(context: NextPageContext) {
 export default function Add() {
   const { data: profil } = useCurrentProfil();
   const [movieName, setMovieName] = useState("");
+  const [movieNameError, setMovieNameError] = useState(false);
   const [movieDescripton, setMovieDescripton] = useState("");
+  const [movieDescriptonError, setMovieDescriptonError] = useState(false);
   const [movieActor, setMovieActor] = useState("");
+  const [movieActorError, setMovieActorError] = useState(false);
   const [movieType, setMovieType] = useState("");
+  const [movieTypeError, setMovieTypeError] = useState(false);
   const [movieGenre, setMovieGenre] = useState("");
+  const [movieGenreError, setMovieGenreError] = useState(false);
   const [movieDuration, setMovieDuration] = useState("");
+  const [movieDurationError, setMovieDurationError] = useState(false);
   const [movieVideo, setMovieVideo] = useState("");
+  const [movieVideoError, setMovieVideoError] = useState(false);
   const [movieThumbnail, setMovieThumbnail] = useState("");
+  const [movieThumbnailError, setMovieThumbnailError] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   async function save() {
     try {
-      const res = await axios.post("/api/movies/create", {
-        name: movieName,
-        description: movieDescripton,
-        actor: movieActor,
-        type: movieType,
-        genre: movieGenre,
-        duration: movieDuration,
-        video: movieVideo,
-        thumbnail: movieThumbnail,
-      });
+      await axios
+        .post("/api/movies/create", {
+          title: movieName,
+          description: movieDescripton,
+          actor: movieActor,
+          type: movieType,
+          genre: movieGenre,
+          duration: movieDuration,
+          videoUrl: movieVideo,
+          thumbnailUrl: movieThumbnail,
+        })
+        .catch(function (error) {
+          console.log(error);
+          setError(error?.response.data.error);
 
-      console.log(res);
-      router.reload();
+          if (error?.response.data.error == "") {
+          }
+        });
+
+      //router.reload();
     } catch (error) {
       console.log(error);
     }
@@ -90,6 +106,7 @@ export default function Add() {
                   setMovieName(event.target.value);
                 }}
                 onKeyDown={null}
+                error={movieNameError}
               />
               <Input
                 lable="Descripton"
@@ -99,6 +116,7 @@ export default function Add() {
                   setMovieDescripton(event.target.value);
                 }}
                 onKeyDown={null}
+                error={movieDescriptonError}
               />
               <div className="grid grid-cols-2 gap-5">
                 <Input
@@ -109,6 +127,7 @@ export default function Add() {
                     setMovieActor(event.target.value);
                   }}
                   onKeyDown={null}
+                  error={movieActorError}
                 />
                 <Input
                   lable="Type"
@@ -118,6 +137,7 @@ export default function Add() {
                     setMovieType(event.target.value);
                   }}
                   onKeyDown={null}
+                  error={movieTypeError}
                 />
                 <Input
                   lable="Genre"
@@ -127,6 +147,7 @@ export default function Add() {
                     setMovieGenre(event.target.value);
                   }}
                   onKeyDown={null}
+                  error={movieGenreError}
                 />
                 <Input
                   lable="Duration"
@@ -136,6 +157,7 @@ export default function Add() {
                     setMovieDuration(event.target.value);
                   }}
                   onKeyDown={null}
+                  error={movieDurationError}
                 />
               </div>
               <Input
@@ -146,6 +168,7 @@ export default function Add() {
                   setMovieVideo(event.target.value);
                 }}
                 onKeyDown={null}
+                error={movieVideoError}
               />
               <Input
                 lable="Thumbnail Link"
@@ -155,6 +178,7 @@ export default function Add() {
                   setMovieThumbnail(event.target.value);
                 }}
                 onKeyDown={null}
+                error={movieThumbnailError}
               />
               <div className="px-32">
                 <button
