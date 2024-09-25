@@ -47,6 +47,17 @@ export default function Add() {
   const [error, setError] = useState("");
   const router = useRouter();
 
+  function setAllFalse() {
+    setMovieNameError(false);
+    setMovieDescriptonError(false);
+    setMovieActorError(false);
+    setMovieTypeError(false);
+    setMovieGenreError(false);
+    setMovieDurationError(false);
+    setMovieVideoError(false);
+    setMovieThumbnailError(false);
+  }
+
   async function save() {
     try {
       await axios
@@ -60,15 +71,57 @@ export default function Add() {
           videoUrl: movieVideo,
           thumbnailUrl: movieThumbnail,
         })
+        .then(function () {
+          router.reload();
+        })
         .catch(function (error) {
-          console.log(error);
           setError(error?.response.data.error);
 
-          if (error?.response.data.error == "") {
+          if (error?.response.data.error == "Title must be set") {
+            setAllFalse();
+            setMovieNameError(true);
+          }
+
+          if (error?.response.data.error == "Description must be set") {
+            setAllFalse();
+            setMovieDescriptonError(true);
+          }
+
+          if (error?.response.data.error == "Actor must be set") {
+            setAllFalse();
+            setMovieActorError(true);
+          }
+
+          if (error?.response.data.error == "Type must be set") {
+            setAllFalse();
+            setMovieTypeError(true);
+          }
+
+          if (error?.response.data.error == "Genre must be set") {
+            setAllFalse();
+            setMovieGenreError(true);
+          }
+
+          if (error?.response.data.error == "Duration must be set") {
+            setAllFalse();
+            setMovieDurationError(true);
+          }
+
+          if (error?.response.data.error == "Invalid duration") {
+            setAllFalse();
+            setMovieDurationError(true);
+          }
+
+          if (error?.response.data.error == "Video Url must be set") {
+            setAllFalse();
+            setMovieVideoError(true);
+          }
+
+          if (error?.response.data.error == "Thumbnail Url must be set") {
+            setAllFalse();
+            setMovieThumbnailError(true);
           }
         });
-
-      //router.reload();
     } catch (error) {
       console.log(error);
     }
@@ -180,12 +233,19 @@ export default function Add() {
                 onKeyDown={null}
                 error={movieThumbnailError}
               />
+              <div
+                className={`text-red-600 w-full text-center text-lg font-semibold ${
+                  error != "" ? "block" : "hidden"
+                }`}
+              >
+                {error}
+              </div>
               <div className="px-32">
                 <button
                   onClick={() => {
                     save();
                   }}
-                  className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md hover:bg-red-700"
+                  className="w-full py-3 font-bold text-white transition bg-red-600 rounded-md hover:bg-red-700"
                 >
                   Add
                 </button>

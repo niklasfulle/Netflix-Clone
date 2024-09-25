@@ -42,6 +42,7 @@ const Profiles = () => {
   const [profilImg, setProfilImg] = useState("Frog.png");
   const [profilName, setProfilName] = useState("");
   const { isOpen, openModal, closeModal } = useProfilModal();
+  const [error, setError] = useState("");
 
   let size = 0;
   if (profiles) {
@@ -50,12 +51,17 @@ const Profiles = () => {
 
   async function save(profilName: string) {
     try {
-      await axios.post("/api/profil", {
-        profilName,
-        profilImg,
-      });
-
-      router.reload();
+      await axios
+        .post("/api/profil", {
+          profilName,
+          profilImg,
+        })
+        .then(function () {
+          router.reload();
+        })
+        .catch(function (error) {
+          setError(error?.response.data.error);
+        });
     } catch (error) {
       console.log(error);
     }
@@ -63,13 +69,18 @@ const Profiles = () => {
 
   async function update(profilId: string, profilName: string) {
     try {
-      await axios.patch("/api/profil", {
-        profilId,
-        profilName,
-        profilImg,
-      });
-
-      router.reload();
+      await axios
+        .patch("/api/profil", {
+          profilId,
+          profilName,
+          profilImg,
+        })
+        .then(function () {
+          router.reload();
+        })
+        .catch(function (error) {
+          setError(error?.response.data.error);
+        });
     } catch (error) {
       console.log(error);
     }
@@ -77,9 +88,14 @@ const Profiles = () => {
 
   async function remove(profilId: string) {
     try {
-      await axios.delete("/api/profil", { data: profilId });
-
-      router.reload();
+      await axios
+        .delete("/api/profil", { data: profilId })
+        .then(function () {
+          router.reload();
+        })
+        .catch(function (error) {
+          setError(error?.response.data.error);
+        });
     } catch (error) {
       console.log(error);
     }
@@ -242,6 +258,13 @@ const Profiles = () => {
                   />
                 </div>
               </div>
+              <div
+                className={`text-red-600 w-full text-center text-lg font-semibold ${
+                  error != "" ? "block" : "hidden"
+                }`}
+              >
+                {error}
+              </div>
             </>
           )}
           {profileState == "edit" && profileStateEdit != "" && (
@@ -307,6 +330,13 @@ const Profiles = () => {
                     size={35}
                   />
                 </div>
+              </div>
+              <div
+                className={`text-red-600 w-full text-center text-lg font-semibold ${
+                  error != "" ? "block" : "hidden"
+                }`}
+              >
+                {error}
               </div>
             </>
           )}
