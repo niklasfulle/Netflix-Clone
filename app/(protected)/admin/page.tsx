@@ -24,7 +24,7 @@ const AdminPage = () => {
     fetch("/api/admin/").then((response) => {
       if (response.ok) {
         toast.success("Allowed API Route!");
-      } else {
+      } else { 
         toast.error("Forbidden API Route!");
       }
     });

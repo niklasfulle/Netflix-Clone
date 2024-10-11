@@ -64,7 +64,7 @@ export const NewPasswordForm = () => {
                   <FormLabel className="text-white">New Password</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-white bg-zinc-800 h-10 placeholder:text-gray-400 pt-2 border-gray-500"
+                      className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
                       {...field}
                       disabled={isPending}
                       placeholder="******"

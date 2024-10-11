@@ -44,3 +44,18 @@ export const SettingsSchema = z.object({
     }
     return true
   }, { message: "New password is required!", path: ["newPassword"] })
+
+export const ProfilSchema = z.object({
+  profilId: z.string().optional(),
+  profilName: z.string().min(1, 'Name must be set'),
+  profilImg: z.string().min(1, 'Img must be set'),
+});
+
+export const ProfilIdSchema = z.object({
+  profilId: z.string()
+})
+
+export const FavoriteIdSchema = z.object({
+  favoriteId: z.string().optional(),
+  movieId: z.string().optional(),
+})
