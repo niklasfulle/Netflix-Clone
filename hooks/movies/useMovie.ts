@@ -8,8 +8,6 @@ const useMovie = (id?: string) => {
     revalidateOnReconnect: true,
   });
 
-  console.log(data)
-
   return {
     data,
     error,

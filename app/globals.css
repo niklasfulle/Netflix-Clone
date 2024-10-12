@@ -9,13 +9,26 @@ body,
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  @apply h-full overflow-x-hidden bg-zinc-900;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  /* Revert text color */
+  -webkit-text-fill-color: white !important;
+  color: white !important;
+  caret-color: white !important;
+
+  /* Revert background color */
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 @layer base {

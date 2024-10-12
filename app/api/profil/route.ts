@@ -1,11 +1,5 @@
 import { db } from "@/lib/db"
-import { z } from "zod";
 import { currentUser } from "@/lib/auth";
-
-const profilSchema = z.object({
-  profilName: z.string().min(1, 'Name must be set'),
-  profilImg: z.string().min(1, 'Img must be set'),
-});
 
 export async function GET() {
   try {

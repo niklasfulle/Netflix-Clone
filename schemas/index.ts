@@ -59,3 +59,19 @@ export const FavoriteIdSchema = z.object({
   favoriteId: z.string().optional(),
   movieId: z.string().optional(),
 })
+
+export const WatchTimeSchema = z.object({
+  movieId: z.string(),
+  watchTime: z.number()
+})
+
+export const MovieSchema = z.object({
+  movieName: z.string().min(1, 'Name must be set'),
+  movieDescripton: z.string().min(1, 'Descripton must be set'),
+  movieActor: z.string().min(1, 'Actor must be set'),
+  movieType: z.string().min(1, 'Type must be set'),
+  movieGenre: z.string().min(1, 'Genre must be set'),
+  movieDuration: z.string().min(1, 'Duration must be set').regex(/^(\d{1,2}:)?\d{2}:\d{2}$/g, 'Invalid duration'),
+  movieVideo: z.string().min(1, 'Video must be set'),
+  movieThumbnail: z.string().min(1, 'Thumbnail must be set'),
+})

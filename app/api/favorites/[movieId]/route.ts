@@ -1,12 +1,12 @@
 import { db } from "@/lib/db"
 import { currentUser } from "@/lib/auth";
+import { NextRequest } from "next/server";
 
 type Params = {
   movieId: string
 }
 
-export async function GET(request: Request,
-  { params }: { params: Params }) {
+export async function GET(req: NextRequest, { params }: { params: Params }) {
   try {
     const movieId = params.movieId
 
@@ -35,7 +35,7 @@ export async function GET(request: Request,
       return Response.json(null, { status: 404 })
     }
 
-    let movies = await db.movie.findMany({
+    const movies = await db.movie.findMany({
       where: {
         id: {
           in: profil.favoriteIds
@@ -53,7 +53,7 @@ export async function GET(request: Request,
 
     for (let i = 0; i < movies.length; i++) {
       for (let j = 0; j < watchTime.length; j++) {
-        let movieWithWatchTime: {
+        const movieWithWatchTime: {
           id: string;
           title: string;
           description: string;
@@ -64,7 +64,7 @@ export async function GET(request: Request,
           actor: string;
           duration: string;
           createdAt: Date;
-          watchTime?: any;
+          watchTime?: number;
         } = { ...movies[i], watchTime: undefined };
 
         if (movies[i].id == watchTime[j].movieId) {

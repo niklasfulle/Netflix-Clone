@@ -1,20 +1,17 @@
 import { db } from "@/lib/db"
 import { currentUser } from "@/lib/auth"
+import { NextRequest } from "next/server"
 
 type Params = {
   movieId: string
 }
 
-export async function GET(request: Request,
-  { params }: { params: Params }) {
+export async function GET(req: NextRequest, { params }: { params: Params }) {
   try {
     const movieId = params.movieId
-    if (typeof movieId !== "string") {
-      throw new Error("Invalid ID")
-    }
 
     if (!movieId) {
-      throw new Error("Invalid ID")
+      return Response.json(null, { status: 404 })
     }
 
     const user = await currentUser()
@@ -34,13 +31,12 @@ export async function GET(request: Request,
       return Response.json(null, { status: 404 })
     }
 
-
     const movie = await db.movie.findUnique({
       where: { id: movieId }
     });
 
     if (!movie) {
-      throw new Error("Invalid ID");
+      return Response.json(null, { status: 404 })
     }
 
     const movieWithWatchTime: {

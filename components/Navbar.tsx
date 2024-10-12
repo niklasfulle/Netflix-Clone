@@ -31,14 +31,6 @@ const Navbar = () => {
     };
   }, []);
 
-  const [searchValue, setSearchValue] = useState("");
-
-  const handleSearch = (value: string) => {
-    // Here, you can access the search value when Enter is pressed
-    console.log(value);
-    setSearchValue(value);
-  };
-
   const toggleMobileMenu = useCallback(() => {
     setShowMobileMenu((current) => !current);
   }, []);
@@ -91,7 +83,7 @@ const Navbar = () => {
           <MobileMenu visible={showMobileMenu} />
         </div>
         <div className="flex flex-row items-center ml-auto gap-7">
-          <SearchItem onSearch={handleSearch} />
+          <SearchItem />
           <div
             onClick={toggleAccountMenu}
             className="relative flex flex-row items-center gap-2 cursor-pointer"

@@ -3,7 +3,6 @@ import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/compat/router";
 import React from "react";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserRole } from "@prisma/client";
@@ -15,7 +14,6 @@ interface AccountMenuProps {
 const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
   const user = useCurrentUser();
   const { data: profil } = useCurrentProfil();
-  const router = useRouter();
 
   if (!visible) {
     return null;

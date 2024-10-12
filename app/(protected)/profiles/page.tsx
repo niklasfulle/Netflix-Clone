@@ -1,8 +1,5 @@
 "use client";
-import { useCurrentUser } from "@/hooks/use-current-user";
 import { useRouter } from "next/navigation";
-import { useRouter as useRouter2 } from "next/compat/router";
-import axios from "axios";
 import {
   FaArrowLeft,
   FaPen,
@@ -10,9 +7,8 @@ import {
   FaRegSave,
   FaRegTrashAlt,
 } from "react-icons/fa";
-import { useState } from "react";
+import { SetStateAction, useState } from "react";
 import Image from "next/image";
-
 import Head from "next/head";
 import getProfils from "@/hooks/getProfils";
 import useProfilModal from "@/hooks/useProfilModal";
@@ -22,14 +18,17 @@ import { save } from "@/actions/profil/save";
 import { update } from "@/actions/profil/update";
 import { remove } from "@/actions/profil/remove";
 import { use } from "@/actions/profil/use";
+import { FormError } from "@/components/form-error";
+import { FormSuccess } from "@/components/form-success";
+import { Profil } from "@prisma/client";
 
 const ProfilesPage = () => {
   const router = useRouter();
-  let profiles = getProfils().data;
-  const [profileState, setProfileState] = useState("profiles");
-  const [profileStateEdit, setProfileStateEdit] = useState<any>({});
-  const [profilImg, setProfilImg] = useState("Frog.png");
-  const [profilName, setProfilName] = useState("");
+  const profiles = getProfils().data;
+  const [profileState, setProfileState] = useState<string>("profiles");
+  const [profileStateEdit, setProfileStateEdit] = useState<Profil | null>(null);
+  const [profilImg, setProfilImg] = useState<string>("Frog.png");
+  const [profilName, setProfilName] = useState<string>("");
   const { isOpen, openModal, closeModal } = useProfilModal();
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
@@ -84,7 +83,7 @@ const ProfilesPage = () => {
       .catch(() => setError("Something went wrong!"));
   }
 
-  async function useProfile(profilId: string) {
+  async function useProfileFunc(profilId: string) {
     use({ profilId })
       .then((data) => {
         if (data?.error) {
@@ -98,7 +97,6 @@ const ProfilesPage = () => {
       })
       .catch(() => setError("Something went wrong!"));
   }
-  const user = useCurrentUser();
   return (
     <>
       <Head>
@@ -121,11 +119,11 @@ const ProfilesPage = () => {
                 Who is watching?
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
-                {profiles.map((profil: any) => (
+                {profiles.map((profil: Profil) => (
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <div
-                        onClick={() => useProfile(profil.id)}
+                        onClick={() => useProfileFunc(profil.id)}
                         className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
                       >
                         <Image
@@ -144,7 +142,7 @@ const ProfilesPage = () => {
                             setProfileStateEdit(profil);
                             setProfileState("edit");
                             setProfilName(profil.name);
-                            setProfilImg(profil.image);
+                            setProfilImg(profil.image as string);
                           }}
                           className="z-10 mt-4 text-white transition-all ease-in cursor-pointer hover:text-neutral-500"
                           size={20}
@@ -226,7 +224,9 @@ const ProfilesPage = () => {
                         lable="Name"
                         type="text"
                         value={profilName}
-                        onChange={(event: any) => {
+                        onChange={(event: {
+                          target: { value: SetStateAction<string> };
+                        }) => {
                           setProfilName(event.target.value);
                         }}
                         onKeyDown={null}
@@ -244,16 +244,11 @@ const ProfilesPage = () => {
                   />
                 </div>
               </div>
-              <div
-                className={`text-red-600 w-full text-center text-lg font-semibold ${
-                  error != "" ? "block" : "hidden"
-                }`}
-              >
-                {error}
-              </div>
+              <FormError message={error} />
+              <FormSuccess message={success} />
             </>
           )}
-          {profileState == "edit" && profileStateEdit != "" && (
+          {profileState == "edit" && profileStateEdit != null && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
                 Add Profile
@@ -292,7 +287,9 @@ const ProfilesPage = () => {
                         lable="Name"
                         type="text"
                         value={profilName}
-                        onChange={(event: any) => {
+                        onChange={(event: {
+                          target: { value: SetStateAction<string> };
+                        }) => {
                           setProfilName(event.target.value);
                         }}
                         onKeyDown={null}
@@ -303,27 +300,26 @@ const ProfilesPage = () => {
                 <div className="flex flex-col items-center justify-center gap-8 -mt-16 transition rounded-full cursor-pointer ">
                   <FaRegSave
                     onClick={() => {
-                      updateProfil(profileStateEdit.id, profilName);
+                      if (profileStateEdit) {
+                        updateProfil(profileStateEdit.id, profilName);
+                      }
                     }}
                     className="text-white transition-all ease-in hover:text-neutral-300"
                     size={35}
                   />
                   <FaRegTrashAlt
                     onClick={() => {
-                      removeProfil(profileStateEdit.id);
+                      if (profileStateEdit) {
+                        removeProfil(profileStateEdit?.id);
+                      }
                     }}
                     className="text-red-600 transition-all ease-in hover:text-red-500"
                     size={35}
                   />
                 </div>
               </div>
-              <div
-                className={`text-red-600 w-full text-center text-lg font-semibold ${
-                  error != "" ? "block" : "hidden"
-                }`}
-              >
-                {error}
-              </div>
+              <FormError message={error} />
+              <FormSuccess message={success} />
             </>
           )}
         </div>
