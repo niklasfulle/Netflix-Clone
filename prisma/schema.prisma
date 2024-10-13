@@ -7,19 +7,25 @@ datasource db {
   url      = env("POSTGRESQL_URL")
 }
 
-model User {
-  id             String    @id @unique @default(cuid())
-  name           String
-  image          String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  hashedPassword String?
-  role           String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt 
-  accounts       Account[]
-  sessions       Session[]
-  profil         Profil[]
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model User{
+  id                    String    @id @unique @default(cuid())
+  name                  String
+  image                 String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  hashedPassword        String?
+  role                  UserRole  @default(USER)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt 
+  accounts              Account[]
+  profil                Profil[]
+  isTwoFactorEnabled    Boolean   @default(false)
+  twoFactorConfirmation TwoFactorConfirmation?
 }
 
 model Account {
@@ -40,6 +46,41 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model VerificationToken {
+  id String @id @default(cuid())
+  email String
+  token String @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id    String  @id @default(cuid())
+  email String
+  token String @unique
+  expires DateTime
+  
+  @@unique([email, token])
+}
+
+model TwoFactorToken {
+  id    String  @id @default(cuid())
+  email String
+  token String @unique
+  expires DateTime
+  
+  @@unique([email, token])
+}
+
+model TwoFactorConfirmation{
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
+
 model Profil {
   id             String    @id @unique @default(cuid())
   userId         String
@@ -48,23 +89,7 @@ model Profil {
   inUse          Boolean   @default(false)
   createdAt      DateTime  @default(now())
   favoriteIds    String[]
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Session {
-  id           String   @id @unique @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  id         String @id @unique @default(cuid())
-  identifier String
-  token      String @unique
-
-  @@unique([identifier, token])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Movie {

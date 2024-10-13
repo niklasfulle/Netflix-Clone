@@ -5,8 +5,8 @@ interface MovieCardProps {
   data: Record<string, any>;
 }
 
-function calculateBarWidth(duration: string, watchTime: number): any {
-  let i: string[] = duration.split(":");
+function calculateBarWidth(duration: string, watchTime: number): number {
+  const i: string[] = duration.split(":");
   let sec: number;
   if (i.length == 1) {
     sec = parseInt(i[0]);
@@ -21,7 +21,8 @@ function calculateBarWidth(duration: string, watchTime: number): any {
 
 const Thumbnail: React.FC<MovieCardProps> = ({ data }) => {
   const { openModal } = useInfoModal();
-  let barWidth: any = calculateBarWidth(data?.duration, data?.watchTime) + "%";
+  const barWidth: string =
+    calculateBarWidth(data?.duration, data?.watchTime) + "%";
 
   return (
     <div
@@ -30,7 +31,7 @@ const Thumbnail: React.FC<MovieCardProps> = ({ data }) => {
     >
       <div className="relative">
         <Image
-          className="w-full transition shadow-xl cursor-pointer oobject-cover duration rounded-t-md max-w-64 aspect-video"
+          className="w-full transition shadow-xl cursor-pointer oobject-cover duration rounded-md max-w-64 aspect-video"
           src={data.thumbnailUrl}
           alt="Thumbnail"
           width={500}

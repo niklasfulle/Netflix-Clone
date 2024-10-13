@@ -1,9 +1,9 @@
-import useProfilImgsApi from "@/hooks/useProfilImgsApi";
 import { useCallback, useEffect, useState } from "react";
 import { FaArrowRight } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { FaUserCheck } from "react-icons/fa";
 import Image from "next/image";
+import useProfilImgsApi from "@/hooks/useProfilImgsApi";
 
 interface ProfilModalProps {
   visible?: boolean;

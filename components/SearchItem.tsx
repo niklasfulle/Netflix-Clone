@@ -1,13 +1,9 @@
 "use client";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import React, { ChangeEvent, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 
-export type SearchProps = {
-  onSearch: (value: string) => void;
-};
-
-const SearchItem = (props: SearchProps) => {
+const SearchItem = () => {
   const [value, setValue] = useState("");
   const router = useRouter();
 
@@ -18,7 +14,7 @@ const SearchItem = (props: SearchProps) => {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") {
-      if (value != "") router.push(`/search?item=${value}`);
+      if (value != "") router.push(`/search/${value}`);
     }
   };
 
@@ -42,7 +38,7 @@ const SearchItem = (props: SearchProps) => {
           size={18}
           className="text-white"
           onClick={() => {
-            if (value != "") router.push(`/search?item=${value}`);
+            if (value != "") router?.push(`/search/${value}`);
           }}
         />
       </button>

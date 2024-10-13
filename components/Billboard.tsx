@@ -1,10 +1,11 @@
 "use client";
-import useBillboard from "@/hooks/useBillborad";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import PlayButton from "./PlayButton";
 import useInfoModal from "@/hooks/useInfoModal";
 import Image from "next/image";
+import useBillboard from "@/hooks/useBillborad";
 
 const Billboard = () => {
   const { data } = useBillboard();

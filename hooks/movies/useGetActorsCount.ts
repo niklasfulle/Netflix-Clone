@@ -7,6 +7,7 @@ const useGetActorsCount = () => {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
+
   return {
     data,
     error,

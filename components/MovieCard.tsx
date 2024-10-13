@@ -1,7 +1,7 @@
 import React from "react";
 import { FaChevronDown, FaPlay, FaUndo } from "react-icons/fa";
 import FavoriteButton from "./FavoriteButton";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import useInfoModal from "@/hooks/useInfoModal";
 import Image from "next/image";
 
@@ -9,8 +9,8 @@ interface MovieCardProps {
   data: Record<string, any>;
 }
 
-function calculateBarWidth(duration: string, watchTime: number): any {
-  let i: string[] = duration.split(":");
+function calculateBarWidth(duration: string, watchTime: number): number {
+  const i: string[] = duration.split(":");
   let sec: number;
   if (i.length == 1) {
     sec = parseInt(i[0]);
@@ -26,7 +26,8 @@ function calculateBarWidth(duration: string, watchTime: number): any {
 const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
   const router = useRouter();
 
-  let barWidth: any = calculateBarWidth(data?.duration, data?.watchTime) + "%";
+  const barWidth: string =
+    calculateBarWidth(data?.duration, data?.watchTime) + "%";
   const { openModal } = useInfoModal();
 
   return (

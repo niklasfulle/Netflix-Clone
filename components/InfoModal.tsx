@@ -1,12 +1,13 @@
+"use client";
 import PlayButton from "./PlayButton";
-import FavoriteButton from "./FavoriteButton";
 import useInfoModal from "@/hooks/useInfoModal";
-import useMovie from "@/hooks/movies/useMovie";
 import { useCallback, useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { FaUndo } from "react-icons/fa";
-import { useRouter } from "next/router";
 import Image from "next/image";
+import useMovie from "@/hooks/movies/useMovie";
+import FavoriteButton from "@/components/FavoriteButton";
+import Link from "next/link";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -17,7 +18,6 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
   const { movieId } = useInfoModal();
   const { data = {} } = useMovie(movieId);
-  const router = useRouter();
   const [isDesktop, setIsDesktop] = useState(true);
 
   const checkWindowSize = () => {
@@ -50,6 +50,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
   if (!visible) {
     return null;
   }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
       <div className="relative w-auto max-w-3xl mx-auto overflow-hidden rounded-md">
@@ -90,12 +91,11 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
               </p>
               <div className="flex flex-row gap-4 justify-items-start">
                 <PlayButton movieId={data?.id} />
-                <div
-                  className="flex items-center justify-center w-8 h-8 transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300"
-                  onClick={() => router.push(`/watch/${data?.id}?start=0`)}
-                >
-                  <FaUndo size={18} className="mt-0.5 text-white" />
-                </div>
+                <Link href={`/watch/${data?.id}?start=0`}>
+                  <div className="flex items-center justify-center w-8 h-8 transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300">
+                    <FaUndo size={18} className="mt-0.5 text-white" />
+                  </div>
+                </Link>
                 <FavoriteButton movieId={data?.id} />
               </div>
             </div>

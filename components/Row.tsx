@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { isEmpty } from "lodash";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import Thumbnail from "./Thumbnail";
+import Thumbnail from "@/components/Thumbnail";
 
 interface RowProps {
   data: Record<string, any>[];
@@ -47,7 +47,7 @@ const Row: React.FC<RowProps> = ({ data, title }) => {
           />
           <div
             ref={rowRef}
-            className="flex items-center space-x-0.5 overflow-x-scroll md:space-x-2.5 scrollbar-hide h-44"
+            className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
           >
             {data.map((movie) => (
               <Thumbnail key={movie.id} data={movie} />

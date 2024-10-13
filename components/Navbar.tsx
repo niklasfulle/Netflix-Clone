@@ -1,12 +1,11 @@
-import NavbarItem from "@/components/NavbarItem";
-import MobileMenu from "@/components/MobileMenu";
-import AccountMenu from "@/components/AccountMenu";
-
 import { FaChevronDown } from "react-icons/fa";
 import { useCallback, useEffect, useState } from "react";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import Image from "next/image";
-import SeachItem from "./SearchItem";
+import SearchItem from "@/components/SearchItem";
+import NavbarItem from "@/components/NavbarItem";
+import MobileMenu from "@/components/MobileMenu";
+import AccountMenu from "@/components/AccountMenu";
 
 const TOP_OFFSET = 66;
 
@@ -31,14 +30,6 @@ const Navbar = () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, []);
-
-  const [searchValue, setSearchValue] = useState("");
-
-  const handleSearch = (value: string) => {
-    // Here, you can access the search value when Enter is pressed
-    console.log(value);
-    setSearchValue(value);
-  };
 
   const toggleMobileMenu = useCallback(() => {
     setShowMobileMenu((current) => !current);
@@ -92,7 +83,7 @@ const Navbar = () => {
           <MobileMenu visible={showMobileMenu} />
         </div>
         <div className="flex flex-row items-center ml-auto gap-7">
-          <SeachItem onSearch={handleSearch} />
+          <SearchItem />
           <div
             onClick={toggleAccountMenu}
             className="relative flex flex-row items-center gap-2 cursor-pointer"
