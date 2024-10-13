@@ -38,7 +38,7 @@ const ProfilesPage = () => {
     size = profiles.length;
   }
 
-  async function saveProfil(profilName: string) {
+  const saveProfil = async (profilName: string) => {
     save({ profilName, profilImg })
       .then((data) => {
         if (data?.error) {
@@ -51,9 +51,9 @@ const ProfilesPage = () => {
         }
       })
       .catch(() => setError("Something went wrong!"));
-  }
+  };
 
-  async function updateProfil(profilId: string, profilName: string) {
+  const updateProfil = async (profilId: string, profilName: string) => {
     update({ profilId, profilName, profilImg })
       .then((data) => {
         if (data?.error) {
@@ -66,9 +66,9 @@ const ProfilesPage = () => {
         }
       })
       .catch(() => setError("Something went wrong!"));
-  }
+  };
 
-  async function removeProfil(profilId: string) {
+  const removeProfil = async (profilId: string) => {
     remove({ profilId })
       .then((data) => {
         if (data?.error) {
@@ -81,9 +81,9 @@ const ProfilesPage = () => {
         }
       })
       .catch(() => setError("Something went wrong!"));
-  }
+  };
 
-  async function useProfileFunc(profilId: string) {
+  const profileUse = async (profilId: string) => {
     use({ profilId })
       .then((data) => {
         if (data?.error) {
@@ -96,7 +96,8 @@ const ProfilesPage = () => {
         }
       })
       .catch(() => setError("Something went wrong!"));
-  }
+  };
+
   return (
     <>
       <Head>
@@ -123,7 +124,11 @@ const ProfilesPage = () => {
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <div
-                        onClick={() => useProfileFunc(profil.id)}
+                        onClick={() => {
+                          if (profil) {
+                            profileUse(profil.id);
+                          }
+                        }}
                         className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
                       >
                         <Image
@@ -244,8 +249,10 @@ const ProfilesPage = () => {
                   />
                 </div>
               </div>
-              <FormError message={error} />
-              <FormSuccess message={success} />
+              <div className="mt-10">
+                <FormError message={error} />
+                <FormSuccess message={success} />
+              </div>
             </>
           )}
           {profileState == "edit" && profileStateEdit != null && (
@@ -318,8 +325,10 @@ const ProfilesPage = () => {
                   />
                 </div>
               </div>
-              <FormError message={error} />
-              <FormSuccess message={success} />
+              <div className="mt-10">
+                <FormError message={error} />
+                <FormSuccess message={success} />
+              </div>
             </>
           )}
         </div>

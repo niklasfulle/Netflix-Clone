@@ -21,13 +21,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
     html: `<p>Click <a href="${confirmLink}">here</a> to confirm email.</p>`,
   };
 
-  transporter.sendMail(mailOptions, function (error: any) {
-    if (error) {
-      throw new Error(error);
-    } else {
-      return true;
-    }
-  });
+  transporter.sendMail(mailOptions, function () { });
 }
 
 export const sendResetPasswordEmail = async (email: string, token: string) => {
@@ -51,13 +45,7 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
     html: `<p>Click <a href="${confirmLink}">here</a> to reset your password.</p>`,
   };
 
-  transporter.sendMail(mailOptions, function (error: any) {
-    if (error) {
-      throw new Error(error);
-    } else {
-      return true;
-    }
-  });
+  transporter.sendMail(mailOptions, function () { });
 }
 
 export const sendTwoFactorEmail = async (email: string, token: string) => {
@@ -79,11 +67,5 @@ export const sendTwoFactorEmail = async (email: string, token: string) => {
     html: `<p>Your 2FA code: ${token}</p>`
   };
 
-  transporter.sendMail(mailOptions, function (error: any) {
-    if (error) {
-      throw new Error(error);
-    } else {
-      return true;
-    }
-  });
+  transporter.sendMail(mailOptions, function () { });
 }

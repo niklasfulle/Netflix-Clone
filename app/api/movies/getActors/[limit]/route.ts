@@ -39,10 +39,10 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       },
     })
 
-    let actors = new Set<string>([])
+    const actors = new Set<string>([])
     movies.forEach((movie: Movie) => actors.add(movie.actor));
 
-    let actorArray: string[] = []
+    const actorArray: string[] = []
     actors.forEach((actor: string) => actorArray.push(actor));
 
 

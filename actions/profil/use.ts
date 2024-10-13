@@ -38,5 +38,5 @@ export const use = async (values: z.infer<typeof ProfilIdSchema>) => {
     }
   })
 
-  return { success: "Profil updated!" }
+  return { success: "Profil use!" }
 }

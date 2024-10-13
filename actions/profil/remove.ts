@@ -25,5 +25,5 @@ export const remove = async (values: z.infer<typeof ProfilIdSchema>) => {
     }
   })
 
-  return { success: "Profil updated!" }
+  return { success: "Profil removed!" }
 }
