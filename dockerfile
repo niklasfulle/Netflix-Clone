@@ -5,6 +5,6 @@ WORKDIR /netflix-clone
 COPY package*.json .
 RUN npm install
 COPY . .
-EXPOSE 6969
+EXPOSE 6000
 RUN npm run build
 RUN npm run start
