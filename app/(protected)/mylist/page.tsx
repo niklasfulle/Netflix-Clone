@@ -11,7 +11,8 @@ import Footer from "@/components/Footer";
 
 export default function MyListPage() {
   const { data: profil } = useCurrentProfil();
-  const { data: favoriteMovies = [] } = useFavorites();
+  const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
+    useFavorites();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -33,7 +34,11 @@ export default function MyListPage() {
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="pt-40 pb-40 h-lvh">
-        <SearchList title="My List" data={favoriteMovies} />
+        <SearchList
+          title="My List"
+          data={favoriteMovies}
+          isLoading={isLoadingFavorites}
+        />
       </div>
       <Footer />
     </>

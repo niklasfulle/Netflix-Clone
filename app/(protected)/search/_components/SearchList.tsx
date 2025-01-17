@@ -5,9 +5,10 @@ import MovieCard from "@/components/MovieCard";
 interface SearchListProps {
   data: Record<string, any>[];
   title: string;
+  isLoading: boolean;
 }
 
-const SearchList: React.FC<SearchListProps> = ({ data, title }) => {
+const SearchList: React.FC<SearchListProps> = ({ data, title, isLoading }) => {
   if (isEmpty(data)) {
     return null;
   }
@@ -20,7 +21,7 @@ const SearchList: React.FC<SearchListProps> = ({ data, title }) => {
         </p>
         <div className="grid grid-cols-2 gap-4 mt-4 lg:grid-cols-4 md:gap-4">
           {data.map((movie) => (
-            <MovieCard key={movie.id} data={movie} />
+            <MovieCard key={movie.id} data={movie} isLoading={isLoading} />
           ))}
         </div>
       </div>

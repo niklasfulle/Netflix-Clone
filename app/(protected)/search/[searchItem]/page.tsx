@@ -11,7 +11,9 @@ import SearchList from "../_components/SearchList";
 export default function MoviesPage() {
   const params = useParams<{ searchItem: string }>();
   const { data: profil } = useCurrentProfil();
-  const { data: results } = useSearchItem(params.searchItem);
+  const { data: results, isLoading: isLoadingSearch } = useSearchItem(
+    params.searchItem
+  );
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -34,7 +36,11 @@ export default function MoviesPage() {
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="pt-40 pb-40">
-        <SearchList title="Search Result" data={results} />
+        <SearchList
+          title="Search Result"
+          data={results}
+          isLoading={isLoadingSearch}
+        />
       </div>
     </>
   );

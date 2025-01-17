@@ -10,7 +10,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SettingsSchema } from "@/schemas";
-import { useTransition, useState, useEffect } from "react";
+import { useTransition, useState } from "react";
 import { settings } from "@/actions/settings";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
