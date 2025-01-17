@@ -1,12 +1,15 @@
-import React from "react";
-import { FaChevronDown, FaPlay, FaUndo } from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import { FaChevronDown } from "react-icons/fa";
 import FavoriteButton from "./FavoriteButton";
-import { useRouter } from "next/navigation";
 import useInfoModal from "@/hooks/useInfoModal";
 import Image from "next/image";
+import RestartButton from "./RestartButton";
+import MovieCardPlayButton from "./MovieCardPlayButton";
+import { isMobile } from "react-device-detect";
 
 interface MovieCardProps {
   data: Record<string, any>;
+  isLoading: boolean;
 }
 
 function calculateBarWidth(duration: string, watchTime: number): number {
@@ -23,36 +26,77 @@ function calculateBarWidth(duration: string, watchTime: number): number {
   return Math.floor(watchTime / (sec! / 100));
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
-  const router = useRouter();
-
+const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
+  const [isDesktop, setIsDesktop] = useState(true);
   const barWidth: string =
     calculateBarWidth(data?.duration, data?.watchTime) + "%";
   const { openModal } = useInfoModal();
 
+  const checkWindowSize = () => {
+    let windowWidth: number = 0; // Initialize with a default value
+    if (typeof window !== "undefined") {
+      windowWidth = window.innerWidth;
+    }
+    if (windowWidth >= 640) {
+      setIsDesktop(true);
+    } else {
+      setIsDesktop(false);
+    }
+  };
+
+  const handleClick = (id: string) => {
+    console.log(isMobile);
+    if (isMobile || !isDesktop) {
+      openModal(id);
+    }
+  };
+
+  useEffect(() => {
+    checkWindowSize();
+  }, [isDesktop]);
+
   return (
-    <div className="group bg-zinc-900 col-span relative h-[20vw] lg:h-[12vw]">
+    <div
+      className="group bg-zinc-900 col-span relative h-[20vw] lg:h-[12vw]"
+      onClick={() => handleClick(data?.id)}
+    >
       <div className="relative rounded-md">
-        <Image
-          className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md group-hover:opacity-90 sm:group-hover:opacity-0 w-full h-[20vw] lg:h-[12vw]"
-          src={data.thumbnailUrl}
-          alt="Thumbnail"
-          width={1920}
-          height={1080}
-        />
+        {isLoading && (
+          <div className="flex items-center justify-center w-full transition shadow-xl cursor-pointer oobject-cover duration max-w-64 aspect-video rounded-t-md bg-zinc-800">
+            <svg
+              className="w-10 h-10 text-zinc-500 dark:text-gray-600"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor"
+              viewBox="0 0 20 18"
+            >
+              <path d="M18 0H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm4.376 10.481A1 1 0 0 1 16 15H4a1 1 0 0 1-.895-1.447l3.5-7A1 1 0 0 1 7.468 6a.965.965 0 0 1 .9.5l2.775 4.757 1.546-1.887a1 1 0 0 1 1.618.1l2.541 4a1 1 0 0 1 .028 1.011Z" />
+            </svg>
+          </div>
+        )}
+        {!isLoading && (
+          <Image
+            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[20vw] lg:h-[12vw]"
+            src={data.thumbnailUrl}
+            alt="Thumbnail"
+            width={1920}
+            height={1080}
+            priority
+          />
+        )}
         {data.watchTime != undefined && (
           <>
             <div
-              className="absolute z-10 h-1 bg-red-600 group-hover:hidden"
+              className="absolute z-10 h-1 bg-red-600 sm:group-hover:hidden bottom-[0px]"
               style={{
                 width: barWidth,
               }}
             ></div>
-            <div className="absolute w-full h-1 bg-black group-hover:hidden"></div>
+            <div className="absolute w-full h-1 bg-black sm:group-hover:hidden bottom-[0px]"></div>
           </>
         )}
       </div>
-      <div className="z-50 opacity-0 absolute top-0 transition duration-200 scale-0 group-hover:scale-100 group-hover:-translate-y-[6vw] min-w-2/3 lg:w-full group-hover:opacity-100">
+      <div className="z-50 opacity-0 absolute top-0 transition duration-200 scale-0 sm:group-hover:scale-100 sm:group-hover:-translate-y-[6vw] min-w-2/3 lg:w-full sm:group-hover:opacity-100">
         <Image
           onClick={() => openModal(data?.id)}
           className="cursor-pointer object-cover aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw]"
@@ -63,29 +107,19 @@ const MovieCard: React.FC<MovieCardProps> = ({ data }) => {
         />
         <div className="absolute z-10 w-full p-2 transition shadow-md max-h-52 lg:h-auto bg-zinc-800 lg:p-4 rounded-b-md">
           <div className="flex flex-row items-center gap-3">
-            <div className="flex flex-row gap-2">
-              <div
-                className="flex items-center justify-center w-8 h-8 transition bg-white rounded-full cursor-pointer lg:w-10 lg:h-10 hover:bg-neutral-300"
-                onClick={() => router.push(`/watch/${data?.id}`)}
-              >
-                <FaPlay className="ml-1" size={20} />
-              </div>
-              <div
-                className="flex items-center justify-center w-8 h-8 pl-0.5 transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300"
-                onClick={() => router.push(`/watch/${data?.id}?start=0`)}
-              >
-                <FaUndo size={18} className="mt-0.5 text-white" />
-              </div>
+            <div className="flex flex-row xl:gap-4 gap-3 items-center">
+              <MovieCardPlayButton movieId={data?.id} />
+              <RestartButton movieId={data?.id} />
               <FavoriteButton movieId={data?.id} />
-            </div>
-            <div
-              onClick={() => openModal(data?.id)}
-              className="flex items-center justify-center w-8 h-8 ml-auto transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300"
-            >
-              <FaChevronDown
-                className="text-white group-hover/item:text-neutral-300 mt-0.5"
-                size={20}
-              />
+              <div
+                onClick={() => openModal(data?.id)}
+                className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item  hover:border-neutral-300"
+              >
+                <FaChevronDown
+                  className="text-white sm:group-hover/item:text-neutral-300 mt-0.5"
+                  size={20}
+                />
+              </div>
             </div>
           </div>
           <p className="hidden mt-4 font-semibold text-green-400 lg:block">

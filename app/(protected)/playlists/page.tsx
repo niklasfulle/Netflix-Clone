@@ -4,14 +4,11 @@ import InfoModal from "@/components/InfoModal";
 import useInfoModal from "@/hooks/useInfoModal";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
-import { useParams, useRouter } from "next/navigation";
-import useSearchItem from "@/hooks/useSearchItem";
-import SearchList from "../_components/SearchList";
+import { useRouter } from "next/navigation";
+import Footer from "@/components/Footer";
 
-export default function MoviesPage() {
-  const params = useParams<{ searchItem: string }>();
+export default function SeriesPage() {
   const { data: profil } = useCurrentProfil();
-  const { data: results } = useSearchItem(params.searchItem);
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -26,16 +23,14 @@ export default function MoviesPage() {
   return (
     <>
       <header>
-        <title>Netflix - Search</title>
-        <meta property="og:title" content="Netflix - Search" key="title" />
-        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <title>Netflix - Playlists</title>
+        <meta property="og:title" content="Netflix - Playlists" key="title" />
         <meta name="description" content="Netflix"></meta>
       </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
-      <div className="pt-40 pb-40">
-        <SearchList title="Search Result" data={results} />
-      </div>
+      <div className="h-svh"></div>
+      <Footer />
     </>
   );
 }

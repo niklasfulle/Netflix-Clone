@@ -9,8 +9,9 @@ interface PlayButtonProps {
 const PlayButton: React.FC<PlayButtonProps> = ({ movieId }) => {
   return (
     <Link href={`/watch/${movieId}`}>
-      <div className="flex flex-row items-center px-2 text-xs font-semibold transition bg-white rounded-md cursor-pointer md:py-3 md:px-4 ld:text-lg hover:bg-neutral-300 min-h-10">
-        <FaPlay size={20} className="mr-2" /> Play
+      <div className="flex flex-row items-center p-1 md:p-2 h-10 w-10 md:w-auto justify-center text-md font-semibold transition bg-white rounded-full md:rounded-md cursor-pointer lg:text-lg hover:bg-neutral-400">
+        <FaPlay size={20} className="m-1 md:m-0 md:mr-2 mr-0.5" />
+        <p className="hidden md:block">Play</p>
       </div>
     </Link>
   );

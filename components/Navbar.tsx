@@ -56,6 +56,7 @@ const Navbar = () => {
           alt="Logo"
           width={100}
           height={100}
+          priority
         />
         <Image
           className="block w-auto h-10 md:hidden"
@@ -63,12 +64,15 @@ const Navbar = () => {
           alt="Logo"
           width={500}
           height={500}
+          priority
         />
         <div className="flex-row hidden ml-8 gap-7 lg:flex">
           <NavbarItem label="Home" href="/" />
+          <NavbarItem label="Movies" href="/movies" />
           <NavbarItem label="Series" href="/series" />
-          <NavbarItem label="Films" href="/movies" />
           <NavbarItem label="My List" href="/mylist" />
+          <NavbarItem label="Playlists" href="/playlists" />
+          <NavbarItem label="Random" href="/random" />
         </div>
         <div
           onClick={toggleMobileMenu}

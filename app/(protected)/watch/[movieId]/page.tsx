@@ -29,6 +29,11 @@ const Watch = () => {
 
   return (
     <>
+      <header>
+        <title>Netflix</title>
+        <meta property="og:title" content="Netflix" key="title" />
+        <meta name="description" content="Netflix"></meta>
+      </header>
       <div className="w-screen h-screen bg-black">
         <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
           <AiOutlineArrowLeft

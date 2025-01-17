@@ -11,7 +11,8 @@ interface FilterRowSeriesProps {
 const FilterRowSeries: React.FC<FilterRowSeriesProps> = ({ title }) => {
   const [isMoved, setIsMoved] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
-  const { data: movies = [] } = useSeriesByActor(title);
+  const { data: movies = [], isLoading: isLoadingSeriesByActor } =
+    useSeriesByActor(title);
 
   if (isEmpty(movies)) {
     return null;
@@ -51,7 +52,11 @@ const FilterRowSeries: React.FC<FilterRowSeriesProps> = ({ title }) => {
             className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
           >
             {movies.map((movie: any) => (
-              <Thumbnail key={movie.id} data={movie} />
+              <Thumbnail
+                key={movie.id}
+                data={movie}
+                isLoading={isLoadingSeriesByActor}
+              />
             ))}
           </div>
           <FaChevronRight

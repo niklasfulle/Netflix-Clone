@@ -7,6 +7,7 @@ import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
 import SearchList from "./_components/SearchList";
 import useFavorites from "@/hooks/useFavorites";
+import Footer from "@/components/Footer";
 
 export default function MyListPage() {
   const { data: profil } = useCurrentProfil();
@@ -24,11 +25,17 @@ export default function MyListPage() {
 
   return (
     <>
+      <header>
+        <title>Netflix - My List</title>
+        <meta property="og:title" content="Netflix - My List" key="title" />
+        <meta name="description" content="Netflix"></meta>
+      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
-      <div className="pt-40 pb-40">
+      <div className="pt-40 pb-40 h-lvh">
         <SearchList title="My List" data={favoriteMovies} />
       </div>
+      <Footer />
     </>
   );
 }

@@ -3,11 +3,10 @@ import PlayButton from "./PlayButton";
 import useInfoModal from "@/hooks/useInfoModal";
 import { useCallback, useEffect, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
-import { FaUndo } from "react-icons/fa";
 import Image from "next/image";
 import useMovie from "@/hooks/movies/useMovie";
 import FavoriteButton from "@/components/FavoriteButton";
-import Link from "next/link";
+import RestartButton from "./RestartButton";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -72,7 +71,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
             )}
             {!isDesktop && (
               <Image
-                className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
+                className="w-full brightness-[60%] object-cover aspect-video h-[95%]"
                 src={data?.thumbnailUrl}
                 height={1080}
                 width={1920}
@@ -89,13 +88,9 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
               <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
                 {data?.title}
               </p>
-              <div className="flex flex-row gap-4 justify-items-start">
+              <div className="flex flex-row gap-4 items-center">
                 <PlayButton movieId={data?.id} />
-                <Link href={`/watch/${data?.id}?start=0`}>
-                  <div className="flex items-center justify-center w-8 h-8 transition border-2 border-white rounded-full cursor-pointer group/item lg:w-10 lg:h-10 hover:border-neutral-300">
-                    <FaUndo size={18} className="mt-0.5 text-white" />
-                  </div>
-                </Link>
+                <RestartButton movieId={data?.id} />
                 <FavoriteButton movieId={data?.id} />
               </div>
             </div>

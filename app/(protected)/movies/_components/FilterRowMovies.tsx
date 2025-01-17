@@ -12,7 +12,8 @@ interface FilterRowMoviesProps {
 const FilterRowMovies: React.FC<FilterRowMoviesProps> = ({ title }) => {
   const [isMoved, setIsMoved] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
-  const { data: movies = [] } = useMoviesByActor(title);
+  const { data: movies = [], isLoading: isLoadingMoviesByActor } =
+    useMoviesByActor(title);
 
   const handleClick = (direction: string) => {
     setIsMoved(true);
@@ -49,7 +50,11 @@ const FilterRowMovies: React.FC<FilterRowMoviesProps> = ({ title }) => {
               className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
             >
               {movies.map((movie: Movie) => (
-                <Thumbnail key={movie.id} data={movie} />
+                <Thumbnail
+                  key={movie.id}
+                  data={movie}
+                  isLoading={isLoadingMoviesByActor}
+                />
               ))}
             </div>
             <FaChevronRight

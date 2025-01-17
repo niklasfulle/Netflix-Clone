@@ -12,10 +12,12 @@ import { useState } from "react";
 import useGetActorsCount from "@/hooks/series/useGetActorsCount";
 import BillboardSeries from "./_components/BillboardSeries";
 import FilterRowSeries from "./_components/FilterRowSeries";
+import Footer from "@/components/Footer";
 
 export default function SeriesPage() {
   const [limit, setLimit] = useState(3);
-  const { data: newSeries = [] } = useNewSeriesList();
+  const { data: newSeries = [], isLoading: isLoadingNewSeries } =
+    useNewSeriesList();
   const { data: actorsCount } = useGetActorsCount();
   const { data: actors = [] } = useGetActors(limit);
   const { data: profil } = useCurrentProfil();
@@ -36,11 +38,20 @@ export default function SeriesPage() {
 
   return (
     <>
+      <header>
+        <title>Netflix - Series</title>
+        <meta property="og:title" content="Netflix - Series" key="title" />
+        <meta name="description" content="Netflix"></meta>
+      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <BillboardSeries />
-      <div>
-        <MovieList title="New" data={newSeries} />
+      <div className="min-h-screen">
+        <MovieList
+          title="New"
+          data={newSeries}
+          isLoading={isLoadingNewSeries}
+        />
         {actors.map((actor: string) => (
           <FilterRowSeries key={actor} title={actor} />
         ))}
@@ -59,6 +70,7 @@ export default function SeriesPage() {
           <div className="flex flex-row items-center justify-center w-full h-8 pb-20"></div>
         )}
       </div>
+      <Footer />
     </>
   );
 }

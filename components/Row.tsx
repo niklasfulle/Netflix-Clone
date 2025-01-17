@@ -6,9 +6,10 @@ import Thumbnail from "@/components/Thumbnail";
 interface RowProps {
   data: Record<string, any>[];
   title: string;
+  isLoading: boolean;
 }
 
-const Row: React.FC<RowProps> = ({ data, title }) => {
+const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
   const [isMoved, setIsMoved] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +51,7 @@ const Row: React.FC<RowProps> = ({ data, title }) => {
             className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
           >
             {data.map((movie) => (
-              <Thumbnail key={movie.id} data={movie} />
+              <Thumbnail key={movie.id} data={movie} isLoading={isLoading} />
             ))}
           </div>
           <FaChevronRight

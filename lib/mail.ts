@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 export const sendVerificationEmail = async (email: string, token: string) => {
-  const confirmLink = `http://localhost:3000/auth/new-verification?token=${token}`
+  const confirmLink = `${process.env.AUTH_TRUST_HOST}/auth/new-verification?token=${token}`
 
   const transporter = nodemailer.createTransport({
     port: 465,
@@ -25,7 +25,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
 }
 
 export const sendResetPasswordEmail = async (email: string, token: string) => {
-  const confirmLink = `http://localhost:3000/auth/new-password?token=${token}`
+  const confirmLink = `${process.env.AUTH_TRUST_HOST}/auth/new-password?token=${token}`
 
   const transporter = nodemailer.createTransport({
     port: 465,

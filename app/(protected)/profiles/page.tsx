@@ -9,7 +9,6 @@ import {
 } from "react-icons/fa";
 import { SetStateAction, useState } from "react";
 import Image from "next/image";
-import Head from "next/head";
 import getProfils from "@/hooks/getProfils";
 import useProfilModal from "@/hooks/useProfilModal";
 import ProfilModal from "@/components/ProfilModal";
@@ -21,6 +20,7 @@ import { use } from "@/actions/profil/use";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
 import { Profil } from "@prisma/client";
+import Footer from "@/components/Footer";
 
 const ProfilesPage = () => {
   const router = useRouter();
@@ -100,19 +100,18 @@ const ProfilesPage = () => {
 
   return (
     <>
-      <Head>
+      <header>
         <title>Netflix - Profiles</title>
-        <meta property="og:title" content="Netflix - Profiles" key="title" />
-        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
+        <meta property="og:title" content="Netflix - Random" key="title" />
         <meta name="description" content="Netflix"></meta>
-      </Head>
+      </header>
       <ProfilModal
         visible={isOpen}
         onClose={closeModal}
         setProfilImg={setProfilImg}
         ProfilImg={profilImg}
       />
-      <div className="flex items-center justify-center h-full pt-40">
+      <div className="flex items-center justify-center h-svh -mt-20 mb-8">
         <div className="flex flex-col">
           {size != 0 && profileState == "profiles" && (
             <>
@@ -199,6 +198,7 @@ const ProfilesPage = () => {
                 <div
                   onClick={() => {
                     setProfileState("profiles");
+                    setProfilName("");
                   }}
                   className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
                 >
@@ -264,6 +264,8 @@ const ProfilesPage = () => {
                 <div
                   onClick={() => {
                     setProfileState("profiles");
+                    setProfilName("");
+                    setProfilImg("Frog.png");
                   }}
                   className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
                 >
@@ -333,6 +335,7 @@ const ProfilesPage = () => {
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 };

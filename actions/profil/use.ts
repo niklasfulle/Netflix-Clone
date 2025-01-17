@@ -3,6 +3,7 @@ import * as z from "zod";
 import { db } from "@/lib/db"
 import { ProfilIdSchema } from "@/schemas";
 import { currentUser } from "@/lib/auth";
+import { getSession } from "next-auth/react";
 
 export const use = async (values: z.infer<typeof ProfilIdSchema>) => {
   const user = await currentUser()

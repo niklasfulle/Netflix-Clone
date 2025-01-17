@@ -1,15 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { AiOutlineInfoCircle } from "react-icons/ai";
-import PlayButton from "./PlayButton";
-import useInfoModal from "@/hooks/useInfoModal";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import useBillboard from "@/hooks/useBillborad";
+import BillboardInfoButton from "./BillboardInfoButton";
+import BillboardPlayButton from "./BillboardPlayButton";
 
 const Billboard = () => {
-  const { data } = useBillboard();
-  const { openModal } = useInfoModal();
+  const { data, isLoading } = useBillboard();
   const [isDesktop, setIsDesktop] = useState(true);
 
   const checkWindowSize = () => {
@@ -28,13 +26,22 @@ const Billboard = () => {
     checkWindowSize();
   }, [isDesktop]);
 
-  const handleOpenModal = useCallback(() => {
-    openModal(data?.id);
-  }, [openModal, data?.id]);
-
   return (
     <div className="relative h-[56.25vw]">
-      {isDesktop && (
+      {isLoading && (
+        <div className="flex items-center justify-center w-full h-[56.25vw] bg-zinc-800 aspect-video">
+          <svg
+            className="w-10 h-10 text-zinc-500 dark:text-gray-600"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor"
+            viewBox="0 0 20 18"
+          >
+            <path d="M18 0H2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2Zm-5.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm4.376 10.481A1 1 0 0 1 16 15H4a1 1 0 0 1-.895-1.447l3.5-7A1 1 0 0 1 7.468 6a.965.965 0 0 1 .9.5l2.775 4.757 1.546-1.887a1 1 0 0 1 1.618.1l2.541 4a1 1 0 0 1 .028 1.011Z" />
+          </svg>
+        </div>
+      )}
+      {!isLoading && isDesktop && (
         <video
           className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
           autoPlay
@@ -44,17 +51,18 @@ const Billboard = () => {
           src={data?.videoUrl}
         ></video>
       )}
-      {!isDesktop && (
+      {!isLoading && !isDesktop && (
         <Image
           className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
           src={data?.thumbnailUrl}
           height={1080}
           width={1920}
           alt="Thumbnail"
+          priority
         />
       )}
-      <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[60%]">
-        <p className="w-full h-full font-bold text-white text-1xl md:text-5xl lg:text-6xl drop-shadow-xl">
+      <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 lg:max-w-[60%]">
+        <p className="w-full h-full font-bold text-white text-2xl md:text-5xl lg:text-6xl drop-shadow-xl">
           {data?.title}
         </p>
         {data?.description != "test" && (
@@ -63,16 +71,10 @@ const Billboard = () => {
             {data?.description.length >= 140 && "..."}
           </p>
         )}
-        {data?.description == "test" && <div className="h-10"></div>}
+        {data?.description == "test"}
         <div className="flex flex-row items-center gap-3 mt-3 md:mt-4">
-          <PlayButton movieId={data?.id} />
-          <button
-            onClick={handleOpenModal}
-            className="flex flex-row items-center w-auto px-2 py-1 text-xs font-semibold text-white transition bg-white rounded-md bg-opacity-30 md:py-2 md:px-4 lg:text-lg hover:bg-opacity-20"
-          >
-            <AiOutlineInfoCircle size={30} className="mr-1" />
-            More info
-          </button>
+          <BillboardPlayButton movieId={data?.id} />
+          <BillboardInfoButton movieId={data?.id} />
         </div>
       </div>
     </div>

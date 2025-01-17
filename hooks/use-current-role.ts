@@ -1,7 +1,5 @@
-import { useSession } from "next-auth/react";
+import getUser from "./useUser";
 
 export const useCurrentRole = () => {
-  const session = useSession()
-
-  return session.data?.user?.role
+  return getUser().data.user.role
 }

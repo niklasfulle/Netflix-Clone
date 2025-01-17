@@ -34,9 +34,6 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
             title: { contains: searchItem }
           },
           {
-            description: { contains: searchItem }
-          },
-          {
             actor: { contains: searchItem }
           }
         ]
