@@ -1,0 +1,33 @@
+---
+- name: Update Netflix
+  hosts: RaspberryPi
+  become: true
+  gather_facts: False
+
+  tasks:
+    - name: Stop Netflix
+      chdir: /projects/Netflix-Clone
+      shell: pm2 stop netflix-clone
+
+    - name: Remove Netflix from pm2
+      chdir: /projects/Netflix-Clone
+      shell: pm2 delete netflix-clone
+
+    - name: update Netflix github repository
+      git:
+        repo: https://github.com/niklasfulle/netflix-clone.git
+        dest: /projects/Netflix-Clone
+        clone: no
+        update: yes
+
+    - name: Install dependencies Netflix
+      chdir: /projects/Netflix-Clone
+      shell: npm install
+
+    - name: Build Netflix
+      chdir: /projects/Netflix-Clone
+      shell: npm run build
+
+    - name: Start Netflix
+      chdir: /projects/Netflix-Clone
+      shell: pm2 start netflix-clone -- start --port 6969

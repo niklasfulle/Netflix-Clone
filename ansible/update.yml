@@ -1,0 +1,12 @@
+---
+- name: Update Raspberry Pi
+  hosts: RaspberryPi
+  become: true
+  gather_facts: False
+
+  tasks:
+    - name: Update and Upgrade
+      ansible.builtin.apt:
+        name: aptitude
+        state: present
+        update_cache: true
