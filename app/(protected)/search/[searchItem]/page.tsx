@@ -27,12 +27,6 @@ export default function MoviesPage() {
 
   return (
     <>
-      <header>
-        <title>Netflix - Search</title>
-        <meta property="og:title" content="Netflix - Search" key="title" />
-        <link rel="icon" type="image/x-icon" href="nficon2016.ico"></link>
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="pt-40 pb-40">

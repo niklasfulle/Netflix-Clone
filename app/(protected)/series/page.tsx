@@ -38,11 +38,6 @@ export default function SeriesPage() {
 
   return (
     <>
-      <header>
-        <title>Netflix - Series</title>
-        <meta property="og:title" content="Netflix - Series" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <BillboardSeries />

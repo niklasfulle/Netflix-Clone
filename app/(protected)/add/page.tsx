@@ -5,11 +5,6 @@ import { AddMovieForm } from "./_components/add-movie-form";
 export default function Add() {
   return (
     <>
-      <header>
-        <title>Netflix - Add</title>
-        <meta property="og:title" content="Netflix - Add" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <Navbar />
       <div className="flex justify-center h-full pt-44">
         <div className="flex flex-col justify-start">

@@ -26,11 +26,6 @@ export default function MyListPage() {
 
   return (
     <>
-      <header>
-        <title>Netflix - My List</title>
-        <meta property="og:title" content="Netflix - My List" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="pt-40 pb-40 h-lvh">

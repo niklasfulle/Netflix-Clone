@@ -100,11 +100,6 @@ const ProfilesPage = () => {
 
   return (
     <>
-      <header>
-        <title>Netflix - Profiles</title>
-        <meta property="og:title" content="Netflix - Random" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <ProfilModal
         visible={isOpen}
         onClose={closeModal}

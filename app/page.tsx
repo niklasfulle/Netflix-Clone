@@ -22,11 +22,6 @@ export default function Home() {
 
   return (
     <>
-      <header>
-        <title>Netflix - Home</title>
-        <meta property="og:title" content="Netflix - Home" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <Billboard />

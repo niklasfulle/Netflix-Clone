@@ -2,6 +2,8 @@ import { db } from "@/lib/db"
 import { currentUser } from "@/lib/auth"
 import { NextRequest } from "next/server"
 
+export const dynamic = "force-dynamic"
+
 type Params = {
   actor: string
 }

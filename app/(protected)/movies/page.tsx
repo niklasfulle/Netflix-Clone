@@ -39,11 +39,6 @@ export default function MoviesPage() {
 
   return (
     <>
-      <header>
-        <title>Netflix - Movies</title>
-        <meta property="og:title" content="Netflix - Movies" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <BillboardMovie />

@@ -3,6 +3,8 @@ import { currentUser } from "@/lib/auth"
 import { NextRequest } from "next/server"
 import { Movie } from "@prisma/client"
 
+export const dynamic = "force-dynamic"
+
 type Params = {
   limit: string
 }

@@ -87,11 +87,6 @@ export default function SeriesPage() {
 
   return (
     <>
-      <header>
-        <title>Netflix - Settings</title>
-        <meta property="og:title" content="Netflix - Settings" key="title" />
-        <meta name="description" content="Netflix"></meta>
-      </header>
       <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="h-svh flex felx-row items-center justify-center px-2">

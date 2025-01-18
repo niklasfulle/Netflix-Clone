@@ -2,6 +2,8 @@ import { db } from "@/lib/db"
 import { currentUser } from "@/lib/auth"
 import { Movie } from "@prisma/client"
 
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const user = await currentUser()

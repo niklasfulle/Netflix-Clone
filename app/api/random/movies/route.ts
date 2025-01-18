@@ -1,6 +1,8 @@
 import { currentUser } from "@/lib/auth"
 import { db } from "@/lib/db"
 
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const user = await currentUser()
