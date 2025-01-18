@@ -1,31 +1,53 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
-import Footer from "@/components/Footer";
+import { useRef } from "react";
+import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import { AiOutlineArrowLeft } from "react-icons/ai";
+import useRandom from "@/hooks/useRandom";
 
-export default function SeriesPage() {
-  const { data: profil } = useCurrentProfil();
-  const { isOpen, closeModal } = useInfoModal();
+export default function RandomPage() {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const router = useRouter();
+  const { data: movie } = useRandom();
 
-  if (profil == undefined) {
+  if (movie == undefined) {
     return null;
   }
 
-  if (isEmpty(profil)) {
-    router.push("profiles");
+  async function setMovieWatchTime() {
+    const video = document.getElementById("videoElement") as HTMLVideoElement;
+    updateWatchTime({
+      movieId: movie?.id,
+      watchTime: Math.round(video.currentTime),
+    });
   }
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
-      <Navbar />
-      <div className="h-svh"></div>
-      <Footer />
+      <div className="w-screen h-screen bg-black">
+        <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
+          <AiOutlineArrowLeft
+            className="text-white cursor-pointer"
+            size={40}
+            onClick={() => {
+              setMovieWatchTime();
+              router.push("/");
+            }}
+          />
+          <p className="font-bold text-white text-1xl md:text-3xl">
+            <span className="pr-3 font-light">Watching:</span>
+            {movie?.title}
+          </p>
+        </nav>
+        <video
+          id="videoElement"
+          autoPlay
+          controls
+          className="w-full h-full"
+          src={movie?.videoUrl}
+          ref={videoRef}
+        ></video>
+      </div>
     </>
   );
 }
