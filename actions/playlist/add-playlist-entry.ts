@@ -3,6 +3,7 @@ import * as z from "zod";
 import { db } from "@/lib/db"
 import { PlaylistSelectSchema } from "@/schemas";
 import { currentUser } from "@/lib/auth";
+import { error } from "console";
 
 export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSchema>) => {
   const user = await currentUser()
@@ -35,6 +36,12 @@ export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSche
       playlistId: playlistId
     }
   })
+
+  const isInPlaylist = PlaylistEntires.find(playlistEntry => playlistEntry.movieId === movieId);
+
+  if (isInPlaylist) {
+    return { error: "Already in Playlist" }
+  }
 
   await db.playlistEntry.create({
     data: {
