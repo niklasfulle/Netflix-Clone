@@ -26,7 +26,7 @@ export const remove = async (values: z.infer<typeof FavoriteIdSchema>) => {
   })
 
   if (!profil) {
-    return { error: "Invalid fields!" }
+    return { error: "No profil found!" }
   }
 
   const { movieId } = validatedField.data

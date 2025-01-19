@@ -7,17 +7,23 @@ import Image from "next/image";
 import useMovie from "@/hooks/movies/useMovie";
 import FavoriteButton from "@/components/FavoriteButton";
 import RestartButton from "./RestartButton";
+import PlaylistSelect from "./PlaylistSelect";
 
 interface InfoModalProps {
   visible?: boolean;
   onClose: any;
+  playlists: any[];
 }
 
-const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
+const InfoModal: React.FC<InfoModalProps> = ({
+  visible,
+  onClose,
+  playlists,
+}) => {
   const [isVisible, setIsVisible] = useState(!!visible);
-  const { movieId } = useInfoModal();
-  const { data = {} } = useMovie(movieId);
   const [isDesktop, setIsDesktop] = useState(true);
+  const { movieId } = useInfoModal();
+  const { data: movie } = useMovie(movieId);
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -51,7 +57,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
+    <div className="fixed inset-0 -mt-48 px-1 sm:px-0 sm:mt-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
       <div className="relative w-auto max-w-3xl mx-auto overflow-hidden rounded-md">
         <div
           className={`${
@@ -65,14 +71,14 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
                 autoPlay
                 muted
                 loop
-                poster={data?.thumbnailUrl}
-                src={data?.videoUrl}
+                poster={movie?.thumbnailUrl}
+                src={movie?.videoUrl}
               ></video>
             )}
             {!isDesktop && (
               <Image
-                className="w-full brightness-[60%] object-cover aspect-video h-[95%]"
-                src={data?.thumbnailUrl}
+                className="w-full brightness-[60%] object-cover h-[60%] md:h-[75%]"
+                src={movie?.thumbnailUrl}
                 height={1080}
                 width={1920}
                 alt="Thumbnail"
@@ -85,29 +91,30 @@ const InfoModal: React.FC<InfoModalProps> = ({ visible, onClose }) => {
               <AiOutlineClose className="text-white" size={20} />
             </div>
             <div className="absolute bottom-[24%] md:bottom-[10%] left-10">
-              <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-                {data?.title}
+              <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl">
+                {movie?.title}
               </p>
               <div className="flex flex-row gap-4 items-center">
-                <PlayButton movieId={data?.id} />
-                <RestartButton movieId={data?.id} />
-                <FavoriteButton movieId={data?.id} />
+                <PlayButton movieId={movie?.id} />
+                <RestartButton movieId={movie?.id} />
+                <FavoriteButton movieId={movie?.id} />
               </div>
             </div>
           </div>
-          <div className="px-12 py-8">
-            <p className="text-lg font-semibold text-green-400">
-              New <span className="ml-4 text-white">{data?.title}</span>
+          <div className="px-12 sm:pt-8 -mt-20 sm:mt-0 pb-4">
+            <p className="text-lg font-semibold ">
+              <span className="text-white">{movie?.title}</span>
             </p>
             <div className="flex flex-row gap-8 mt-3">
-              <p className="text-lg text-white">{data?.duration}</p>
-              <p className="text-lg text-white">{data?.genre}</p>
-              <p className="text-lg text-white">{data?.actor}</p>
+              <p className="text-lg text-white">{movie?.duration}</p>
+              <p className="text-lg text-white">{movie?.genre}</p>
+              <p className="text-lg text-white">{movie?.actor}</p>
             </div>
-            {data?.description != "test" && (
-              <p className="text-lg text-white">{data?.description}</p>
+            {movie?.description != "test" && (
+              <p className="text-lg text-white">{movie?.description}</p>
             )}
           </div>
+          <PlaylistSelect playlists={playlists} movieId={movieId as string} />
         </div>
       </div>
     </div>

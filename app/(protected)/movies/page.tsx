@@ -13,6 +13,7 @@ import useGetActorsCount from "@/hooks/movies/useGetActorsCount";
 import BillboardMovie from "./_components/BillboardMovie";
 import FilterRowMovies from "./_components/FilterRowMovies";
 import Footer from "@/components/Footer";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
 
 export default function MoviesPage() {
   const [limit, setLimit] = useState(3);
@@ -21,6 +22,7 @@ export default function MoviesPage() {
   const { data: actorsCount } = useGetActorsCount();
   const { data: actors = [] } = useGetActors(limit);
   const { data: profil } = useCurrentProfil();
+  const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
 
   const router = useRouter();
@@ -39,7 +41,7 @@ export default function MoviesPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <BillboardMovie />
       <div className="min-h-screen">

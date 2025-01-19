@@ -1,6 +1,7 @@
 "use client";
 import Navbar from "@/components/Navbar";
 import { AddMovieForm } from "./_components/add-movie-form";
+import Footer from "@/components/Footer";
 
 export default function Add() {
   return (
@@ -16,6 +17,7 @@ export default function Add() {
           </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 }

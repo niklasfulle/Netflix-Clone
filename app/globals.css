@@ -17,6 +17,12 @@ body {
   }
 }
 
+/* global.css */
+html body[data-scroll-locked] {
+  overflow-y: visible !important;
+  margin-right: 0 !important;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,

@@ -106,7 +106,7 @@ const ProfilesPage = () => {
         setProfilImg={setProfilImg}
         ProfilImg={profilImg}
       />
-      <div className="flex items-center justify-center h-svh -mt-20 mb-8">
+      <div className="flex items-center justify-center h-svh -mt-20 mb-11">
         <div className="flex flex-col">
           {size != 0 && profileState == "profiles" && (
             <>

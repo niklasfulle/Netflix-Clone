@@ -7,6 +7,7 @@ import { isEmpty } from "lodash";
 import { useParams, useRouter } from "next/navigation";
 import useSearchItem from "@/hooks/useSearchItem";
 import SearchList from "../_components/SearchList";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
 
 export default function MoviesPage() {
   const params = useParams<{ searchItem: string }>();
@@ -14,6 +15,7 @@ export default function MoviesPage() {
   const { data: results, isLoading: isLoadingSearch } = useSearchItem(
     params.searchItem
   );
+  const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -27,7 +29,7 @@ export default function MoviesPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <div className="pt-40 pb-40">
         <SearchList

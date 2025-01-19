@@ -12,6 +12,9 @@ git pull
 echo Update dependecies
 npm install
 
+echo Generate DB
+npx prisma generate
+
 echo Build Netflix Clone
 npm run build
 

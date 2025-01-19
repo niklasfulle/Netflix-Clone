@@ -75,3 +75,14 @@ export const MovieSchema = z.object({
   movieVideo: z.string().min(1, 'Video must be set'),
   movieThumbnail: z.string().min(1, 'Thumbnail must be set'),
 })
+
+export const PlaylistSchema = z.object({
+  playlistId: z.string().optional(),
+  playlistName: z.string().min(1, 'Name must be set'),
+})
+
+export const PlaylistSelectSchema = z.object({
+  playlistId: z.string(),
+  movieId: z.string(),
+})
+

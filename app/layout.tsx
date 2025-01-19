@@ -21,7 +21,7 @@ export default async function RootLayout({
   return (
     <SessionProvider session={session}>
       <html lang="en">
-        <body className={`antialiased bg-zinc-900`}>
+        <body className={`antialiased bg-zinc-900 `}>
           <Toaster />
           {children}
         </body>

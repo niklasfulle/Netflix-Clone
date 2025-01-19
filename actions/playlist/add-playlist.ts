@@ -1,0 +1,42 @@
+"use server"
+import * as z from "zod";
+import { db } from "@/lib/db"
+import { PlaylistSchema } from "@/schemas";
+import { currentUser } from "@/lib/auth";
+
+export const addPlaylist = async (values: z.infer<typeof PlaylistSchema>) => {
+  const user = await currentUser()
+
+  if (!user) {
+    return { error: "Unauthorized!" }
+  }
+
+  const profil = await db.profil.findFirst({
+    where: {
+      userId: user.id,
+      inUse: true
+    }
+  })
+
+  if (!profil) {
+    return { error: "No profil found!" }
+  }
+
+  const validatedField = PlaylistSchema.safeParse(values);
+
+  if (!validatedField.success) {
+    return { error: "Invalid fields!" }
+  }
+
+  const { playlistName } = validatedField.data
+
+  await db.playlist.create({
+    data: {
+      userId: user.id as string,
+      profilId: profil.id as string,
+      title: playlistName
+    }
+  })
+
+  return { success: "Playlist created!" }
+}

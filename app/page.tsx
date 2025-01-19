@@ -10,6 +10,7 @@ import useNewMovieList from "@/hooks/movies/useNewMovieList";
 import useMovieList from "@/hooks/movies/useMovieList";
 import useSeriesList from "@/hooks/series/useSeriesList";
 import Footer from "@/components/Footer";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
 
 export default function Home() {
   const { isOpen, closeModal } = useInfoModal();
@@ -19,10 +20,11 @@ export default function Home() {
   const { data: series = [], isLoading: isLoadingSeriesList } = useSeriesList();
   const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
     useFavorites();
+  const { data: playlists } = usePlaylists();
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <Billboard />
       <div className="pb-40 min-h-screen">

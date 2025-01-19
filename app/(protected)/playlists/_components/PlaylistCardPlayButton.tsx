@@ -2,11 +2,11 @@ import React from "react";
 import { FaPlay } from "react-icons/fa";
 import Link from "next/link";
 
-interface MovieCardPlayButtonProps {
+interface PlaylistCardPlayButtonProps {
   movieId: string;
 }
 
-const MovieCardPlayButton: React.FC<MovieCardPlayButtonProps> = ({
+const PlaylistCardPlayButton: React.FC<PlaylistCardPlayButtonProps> = ({
   movieId,
 }) => {
   return (
@@ -19,4 +19,4 @@ const MovieCardPlayButton: React.FC<MovieCardPlayButtonProps> = ({
   );
 };
 
-export default MovieCardPlayButton;
+export default PlaylistCardPlayButton;

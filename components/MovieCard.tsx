@@ -45,7 +45,6 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
   };
 
   const handleClick = (id: string) => {
-    console.log(isMobile);
     if (isMobile || !isDesktop) {
       openModal(id);
     }
@@ -122,8 +121,8 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               </div>
             </div>
           </div>
-          <p className="hidden mt-4 font-semibold text-green-400 lg:block">
-            New <span className="ml-4 text-white">{data.title}</span>
+          <p className="hidden mt-4 font-semibold lg:block">
+            <span className="ml-4 text-white">{data.title}</span>
           </p>
           <p className="block mt-2 font-semibold text-white lg:hidden">
             {data.title}

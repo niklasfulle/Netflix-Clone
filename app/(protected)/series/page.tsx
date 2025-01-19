@@ -13,6 +13,7 @@ import useGetActorsCount from "@/hooks/series/useGetActorsCount";
 import BillboardSeries from "./_components/BillboardSeries";
 import FilterRowSeries from "./_components/FilterRowSeries";
 import Footer from "@/components/Footer";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
 
 export default function SeriesPage() {
   const [limit, setLimit] = useState(3);
@@ -21,6 +22,7 @@ export default function SeriesPage() {
   const { data: actorsCount } = useGetActorsCount();
   const { data: actors = [] } = useGetActors(limit);
   const { data: profil } = useCurrentProfil();
+  const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -38,7 +40,7 @@ export default function SeriesPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <BillboardSeries />
       <div className="min-h-screen">

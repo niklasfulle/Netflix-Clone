@@ -8,11 +8,13 @@ import { useRouter } from "next/navigation";
 import SearchList from "./_components/SearchList";
 import useFavorites from "@/hooks/useFavorites";
 import Footer from "@/components/Footer";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
 
 export default function MyListPage() {
   const { data: profil } = useCurrentProfil();
   const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
     useFavorites();
+  const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
@@ -26,7 +28,7 @@ export default function MyListPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <div className="pt-40 pb-40 h-lvh">
         <SearchList

@@ -1,7 +1,5 @@
 "use client";
 import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
@@ -74,10 +72,9 @@ export default function SeriesPage() {
     });
   };
   const { data: profil } = useCurrentProfil();
-  const { isOpen, closeModal } = useInfoModal();
   const router = useRouter();
 
-  if (profil == undefined) {
+  if (user == undefined || profil == undefined) {
     return null;
   }
 
@@ -87,7 +84,6 @@ export default function SeriesPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
       <Navbar />
       <div className="h-svh flex felx-row items-center justify-center px-2">
         <Card className="w-[600px] bg-zinc-900 text-white mt-10">

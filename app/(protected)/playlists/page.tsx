@@ -1,15 +1,18 @@
 "use client";
 import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
+import usePlaylists from "@/hooks/playlists/usePlaylists";
+import PlaylistsList from "./_components/PlaylistsList";
+import usePlaylistModal from "@/hooks/playlists/usePlaylistModal";
+import PlaylistCreateModal from "./_components/PlaylistCreateModal";
 
 export default function SeriesPage() {
   const { data: profil } = useCurrentProfil();
-  const { isOpen, closeModal } = useInfoModal();
+  const { isOpen, openModal, closeModal } = usePlaylistModal();
+  const { data: playlists, isLoading: isLoadingPlaylists } = usePlaylists();
   const router = useRouter();
 
   if (profil == undefined) {
@@ -22,9 +25,16 @@ export default function SeriesPage() {
 
   return (
     <>
-      <InfoModal visible={isOpen} onClose={closeModal} />
+      <PlaylistCreateModal visible={isOpen} onClose={closeModal} />
       <Navbar />
-      <div className="h-svh"></div>
+      <div className="pt-40 pb-40 h-lvh">
+        <PlaylistsList
+          title="Playlists"
+          data={playlists}
+          isLoading={isLoadingPlaylists}
+          openModal={openModal}
+        />
+      </div>
       <Footer />
     </>
   );
