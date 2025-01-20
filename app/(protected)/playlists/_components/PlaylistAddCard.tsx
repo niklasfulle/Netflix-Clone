@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 
 interface PlaylistAddCardProps {
-  openModal: any;
+  openModalCreate: any;
 }
 
-const PlaylistAddCard: React.FC<PlaylistAddCardProps> = ({ openModal }) => {
+const PlaylistAddCard: React.FC<PlaylistAddCardProps> = ({
+  openModalCreate,
+}) => {
   const [isDesktop, setIsDesktop] = useState(true);
 
   const checkWindowSize = () => {
@@ -27,7 +29,7 @@ const PlaylistAddCard: React.FC<PlaylistAddCardProps> = ({ openModal }) => {
   return (
     <div
       className="group bg-zinc-800 col-span relative h-[20vw] lg:h-[12vw] flex flex-row items-center justify-center rounded-t-md cursor-pointer"
-      onClick={() => openModal()}
+      onClick={() => openModalCreate()}
     >
       <FaPlus className="text-white group-hover:text-neutral-300 " size={45} />
     </div>

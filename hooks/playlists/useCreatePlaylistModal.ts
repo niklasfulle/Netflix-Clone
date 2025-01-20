@@ -6,10 +6,10 @@ export interface ModalStoreInterdace {
   closeModal: () => void;
 }
 
-const usePlaylistModal = create<ModalStoreInterdace>((set) => ({
+const useCreatePlaylistModal = create<ModalStoreInterdace>((set) => ({
   isOpen: false,
   openModal: () => set({ isOpen: true }),
   closeModal: () => set({ isOpen: false })
 }))
 
-export default usePlaylistModal
+export default useCreatePlaylistModal

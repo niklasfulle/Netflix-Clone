@@ -86,3 +86,6 @@ export const PlaylistSelectSchema = z.object({
   movieId: z.string(),
 })
 
+export const PlaylistRemoveSchema = z.object({
+  playlistId: z.string(),
+})

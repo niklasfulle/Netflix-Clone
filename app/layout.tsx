@@ -1,8 +1,8 @@
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
 import { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Netflix - Home",
@@ -22,8 +22,8 @@ export default async function RootLayout({
     <SessionProvider session={session}>
       <html lang="en">
         <body className={`antialiased bg-zinc-900 `}>
-          <Toaster />
           {children}
+          <Toaster position="bottom-right" gutter={5} />
         </body>
       </html>
     </SessionProvider>

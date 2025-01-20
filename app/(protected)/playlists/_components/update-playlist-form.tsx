@@ -13,23 +13,32 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import toast from "react-hot-toast";
 import { useTransition } from "react";
-import { addPlaylist } from "@/actions/playlist/add-playlist";
+import { updatePlaylist } from "@/actions/playlist/update-playlist";
+import toast from "react-hot-toast";
 
-export const AddPlaylistForm = () => {
+interface PlaylistCardProps {
+  playlist: Record<string, any>;
+}
+
+export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
+  if (playlist == undefined) {
+    return null;
+  }
+
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof PlaylistSchema>>({
     resolver: zodResolver(PlaylistSchema),
     defaultValues: {
-      playlistName: "",
+      playlistId: playlist?.id,
+      playlistName: playlist?.title,
     },
   });
 
   const onSubmit = (values: z.infer<typeof PlaylistSchema>) => {
     startTransition(() => {
-      addPlaylist(values).then((data) => {
+      updatePlaylist(values).then((data) => {
         if (data?.error) {
           form.reset();
           toast.error(data?.error);
@@ -66,9 +75,12 @@ export const AddPlaylistForm = () => {
               </FormItem>
             )}
           />
+          <div>
+            <label className="text-white pb-2">Movies</label>
+          </div>
           <div className="px-32">
             <Button type="submit" disabled={isPending} variant="auth" size="lg">
-              Add
+              Save
             </Button>
           </div>
         </div>

@@ -3,7 +3,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlaylistSelectSchema } from "@/schemas";
-import { useTransition, useState } from "react";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,9 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FormError } from "@/components/form-error";
-import { FormSuccess } from "@/components/form-success";
 import { addPlaylistEntry } from "@/actions/playlist/add-playlist-entry";
+import { toast } from "react-hot-toast";
 
 interface PlaylistSelectProps {
   playlists: any[];
@@ -33,8 +32,6 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
   movieId,
 }) => {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
 
   const form = useForm<z.infer<typeof PlaylistSelectSchema>>({
     resolver: zodResolver(PlaylistSelectSchema),
@@ -46,18 +43,15 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
 
   const onSubmit = (valuse: z.infer<typeof PlaylistSelectSchema>) => {
     startTransition(() => {
-      addPlaylistEntry(valuse)
-        .then((data) => {
-          if (data?.error) {
-            setError(data?.error);
-          }
+      addPlaylistEntry(valuse).then((data) => {
+        if (data?.error) {
+          toast.error(data?.error);
+        }
 
-          if (data?.success) {
-            setSuccess(data?.success);
-            setError(undefined);
-          }
-        })
-        .catch(() => setError("Something went wrong!"));
+        if (data?.success) {
+          toast.success(data?.success);
+        }
+      });
     });
   };
   return (
@@ -100,10 +94,6 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
             >
               Add
             </Button>
-          </div>
-          <div className="pb-4 px-12 w-full flex flex-row justify-center">
-            <FormError message={error} />
-            <FormSuccess message={success} />
           </div>
         </form>
       </Form>

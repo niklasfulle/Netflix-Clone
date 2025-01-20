@@ -25,7 +25,7 @@ export async function GET() {
     const movies = await db.movie.findMany({
       where: {
         type: "Movie"
-      }
+      }, take: 20,
     })
 
     movies.reverse()

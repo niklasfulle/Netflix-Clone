@@ -1,8 +1,8 @@
 import fetcher from '@/lib/fetcher';
 import useSWR from 'swr';
 
-const usePlaylists = () => {
-  const { data, error, isLoading } = useSWR("/api/playlist", fetcher, {
+const usePlaylist = (id?: string) => {
+  const { data, error, isLoading } = useSWR(id ? `/api/playlist/${id}` : null, fetcher, {
     revalidateIfStale: true,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
@@ -14,4 +14,4 @@ const usePlaylists = () => {
     isLoading,
   }
 };
-export default usePlaylists;
+export default usePlaylist;

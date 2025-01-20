@@ -7,14 +7,16 @@ interface PlaylistListProps {
   data: Record<string, any>[];
   title: string;
   isLoading: boolean;
-  openModal: any;
+  openModalCreate: any;
+  openModalEdit: any;
 }
 
 const PlaylistsList: React.FC<PlaylistListProps> = ({
   data,
   title,
   isLoading,
-  openModal,
+  openModalCreate,
+  openModalEdit,
 }) => {
   return (
     <div className="px-4 my-6 space-y-8 md:px-12">
@@ -29,9 +31,10 @@ const PlaylistsList: React.FC<PlaylistListProps> = ({
                 key={playlist.id}
                 data={playlist}
                 isLoading={isLoading}
+                openModalEdit={openModalEdit}
               />
             ))}
-          <PlaylistAddCard openModal={openModal} />
+          <PlaylistAddCard openModalCreate={openModalCreate} />
         </div>
       </div>
     </div>

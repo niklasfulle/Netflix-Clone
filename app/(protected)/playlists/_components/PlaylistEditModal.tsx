@@ -1,18 +1,23 @@
+"use client";
+
 import { useCallback, useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
-import { AddPlaylistForm } from "./add-playlist-form";
+import useUpdatePlaylistModal from "@/hooks/playlists/useUpdatePlaylistModal";
+import usePlaylist from "@/hooks/playlists/usePlaylist";
+import { UpdatePlaylistForm } from "./update-playlist-form";
 
-interface PlaylistCreateModalProps {
+interface PlaylistEditModalProps {
   visible?: boolean;
   onClose: any;
 }
 
-const PlaylistCreateModal: React.FC<PlaylistCreateModalProps> = ({
+const PlaylistEditModal: React.FC<PlaylistEditModalProps> = ({
   visible,
   onClose,
 }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
-
+  const { playlistId } = useUpdatePlaylistModal();
+  const { data: playlist } = usePlaylist(playlistId);
   useEffect(() => {
     setIsVisible(!!visible);
   }, [visible]);
@@ -43,9 +48,9 @@ const PlaylistCreateModal: React.FC<PlaylistCreateModalProps> = ({
             />
             <div className="flex flex-col items-center py-10">
               <h1 className="text-3xl text-center text-white md:text-4xl">
-                Create Playlist
+                Update Playlist
               </h1>
-              <AddPlaylistForm />
+              <UpdatePlaylistForm playlist={playlist} />
             </div>
           </div>
         </div>
@@ -53,4 +58,4 @@ const PlaylistCreateModal: React.FC<PlaylistCreateModalProps> = ({
     </div>
   );
 };
-export default PlaylistCreateModal;
+export default PlaylistEditModal;
