@@ -78,7 +78,7 @@ const Navbar = () => {
           onClick={toggleMobileMenu}
           className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
         >
-          <p className="text-sm text-white">Browse</p>
+          <p className="text-base text-white">Browse</p>
           <FaChevronDown
             className={`text-white transition mr-4 ${
               showMobileMenu ? "rotate-180" : "rotate-0"

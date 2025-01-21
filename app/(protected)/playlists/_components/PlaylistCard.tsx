@@ -1,9 +1,9 @@
-import { removePlaylist } from "@/actions/playlist/remove-playlist";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { FaPen, FaPlay, FaTrashAlt } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { removePlaylist } from "@/actions/playlist/remove-playlist";
 
 interface PlaylistCardProps {
   data: Record<string, any>;
@@ -28,6 +28,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
       }
     });
   };
+
   return (
     <div className="relative group bg-zinc-800 col-span h-[20vw] lg:h-[12vw] flex flex-row items-center justify-center rounded-t-md cursor-pointer">
       {(isLoading || data.movies.length == 0) && (
@@ -76,7 +77,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             />
           </Link>
           <FaTrashAlt
-            className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
+            className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
             size={18}
             onClick={() => onCLickDelete(data.id)}
           />
