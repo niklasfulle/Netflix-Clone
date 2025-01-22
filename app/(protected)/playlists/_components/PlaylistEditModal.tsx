@@ -26,6 +26,7 @@ const PlaylistEditModal: React.FC<PlaylistEditModalProps> = ({
   const handleClose = useCallback(() => {
     setIsVisible(false);
     onClose();
+    location.reload();
   }, [onClose]);
 
   if (!visible) {

@@ -25,7 +25,7 @@ import {
 } from "react-icons/fa";
 import Image from "next/image";
 import { difference, swapElements } from "@/lib/utils";
-import next from "next";
+import PlaylistEntryCard from "./PlaylistEntryCard";
 
 interface PlaylistCardProps {
   playlist: Record<string, any>;
@@ -51,9 +51,8 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
       moviesToRemove = difference(playlist.movies, movies);
     }
 
-    console.log(moviesToRemove);
-    /*startTransition(() => {
-      updatePlaylist(values).then((data) => {
+    startTransition(() => {
+      updatePlaylist(values, moviesToRemove, movies).then((data) => {
         if (data?.error) {
           form.reset();
           toast.error(data?.error);
@@ -62,45 +61,44 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
         if (data?.success) {
           form.reset();
           toast.success(data?.success);
-          location.reload();
         }
       });
-    });*/
+    });
   };
 
   const onMove = (dir: string, index: number) => {
     if (!movieRemoved && !movieMoved) {
       if (dir == "up") {
         if (index == 0) {
-          setMovies(
-            swapElements(playlist.movies, 0, playlist.movies.length - 1)
-          );
+          setMovies([
+            ...swapElements(playlist.movies, 0, playlist.movies.length - 1),
+          ]);
         } else {
-          setMovies(swapElements(playlist.movies, index, index - 1));
+          setMovies([...swapElements(playlist.movies, index, index - 1)]);
         }
         setMovieMoved(true);
       } else if (dir == "down") {
         if (index == playlist.movies.length - 1) {
-          setMovies(
-            swapElements(playlist.movies, playlist.movies.length - 1, 0)
-          );
+          setMovies([
+            ...swapElements(playlist.movies, playlist.movies.length - 1, 0),
+          ]);
         } else {
-          setMovies(swapElements(playlist.movies, index, index + 1));
+          setMovies([...swapElements(playlist.movies, index, index + 1)]);
         }
         setMovieMoved(true);
       }
     } else {
       if (dir == "up") {
         if (index == 0) {
-          setMovies(swapElements(movies, 0, movies.length - 1));
+          setMovies([...swapElements(movies, 0, movies.length - 1)]);
         } else {
-          setMovies(swapElements(movies, index, index - 1));
+          setMovies([...swapElements(movies, index, index - 1)]);
         }
       } else if (dir == "down") {
         if (index == movies.length - 1) {
-          setMovies(swapElements(movies, movies.length - 1, 0));
+          setMovies([...swapElements(movies, movies.length - 1, 0)]);
         } else {
-          setMovies(swapElements(movies, index, index + 1));
+          setMovies([...swapElements(movies, index, index + 1)]);
         }
       }
     }
@@ -169,57 +167,25 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
                 !movieMoved &&
                 movies.length == 0 &&
                 playlist.movies.map((movie: any, index: number) => (
-                  <div key={movie.id} className="relative w-full">
-                    <Image
-                      src={movie.thumbnailUrl}
-                      alt=""
-                      width={1920}
-                      height={1080}
-                    />
-
-                    <FaArrowUp
-                      className="absolute z-10 text-white transition-all ease-in cursor-pointer right-0 left-0 mx-auto top-1 hover:text-neutral-300"
-                      size={18}
-                      onClick={() => onMove("up", index)}
-                    />
-                    <FaArrowDown
-                      className="absolute z-10 text-white transition-all ease-in cursor-pointer right-0 left-0 mx-auto bottom-1 hover:text-neutral-300"
-                      size={18}
-                      onClick={() => onMove("down", index)}
-                    />
-
-                    <FaTrashAlt
-                      className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-1 bottom-1 hover:text-red-400"
-                      size={18}
-                      onClick={() => onClickDelete(movie.id)}
-                    />
-                  </div>
+                  <PlaylistEntryCard
+                    key={movie.id}
+                    index={index}
+                    size={playlist.movies.length}
+                    movie={movie}
+                    onMove={onMove}
+                    onClickDelete={onClickDelete}
+                  />
                 ))}
               {movies.length != 0 &&
                 movies.map((movie: any, index: number) => (
-                  <div key={movie.id} className="relative w-full">
-                    <Image
-                      src={movie.thumbnailUrl}
-                      alt=""
-                      width={1920}
-                      height={1080}
-                    />
-                    <FaArrowUp
-                      className="absolute z-10 text-white transition-all ease-in cursor-pointer right-0 left-0 mx-auto top-1 hover:text-neutral-300"
-                      size={18}
-                      onClick={() => onMove("up", index)}
-                    />
-                    <FaArrowDown
-                      className="absolute z-10 text-white transition-all ease-in cursor-pointer right-0 left-0 mx-auto bottom-1 hover:text-neutral-300"
-                      size={18}
-                      onClick={() => onMove("down", index)}
-                    />
-                    <FaTrashAlt
-                      className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-1 bottom-1 hover:text-red-400"
-                      size={18}
-                      onClick={() => onClickDelete(movie.id)}
-                    />
-                  </div>
+                  <PlaylistEntryCard
+                    key={movie.id}
+                    index={index}
+                    size={movies.length}
+                    movie={movie}
+                    onMove={onMove}
+                    onClickDelete={onClickDelete}
+                  />
                 ))}
 
               {movieRemoved && movies.length == 0 && (

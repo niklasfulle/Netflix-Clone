@@ -26,6 +26,9 @@ export async function GET() {
       where: {
         userId: user.id as string,
         profilId: profil.id as string
+      },
+      orderBy: {
+        createdAt: "asc"
       }
     })
 
@@ -35,7 +38,10 @@ export async function GET() {
       const playlistsEntries = await db.playlistEntry.findMany({
         where: {
           playlistId: playlists[i].id
-        }
+        },
+        orderBy: {
+          order: 'asc',
+        },
       })
 
       var movies: any = []

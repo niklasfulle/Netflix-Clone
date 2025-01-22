@@ -46,7 +46,10 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
     const playlistsEntries = await db.playlistEntry.findMany({
       where: {
         playlistId: playlist.id
-      }
+      },
+      orderBy: {
+        order: 'asc',
+      },
     })
 
     var movies: any = []

@@ -124,6 +124,7 @@ model Playlist {
   profilId          String
   title             String
   PlaylistEntrys    PlaylistEntry[]
+  createdAt      DateTime  @default(now())
 }
 
 model PlaylistEntry {
@@ -132,4 +133,5 @@ model PlaylistEntry {
   playlist     Playlist     @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   order        Int
   movieId      String
+  createdAt      DateTime  @default(now())
 }

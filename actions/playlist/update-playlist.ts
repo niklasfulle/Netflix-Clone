@@ -1,10 +1,10 @@
 "use server"
 import * as z from "zod";
 import { db } from "@/lib/db"
-import { PlaylistSchema } from "@/schemas";
+import { MovieSchema, PlaylistSchema } from "@/schemas";
 import { currentUser } from "@/lib/auth";
 
-export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>) => {
+export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>, moviesToRemove: any, moviesToUpdate: any) => {
   const user = await currentUser()
 
   if (!user) {
@@ -30,6 +30,7 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>) => 
 
   const { playlistId, playlistName } = validatedField.data
 
+
   await db.playlist.update({
     where: {
       id: playlistId
@@ -39,5 +40,26 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>) => 
     }
   })
 
-  return { success: "Playlist created!" }
+  moviesToRemove.forEach(async function (movie: any) {
+    await db.playlistEntry.deleteMany({
+      where: {
+        playlistId: playlistId,
+        movieId: movie.id
+      },
+    })
+  });
+
+  moviesToUpdate.forEach(async function (movie: any, index: number) {
+    await db.playlistEntry.updateMany({
+      where: {
+        playlistId: playlistId,
+        movieId: movie.id
+      },
+      data: {
+        order: index + 1
+      }
+    })
+  });
+
+  return { success: "Playlist updated!" }
 }
