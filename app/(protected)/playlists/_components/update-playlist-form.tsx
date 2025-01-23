@@ -1,23 +1,20 @@
 "use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { PlaylistSchema } from "@/schemas";
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import * as z from 'zod';
+
+import { updatePlaylist } from '@/actions/playlist/update-playlist';
+import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useState, useTransition } from "react";
-import { updatePlaylist } from "@/actions/playlist/update-playlist";
-import toast from "react-hot-toast";
-import { swapElements } from "@/lib/utils";
-import PlaylistEntryCard from "./PlaylistEntryCard";
+    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { swapElements } from '@/lib/utils';
+import { PlaylistSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import PlaylistEntryCard from './PlaylistEntryCard';
 
 interface PlaylistCardProps {
   playlist: Record<string, any>;
@@ -57,55 +54,44 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   const onMove = (dir: string, index: number) => {
     if (!movieRemoved && !movieMoved) {
       if (dir == "up") {
-        if (index == 0) {
-          setMovies([
-            ...swapElements(playlist.movies, 0, playlist.movies.length - 1),
-          ]);
-        } else {
-          setMovies([...swapElements(playlist.movies, index, index - 1)]);
-        }
+        onMoveUp(index, playlist.movies);
       } else if (dir == "down") {
-        if (index == playlist.movies.length - 1) {
-          setMovies([
-            ...swapElements(playlist.movies, playlist.movies.length - 1, 0),
-          ]);
-        } else {
-          setMovies([...swapElements(playlist.movies, index, index + 1)]);
-        }
+        onMoveDown(index, playlist.movies);
       }
       setMovieMoved(true);
+    } else if (dir == "up") {
+      onMoveUp(index, movies);
+    } else if (dir == "down") {
+      onMoveDown(index, movies);
+    }
+  };
+
+  const onMoveUp = (index: number, movies: any[]) => {
+    if (index == 0) {
+      setMovies([...swapElements(movies, 0, movies.length - 1)]);
     } else {
-      if (dir == "up") {
-        if (index == 0) {
-          setMovies([...swapElements(movies, 0, movies.length - 1)]);
-        } else {
-          setMovies([...swapElements(movies, index, index - 1)]);
-        }
-      } else if (dir == "down") {
-        if (index == movies.length - 1) {
-          setMovies([...swapElements(movies, movies.length - 1, 0)]);
-        } else {
-          setMovies([...swapElements(movies, index, index + 1)]);
-        }
-      }
+      setMovies([...swapElements(movies, index, index - 1)]);
+    }
+  };
+
+  const onMoveDown = (index: number, movies: any[]) => {
+    if (index == movies.length - 1) {
+      setMovies([...swapElements(movies, movies.length - 1, 0)]);
+    } else {
+      setMovies([...swapElements(movies, index, index + 1)]);
     }
   };
 
   const onClickDelete = (movieId: string) => {
-    if (!movieRemoved && !movieMoved && playlist.movies.length == 1) {
+    if (!movieRemoved && !movieMoved && playlist.movies.length >= 1) {
       setMovies([
         ...playlist.movies.filter((movie: any) => movie.id != movieId),
       ]);
-      setMovieRemoved(!movieRemoved);
-    } else if (!movieRemoved && !movieMoved && playlist.movies.length > 1) {
-      setMovies([
-        ...playlist.movies.filter((movie: any) => movie.id != movieId),
-      ]);
-      setMovieRemoved(!movieRemoved);
     } else if (movieRemoved || movieMoved) {
       setMovies([...movies.filter((movie: any) => movie.id != movieId)]);
     }
 
+    setMovieRemoved(!movieRemoved);
     setMoviesToRemove([...moviesToRemove, movieId]);
   };
 
@@ -142,12 +128,12 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
             )}
           />
           <div className="max-w-96">
-            <label className="text-white pb-2">Movies</label>
+            <span className="text-white pb-2">Movies</span>
             <div className="grid grid-cols-2 gap-1 p-2 mt-2 rounded-md bg-zinc-800 max-h-[20rem] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:bg-neutral-500">
               {!movieRemoved &&
                 !movieMoved &&
                 movies.length == 0 &&
-                playlist.movies.map((movie: any, index: number) => (
+                playlist.movies?.map((movie: any, index: number) => (
                   <PlaylistEntryCard
                     key={movie.id}
                     index={index}

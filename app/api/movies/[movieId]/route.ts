@@ -1,6 +1,7 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
-import { NextRequest } from "next/server"
+import { NextRequest } from 'next/server';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic"
 

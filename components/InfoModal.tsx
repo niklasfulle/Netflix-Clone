@@ -1,13 +1,15 @@
 "use client";
-import PlayButton from "./PlayButton";
-import useInfoModal from "@/hooks/useInfoModal";
-import { useCallback, useEffect, useState } from "react";
-import { AiOutlineClose } from "react-icons/ai";
-import Image from "next/image";
-import useMovie from "@/hooks/movies/useMovie";
-import FavoriteButton from "@/components/FavoriteButton";
-import RestartButton from "./RestartButton";
-import PlaylistSelect from "./PlaylistSelect";
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { AiOutlineClose } from 'react-icons/ai';
+
+import FavoriteButton from '@/components/FavoriteButton';
+import useMovie from '@/hooks/movies/useMovie';
+import useInfoModal from '@/hooks/useInfoModal';
+
+import PlayButton from './PlayButton';
+import PlaylistSelect from './PlaylistSelect';
+import RestartButton from './RestartButton';
 
 interface InfoModalProps {
   visible?: boolean;
@@ -84,12 +86,12 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 alt="Thumbnail"
               />
             )}
-            <div
+            <button
               onClick={handleClose}
               className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70"
             >
               <AiOutlineClose className="text-white" size={20} />
-            </div>
+            </button>
             <div className="absolute bottom-[24%] md:bottom-[10%] left-10">
               <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl">
                 {movie?.title}

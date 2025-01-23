@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { FaArrowRight } from "react-icons/fa";
-import { IoClose } from "react-icons/io5";
-import { FaUserCheck } from "react-icons/fa";
-import Image from "next/image";
-import useProfilImgsApi from "@/hooks/useProfilImgsApi";
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { FaArrowRight, FaUserCheck } from 'react-icons/fa';
+import { IoClose } from 'react-icons/io5';
+
+import useProfilImgsApi from '@/hooks/useProfilImgsApi';
 
 interface ProfilModalProps {
   visible?: boolean;
@@ -70,7 +70,7 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
               size={30}
             />
             <div className="flex items-center justify-center">
-              <div
+              <button
                 onClick={() => {
                   saveProfilImg(displayImg);
                 }}
@@ -80,7 +80,7 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
                   className="ml-1 text-white transition-all ease-in delay-200 hover:text-neutral-300"
                   size={25}
                 />
-              </div>
+              </button>
               <div className="relative flex items-center justify-center mt-[4.5rem] overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
                 <Image
                   src={`/images/profil/${displayImg}`}
@@ -89,7 +89,7 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
                   height={320}
                 />
               </div>
-              <div
+              <button
                 onClick={() => {
                   rotateProfilImgs();
                 }}
@@ -99,7 +99,7 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
                   className="text-white transition-all ease-in delay-200 hover:text-neutral-300"
                   size={25}
                 />
-              </div>
+              </button>
             </div>
           </div>
         </div>

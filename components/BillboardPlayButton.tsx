@@ -1,6 +1,6 @@
-import React from "react";
-import { FaPlay } from "react-icons/fa";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import { FaPlay } from 'react-icons/fa';
 
 interface BillboardPlayButtonProps {
   movieId: string;

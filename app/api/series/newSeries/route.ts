@@ -1,5 +1,5 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic"
 
@@ -40,7 +40,7 @@ export async function GET() {
     })
 
     for (let i = 0; i < series.length; i++) {
-      for (let j = 0; j < watchTime.length; j++) {
+      for (const time of watchTime) {
         const movieWithWatchTime: {
           id: string;
           title: string;
@@ -55,8 +55,8 @@ export async function GET() {
           watchTime?: number;
         } = { ...series[i], watchTime: undefined };
 
-        if (series[i].id == watchTime[j].movieId) {
-          movieWithWatchTime.watchTime = watchTime[j].time
+        if (series[i].id == time.movieId) {
+          movieWithWatchTime.watchTime = time.time
           series[i] = movieWithWatchTime
         }
       }

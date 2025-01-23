@@ -1,39 +1,30 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useRouter } from "next/navigation";
-import Footer from "@/components/Footer";
-import * as z from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { SettingsSchema } from "@/schemas";
-import { useTransition, useState } from "react";
-import { settings } from "@/actions/settings";
-import { useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { isEmpty } from 'lodash';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { settings } from '@/actions/settings';
+import Footer from '@/components/Footer';
+import { FormError } from '@/components/form-error';
+import { FormSuccess } from '@/components/form-success';
+import Navbar from '@/components/Navbar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
+    Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { FormError } from "@/components/form-error";
-import { FormSuccess } from "@/components/form-success";
-import { UserRole } from "@prisma/client";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import { SettingsSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { UserRole } from '@prisma/client';
 
 export default function SeriesPage() {
   const user = useSession();
@@ -45,11 +36,11 @@ export default function SeriesPage() {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      name: user.data?.user.name || undefined,
-      email: user.data?.user.email || undefined,
+      name: user.data?.user.name ?? undefined,
+      email: user.data?.user.email ?? undefined,
       password: undefined,
       newPassword: undefined,
-      role: user.data?.user.role || undefined,
+      role: user.data?.user.role ?? undefined,
       isTwoFactorEnabled: user.data?.user.isTwoFactorEnabled,
     },
   });
@@ -212,30 +203,27 @@ export default function SeriesPage() {
                     />
                   )}
                   {user.data?.user.isOAuth === false && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="isTwoFactorEnabled"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm text-white bg-zinc-800 placeholder:text-gray-300 pt-2 border-gray-500">
-                            <div className="space-y-0.5">
-                              <FormLabel>Two Factor Authentication</FormLabel>
-                              <FormDescription className="text-blue-300">
-                                Enable two factor authentication for your
-                                account
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                disabled={isPending}
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </>
+                    <FormField
+                      control={form.control}
+                      name="isTwoFactorEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm text-white bg-zinc-800 placeholder:text-gray-300 pt-2 border-gray-500">
+                          <div className="space-y-0.5">
+                            <FormLabel>Two Factor Authentication</FormLabel>
+                            <FormDescription className="text-blue-300">
+                              Enable two factor authentication for your account
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              disabled={isPending}
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
                   )}
                 </div>
                 <FormError message={error} />

@@ -1,9 +1,10 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { FavoriteIdSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
-import { without } from "lodash";
+import { without } from 'lodash';
+import * as z from 'zod';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { FavoriteIdSchema } from '@/schemas';
 
 export const remove = async (values: z.infer<typeof FavoriteIdSchema>) => {
   const user1 = await currentUser()

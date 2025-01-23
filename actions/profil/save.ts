@@ -1,8 +1,9 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { ProfilSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
+import * as z from 'zod';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { ProfilSchema } from '@/schemas';
 
 export const save = async (values: z.infer<typeof ProfilSchema>) => {
   const user = await currentUser()

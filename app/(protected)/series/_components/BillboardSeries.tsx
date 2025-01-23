@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import useBillboradSeries from "@/hooks/series/useBillboradSeries";
-import Image from "next/image";
-import BillboardPlayButton from "@/components/BillboardPlayButton";
-import BillboardInfoButton from "@/components/BillboardInfoButton";
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+
+import BillboardInfoButton from '@/components/BillboardInfoButton';
+import BillboardPlayButton from '@/components/BillboardPlayButton';
+import useBillboradSeries from '@/hooks/series/useBillboradSeries';
 
 const BillboardSeries = () => {
   const { data, isLoading } = useBillboradSeries();

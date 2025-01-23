@@ -1,25 +1,21 @@
 "use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { LoginSchema } from "@/schemas";
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { login } from '@/actions/login';
+import { CardWrapper } from '@/components/auth/card-wrapper';
+import { FormError } from '@/components/form-error';
+import { FormSuccess } from '@/components/form-success';
+import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { CardWrapper } from "@/components/auth/card-wrapper";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FormError } from "@/components/form-error";
-import { FormSuccess } from "@/components/form-success";
-import { login } from "@/actions/login";
-import { useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { LoginSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 export const LoginForm = () => {
   const searchParams = useSearchParams();
@@ -45,7 +41,7 @@ export const LoginForm = () => {
 
     startTransition(() => {
       login(values)
-        .then((data) => {
+        .then((data: any) => {
           if (data?.error) {
             form.reset();
             setError(data?.error);
@@ -145,7 +141,7 @@ export const LoginForm = () => {
               </>
             )}
           </div>
-          <FormError message={error || urlError} />
+          <FormError message={error ?? urlError} />
           <FormSuccess message={success} />
           <Button type="submit" disabled={isPending} variant="auth" size="lg">
             {showTwoFactor ? "Confirm" : "Login"}

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import React, { useEffect, useState } from 'react';
+import { FaPlus } from 'react-icons/fa';
 
 interface PlaylistAddCardProps {
   openModalCreate: any;
@@ -27,12 +27,12 @@ const PlaylistAddCard: React.FC<PlaylistAddCardProps> = ({
   }, [isDesktop]);
 
   return (
-    <div
+    <button
       className="group bg-zinc-800 col-span relative h-[20vw] lg:h-[12vw] flex flex-row items-center justify-center rounded-t-md cursor-pointer"
       onClick={() => openModalCreate()}
     >
       <FaPlus className="text-white group-hover:text-neutral-300 " size={45} />
-    </div>
+    </button>
   );
 };
 

@@ -1,8 +1,6 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { PlaylistRemoveSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const removePlaylist = async (playlistId: string) => {
   const user = await currentUser()

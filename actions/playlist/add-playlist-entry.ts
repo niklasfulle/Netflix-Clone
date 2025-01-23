@@ -1,9 +1,9 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { PlaylistSelectSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
-import { error } from "console";
+import * as z from 'zod';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { PlaylistSelectSchema } from '@/schemas';
 
 export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSchema>) => {
   const user = await currentUser()

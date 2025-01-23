@@ -1,24 +1,20 @@
 "use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { NewPasswordSchema } from "@/schemas";
+import { useSearchParams } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { setNewPassword } from '@/actions/new-password';
+import { CardWrapper } from '@/components/auth/card-wrapper';
+import { FormError } from '@/components/form-error';
+import { FormSuccess } from '@/components/form-success';
+import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { CardWrapper } from "@/components/auth/card-wrapper";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FormError } from "@/components/form-error";
-import { FormSuccess } from "@/components/form-success";
-import { setNewPassword } from "@/actions/new-password";
-import { useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { NewPasswordSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 export const NewPasswordForm = () => {
   const searchParams = useSearchParams();

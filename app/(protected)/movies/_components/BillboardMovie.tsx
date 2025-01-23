@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import useBillboradMovie from "@/hooks/movies/useBillboradMovie";
-import Image from "next/image";
-import BillboardPlayButton from "@/components/BillboardPlayButton";
-import BillboardInfoButton from "@/components/BillboardInfoButton";
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+
+import BillboardInfoButton from '@/components/BillboardInfoButton';
+import BillboardPlayButton from '@/components/BillboardPlayButton';
+import useBillboradMovie from '@/hooks/movies/useBillboradMovie';
 
 const BillboardMovie = () => {
   const { data, isLoading } = useBillboradMovie();

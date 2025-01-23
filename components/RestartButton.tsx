@@ -1,6 +1,6 @@
-import React from "react";
-import { FaUndo } from "react-icons/fa";
-import Link from "next/link";
+import Link from 'next/link';
+import React from 'react';
+import { FaUndo } from 'react-icons/fa';
 
 interface RestartButtonProps {
   movieId: string;

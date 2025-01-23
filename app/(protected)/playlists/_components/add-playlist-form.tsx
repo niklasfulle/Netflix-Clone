@@ -1,21 +1,17 @@
 "use client";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { PlaylistSchema } from "@/schemas";
+import { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import * as z from 'zod';
+
+import { addPlaylist } from '@/actions/playlist/add-playlist';
+import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import toast from "react-hot-toast";
-import { useTransition } from "react";
-import { addPlaylist } from "@/actions/playlist/add-playlist";
+    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { PlaylistSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 export const AddPlaylistForm = () => {
   const [isPending, startTransition] = useTransition();

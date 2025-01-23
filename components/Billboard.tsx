@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import useBillboard from "@/hooks/useBillborad";
-import BillboardInfoButton from "./BillboardInfoButton";
-import BillboardPlayButton from "./BillboardPlayButton";
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+
+import useBillboard from '@/hooks/useBillborad';
+
+import BillboardInfoButton from './BillboardInfoButton';
+import BillboardPlayButton from './BillboardPlayButton';
 
 const Billboard = () => {
   const { data, isLoading } = useBillboard();

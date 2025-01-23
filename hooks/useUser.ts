@@ -1,5 +1,6 @@
-import fetcher from "@/lib/fetcher"
-import useSWR from "swr"
+import useSWR from 'swr';
+
+import fetcher from '@/lib/fetcher';
 
 const getUser = () => {
   const { data, error, isLoading } = useSWR("/api/auth/session", fetcher, {

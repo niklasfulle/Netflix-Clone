@@ -1,6 +1,7 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
-import { NextRequest } from "next/server"
+import { NextRequest } from 'next/server';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic"
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
     }
 
 
-    var playlistsWithEntries: any
+    let playlistsWithEntries: any = []
     const playlistsEntries = await db.playlistEntry.findMany({
       where: {
         playlistId: playlist.id
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       },
     })
 
-    var movies: any = []
+    const movies: any = []
     for (let i = 0; i < playlistsEntries.length; i++) {
       const movie = await db.movie.findUnique({
         where: {

@@ -1,16 +1,16 @@
 "use client";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import Billboard from "@/components/Billboard";
-import Navbar from "@/components/Navbar";
-import MovieList from "@/components/MovieList";
-import useFavorites from "@/hooks/useFavorites";
-import Row from "@/components/Row";
-import useNewMovieList from "@/hooks/movies/useNewMovieList";
-import useMovieList from "@/hooks/movies/useMovieList";
-import useSeriesList from "@/hooks/series/useSeriesList";
-import Footer from "@/components/Footer";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
+import Billboard from '@/components/Billboard';
+import Footer from '@/components/Footer';
+import InfoModal from '@/components/InfoModal';
+import MovieList from '@/components/MovieList';
+import Navbar from '@/components/Navbar';
+import Row from '@/components/Row';
+import useMovieList from '@/hooks/movies/useMovieList';
+import useNewMovieList from '@/hooks/movies/useNewMovieList';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useSeriesList from '@/hooks/series/useSeriesList';
+import useFavorites from '@/hooks/useFavorites';
+import useInfoModal from '@/hooks/useInfoModal';
 
 export default function Home() {
   const { isOpen, closeModal } = useInfoModal();

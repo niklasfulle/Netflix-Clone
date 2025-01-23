@@ -1,6 +1,7 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
-import { NextRequest } from "next/server"
+import { NextRequest } from 'next/server';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic"
 
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
     })
 
     for (let i = 0; i < movies.length; i++) {
-      for (let j = 0; j < watchTime.length; j++) {
+      for (const time of watchTime) {
         const movieWithWatchTime: {
           id: string;
           title: string;
@@ -68,8 +69,8 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
           watchTime?: number;
         } = { ...movies[i], watchTime: undefined };
 
-        if (movies[i].id == watchTime[j].movieId) {
-          movieWithWatchTime.watchTime = watchTime[j].time
+        if (movies[i].id == time.movieId) {
+          movieWithWatchTime.watchTime = time.time
           movies[i] = movieWithWatchTime
         }
       }

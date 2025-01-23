@@ -1,19 +1,21 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useRouter } from "next/navigation";
-import useNewSeriesList from "@/hooks/series/useNewSeriesList";
-import MovieList from "@/components/MovieList";
-import useGetActors from "@/hooks/series/useGetActors"; // Ensure this path is correct
-import { useState } from "react";
-import useGetActorsCount from "@/hooks/series/useGetActorsCount";
-import BillboardSeries from "./_components/BillboardSeries";
-import FilterRowSeries from "./_components/FilterRowSeries";
-import Footer from "@/components/Footer";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
+import { isEmpty } from 'lodash';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import Footer from '@/components/Footer';
+import InfoModal from '@/components/InfoModal';
+import MovieList from '@/components/MovieList';
+import Navbar from '@/components/Navbar';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useGetActors from '@/hooks/series/useGetActors'; // Ensure this path is correct
+import useGetActorsCount from '@/hooks/series/useGetActorsCount';
+import useNewSeriesList from '@/hooks/series/useNewSeriesList';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import useInfoModal from '@/hooks/useInfoModal';
+
+import BillboardSeries from './_components/BillboardSeries';
+import FilterRowSeries from './_components/FilterRowSeries';
 
 export default function SeriesPage() {
   const [limit, setLimit] = useState(3);

@@ -1,6 +1,7 @@
-import React, { useCallback } from "react";
-import useInfoModal from "@/hooks/useInfoModal";
-import { AiOutlineInfoCircle } from "react-icons/ai";
+import React, { useCallback } from 'react';
+import { AiOutlineInfoCircle } from 'react-icons/ai';
+
+import useInfoModal from '@/hooks/useInfoModal';
 
 interface InfoButtonProps {
   movieId: string;
@@ -14,7 +15,7 @@ const InfoButton: React.FC<InfoButtonProps> = ({ movieId }) => {
   }, [openModal, movieId]);
 
   return (
-    <div
+    <button
       onClick={handleOpenModal}
       className="flex items-center justify-center h-10 w-10 transition border-2 border-white rounded-full cursor-pointer group/item  hover:border-neutral-300"
     >
@@ -27,7 +28,7 @@ const InfoButton: React.FC<InfoButtonProps> = ({ movieId }) => {
         className="m-1 md:m-0 md:mr-2 md:hidden block"
       />
       <p className="hidden md:block">More info</p>
-    </div>
+    </button>
   );
 };
 

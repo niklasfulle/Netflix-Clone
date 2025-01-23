@@ -1,14 +1,16 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useRouter } from "next/navigation";
-import SearchList from "./_components/SearchList";
-import useFavorites from "@/hooks/useFavorites";
-import Footer from "@/components/Footer";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
+import { isEmpty } from 'lodash';
+import { useRouter } from 'next/navigation';
+
+import Footer from '@/components/Footer';
+import InfoModal from '@/components/InfoModal';
+import Navbar from '@/components/Navbar';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import useFavorites from '@/hooks/useFavorites';
+import useInfoModal from '@/hooks/useInfoModal';
+
+import SearchList from './_components/SearchList';
 
 export default function MyListPage() {
   const { data: profil } = useCurrentProfil();

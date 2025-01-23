@@ -1,16 +1,16 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { LoginSchema } from "@/schemas";
-import { signIn } from "@/auth";
-import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
-import { AuthError } from "next-auth";
-import { generateVerificationToken } from "@/lib/tokens";
-import { getUserByEmail } from "@/data/user";
-import { sendVerificationEmail, sendTwoFactorEmail } from "@/lib/mail";
-import { generateTwoFactorToken } from "@/lib/tokens";
-import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
-import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
+import { AuthError } from 'next-auth';
+import * as z from 'zod';
+
+import { signIn } from '@/auth';
+import { getTwoFactorConfirmationByUserId } from '@/data/two-factor-confirmation';
+import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
+import { getUserByEmail } from '@/data/user';
+import { db } from '@/lib/db';
+import { sendTwoFactorEmail, sendVerificationEmail } from '@/lib/mail';
+import { generateTwoFactorToken, generateVerificationToken } from '@/lib/tokens';
+import { DEFAULT_LOGIN_REDIRECT } from '@/routes';
+import { LoginSchema } from '@/schemas';
 
 export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedField = LoginSchema.safeParse(values);
@@ -23,7 +23,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 
   const existingUser = await getUserByEmail(email)
 
-  if (!existingUser || !existingUser.email || !existingUser.hashedPassword) {
+  if (!existingUser?.email || !existingUser.hashedPassword) {
     return { error: "Email does not exist!" }
   }
 
@@ -39,11 +39,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     if (code) {
       const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email)
 
-      if (!twoFactorToken) {
-        return { error: "Invalid code!" }
-      }
-
-      if (twoFactorToken.token !== code) {
+      if (!twoFactorToken || twoFactorToken.token !== code) {
         return { error: "Invalid code!" }
       }
 
@@ -87,12 +83,13 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     await signIn("credentials", { email, password, redirectTo: DEFAULT_LOGIN_REDIRECT })
   } catch (error) {
     if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return { error: "Invalid credentials!" }
-        default:
-          return { error: "Something went wrong!" }
+      if (error.type == "CredentialsSignin") {
+        return { error: "Invalid credentials!" }
       }
+      else {
+        return { error: "Something went wrong!" }
+      }
+
     }
 
     throw error

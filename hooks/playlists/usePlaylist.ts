@@ -1,5 +1,6 @@
-import fetcher from '@/lib/fetcher';
 import useSWR from 'swr';
+
+import fetcher from '@/lib/fetcher';
 
 const usePlaylist = (id?: string) => {
   const { data, error, isLoading } = useSWR(id ? `/api/playlist/${id}` : null, fetcher, {

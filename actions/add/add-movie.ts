@@ -1,9 +1,10 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { MovieSchema } from "@/schemas";
-import { currentRole, currentUser } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import * as z from 'zod';
+
+import { currentRole, currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { MovieSchema } from '@/schemas';
+import { UserRole } from '@prisma/client';
 
 export const addMovie = async (values: z.infer<typeof MovieSchema>) => {
   const user = await currentUser()

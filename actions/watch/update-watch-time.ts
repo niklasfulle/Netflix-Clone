@@ -1,8 +1,9 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { WatchTimeSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
+import * as z from 'zod';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { WatchTimeSchema } from '@/schemas';
 
 export const updateWatchTime = async (values: z.infer<typeof WatchTimeSchema>) => {
   const user = await currentUser()

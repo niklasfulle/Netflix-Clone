@@ -1,11 +1,12 @@
-import { FaChevronDown } from "react-icons/fa";
-import { useCallback, useEffect, useState } from "react";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import Image from "next/image";
-import SearchItem from "@/components/SearchItem";
-import NavbarItem from "@/components/NavbarItem";
-import MobileMenu from "@/components/MobileMenu";
-import AccountMenu from "@/components/AccountMenu";
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { FaChevronDown } from 'react-icons/fa';
+
+import AccountMenu from '@/components/AccountMenu';
+import MobileMenu from '@/components/MobileMenu';
+import NavbarItem from '@/components/NavbarItem';
+import SearchItem from '@/components/SearchItem';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
 
 const TOP_OFFSET = 66;
 
@@ -74,7 +75,7 @@ const Navbar = () => {
           <NavbarItem label="Playlists" href="/playlists" />
           <NavbarItem label="Random" href="/random" />
         </div>
-        <div
+        <button
           onClick={toggleMobileMenu}
           className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
         >
@@ -85,10 +86,10 @@ const Navbar = () => {
             }`}
           />
           <MobileMenu visible={showMobileMenu} />
-        </div>
+        </button>
         <div className="flex flex-row items-center ml-auto gap-7">
           <SearchItem />
-          <div
+          <button
             onClick={toggleAccountMenu}
             className="relative flex flex-row items-center gap-2 cursor-pointer"
           >
@@ -106,7 +107,7 @@ const Navbar = () => {
               }`}
             />
             <AccountMenu visible={showAccountMenu} />
-          </div>
+          </button>
         </div>
       </div>
     </nav>

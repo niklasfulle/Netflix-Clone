@@ -1,7 +1,8 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
-import { NextRequest } from "next/server"
-import { Movie } from "@prisma/client"
+import { NextRequest } from 'next/server';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { Movie } from '@prisma/client';
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       return Response.json(null, { status: 404 })
     }
 
-    const takeLimit = limit ? parseInt(limit as string) : 5;
+    const takeLimit = limit ? parseInt(limit) : 5;
 
     const movies = await db.movie.findMany({
       where: {
@@ -49,7 +50,8 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
 
 
     db.$disconnect()
-    return Response.json(actorArray.sort().slice(0, takeLimit), { status: 200 })
+    actorArray.sort();
+    return Response.json(actorArray.slice(0, takeLimit), { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

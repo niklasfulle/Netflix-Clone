@@ -1,7 +1,8 @@
-import React from "react";
-import { isEmpty } from "lodash";
-import PlaylistCard from "./PlaylistCard";
-import PlaylistAddCard from "./PlaylistAddCard";
+import { isEmpty } from 'lodash';
+import React from 'react';
+
+import PlaylistAddCard from './PlaylistAddCard';
+import PlaylistCard from './PlaylistCard';
 
 interface PlaylistListProps {
   data: Record<string, any>[];

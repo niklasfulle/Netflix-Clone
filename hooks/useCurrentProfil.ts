@@ -1,6 +1,6 @@
-import useSWR from "swr"
+import useSWR from 'swr';
 
-import fetcher from "@/lib/fetcher"
+import fetcher from '@/lib/fetcher';
 
 const useCurrentProfil = () => {
   const { data, error, isLoading, mutate } = useSWR("/api/current/profil", fetcher)

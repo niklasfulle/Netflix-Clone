@@ -1,5 +1,6 @@
-import useInfoModal from "@/hooks/useInfoModal";
-import Image from "next/image";
+import Image from 'next/image';
+
+import useInfoModal from '@/hooks/useInfoModal';
 
 interface MovieCardProps {
   data: Record<string, any>;
@@ -26,7 +27,7 @@ const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
     calculateBarWidth(data?.duration, data?.watchTime) + "%";
 
   return (
-    <div
+    <button
       className="relative h-28 min-w-[180px] cursor-pointer transition duration-200 ease-out md:h-36 md:min-w-[260px] md:hover:scale-105"
       onClick={() => openModal(data?.id)}
     >
@@ -65,7 +66,7 @@ const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
           </>
         )}
       </div>
-    </div>
+    </button>
   );
 };
 

@@ -1,13 +1,15 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useParams, useRouter } from "next/navigation";
-import useSearchItem from "@/hooks/useSearchItem";
-import SearchList from "../_components/SearchList";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
+import { isEmpty } from 'lodash';
+import { useParams, useRouter } from 'next/navigation';
+
+import InfoModal from '@/components/InfoModal';
+import Navbar from '@/components/Navbar';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import useInfoModal from '@/hooks/useInfoModal';
+import useSearchItem from '@/hooks/useSearchItem';
+
+import SearchList from '../_components/SearchList';
 
 export default function MoviesPage() {
   const params = useParams<{ searchItem: string }>();

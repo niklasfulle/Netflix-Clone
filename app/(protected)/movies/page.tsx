@@ -1,19 +1,21 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import InfoModal from "@/components/InfoModal";
-import useInfoModal from "@/hooks/useInfoModal";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useRouter } from "next/navigation";
-import useNewMovieList2 from "@/hooks/movies/useNewMovieList2";
-import MovieList from "@/components/MovieList";
-import useGetActors from "@/hooks/movies/useGetActors";
-import { useState } from "react";
-import useGetActorsCount from "@/hooks/movies/useGetActorsCount";
-import BillboardMovie from "./_components/BillboardMovie";
-import FilterRowMovies from "./_components/FilterRowMovies";
-import Footer from "@/components/Footer";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
+import { isEmpty } from 'lodash';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import Footer from '@/components/Footer';
+import InfoModal from '@/components/InfoModal';
+import MovieList from '@/components/MovieList';
+import Navbar from '@/components/Navbar';
+import useGetActors from '@/hooks/movies/useGetActors';
+import useGetActorsCount from '@/hooks/movies/useGetActorsCount';
+import useNewMovieList2 from '@/hooks/movies/useNewMovieList2';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import useInfoModal from '@/hooks/useInfoModal';
+
+import BillboardMovie from './_components/BillboardMovie';
+import FilterRowMovies from './_components/FilterRowMovies';
 
 export default function MoviesPage() {
   const [limit, setLimit] = useState(3);

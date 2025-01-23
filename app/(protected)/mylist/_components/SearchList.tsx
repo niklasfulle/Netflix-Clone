@@ -1,6 +1,7 @@
-import React from "react";
-import { isEmpty } from "lodash";
-import MovieCard from "@/components/MovieCard";
+import { isEmpty } from 'lodash';
+import React from 'react';
+
+import MovieCard from '@/components/MovieCard';
 
 interface SearchListProps {
   data: Record<string, any>[];

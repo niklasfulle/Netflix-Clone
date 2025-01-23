@@ -1,9 +1,10 @@
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-import { FaPen, FaPlay, FaTrashAlt } from "react-icons/fa";
-import toast from "react-hot-toast";
-import { removePlaylist } from "@/actions/playlist/remove-playlist";
+import Image from 'next/image';
+import Link from 'next/link';
+import React from 'react';
+import toast from 'react-hot-toast';
+import { FaPen, FaPlay, FaTrashAlt } from 'react-icons/fa';
+
+import { removePlaylist } from '@/actions/playlist/remove-playlist';
 
 interface PlaylistCardProps {
   data: Record<string, any>;

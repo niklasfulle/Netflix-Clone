@@ -1,11 +1,11 @@
-import useCurrentProfil from "@/hooks/useCurrentProfil";
+import { signOut } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
+import React from 'react';
 
-import { signOut } from "next-auth/react";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { UserRole } from "@prisma/client";
+import { useCurrentUser } from '@/hooks/use-current-user';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+import { UserRole } from '@prisma/client';
 
 interface AccountMenuProps {
   visible?: boolean;
@@ -62,12 +62,12 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
           </div>
         </Link>
         <hr className="h-px bg-gray-600 border-0" />
-        <div
+        <button
           className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3text-sm hover:underline"
           onClick={() => signOut()}
         >
           Sign out of Netflix
-        </div>
+        </button>
       </div>
     </div>
   );

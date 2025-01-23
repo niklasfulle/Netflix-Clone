@@ -1,26 +1,20 @@
 "use client";
-import { useRouter } from "next/navigation";
-import {
-  FaArrowLeft,
-  FaPen,
-  FaPlus,
-  FaRegSave,
-  FaRegTrashAlt,
-} from "react-icons/fa";
-import { SetStateAction, useState } from "react";
-import Image from "next/image";
-import getProfils from "@/hooks/getProfils";
-import useProfilModal from "@/hooks/useProfilModal";
-import ProfilModal from "@/components/ProfilModal";
-import Input from "@/components/Input";
-import { save } from "@/actions/profil/save";
-import { update } from "@/actions/profil/update";
-import { remove } from "@/actions/profil/remove";
-import { use } from "@/actions/profil/use";
-import { FormError } from "@/components/form-error";
-import { FormSuccess } from "@/components/form-success";
-import { Profil } from "@prisma/client";
-import Footer from "@/components/Footer";
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { SetStateAction, useState } from 'react';
+import toast from 'react-hot-toast';
+import { FaArrowLeft, FaPen, FaPlus, FaRegSave, FaRegTrashAlt } from 'react-icons/fa';
+
+import { remove } from '@/actions/profil/remove';
+import { save } from '@/actions/profil/save';
+import { update } from '@/actions/profil/update';
+import { use } from '@/actions/profil/use';
+import Footer from '@/components/Footer';
+import Input from '@/components/Input';
+import ProfilModal from '@/components/ProfilModal';
+import getProfils from '@/hooks/getProfils';
+import useProfilModal from '@/hooks/useProfilModal';
+import { Profil } from '@prisma/client';
 
 const ProfilesPage = () => {
   const router = useRouter();
@@ -30,8 +24,6 @@ const ProfilesPage = () => {
   const [profilImg, setProfilImg] = useState<string>("Frog.png");
   const [profilName, setProfilName] = useState<string>("");
   const { isOpen, openModal, closeModal } = useProfilModal();
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
 
   let size = 0;
   if (profiles) {
@@ -42,60 +34,60 @@ const ProfilesPage = () => {
     save({ profilName, profilImg })
       .then((data) => {
         if (data?.error) {
-          setError(data?.error);
+          toast.error(data?.error);
         }
 
         if (data?.success) {
-          setSuccess(data?.success);
+          toast.success(data?.success);
           location.reload();
         }
       })
-      .catch(() => setError("Something went wrong!"));
+      .catch(() => toast.error("Something went wrong!"));
   };
 
   const updateProfil = async (profilId: string, profilName: string) => {
     update({ profilId, profilName, profilImg })
       .then((data) => {
         if (data?.error) {
-          setError(data?.error);
+          toast.error(data?.error);
         }
 
         if (data?.success) {
-          setSuccess(data?.success);
+          toast.success(data?.success);
           location.reload();
         }
       })
-      .catch(() => setError("Something went wrong!"));
+      .catch(() => toast.error("Something went wrong!"));
   };
 
   const removeProfil = async (profilId: string) => {
     remove({ profilId })
       .then((data) => {
         if (data?.error) {
-          setError(data?.error);
+          toast.error(data?.error);
         }
 
         if (data?.success) {
-          setSuccess(data?.success);
+          toast.success(data?.success);
           location.reload();
         }
       })
-      .catch(() => setError("Something went wrong!"));
+      .catch(() => toast.error("Something went wrong!"));
   };
 
   const profileUse = async (profilId: string) => {
     use({ profilId })
       .then((data) => {
         if (data?.error) {
-          setError(data?.error);
+          toast.error(data?.error);
         }
 
         if (data?.success) {
-          setSuccess(data?.success);
+          toast.success(data?.success);
           router.push("/");
         }
       })
-      .catch(() => setError("Something went wrong!"));
+      .catch(() => toast.error("Something went wrong!"));
   };
 
   return (
@@ -117,7 +109,7 @@ const ProfilesPage = () => {
                 {profiles.map((profil: Profil) => (
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
-                      <div
+                      <button
                         onClick={() => {
                           if (profil) {
                             profileUse(profil.id);
@@ -131,7 +123,7 @@ const ProfilesPage = () => {
                           width={320}
                           height={320}
                         />
-                      </div>
+                      </button>
                       <div className="flex flex-row items-center justify-center gap-4">
                         <div className="mt-4 text-2xl text-center text-gray-400 group-hover:text-white">
                           {profil.name}
@@ -151,14 +143,14 @@ const ProfilesPage = () => {
                   </div>
                 ))}
                 {size < 4 && (
-                  <div
+                  <button
                     onClick={() => {
                       setProfileState("add");
                     }}
                     className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
                   >
                     <FaPlus className="text-white" size={25} />
-                  </div>
+                  </button>
                 )}
               </div>
             </>
@@ -169,7 +161,7 @@ const ProfilesPage = () => {
                 Who is watching?
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
-                <div
+                <button
                   onClick={() => {
                     setProfileState("add");
                   }}
@@ -179,7 +171,7 @@ const ProfilesPage = () => {
                     className="text-white hover:text-neutral-300"
                     size={25}
                   />
-                </div>
+                </button>
                 <div className="h-44"></div>
               </div>
             </>
@@ -190,7 +182,7 @@ const ProfilesPage = () => {
                 Add Profile
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
-                <div
+                <button
                   onClick={() => {
                     setProfileState("profiles");
                     setProfilName("");
@@ -201,11 +193,14 @@ const ProfilesPage = () => {
                     className="text-white transition-all ease-in hover:text-neutral-300"
                     size={25}
                   />
-                </div>
+                </button>
                 <div>
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
-                      <div className="relative" onClick={() => openModal("")}>
+                      <button
+                        className="relative"
+                        onClick={() => openModal("")}
+                      >
                         <Image
                           src={`/images/profil/${profilImg}`}
                           alt="Profil"
@@ -216,7 +211,7 @@ const ProfilesPage = () => {
                           className="absolute z-10 transition-all ease-in right-2 top-2"
                           size={20}
                         />
-                      </div>
+                      </button>
                     </div>
                     <div className="w-56 mt-4 -ml-6 text-2xl text-center text-gray-400 group-hover:text-white">
                       <Input
@@ -244,10 +239,6 @@ const ProfilesPage = () => {
                   />
                 </div>
               </div>
-              <div className="mt-10">
-                <FormError message={error} />
-                <FormSuccess message={success} />
-              </div>
             </>
           )}
           {profileState == "edit" && profileStateEdit != null && (
@@ -256,7 +247,7 @@ const ProfilesPage = () => {
                 Add Profile
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
-                <div
+                <button
                   onClick={() => {
                     setProfileState("profiles");
                     setProfilName("");
@@ -268,11 +259,14 @@ const ProfilesPage = () => {
                     className="text-white transition-all ease-in hover:text-neutral-300"
                     size={25}
                   />
-                </div>
+                </button>
                 <div>
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
-                      <div className="relative" onClick={() => openModal("")}>
+                      <button
+                        className="relative"
+                        onClick={() => openModal("")}
+                      >
                         <Image
                           src={`/images/profil/${profilImg}`}
                           alt="Profil"
@@ -283,7 +277,7 @@ const ProfilesPage = () => {
                           className="absolute z-10 transition-all ease-in right-2 top-2 "
                           size={20}
                         />
-                      </div>
+                      </button>
                     </div>
                     <div className="w-56 mt-4 -ml-6 text-2xl text-center text-gray-400 group-hover:text-white">
                       <Input
@@ -321,10 +315,6 @@ const ProfilesPage = () => {
                     size={35}
                   />
                 </div>
-              </div>
-              <div className="mt-10">
-                <FormError message={error} />
-                <FormSuccess message={success} />
               </div>
             </>
           )}

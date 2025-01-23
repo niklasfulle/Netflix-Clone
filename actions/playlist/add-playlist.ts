@@ -1,8 +1,9 @@
 "use server"
-import * as z from "zod";
-import { db } from "@/lib/db"
-import { PlaylistSchema } from "@/schemas";
-import { currentUser } from "@/lib/auth";
+import * as z from 'zod';
+
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { PlaylistSchema } from '@/schemas';
 
 export const addPlaylist = async (values: z.infer<typeof PlaylistSchema>) => {
   const user = await currentUser()
@@ -33,7 +34,7 @@ export const addPlaylist = async (values: z.infer<typeof PlaylistSchema>) => {
   await db.playlist.create({
     data: {
       userId: user.id as string,
-      profilId: profil.id as string,
+      profilId: profil.id,
       title: playlistName
     }
   })

@@ -1,8 +1,10 @@
-import { SessionProvider } from "next-auth/react";
-import { auth } from "@/auth";
-import "./globals.css";
-import { Metadata } from "next";
-import { Toaster } from "react-hot-toast";
+import './globals.css';
+
+import { Metadata } from 'next';
+import { SessionProvider } from 'next-auth/react';
+import { Toaster } from 'react-hot-toast';
+
+import { auth } from '@/auth';
 
 export const metadata: Metadata = {
   title: "Netflix - Home",

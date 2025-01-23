@@ -1,7 +1,8 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import { AddMovieForm } from "./_components/add-movie-form";
-import Footer from "@/components/Footer";
+import Footer from '@/components/Footer';
+import Navbar from '@/components/Navbar';
+
+import { AddMovieForm } from './_components/add-movie-form';
 
 export default function Add() {
   return (

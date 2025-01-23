@@ -1,5 +1,5 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic"
 
@@ -25,7 +25,7 @@ export async function GET() {
     const playlists = await db.playlist.findMany({
       where: {
         userId: user.id as string,
-        profilId: profil.id as string
+        profilId: profil.id
       },
       orderBy: {
         createdAt: "asc"
@@ -33,18 +33,18 @@ export async function GET() {
     })
 
 
-    var playlistsWithEntries: any = []
-    for (let i = 0; i < playlists.length; i++) {
+    const playlistsWithEntries: any = []
+    for (const playlist of playlists) {
       const playlistsEntries = await db.playlistEntry.findMany({
         where: {
-          playlistId: playlists[i].id
+          playlistId: playlist.id
         },
         orderBy: {
           order: 'asc',
         },
       })
 
-      var movies: any = []
+      const movies: any = []
       for (let i = 0; i < playlistsEntries.length; i++) {
         const movie = await db.movie.findUnique({
           where: {
@@ -62,7 +62,7 @@ export async function GET() {
         title: string;
 
         movies: any
-      } = { ...playlists[i], movies: movies };
+      } = { ...playlist, movies: movies };
 
       playlistsWithEntries.push(playlistWithEntries)
     }

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { IoClose } from "react-icons/io5";
-import { AddPlaylistForm } from "./add-playlist-form";
+import { useCallback, useEffect, useState } from 'react';
+import { IoClose } from 'react-icons/io5';
+
+import { AddPlaylistForm } from './add-playlist-form';
 
 interface PlaylistCreateModalProps {
   visible?: boolean;

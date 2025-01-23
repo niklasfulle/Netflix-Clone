@@ -1,15 +1,17 @@
 "use client";
-import Navbar from "@/components/Navbar";
-import useCurrentProfil from "@/hooks/useCurrentProfil";
-import { isEmpty } from "lodash";
-import { useRouter } from "next/navigation";
-import Footer from "@/components/Footer";
-import usePlaylists from "@/hooks/playlists/usePlaylists";
-import PlaylistsList from "./_components/PlaylistsList";
-import PlaylistCreateModal from "./_components/PlaylistCreateModal";
-import PlaylistEditModal from "./_components/PlaylistEditModal";
-import useUpdatePlaylistModal from "@/hooks/playlists/useUpdatePlaylistModal";
-import useCreatePlaylistModal from "@/hooks/playlists/useCreatePlaylistModal";
+import { isEmpty } from 'lodash';
+import { useRouter } from 'next/navigation';
+
+import Footer from '@/components/Footer';
+import Navbar from '@/components/Navbar';
+import useCreatePlaylistModal from '@/hooks/playlists/useCreatePlaylistModal';
+import usePlaylists from '@/hooks/playlists/usePlaylists';
+import useUpdatePlaylistModal from '@/hooks/playlists/useUpdatePlaylistModal';
+import useCurrentProfil from '@/hooks/useCurrentProfil';
+
+import PlaylistCreateModal from './_components/PlaylistCreateModal';
+import PlaylistEditModal from './_components/PlaylistEditModal';
+import PlaylistsList from './_components/PlaylistsList';
 
 export default function SeriesPage() {
   const { data: profil } = useCurrentProfil();

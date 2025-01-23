@@ -1,7 +1,7 @@
 "use client";
-import { useRouter } from "next/navigation";
-import React, { ChangeEvent, useState } from "react";
-import { FaSearch } from "react-icons/fa";
+import { useRouter } from 'next/navigation';
+import React, { ChangeEvent, useState } from 'react';
+import { FaSearch } from 'react-icons/fa';
 
 const SearchItem = () => {
   const [value, setValue] = useState("");

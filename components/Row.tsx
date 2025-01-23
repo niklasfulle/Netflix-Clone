@@ -1,7 +1,8 @@
-import React, { useRef, useState } from "react";
-import { isEmpty } from "lodash";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import Thumbnail from "@/components/Thumbnail";
+import { isEmpty } from 'lodash';
+import React, { useRef, useState } from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+
+import Thumbnail from '@/components/Thumbnail';
 
 interface RowProps {
   data: Record<string, any>[];

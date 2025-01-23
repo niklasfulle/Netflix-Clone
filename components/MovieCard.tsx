@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { FaChevronDown } from "react-icons/fa";
-import FavoriteButton from "./FavoriteButton";
-import useInfoModal from "@/hooks/useInfoModal";
-import Image from "next/image";
-import RestartButton from "./RestartButton";
-import MovieCardPlayButton from "./MovieCardPlayButton";
-import { isMobile } from "react-device-detect";
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+import { isMobile } from 'react-device-detect';
+import { FaChevronDown } from 'react-icons/fa';
+
+import useInfoModal from '@/hooks/useInfoModal';
+
+import FavoriteButton from './FavoriteButton';
+import MovieCardPlayButton from './MovieCardPlayButton';
+import RestartButton from './RestartButton';
 
 interface MovieCardProps {
   data: Record<string, any>;
@@ -55,7 +57,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
   }, [isDesktop]);
 
   return (
-    <div
+    <button
       className="group bg-zinc-900 col-span relative h-[20vw] lg:h-[12vw]"
       onClick={() => handleClick(data?.id)}
     >
@@ -110,7 +112,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               <MovieCardPlayButton movieId={data?.id} />
               <RestartButton movieId={data?.id} />
               <FavoriteButton movieId={data?.id} />
-              <div
+              <button
                 onClick={() => openModal(data?.id)}
                 className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item  hover:border-neutral-300"
               >
@@ -118,7 +120,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
                   className="text-white sm:group-hover/item:text-neutral-300 mt-0.5"
                   size={20}
                 />
-              </div>
+              </button>
             </div>
           </div>
           <p className="hidden mt-4 font-semibold lg:block">
@@ -140,7 +142,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 

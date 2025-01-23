@@ -1,6 +1,6 @@
-import { db } from "@/lib/db"
-import { currentUser } from "@/lib/auth"
-import { Movie } from "@prisma/client"
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { Movie } from '@prisma/client';
 
 export const dynamic = "force-dynamic"
 

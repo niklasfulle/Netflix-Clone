@@ -1,13 +1,6 @@
 "use client";
-
-import Image from "next/image";
-import {
-  FaArrowDown,
-  FaArrowLeft,
-  FaArrowRight,
-  FaArrowUp,
-  FaTrashAlt,
-} from "react-icons/fa";
+import Image from 'next/image';
+import { FaArrowDown, FaArrowLeft, FaArrowRight, FaArrowUp, FaTrashAlt } from 'react-icons/fa';
 
 interface PlaylistEntryCardProps {
   index: number;
@@ -29,22 +22,18 @@ const PlaylistEntryCard: React.FC<PlaylistEntryCardProps> = ({
       <Image src={movie.thumbnailUrl} alt="" width={1920} height={1080} />
       {size == 1 && <></>}
       {size == 2 && index == 0 && (
-        <>
-          <FaArrowRight
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer right-1 my-auto top-0 bottom-0 hover:text-neutral-300"
-            size={18}
-            onClick={() => onMove("down", index)}
-          />
-        </>
+        <FaArrowRight
+          className="absolute z-10 text-white transition-all ease-in cursor-pointer right-1 my-auto top-0 bottom-0 hover:text-neutral-300"
+          size={18}
+          onClick={() => onMove("down", index)}
+        />
       )}
       {size == 2 && index == 1 && (
-        <>
-          <FaArrowLeft
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer left-1 my-auto top-0 bottom-0 hover:text-neutral-300"
-            size={18}
-            onClick={() => onMove("up", index)}
-          />
-        </>
+        <FaArrowLeft
+          className="absolute z-10 text-white transition-all ease-in cursor-pointer left-1 my-auto top-0 bottom-0 hover:text-neutral-300"
+          size={18}
+          onClick={() => onMove("up", index)}
+        />
       )}
       {size > 2 && (index + 1) % 4 == 3 && (
         <>
