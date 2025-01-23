@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { IoClose } from 'react-icons/io5';
+import { useCallback, useEffect, useState } from "react";
+import { IoClose } from "react-icons/io5";
 
-import { AddPlaylistForm } from './add-playlist-form';
+import { AddPlaylistForm } from "./add-playlist-form";
 
 interface PlaylistCreateModalProps {
   visible?: boolean;
@@ -36,7 +36,7 @@ const PlaylistCreateModal: React.FC<PlaylistCreateModalProps> = ({
             isVisible ? "scale-100" : "scale-0"
           } transform duration-300 relative flex-auto bg-zinc-900 drop-shadow-md`}
         >
-          <div className="relative min-w-[35rem]">
+          <div className="relative min-w-[23rem]">
             <IoClose
               onClick={handleClose}
               className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 top-2 hover:text-neutral-300"

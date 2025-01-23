@@ -1,10 +1,10 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react';
-import toast from 'react-hot-toast';
-import { FaPen, FaPlay, FaTrashAlt } from 'react-icons/fa';
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
+import toast from "react-hot-toast";
+import { FaPen, FaPlay, FaTrashAlt } from "react-icons/fa";
 
-import { removePlaylist } from '@/actions/playlist/remove-playlist';
+import { removePlaylist } from "@/actions/playlist/remove-playlist";
 
 interface PlaylistCardProps {
   data: Record<string, any>;
@@ -60,11 +60,11 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
       )}
       {data.movies.length > 0 && data.movies.length < 4 && (
         <>
-          <h1 className="absolute top-0 md:text-2xl text-xl text-white font-bold">
+          <h1 className="absolute top-0 xl:text-2xl text-xl text-white font-bold">
             {data.title}
           </h1>
           <Image
-            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-[20vw] lg:h-[12vw]"
+            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-[20vw] xl:h-[12vw]"
             src={data.movies[0]?.thumbnailUrl}
             alt="Thumbnail"
             width={1920}
@@ -99,7 +99,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
         <>
           <div className="grid grid-cols-2 shadow-xl w-full rounded-t-md relative">
             <Image
-              className="cursor-pointer object-cover transition duration rounded-tl-md w-full h-[10vw] lg:h-[6vw]"
+              className="cursor-pointer object-cover transition duration rounded-tl-md w-full h-[10vw] xl:h-[6vw]"
               src={data.movies[0]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -107,7 +107,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration rounded-tr-md w-full h-[10vw] lg:h-[6vw]"
+              className="cursor-pointer object-cover transition duration rounded-tr-md w-full h-[10vw] xl:h-[6vw]"
               src={data.movies[1]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -115,7 +115,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration w-full h-[10vw] lg:h-[6vw]"
+              className="cursor-pointer object-cover transition duration w-full h-[10vw] xl:h-[6vw]"
               src={data.movies[2]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -123,7 +123,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration w-full h-[10vw] lg:h-[6vw]"
+              className="cursor-pointer object-cover transition duration w-full h-[10vw]  xl:h-[6vw]"
               src={data.movies[3]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -132,11 +132,20 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             />
             <Link
               href={`/watch/playlist/${data.id}`}
-              className="md:block hidden"
+              className="hidden md:block"
             >
               <FaPlay
-                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0 "
+                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
                 size={40}
+              />
+            </Link>
+            <Link
+              href={`/watch/playlist/${data.id}`}
+              className="md:hidden block"
+            >
+              <FaPlay
+                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
+                size={20}
               />
             </Link>
             <FaTrashAlt
@@ -150,7 +159,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               onClick={() => openModalEdit(data.id)}
             />
           </div>
-          <h1 className="absolute top-0 text-2xl text-white font-bold">
+          <h1 className="absolute top-0 xl:text-2xl text-xl text-white font-bold">
             {data.title}
           </h1>
         </>
