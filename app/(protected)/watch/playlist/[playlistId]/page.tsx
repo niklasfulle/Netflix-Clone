@@ -1,10 +1,10 @@
 "use client";
-import { useParams, useRouter } from 'next/navigation';
-import React, { useRef, useState } from 'react';
-import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { useParams, useRouter } from "next/navigation";
+import React, { useRef, useState } from "react";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
-import { updateWatchTime } from '@/actions/watch/update-watch-time';
-import usePlaylist from '@/hooks/playlists/usePlaylist';
+import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import usePlaylist from "@/hooks/playlists/usePlaylist";
 
 const Watch = () => {
   const playlistId = useParams<{ playlistId: string }>().playlistId;
@@ -20,8 +20,9 @@ const Watch = () => {
   }
 
   const updateMovie = (dir: number) => {
+    console.log(currentMovie + dir);
     if (
-      currentMovie + dir != 0 ||
+      currentMovie + dir != -1 ||
       currentMovie + dir > playlist?.movies.lenght - 1
     )
       setCurrentMovie(currentMovie + dir);
@@ -49,60 +50,64 @@ const Watch = () => {
         </p>
       </nav>
       {currentMovie == 0 && (
-        <p className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white">
+        <button
+          onClick={() => updateMovie(1)}
+          className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
+        >
           <FaArrowRight
             className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
             size={45}
-            onClick={() => updateMovie(1)}
           />
           <FaArrowRight
             className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
             size={26}
-            onClick={() => updateMovie(1)}
           />
-        </p>
+        </button>
       )}
       {currentMovie > 0 && currentMovie < playlist?.movies.length - 1 && (
         <>
-          <p className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white">
-            <FaArrowRight
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
-              size={45}
-              onClick={() => updateMovie(1)}
-            />
-            <FaArrowRight
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
-              size={26}
-              onClick={() => updateMovie(1)}
-            />
-          </p>
-          <p className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white">
+          <button
+            className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
+            onClick={() => updateMovie(-1)}
+          >
             <FaArrowLeft
               className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
               size={45}
-              onClick={() => updateMovie(-1)}
             />
             <FaArrowLeft
               className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
               size={26}
-              onClick={() => updateMovie(-1)}
             />
-          </p>
+          </button>
+          <button
+            onClick={() => updateMovie(1)}
+            className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
+          >
+            <FaArrowRight
+              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
+              size={45}
+            />
+            <FaArrowRight
+              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
+              size={26}
+            />
+          </button>
         </>
       )}
       {currentMovie == playlist?.movies.length - 1 && (
-        <p className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white">
+        <button
+          onClick={() => updateMovie(-1)}
+          className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
+        >
           <FaArrowLeft
             className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
             size={45}
-            onClick={() => updateMovie(-1)}
           />
           <FaArrowLeft
             className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
             size={26}
-            onClick={() => updateMovie(-1)}
           />
-        </p>
+        </button>
       )}
       <video
         id="videoElement"
