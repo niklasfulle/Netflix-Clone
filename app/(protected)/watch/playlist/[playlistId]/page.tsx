@@ -1,10 +1,10 @@
 "use client";
-import React, { useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { AiOutlineArrowLeft } from "react-icons/ai";
+import React /*, { useRef }*/ from "react";
+import { useParams /* useRouter*/ } from "next/navigation";
+/*import { AiOutlineArrowLeft } from "react-icons/ai";
 import useMovie from "@/hooks/movies/useMovie";
 import { useSearchParams } from "next/navigation";
-import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import { updateWatchTime } from "@/actions/watch/update-watch-time";*/
 
 const Watch = () => {
   const playlistId = useParams<{ playlistId: string }>().playlistId;

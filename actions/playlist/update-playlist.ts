@@ -40,15 +40,6 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>, mov
     }
   })
 
-  moviesToRemove.forEach(async function (movie: any) {
-    await db.playlistEntry.deleteMany({
-      where: {
-        playlistId: playlistId,
-        movieId: movie.id
-      },
-    })
-  });
-
   moviesToUpdate.forEach(async function (movie: any, index: number) {
     await db.playlistEntry.updateMany({
       where: {
@@ -58,6 +49,15 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>, mov
       data: {
         order: index + 1
       }
+    })
+  });
+
+  moviesToRemove.forEach(async function (movieId: any) {
+    await db.playlistEntry.deleteMany({
+      where: {
+        playlistId: playlistId,
+        movieId: movieId
+      },
     })
   });
 

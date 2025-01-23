@@ -24,9 +24,6 @@ const PlaylistEntryCard: React.FC<PlaylistEntryCardProps> = ({
   onMove,
   onClickDelete,
 }) => {
-  console.log("index", index);
-  console.log("size", size);
-
   return (
     <div className="relative w-full">
       <Image src={movie.thumbnailUrl} alt="" width={1920} height={1080} />

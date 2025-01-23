@@ -2,7 +2,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { MovieSchema, PlaylistSchema } from "@/schemas";
+import { PlaylistSchema } from "@/schemas";
 import {
   Form,
   FormControl,
@@ -13,18 +13,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { updatePlaylist } from "@/actions/playlist/update-playlist";
 import toast from "react-hot-toast";
-import {
-  FaArrowDown,
-  FaArrowLeft,
-  FaArrowRight,
-  FaArrowUp,
-  FaTrashAlt,
-} from "react-icons/fa";
-import Image from "next/image";
-import { difference, swapElements } from "@/lib/utils";
+import { swapElements } from "@/lib/utils";
 import PlaylistEntryCard from "./PlaylistEntryCard";
 
 interface PlaylistCardProps {
@@ -36,6 +28,7 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   const [movies, setMovies] = useState<any>([]);
   const [movieRemoved, setMovieRemoved] = useState<boolean>(false);
   const [movieMoved, setMovieMoved] = useState<boolean>(false);
+  const [moviesToRemove, setMoviesToRemove] = useState<any>([]);
 
   const form = useForm<z.infer<typeof PlaylistSchema>>({
     resolver: zodResolver(PlaylistSchema),
@@ -46,11 +39,6 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   });
 
   const onSubmit = (values: z.infer<typeof PlaylistSchema>) => {
-    let moviesToRemove = [];
-    if (movieRemoved) {
-      moviesToRemove = difference(playlist.movies, movies);
-    }
-
     startTransition(() => {
       updatePlaylist(values, moviesToRemove, movies).then((data) => {
         if (data?.error) {
@@ -76,7 +64,6 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
         } else {
           setMovies([...swapElements(playlist.movies, index, index - 1)]);
         }
-        setMovieMoved(true);
       } else if (dir == "down") {
         if (index == playlist.movies.length - 1) {
           setMovies([
@@ -85,8 +72,8 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
         } else {
           setMovies([...swapElements(playlist.movies, index, index + 1)]);
         }
-        setMovieMoved(true);
       }
+      setMovieMoved(true);
     } else {
       if (dir == "up") {
         if (index == 0) {
@@ -106,26 +93,20 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
 
   const onClickDelete = (movieId: string) => {
     if (!movieRemoved && !movieMoved && playlist.movies.length == 1) {
-      let filterMovies = playlist.movies.filter(
-        (movie: any) => movie.id != movieId
-      );
-
-      setMovies(filterMovies);
+      setMovies([
+        ...playlist.movies.filter((movie: any) => movie.id != movieId),
+      ]);
       setMovieRemoved(!movieRemoved);
     } else if (!movieRemoved && !movieMoved && playlist.movies.length > 1) {
-      let filterMovies = playlist.movies.filter(
-        (movie: any) => movie.id != movieId
-      );
-
-      setMovies(filterMovies);
+      setMovies([
+        ...playlist.movies.filter((movie: any) => movie.id != movieId),
+      ]);
       setMovieRemoved(!movieRemoved);
     } else if (movieRemoved || movieMoved) {
-      if (movies.length > 1) {
-        setMovies(movies.filter((movie: any) => movie.id != movieId));
-      } else {
-        setMovies([]);
-      }
+      setMovies([...movies.filter((movie: any) => movie.id != movieId)]);
     }
+
+    setMoviesToRemove([...moviesToRemove, movieId]);
   };
 
   if (playlist == undefined) {
