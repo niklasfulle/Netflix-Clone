@@ -59,7 +59,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
       )}
       {data.movies.length > 0 && data.movies.length < 4 && (
         <>
-          <h1 className="absolute top-0 text-2xl text-white font-bold">
+          <h1 className="absolute top-0 md:text-2xl text-xl text-white font-bold">
             {data.title}
           </h1>
           <Image
@@ -70,10 +70,16 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             height={1080}
             priority
           />
-          <Link href={`/watch/playlist/${data.id}`}>
+          <Link href={`/watch/playlist/${data.id}`} className="hidden md:block">
             <FaPlay
               className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
               size={40}
+            />
+          </Link>
+          <Link href={`/watch/playlist/${data.id}`} className="md:hidden block">
+            <FaPlay
+              className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
+              size={20}
             />
           </Link>
           <FaTrashAlt
@@ -123,9 +129,12 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               height={1080}
               priority
             />
-            <Link href={`/watch/playlist/${data.id}`}>
+            <Link
+              href={`/watch/playlist/${data.id}`}
+              className="md:block hidden"
+            >
               <FaPlay
-                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
+                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0 "
                 size={40}
               />
             </Link>

@@ -1,10 +1,10 @@
 "use client";
 import React, { useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AiOutlineArrowLeft } from "react-icons/ai";
 import useMovie from "@/hooks/movies/useMovie";
 import { useSearchParams } from "next/navigation";
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import { FaArrowLeft } from "react-icons/fa";
 
 const Watch = () => {
   const movieId = useParams<{ movieId: string }>().movieId;
@@ -31,7 +31,7 @@ const Watch = () => {
     <>
       <div className="w-screen h-screen bg-black">
         <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
-          <AiOutlineArrowLeft
+          <FaArrowLeft
             className="text-white cursor-pointer"
             size={40}
             onClick={() => {
@@ -39,8 +39,8 @@ const Watch = () => {
               router.push("/");
             }}
           />
-          <p className="font-bold text-white text-1xl md:text-3xl">
-            <span className="pr-3 font-light">Watching:</span>
+          <p className="font-bold text-white text-xl xl:text-3xl flex flex-row">
+            <span className="pr-3 font-light">Watching: </span>
             {data?.title}
           </p>
         </nav>

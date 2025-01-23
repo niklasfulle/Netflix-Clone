@@ -33,9 +33,10 @@ export default function MoviesPage() {
       <Navbar />
       <div className="pt-40 pb-40">
         <SearchList
-          title="Search Result"
+          title="Search Result for:"
           data={results}
           isLoading={isLoadingSearch}
+          searchItem={params.searchItem}
         />
       </div>
     </>

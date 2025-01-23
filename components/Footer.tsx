@@ -6,7 +6,7 @@ const Footer = () => {
         <a className="text-zinc-200">Niklas Fulle</a>
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm">
-        Version: <a className="text-zinc-200">1.0.0</a>
+        Version: <a className="text-zinc-200">1.2.0</a>
       </div>
     </div>
   );

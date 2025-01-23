@@ -17,7 +17,7 @@ function calculateBarWidth(duration: string, watchTime: number): number {
     sec = parseInt(i[0]) * 60 * 60 + parseInt(i[1]) * 60 + parseInt(i[2]);
   }
 
-  return Math.floor(watchTime / (sec! / 100));
+  return Math.floor(watchTime / (sec! / 100)) - 1.5;
 }
 
 const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
@@ -61,7 +61,7 @@ const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
                 width: barWidth,
               }}
             ></div>
-            <div className="absolute w-full h-1 bg-black bottom-[0px]"></div>
+            <div className="absolute w-[98.5%] h-1 bg-black bottom-[0px]"></div>
           </>
         )}
       </div>
