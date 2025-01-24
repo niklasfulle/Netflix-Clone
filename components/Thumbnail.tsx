@@ -1,6 +1,6 @@
-import Image from 'next/image';
+import Image from "next/image";
 
-import useInfoModal from '@/hooks/useInfoModal';
+import useInfoModal from "@/hooks/useInfoModal";
 
 interface MovieCardProps {
   data: Record<string, any>;
@@ -62,7 +62,7 @@ const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
                 width: barWidth,
               }}
             ></div>
-            <div className="absolute w-[98.5%] h-1 bg-black bottom-[0px]"></div>
+            <div className="absolute md:w-[98.5%] w-full h-1 bg-black bottom-[0px]"></div>
           </>
         )}
       </div>

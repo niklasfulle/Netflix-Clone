@@ -31,9 +31,9 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
   };
 
   return (
-    <div className="relative group bg-zinc-800 col-span h-[24vw] lg:h-[12vw] flex flex-row items-center justify-center rounded-t-md cursor-pointer">
+    <div className="relative group bg-zinc-800 col-span flex flex-row items-center justify-center rounded-t-md cursor-pointer">
       {(isLoading || data.movies.length == 0) && (
-        <div className="flex items-center justify-center w-full h-full transition shadow-xl cursor-pointer oobject-cover duration rounded-t-md bg-zinc-800">
+        <div className="flex items-center justify-center w-full h-full p-12 transition shadow-xl cursor-pointer oobject-cover duration rounded-t-md bg-zinc-800">
           <h1 className="absolute top-0 text-2xl text-white font-bold">
             {data.title}
           </h1>
@@ -64,7 +64,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             {data.title}
           </h1>
           <Image
-            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-[24vw] xl:h-[12vw]"
+            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md w-full h-[24vw] lg:h-[12vw]"
             src={data.movies[0]?.thumbnailUrl}
             alt="Thumbnail"
             width={1920}
@@ -99,7 +99,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
         <>
           <div className="grid grid-cols-2 shadow-xl w-full rounded-t-md relative">
             <Image
-              className="cursor-pointer object-cover transition duration rounded-tl-md w-full h-[12vw] xl:h-[6vw]"
+              className="cursor-pointer object-cover transition duration rounded-tl-md w-full h-[12vw] lg:h-[6vw]"
               src={data.movies[0]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -107,7 +107,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration rounded-tr-md w-full h-[12vw] xl:h-[6vw]"
+              className="cursor-pointer object-cover transition duration rounded-tr-md w-full h-[12vw] lg:h-[6vw]"
               src={data.movies[1]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -115,7 +115,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration w-full h-[12vw] xl:h-[6vw]"
+              className="cursor-pointer object-cover transition duration w-full h-[12vw] lg:h-[6vw]"
               src={data.movies[2]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}
@@ -123,7 +123,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               priority
             />
             <Image
-              className="cursor-pointer object-cover transition duration w-full h-[12vw]  xl:h-[6vw]"
+              className="cursor-pointer object-cover transition duration w-full h-[12vw] lg:h-[6vw]"
               src={data.movies[3]?.thumbnailUrl}
               alt="Thumbnail"
               width={1920}

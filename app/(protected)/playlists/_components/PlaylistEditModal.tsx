@@ -35,7 +35,7 @@ const PlaylistEditModal: React.FC<PlaylistEditModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80 pb-32 px-1">
+    <div className="fixed z-[100] inset-0 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80 pb-32 px-1">
       <div className="relative w-auto max-w-3xl mx-auto overflow-hidden rounded-md">
         <div
           className={`${

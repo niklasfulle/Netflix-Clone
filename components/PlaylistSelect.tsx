@@ -1,17 +1,27 @@
 "use client";
-import { useTransition } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
-import * as z from 'zod';
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
+import * as z from "zod";
 
-import { addPlaylistEntry } from '@/actions/playlist/add-playlist-entry';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { addPlaylistEntry } from "@/actions/playlist/add-playlist-entry";
+import { Button } from "@/components/ui/button";
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { PlaylistSelectSchema } from '@/schemas';
-import { zodResolver } from '@hookform/resolvers/zod';
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PlaylistSelectSchema } from "@/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface PlaylistSelectProps {
   playlists: any[];
@@ -60,7 +70,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
-                    <FormControl className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 border-gray-500 px-4 w-64 md:w-72 lg:w-96">
+                    <FormControl className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 border-gray-500 px-4 w-48 md:w-72 lg:w-96">
                       <SelectTrigger>
                         <SelectValue placeholder="Select Playlist" />
                       </SelectTrigger>

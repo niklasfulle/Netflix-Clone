@@ -1,20 +1,25 @@
 "use client";
-import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
-import toast from 'react-hot-toast';
-import * as z from 'zod';
+import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
+import * as z from "zod";
 
-import { updatePlaylist } from '@/actions/playlist/update-playlist';
-import { Button } from '@/components/ui/button';
+import { updatePlaylist } from "@/actions/playlist/update-playlist";
+import { Button } from "@/components/ui/button";
 import {
-    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { swapElements } from '@/lib/utils';
-import { PlaylistSchema } from '@/schemas';
-import { zodResolver } from '@hookform/resolvers/zod';
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { swapElements } from "@/lib/utils";
+import { PlaylistSchema } from "@/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import PlaylistEntryCard from './PlaylistEntryCard';
+import PlaylistEntryCard from "./PlaylistEntryCard";
 
 interface PlaylistCardProps {
   playlist: Record<string, any>;
@@ -129,7 +134,7 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
           />
           <div className="max-w-96">
             <span className="text-white pb-2">Movies</span>
-            <div className="grid grid-cols-2 gap-1 p-2 mt-2 rounded-md bg-zinc-800 max-h-[20rem] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:bg-neutral-500">
+            <div className="grid grid-cols-2 gap-1 p-2 mt-2 rounded-md bg-zinc-800 max-h-[12rem] md:max-h-[20rem] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-neutral-700 [&::-webkit-scrollbar-thumb]:bg-neutral-500">
               {!movieRemoved &&
                 !movieMoved &&
                 movies.length == 0 &&
