@@ -27,7 +27,7 @@ export default function Home() {
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <Billboard />
-      <div className="pb-40 min-h-screen">
+      <div className="pb-12 min-h-screen">
         <MovieList
           title="New"
           data={newMovies}

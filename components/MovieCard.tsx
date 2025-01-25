@@ -1,13 +1,13 @@
-import Image from "next/image";
-import React, { useEffect, useState } from "react";
-import { isMobile } from "react-device-detect";
-import { FaChevronDown } from "react-icons/fa";
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+import { isMobile } from 'react-device-detect';
+import { FaChevronDown } from 'react-icons/fa';
 
-import useInfoModal from "@/hooks/useInfoModal";
+import useInfoModal from '@/hooks/useInfoModal';
 
-import FavoriteButton from "./FavoriteButton";
-import MovieCardPlayButton from "./MovieCardPlayButton";
-import RestartButton from "./RestartButton";
+import FavoriteButton from './FavoriteButton';
+import MovieCardPlayButton from './MovieCardPlayButton';
+import RestartButton from './RestartButton';
 
 interface MovieCardProps {
   data: Record<string, any>;

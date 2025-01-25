@@ -1,6 +1,6 @@
-import Image from "next/image";
+import Image from 'next/image';
 
-import useInfoModal from "@/hooks/useInfoModal";
+import useInfoModal from '@/hooks/useInfoModal';
 
 interface MovieCardProps {
   data: Record<string, any>;

@@ -37,40 +37,35 @@ const FilterRowSeries: React.FC<FilterRowSeriesProps> = ({ title }) => {
         {title}
       </p>
       {!isEmpty(movies) && (
-        <>
-          <div className="relative h-auto group">
-            <FaChevronLeft
-              size={30}
-              className={`text-white absolute top-0 bottom-0 left-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${
-                !isMoved && "hidden"
-              }`}
-              onClick={() => handleClick("left")}
-            />
-            <div
-              ref={rowRef}
-              className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
-            >
-              {movies.map((movie: Movie) => (
-                <Thumbnail
-                  key={movie.id}
-                  data={movie}
-                  isLoading={isLoadingSeriesByActor}
-                />
-              ))}
-            </div>
-            <FaChevronRight
-              size={30}
-              className={`text-white absolute top-0 bottom-0 right-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100`}
-              onClick={() => handleClick("right")}
-            />
+        <div className="relative h-auto group">
+          <FaChevronLeft
+            size={30}
+            className={`text-white absolute top-0 bottom-0 left-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${
+              !isMoved && "hidden"
+            }`}
+            onClick={() => handleClick("left")}
+          />
+          <div
+            ref={rowRef}
+            className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
+          >
+            {movies.map((movie: Movie) => (
+              <Thumbnail
+                key={movie.id}
+                data={movie}
+                isLoading={isLoadingSeriesByActor}
+              />
+            ))}
           </div>
-        </>
+          <FaChevronRight
+            size={30}
+            className={`text-white absolute top-0 bottom-0 right-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100`}
+            onClick={() => handleClick("right")}
+          />
+        </div>
       )}
       {isEmpty(movies) && (
-        <div
-          role="status"
-          className="flex flex-row items-center justify-center w-full h-24"
-        >
+        <output className="flex flex-row items-center justify-center w-full h-24">
           <svg
             aria-hidden="true"
             className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-red-600"
@@ -88,7 +83,7 @@ const FilterRowSeries: React.FC<FilterRowSeriesProps> = ({ title }) => {
             />
           </svg>
           <span className="sr-only">Loading...</span>
-        </div>
+        </output>
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { IoClose } from "react-icons/io5";
+import { useCallback, useEffect, useState } from 'react';
+import { IoClose } from 'react-icons/io5';
 
-import usePlaylist from "@/hooks/playlists/usePlaylist";
-import useUpdatePlaylistModal from "@/hooks/playlists/useUpdatePlaylistModal";
+import usePlaylist from '@/hooks/playlists/usePlaylist';
+import useUpdatePlaylistModal from '@/hooks/playlists/useUpdatePlaylistModal';
 
-import { UpdatePlaylistForm } from "./update-playlist-form";
+import { UpdatePlaylistForm } from './update-playlist-form';
 
 interface PlaylistEditModalProps {
   visible?: boolean;

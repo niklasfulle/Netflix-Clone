@@ -1,27 +1,17 @@
 "use client";
-import { useTransition } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
-import * as z from "zod";
+import { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'react-hot-toast';
+import * as z from 'zod';
 
-import { addPlaylistEntry } from "@/actions/playlist/add-playlist-entry";
-import { Button } from "@/components/ui/button";
+import { addPlaylistEntry } from '@/actions/playlist/add-playlist-entry';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PlaylistSelectSchema } from "@/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import { PlaylistSelectSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 interface PlaylistSelectProps {
   playlists: any[];

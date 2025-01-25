@@ -1,15 +1,15 @@
 "use client";
-import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
-import { AiOutlineClose } from "react-icons/ai";
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { AiOutlineClose } from 'react-icons/ai';
 
-import FavoriteButton from "@/components/FavoriteButton";
-import useMovie from "@/hooks/movies/useMovie";
-import useInfoModal from "@/hooks/useInfoModal";
+import FavoriteButton from '@/components/FavoriteButton';
+import useMovie from '@/hooks/movies/useMovie';
+import useInfoModal from '@/hooks/useInfoModal';
 
-import PlayButton from "./PlayButton";
-import PlaylistSelect from "./PlaylistSelect";
-import RestartButton from "./RestartButton";
+import PlayButton from './PlayButton';
+import PlaylistSelect from './PlaylistSelect';
+import RestartButton from './RestartButton';
 
 interface InfoModalProps {
   visible?: boolean;
@@ -60,7 +60,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
 
   return (
     <div className="fixed inset-0 px-1 sm:px-0 sm:mt-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
-      <div className="relative w-auto max-w-3xl mx-auto overflow-hidden rounded-md">
+      <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-md">
         <div
           className={`${
             isVisible ? "scale-100" : "scale-0"

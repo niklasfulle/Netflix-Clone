@@ -52,7 +52,7 @@ const BillboardMovie = () => {
       )}
       {!isLoading && !isDesktop && (
         <Image
-          className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
+          className="w-full h-[60.25vw] object-cover brightness-[60%] aspect-video"
           src={data?.thumbnailUrl}
           height={1080}
           width={1920}

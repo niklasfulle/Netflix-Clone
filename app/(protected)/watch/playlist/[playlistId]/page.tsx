@@ -1,10 +1,10 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
-import React, { useRef, useState } from "react";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { useParams, useRouter } from 'next/navigation';
+import React, { useRef, useState } from 'react';
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 
-import { updateWatchTime } from "@/actions/watch/update-watch-time";
-import usePlaylist from "@/hooks/playlists/usePlaylist";
+import { updateWatchTime } from '@/actions/watch/update-watch-time';
+import usePlaylist from '@/hooks/playlists/usePlaylist';
 
 const Watch = () => {
   const playlistId = useParams<{ playlistId: string }>().playlistId;

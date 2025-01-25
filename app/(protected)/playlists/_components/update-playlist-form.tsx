@@ -1,25 +1,20 @@
 "use client";
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import * as z from "zod";
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import * as z from 'zod';
 
-import { updatePlaylist } from "@/actions/playlist/update-playlist";
-import { Button } from "@/components/ui/button";
+import { updatePlaylist } from '@/actions/playlist/update-playlist';
+import { Button } from '@/components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { swapElements } from "@/lib/utils";
-import { PlaylistSchema } from "@/schemas";
-import { zodResolver } from "@hookform/resolvers/zod";
+    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { swapElements } from '@/lib/utils';
+import { PlaylistSchema } from '@/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-import PlaylistEntryCard from "./PlaylistEntryCard";
+import PlaylistEntryCard from './PlaylistEntryCard';
 
 interface PlaylistCardProps {
   playlist: Record<string, any>;
