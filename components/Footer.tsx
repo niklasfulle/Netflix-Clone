@@ -8,7 +8,7 @@ const Footer = () => {
         </p>
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm">
-        Version: <span className="text-zinc-200">1.2.0</span>
+        Version: <span className="text-zinc-200">1.3.0</span>
       </div>
     </div>
   );

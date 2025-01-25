@@ -1,23 +1,25 @@
 "use client";
-import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "react-hot-toast";
+import * as z from "zod";
 
-import { addMovie } from '@/actions/add/add-movie';
-import { FormError } from '@/components/form-error';
-import { FormSuccess } from '@/components/form-success';
-import { Button } from '@/components/ui/button';
+import { addMovie } from "@/actions/add/add-movie";
+import { Button } from "@/components/ui/button";
 import {
-    Form, FormControl, FormField, FormItem, FormLabel, FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { MovieSchema } from '@/schemas';
-import { zodResolver } from '@hookform/resolvers/zod';
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { MovieSchema } from "@/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export const AddMovieForm = () => {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
 
   const form = useForm<z.infer<typeof MovieSchema>>({
     resolver: zodResolver(MovieSchema),
@@ -34,13 +36,17 @@ export const AddMovieForm = () => {
   });
 
   const onSubmit = (values: z.infer<typeof MovieSchema>) => {
-    setError("");
-    setSuccess("");
-
     startTransition(() => {
       addMovie(values).then((data) => {
-        setError(data.error);
-        setSuccess(data.success);
+        if (data?.error) {
+          form.reset();
+          toast.error(data?.error);
+        }
+
+        if (data?.success) {
+          form.reset();
+          toast.success(data?.success);
+        }
       });
     });
   };
@@ -48,7 +54,7 @@ export const AddMovieForm = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex flex-col gap-2 mx-4 mt-8">
+        <div className="flex flex-col gap-2 mx-4">
           <FormField
             control={form.control}
             name="movieName"
@@ -156,7 +162,7 @@ export const AddMovieForm = () => {
                       className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
                       {...field}
                       disabled={isPending}
-                      placeholder=""
+                      placeholder="xx:xx:xx"
                       type="text"
                     />
                   </FormControl>
@@ -203,8 +209,6 @@ export const AddMovieForm = () => {
               </FormItem>
             )}
           />
-          <FormError message={error} />
-          <FormSuccess message={success} />
           <div className="px-32">
             <Button type="submit" disabled={isPending} variant="auth" size="lg">
               Add
