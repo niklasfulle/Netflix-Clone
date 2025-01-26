@@ -1,13 +1,13 @@
-import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
-import { isMobile } from 'react-device-detect';
-import { FaChevronDown } from 'react-icons/fa';
+import Image from "next/image";
+import React, { useEffect, useState } from "react";
+import { isMobile } from "react-device-detect";
+import { FaChevronDown } from "react-icons/fa";
 
-import useInfoModal from '@/hooks/useInfoModal';
+import useInfoModal from "@/hooks/useInfoModal";
 
-import FavoriteButton from './FavoriteButton';
-import MovieCardPlayButton from './MovieCardPlayButton';
-import RestartButton from './RestartButton';
+import FavoriteButton from "./FavoriteButton";
+import MovieCardPlayButton from "./MovieCardPlayButton";
+import RestartButton from "./RestartButton";
 
 interface MovieCardProps {
   data: Record<string, any>;
@@ -123,8 +123,8 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               </button>
             </div>
           </div>
-          <p className="hidden mt-4 font-semibold lg:block">
-            <span className="ml-4 text-white">{data.title}</span>
+          <p className="hidden mt-4 font-semibold lg:block text-left">
+            <span className=" text-white">{data.title}</span>
           </p>
           <p className="block mt-2 font-semibold text-white lg:hidden">
             {data.title}

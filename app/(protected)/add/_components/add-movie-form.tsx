@@ -18,6 +18,19 @@ import { Input } from "@/components/ui/input";
 import { MovieSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+const createDataUri = (e: any) => {
+  const file = e.target.files[0];
+
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    let test = document.getElementById(
+      "movieThumbnailData"
+    )! as HTMLInputElement;
+    test.value = reader.result as string;
+  };
+  reader.readAsDataURL(file);
+};
+
 export const AddMovieForm = () => {
   const [isPending, startTransition] = useTransition();
 
@@ -35,7 +48,7 @@ export const AddMovieForm = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof MovieSchema>) => {
+  const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     startTransition(() => {
       addMovie(values).then((data) => {
         if (data?.error) {
@@ -195,20 +208,42 @@ export const AddMovieForm = () => {
             name="movieThumbnail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white">Thumbnail Link</FormLabel>
+                <FormLabel className="text-white">Thumbnail</FormLabel>
                 <FormControl>
-                  <Input
-                    className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
-                    {...field}
-                    disabled={isPending}
-                    placeholder=""
-                    type="text"
+                  <input
+                    className="w-full p-1.5 text-sm text-white border border-gray-500 rounded-lg cursor-pointer bg-zinc-800 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
+                    id="multiple_files"
+                    type="file"
+                    multiple
+                    onChange={(e: any) => createDataUri(e)}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+          <div className="">
+            <FormField
+              control={form.control}
+              name="movieThumbnail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Thumbnail Link</FormLabel>
+                  <FormControl>
+                    <Input
+                      className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
+                      {...field}
+                      disabled={isPending}
+                      placeholder=""
+                      type="text"
+                      id="movieThumbnailData"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           <div className="px-32">
             <Button type="submit" disabled={isPending} variant="auth" size="lg">
               Add
