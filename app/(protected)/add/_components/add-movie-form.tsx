@@ -23,10 +23,10 @@ const createDataUri = (e: any) => {
 
   const reader = new FileReader();
   reader.onloadend = () => {
-    let test = document.getElementById(
+    const movieThumbnailData = document.getElementById(
       "movieThumbnailData"
     )! as HTMLInputElement;
-    test.value = reader.result as string;
+    movieThumbnailData.value = reader.result as string;
   };
   reader.readAsDataURL(file);
 };
@@ -206,7 +206,7 @@ export const AddMovieForm = () => {
           <FormField
             control={form.control}
             name="movieThumbnail"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel className="text-white">Thumbnail</FormLabel>
                 <FormControl>
