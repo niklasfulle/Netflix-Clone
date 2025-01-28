@@ -105,6 +105,14 @@ model Movie {
   createdAt    DateTime  @default(now())
 }
 
+model Actor {
+  id           String @id @unique @default(cuid())
+  name         String
+  movies       Int
+  series       Int
+  createdAt    DateTime  @default(now())
+}
+
 model ProfilImg {
   id           String @id @unique @default(cuid())
   url          String

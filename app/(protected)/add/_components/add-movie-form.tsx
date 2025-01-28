@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { MovieSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+let thumbnailUrl = "";
 const createDataUri = (e: any) => {
   const file = e.target.files[0];
 
@@ -26,6 +27,7 @@ const createDataUri = (e: any) => {
     const movieThumbnailData = document.getElementById(
       "movieThumbnailData"
     )! as HTMLInputElement;
+    thumbnailUrl = reader.result as string;
     movieThumbnailData.value = reader.result as string;
   };
   reader.readAsDataURL(file);
@@ -50,7 +52,7 @@ export const AddMovieForm = () => {
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     startTransition(() => {
-      addMovie(values).then((data) => {
+      addMovie(values, thumbnailUrl).then((data) => {
         if (data?.error) {
           form.reset();
           toast.error(data?.error);
@@ -222,7 +224,7 @@ export const AddMovieForm = () => {
               </FormItem>
             )}
           />
-          <div className="">
+          <div className="hidden">
             <FormField
               control={form.control}
               name="movieThumbnail"

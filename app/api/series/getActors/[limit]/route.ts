@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { Movie } from '@prisma/client';
+import { Actor } from '@prisma/client';
 
 export const dynamic = "force-dynamic"
 
@@ -12,7 +12,9 @@ type Params = {
 
 export async function GET(req: NextRequest, { params }: { params: Params }) {
   try {
-    const limit = params.limit
+    const param = params.limit.split("_")
+    const start = Number(param[0])
+    const limit = Number(param[1])
 
     const user = await currentUser()
 
@@ -31,27 +33,25 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       return Response.json(null, { status: 404 })
     }
 
-    const takeLimit = limit ? parseInt(limit) : 5;
-
-    const movies = await db.movie.findMany({
+    const actors = await db.actor.findMany({
       where: {
-        type: "Serie"
+        series: {
+          gt: 0,
+        }
       },
       orderBy: {
-        id: "asc",
+        name: "asc",
       },
+      skip: start,
+      take: limit,
     })
 
-    const actors = new Set<string>([])
-    movies.forEach((movie: Movie) => actors.add(movie.actor));
-
     const actorArray: string[] = []
-    actors.forEach((actor: string) => actorArray.push(actor));
-
+    actors.forEach((actor: Actor) => actorArray.push(actor.name));
 
     db.$disconnect()
-    actorArray.sort();
-    return Response.json(actorArray.slice(0, takeLimit), { status: 200 })
+
+    return Response.json(actorArray, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

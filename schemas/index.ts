@@ -73,7 +73,7 @@ export const MovieSchema = z.object({
   movieGenre: z.string().min(1, 'Genre must be set'),
   movieDuration: z.string().min(1, 'Duration must be set').regex(/^(\d{1,2}:)?\d{2}:\d{2}$/g, 'Invalid duration'),
   movieVideo: z.string().min(1, 'Video must be set'),
-  movieThumbnail: z.string().min(1, 'Thumbnail must be set'),
+  movieThumbnail: z.string().optional(),
 })
 
 export const PlaylistSchema = z.object({
