@@ -1,11 +1,11 @@
-import { signOut } from 'next-auth/react';
-import Image from 'next/image';
-import Link from 'next/link';
-import React from 'react';
+import { signOut } from "next-auth/react";
+import Image from "next/image";
+import Link from "next/link";
+import React from "react";
 
-import { useCurrentUser } from '@/hooks/use-current-user';
-import useCurrentProfil from '@/hooks/useCurrentProfil';
-import { UserRole } from '@prisma/client';
+import { useCurrentUser } from "@/hooks/use-current-user";
+import useCurrentProfil from "@/hooks/useCurrentProfil";
+import { UserRole } from "@prisma/client";
 
 interface AccountMenuProps {
   visible?: boolean;
@@ -29,10 +29,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
   }
 
   return (
-    <div className="absolute right-0 flex flex-col w-56 md:py-5 py-3 bg-black border-2 border-gray-800 top-14">
+    <div className="absolute right-0 flex flex-col w-56 py-2 bg-black border-2 border-gray-800 top-14">
       <div className="flex flex-col gap-3">
         <Link href="/profiles">
-          <div className="flex flex-row items-center w-full gap-4 px-3 group/item">
+          <div className="flex flex-row items-center w-full  gap-4 px-3 py-1 group/item">
             <Image
               className="md:w-10 w-8 rounded-md"
               src={`/images/profil/${profilImg}`}
@@ -49,7 +49,7 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
           <>
             <hr className="h-px bg-gray-600 border-0" />
             <Link href="/add">
-              <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3text-sm hover:underline">
+              <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
                 Add new Movies
               </div>
             </Link>
@@ -57,13 +57,13 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
         )}
         <hr className="h-px bg-gray-600 border-0" />
         <Link href="/settings">
-          <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3text-sm hover:underline">
+          <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
             Settings
           </div>
         </Link>
         <hr className="h-px bg-gray-600 border-0" />
         <button
-          className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3text-sm hover:underline"
+          className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline"
           onClick={() => signOut()}
         >
           Sign out of Netflix

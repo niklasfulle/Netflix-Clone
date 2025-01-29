@@ -1,15 +1,18 @@
 "use client";
-import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
-import { AiOutlineClose } from 'react-icons/ai';
+import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
+import { AiOutlineClose } from "react-icons/ai";
 
-import FavoriteButton from '@/components/FavoriteButton';
-import useMovie from '@/hooks/movies/useMovie';
-import useInfoModal from '@/hooks/useInfoModal';
+import FavoriteButton from "@/components/FavoriteButton";
+import useMovie from "@/hooks/movies/useMovie";
+import useInfoModal from "@/hooks/useInfoModal";
 
-import PlayButton from './PlayButton';
-import PlaylistSelect from './PlaylistSelect';
-import RestartButton from './RestartButton';
+import PlayButton from "./PlayButton";
+import PlaylistSelect from "./PlaylistSelect";
+import RestartButton from "./RestartButton";
+import EditMovieButton from "./EditMovieButton";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { UserRole } from "@prisma/client";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -26,6 +29,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const [isDesktop, setIsDesktop] = useState(true);
   const { movieId } = useInfoModal();
   const { data: movie } = useMovie(movieId);
+  const user = useCurrentUser();
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -100,6 +104,9 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 <PlayButton movieId={movie?.id} />
                 <RestartButton movieId={movie?.id} />
                 <FavoriteButton movieId={movie?.id} />
+                {user.role == UserRole.ADMIN && (
+                  <EditMovieButton movieId={movie?.id} />
+                )}
               </div>
             </div>
           </div>
