@@ -34,6 +34,9 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       where: {
         type: "Movie",
         actor: actor
+      },
+      orderBy: {
+        createdAt: "asc"
       }
     })
 

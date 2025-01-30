@@ -34,6 +34,9 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       where: {
         type: "Serie",
         actor: actor
+      },
+      orderBy: {
+        createdAt: "asc"
       }
     })
 
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
     })
 
     for (let i = 0; i < series.length; i++) {
-      for (let j = 0; j < watchTime.length; j++) {
+      for (const time of watchTime) {
         const movieWithWatchTime: {
           id: string;
           title: string;
@@ -62,8 +65,8 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
           watchTime?: number;
         } = { ...series[i], watchTime: undefined };
 
-        if (series[i].id == watchTime[j].movieId) {
-          movieWithWatchTime.watchTime = watchTime[j].time
+        if (series[i].id == time.movieId) {
+          movieWithWatchTime.watchTime = time.time
           series[i] = movieWithWatchTime
         }
       }
