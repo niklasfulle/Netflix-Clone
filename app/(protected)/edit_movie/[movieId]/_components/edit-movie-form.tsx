@@ -49,24 +49,24 @@ interface EditMovieFormProps {
 
 export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
   const [isPending, startTransition] = useTransition();
-  console.log(movie);
 
   const form = useForm<z.infer<typeof MovieSchema>>({
     resolver: zodResolver(MovieSchema),
     defaultValues: {
-      movieName: "",
-      movieDescripton: "",
-      movieActor: "",
-      movieType: "",
-      movieGenre: "",
-      movieDuration: "",
-      movieVideo: "",
+      movieName: movie?.title,
+      movieDescripton: movie?.description,
+      movieActor: movie?.actor,
+      movieType: movie?.type,
+      movieGenre: movie?.genre,
+      movieDuration: movie?.duration,
+      movieVideo: movie?.videoUrl,
       movieThumbnail: "",
     },
   });
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     startTransition(() => {
+      console.log(values);
       updateMovie(movie.id, values, thumbnailUrl).then((data) => {
         if (data?.error) {
           form.reset();
@@ -81,13 +81,6 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
     });
   };
 
-  form.setValue("movieName", movie?.title);
-  form.setValue("movieDescripton", movie?.description);
-  form.setValue("movieActor", movie?.actor);
-  form.setValue("movieType", movie?.type);
-  form.setValue("movieGenre", movie?.genre);
-  form.setValue("movieDuration", movie?.duration);
-  form.setValue("movieVideo", movie?.videoUrl);
   thumbnailUrl = movie?.thumbnailUrl;
 
   return (
