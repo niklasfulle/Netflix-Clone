@@ -26,7 +26,6 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
 
   const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data
 
-
   await db.movie.create({
     data: {
       title: movieName,
