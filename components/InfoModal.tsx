@@ -101,11 +101,15 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 {movie?.title}
               </p>
               <div className="flex flex-row gap-4 items-center">
-                <PlayButton movieId={movie?.id} />
-                <RestartButton movieId={movie?.id} />
-                <FavoriteButton movieId={movie?.id} />
-                {user.role == UserRole.ADMIN && (
-                  <EditMovieButton movieId={movie?.id} />
+                {movie?.id && (
+                  <>
+                    <PlayButton movieId={movie?.id} />
+                    <RestartButton movieId={movie?.id} />
+                    <FavoriteButton movieId={movie?.id} />
+                    {user.role == UserRole.ADMIN && (
+                      <EditMovieButton movieId={movie?.id} />
+                    )}
+                  </>
                 )}
               </div>
             </div>
