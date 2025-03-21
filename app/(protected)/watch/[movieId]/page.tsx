@@ -1,10 +1,10 @@
 "use client";
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import React, { useRef } from 'react';
-import { FaArrowLeft } from 'react-icons/fa';
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import React, { useRef } from "react";
+import { FaArrowLeft } from "react-icons/fa";
 
-import { updateWatchTime } from '@/actions/watch/update-watch-time';
-import useMovie from '@/hooks/movies/useMovie';
+import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import useMovie from "@/hooks/movies/useMovie";
 
 const Watch = () => {
   const movieId = useParams<{ movieId: string }>().movieId;
@@ -27,9 +27,13 @@ const Watch = () => {
   }
   const videoURL = data?.videoUrl + "#t=" + watchTime;
 
+  if (!data) {
+    return null;
+  }
+
   return (
     <div className="w-screen h-screen bg-black">
-      <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
+      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
         <FaArrowLeft
           className="text-white cursor-pointer"
           size={40}
@@ -48,9 +52,10 @@ const Watch = () => {
         autoPlay
         controls
         className="w-full h-full"
-        src={videoURL}
         ref={videoRef}
+        poster={data.thumbnailUrl}
       >
+        <source src={videoURL} type="video/mp4" />
         <track kind="captions"></track>
       </video>
     </div>
