@@ -1,10 +1,10 @@
 "use client";
-import { useParams, useRouter } from 'next/navigation';
-import React, { useRef, useState } from 'react';
-import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { useParams, useRouter } from "next/navigation";
+import React, { useRef, useState } from "react";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
-import { updateWatchTime } from '@/actions/watch/update-watch-time';
-import usePlaylist from '@/hooks/playlists/usePlaylist';
+import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import usePlaylist from "@/hooks/playlists/usePlaylist";
 
 const Watch = () => {
   const playlistId = useParams<{ playlistId: string }>().playlistId;
@@ -35,7 +35,7 @@ const Watch = () => {
 
   return (
     <div className="w-screen h-screen bg-black relative">
-      <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
+      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
         <FaArrowLeft
           className="text-white cursor-pointer"
           size={40}
