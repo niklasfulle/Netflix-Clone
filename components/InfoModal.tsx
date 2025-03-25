@@ -13,6 +13,7 @@ import RestartButton from "./RestartButton";
 import EditMovieButton from "./EditMovieButton";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserRole } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -30,6 +31,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const { movieId } = useInfoModal();
   const { data: movie } = useMovie(movieId);
   const user = useCurrentUser();
+  const router = useRouter();
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -57,6 +59,14 @@ const InfoModal: React.FC<InfoModalProps> = ({
       onClose();
     }, 300);
   }, [onClose]);
+
+  const linkToSearch = (actor: string) => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 10);
+    if (actor != "") router.push(`/search/${actor}`);
+  };
 
   if (!visible) {
     return null;
@@ -121,7 +131,14 @@ const InfoModal: React.FC<InfoModalProps> = ({
             <div className="flex flex-row gap-8 mt-3">
               <p className="text-lg text-white">{movie?.duration}</p>
               <p className="text-lg text-white">{movie?.genre}</p>
-              <p className="text-lg text-white">{movie?.actor}</p>
+
+              <p
+                onClick={() => linkToSearch(movie?.actor)}
+                className="text-lg text-white underline underline-offset-1 cursor-pointer"
+                role="link"
+              >
+                {movie?.actor}
+              </p>
             </div>
             {movie?.description != "test" && (
               <p className="text-lg text-white">{movie?.description}</p>
