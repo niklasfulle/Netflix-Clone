@@ -8,6 +8,7 @@ import useInfoModal from "@/hooks/useInfoModal";
 import FavoriteButton from "./FavoriteButton";
 import MovieCardPlayButton from "./MovieCardPlayButton";
 import RestartButton from "./RestartButton";
+import { useRouter } from "next/navigation";
 
 interface MovieCardProps {
   data: Record<string, any>;
@@ -33,6 +34,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
   const barWidth: string =
     calculateBarWidth(data?.duration, data?.watchTime) + "%";
   const { openModal } = useInfoModal();
+  const router = useRouter();
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -50,6 +52,10 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
     if (isMobile || !isDesktop) {
       openModal(id);
     }
+  };
+
+  const linkToSearch = (actor: string) => {
+    if (actor != "") router.push(`/search/${actor}`);
   };
 
   useEffect(() => {
@@ -136,7 +142,11 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             <p className="text-white text-[10px] text-base lg:text-sm">
               {data.genre}
             </p>
-            <p className="text-white text-[10px] text-base lg:text-sm md:text-center">
+            <p
+              onClick={() => linkToSearch(data.actor)}
+              className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1"
+              role="link"
+            >
               {data.actor}
             </p>
           </div>
