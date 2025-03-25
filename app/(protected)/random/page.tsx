@@ -25,7 +25,7 @@ export default function RandomPage() {
 
   return (
     <div className="w-screen h-screen bg-black">
-      <nav className="fixed z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
+      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
         <AiOutlineArrowLeft
           className="text-white cursor-pointer"
           size={40}
