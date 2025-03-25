@@ -21,4 +21,4 @@ npm run build
 echo Start Netflix Clone
 pm2 start yarn --name netflix-clone  -- start --port 6969
 
-python -u ../python-send-discord-message/send-message.py Updated and started Netflix
+python -u ../python-send-discord-message/send-message.py "Updated and started Netflix"
