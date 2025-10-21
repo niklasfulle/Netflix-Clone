@@ -20,7 +20,7 @@ export default function Add() {
     <>
       <Navbar />
       {!isMobile && (
-        <div className="py-20 flex felx-row items-center justify-center px-2">
+        <div className="py-20 flex felx-row items-center justify-center px-2 pt-28 pb-32">
           <Card className="w-[600px] bg-zinc-800 text-white mt-20 border-none md:border-solid">
             <CardHeader>
               <p className="text-2xl font-semibold text-center ">Edit Movie</p>

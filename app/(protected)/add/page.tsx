@@ -12,7 +12,7 @@ export default function Add() {
     <>
       <Navbar />
       {!isMobile && (
-        <div className="py-28 flex felx-row items-center justify-center px-2">
+        <div className="py-28 flex felx-row items-center justify-center px-2 pt-52 mb-56">
           <Card className="w-[600px] bg-zinc-800 text-white mt-20 border-none md:border-solid">
             <CardHeader>
               <p className="text-2xl font-semibold text-center ">Add Movie</p>
