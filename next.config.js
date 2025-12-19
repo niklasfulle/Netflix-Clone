@@ -9,16 +9,13 @@ const nextConfig = {
       },
     ],
   },
-  i18n: {
-    locales: ["en"],
-    defaultLocale: "en",
-  },
   reactStrictMode: true,
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
   },
+  turbopack: {},
 };
 
 module.exports = nextConfig;

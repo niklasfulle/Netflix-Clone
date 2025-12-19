@@ -9,9 +9,9 @@ type Params = {
   movieId: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const movieId = params.movieId
+    const { movieId } = await context.params
 
     if (!movieId) {
       return Response.json(null, { status: 404 })

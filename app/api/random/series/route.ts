@@ -27,7 +27,17 @@ export async function GET() {
     })
 
     db.$disconnect()
-    return Response.json(randomMovies[0], { status: 200 })
+    if (!randomMovies[0]) {
+      return Response.json(null, { status: 200 })
+    }
+    // Serialisiere Date-Objekte explizit
+    const movie = randomMovies[0]
+    const serializedMovie = {
+      ...movie,
+      createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
+      updatedAt: movie.updatedAt?.toISOString?.() ?? movie.updatedAt,
+    }
+    return Response.json(serializedMovie, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

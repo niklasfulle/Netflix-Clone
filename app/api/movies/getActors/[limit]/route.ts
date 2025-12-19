@@ -10,11 +10,12 @@ type Params = {
   limit: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const param = params.limit.split("_")
+    const { limit } = await context.params
+    const param = limit.split("_")
     const start = Number(param[0])
-    const limit = Number(param[1])
+    const limitNum = Number(param[1])
     const user = await currentUser()
 
     if (!user) {
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
         name: "asc",
       },
       skip: start,
-      take: limit,
+      take: limitNum,
     })
 
     const actorArray: string[] = []

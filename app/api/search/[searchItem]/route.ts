@@ -9,9 +9,9 @@ type Params = {
   searchItem: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const searchItem = params.searchItem
+    const { searchItem } = await context.params
 
     const user = await currentUser()
 

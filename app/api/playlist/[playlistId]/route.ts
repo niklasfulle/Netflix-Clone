@@ -9,9 +9,9 @@ type Params = {
   playlistId: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const playlistId = params.playlistId
+    const { playlistId } = await context.params
 
     if (!playlistId) {
       return Response.json(null, { status: 404 })

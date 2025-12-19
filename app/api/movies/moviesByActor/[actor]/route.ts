@@ -9,9 +9,9 @@ type Params = {
   actor: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const actor = params.actor
+    const { actor } = await context.params
 
     const user = await currentUser()
 
