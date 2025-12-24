@@ -27,7 +27,14 @@ export async function GET() {
         id: {
           in: profil?.favoriteIds
         }
-      }
+      },
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
     })
 
     const watchTime = await db.movieWatchTime.findMany({
@@ -37,28 +44,17 @@ export async function GET() {
       }
     })
 
-    for (let i = 0; i < movies.length; i++) {
-      for (const time of watchTime) {
-        const movieWithWatchTime: {
-          id: string;
-          title: string;
-          description: string;
-          videoUrl: string;
-          thumbnailUrl: string;
-          type: string;
-          genre: string;
-          actor: string;
-          duration: string;
-          createdAt: Date;
-          watchTime?: number;
-        } = { ...movies[i], watchTime: undefined };
-
-        if (movies[i].id == time.movieId) {
-          movieWithWatchTime.watchTime = time.time
-          movies[i] = movieWithWatchTime
-        }
-      }
-    }
+    const responseMovies = movies.map((movie) => {
+      const actorNames = movie.actors?.map((a: any) => a.actor.name) || [];
+      const time = watchTime.find((t) => t.movieId === movie.id);
+      return {
+        ...movie,
+        actors: actorNames,
+        ...(time ? { watchTime: time.time } : {}),
+      };
+    });
+    db.$disconnect()
+    return Response.json(responseMovies, { status: 200 })
 
     db.$disconnect()
     return Response.json(movies, { status: 200 })

@@ -2,6 +2,7 @@ import Link from "next/link";
 import React from "react";
 import toast from "react-hot-toast";
 import { FaPen, FaPlay, FaTrashAlt } from "react-icons/fa";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 import { removePlaylist } from "@/actions/playlist/remove-playlist";
 import PlaylistCover from "./PlaylistCover";
@@ -17,12 +18,12 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
   isLoading,
   openModalEdit,
 }) => {
-  const onCLickDelete = (playlistId: string) => {
+  const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null);
+  const onClickDelete = (playlistId: string) => {
     removePlaylist(playlistId).then((data) => {
       if (data?.error) {
         toast.error(data?.error);
       }
-
       if (data?.success) {
         toast.success(data?.success);
         location.reload();
@@ -38,11 +39,28 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             {data.title}
           </h1>
           <PlaylistCover movies={data.movies} />
-          <FaTrashAlt
-            className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-            size={18}
-            onClick={() => onCLickDelete(data.id)}
-          />
+          <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
+            <PopoverTrigger asChild>
+              <FaTrashAlt
+                className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
+                size={18}
+                onClick={() => setOpenPopoverId(data.id)}
+              />
+            </PopoverTrigger>
+            <PopoverContent className="w-56 flex flex-col items-center gap-2">
+              <span className="text-sm text-center">Playlist wirklich löschen?</span>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
+                >Ja</button>
+                <button
+                  className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
+                  onClick={() => setOpenPopoverId(null)}
+                >Nein</button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <FaPen
             className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
             size={18}
@@ -68,11 +86,28 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
               size={30}
             />
           </Link>
-          <FaTrashAlt
-            className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-            size={18}
-            onClick={() => onCLickDelete(data.id)}
-          />
+          <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
+            <PopoverTrigger asChild>
+              <FaTrashAlt
+                className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
+                size={18}
+                onClick={() => setOpenPopoverId(data.id)}
+              />
+            </PopoverTrigger>
+            <PopoverContent className="w-56 flex flex-col items-center gap-2">
+              <span className="text-sm text-center">Playlist wirklich löschen?</span>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
+                >Ja</button>
+                <button
+                  className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
+                  onClick={() => setOpenPopoverId(null)}
+                >Nein</button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <FaPen
             className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
             size={18}
@@ -102,11 +137,28 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
                 size={30}
               />
             </Link>
-            <FaTrashAlt
-              className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-              size={18}
-              onClick={() => onCLickDelete(data.id)}
-            />
+            <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
+              <PopoverTrigger asChild>
+                <FaTrashAlt
+                  className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
+                  size={18}
+                  onClick={() => setOpenPopoverId(data.id)}
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-56 flex flex-col items-center gap-2">
+                <span className="text-sm text-center">Playlist wirklich löschen?</span>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
+                  >Ja</button>
+                  <button
+                    className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
+                    onClick={() => setOpenPopoverId(null)}
+                  >Nein</button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <FaPen
               className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
               size={18}

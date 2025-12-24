@@ -30,17 +30,25 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       return Response.json(null, { status: 404 })
     }
 
+
+    // Find all movies where the actor is linked via MovieActor join table
     const movies = await db.movie.findMany({
       where: {
-        type: "Movie",
-        actor: actor
+        type: 'Movie',
+        actors: {
+          some: {
+            actor: {
+              name: actor,
+            },
+          },
+        },
       },
       orderBy: {
-        createdAt: "asc"
-      }
-    })
+        createdAt: 'asc',
+      },
+    });
 
-    movies.reverse()
+    movies.reverse();
 
     const watchTime = await db.movieWatchTime.findMany({
       where: {

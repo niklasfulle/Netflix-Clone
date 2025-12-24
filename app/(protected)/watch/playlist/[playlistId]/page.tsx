@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import { addMovieView } from "@/actions/watch/add-movie-view";
 import usePlaylist from "@/hooks/playlists/usePlaylist";
 
 const Watch = () => {
@@ -28,6 +29,13 @@ const Watch = () => {
       setCurrentMovie(newIndex);
     }
   };
+
+  React.useEffect(() => {
+    const movieId = playlist?.movies?.[currentMovie]?.id;
+    if (movieId) {
+      addMovieView({ movieId });
+    }
+  }, [currentMovie, playlist]);
 
   const handleVideoEnded = () => {
     setMovieWatchTime();
@@ -114,15 +122,20 @@ const Watch = () => {
         </button>
       )}
       {current?.id && (
+
         <video
-          key={current.id} // <--- Das ist wichtig!
           id="videoElement"
           autoPlay
           controls
           className="w-full h-full"
           ref={videoRef}
           poster={current.thumbnailUrl}
-          onEnded={handleVideoEnded}
+          onTimeUpdate={() => {
+            // Auto-save alle 10 Sekunden
+            if (videoRef.current && Math.floor(videoRef.current.currentTime) % 10 === 0) {
+              setMovieWatchTime();
+            }
+          }}
         >
           <source src={`/api/video/${current.id}`} type="video/mp4" />
           <track kind="captions"></track>

@@ -31,13 +31,13 @@ export const addPlaylist = async (values: z.infer<typeof PlaylistSchema>) => {
 
   const { playlistName } = validatedField.data
 
-  await db.playlist.create({
+  const playlist = await db.playlist.create({
     data: {
       userId: user.id as string,
       profilId: profil.id,
       title: playlistName
     }
-  })
+  });
 
-  return { success: "Playlist created!" }
+  return { success: "Playlist created!", playlist };
 }

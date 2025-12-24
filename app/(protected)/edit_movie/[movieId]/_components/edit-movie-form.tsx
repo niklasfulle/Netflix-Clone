@@ -7,6 +7,8 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 
 import { updateMovie } from "@/actions/add/update-movie";
+import { MultiSelect } from "@/components/ui/multi-select";
+import useActors from "@/hooks/useActors";
 import { deleteMovie } from "@/actions/add/delete-movie";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +41,7 @@ interface EditMovieFormProps {
 }
 
 export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
+  const { actors: actorOptions, isLoading: actorsLoading } = useActors();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -60,7 +63,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
     defaultValues: {
       movieName: movie?.title,
       movieDescripton: movie?.description,
-      movieActor: movie?.actor,
+      movieActor: Array.isArray(movie?.actorIds) ? movie.actorIds : [],
       movieType: movie?.type,
       movieGenre: movie?.genre,
       movieDuration: movie?.duration,
@@ -260,7 +263,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
         }, 1000);
       }
     } catch (error) {
-      toast.error("Fehler beim Löschen!");
+      toast.error("Error deleting!");
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -269,7 +272,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     if (!thumbnailUrl) {
-      toast.error("Bitte wähle ein Thumbnail aus!");
+      toast.error("Please select a thumbnail!");
       return;
     }
 
@@ -333,14 +336,14 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
             name="movieActor"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white">Actor</FormLabel>
+                <FormLabel className="text-white">Actors</FormLabel>
                 <FormControl>
-                  <Input
-                    className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
-                    {...field}
-                    disabled={isPending}
-                    placeholder=""
-                    type="text"
+                  <MultiSelect
+                    options={actorOptions.map((a: any) => ({ label: a.name, value: a.id }))}
+                    value={field.value || []}
+                    onChange={field.onChange}
+                    placeholder={actorsLoading ? "Loading..." : "Select actors"}
+                    disabled={isPending || actorsLoading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -359,7 +362,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
-                        <SelectValue placeholder="Wählen..." />
+                        <SelectValue placeholder="Choose..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-zinc-800 text-white border-gray-500">
@@ -383,7 +386,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
-                        <SelectValue placeholder="Wählen..." />
+                        <SelectValue placeholder="Choose..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-zinc-800 text-white border-gray-500">
@@ -421,7 +424,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
 
           {/* Video Upload mit schöneren Buttons */}
           <div>
-            <FormLabel className="text-white">Video hochladen (optional)</FormLabel>
+            <FormLabel className="text-white">Upload Video (optional)</FormLabel>
             <div className="mt-2 space-y-3">
               <div className="relative">
                 <input
@@ -462,10 +465,10 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                       <>
                         <Upload className="w-10 h-10 text-gray-400 mb-2" />
                         <p className="text-sm text-white">
-                          Klicken um neues Video auszuwählen
+                          Click to select a new video
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          Aktuell: {movie?.videoUrl || "Kein Video"}
+                          Current: {movie?.videoUrl || "No video"}
                         </p>
                       </>
                     )}
@@ -484,17 +487,17 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                     {isUploading ? (
                       <>
                         <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                        Lädt hoch... {uploadProgress}%
+                        Uploading... {uploadProgress}%
                       </>
                     ) : uploadedVideoPath ? (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        Hochgeladen
+                        Uploaded
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Video hochladen
+                        Upload Video
                       </>
                     )}
                   </Button>
@@ -532,14 +535,14 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
           {showThumbnailSelector && thumbnailOptions.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Thumbnail auswählen</FormLabel>
+                <FormLabel className="text-white">Select Thumbnail</FormLabel>
                 <Button
                   type="button"
                   onClick={regenerateThumbnails}
                   className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Neue generieren
+                  Generate new
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -560,7 +563,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
           {thumbnailUrl && !showThumbnailSelector && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Aktuelles Thumbnail</FormLabel>
+                <FormLabel className="text-white">Current Thumbnail</FormLabel>
                 {videoPreviewUrl && (
                   <Button
                     type="button"
@@ -568,7 +571,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                     className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
                   >
                     <X className="w-3 h-3 mr-1" />
-                    Abwählen
+                    Deselect
                   </Button>
                 )}
               </div>
@@ -589,7 +592,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
             render={() => (
               <FormItem>
                 <FormLabel className="text-white">
-                  Oder Thumbnail manuell hochladen
+                  Or upload thumbnail manually
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -606,7 +609,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                     >
                       <div className="flex items-center gap-2 text-gray-400">
                         <Upload className="w-5 h-5" />
-                        <span className="text-sm">Neues Thumbnail hochladen</span>
+                        <span className="text-sm">Upload new thumbnail</span>
                       </div>
                     </label>
                   </div>
@@ -632,7 +635,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
           {showDeleteConfirm && (
             <div className="p-4 border-2 border-red-500 rounded-lg bg-red-900/20 mt-4">
               <p className="text-white text-center mb-4">
-                Möchtest du diesen Film wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden!
+                Do you really want to delete this movie? This action cannot be undone!
               </p>
               <div className="flex gap-2 px-32">
                 <Button
@@ -641,7 +644,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                   disabled={isDeleting}
                   className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-medium"
                 >
-                  {isDeleting ? "Wird gelöscht..." : "Ja, löschen"}
+                  {isDeleting ? "Deleting..." : "Yes, delete"}
                 </Button>
                 <Button
                   type="button"
@@ -649,7 +652,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                   disabled={isDeleting}
                   className="flex-1 h-11 bg-zinc-700 hover:bg-zinc-600 text-white"
                 >
-                  Abbrechen
+                  Cancel
                 </Button>
               </div>
             </div>
@@ -671,7 +674,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                   className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-medium"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Löschen
+                  Delete
                 </Button>
               </div>
             </>

@@ -27,6 +27,13 @@ export async function GET() {
         createdAt: 'desc',
       },
       take: 4,
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
     })
 
     const watchTime = await db.movieWatchTime.findMany({
@@ -36,31 +43,19 @@ export async function GET() {
       }
     })
 
-    for (let i = 0; i < movies.length; i++) {
-      for (const time of watchTime) {
-        const movieWithWatchTime: {
-          id: string;
-          title: string;
-          description: string;
-          videoUrl: string;
-          thumbnailUrl: string;
-          type: string;
-          genre: string;
-          actor: string;
-          duration: string;
-          createdAt: Date;
-          watchTime?: number;
-        } = { ...movies[i], watchTime: undefined };
-
-        if (movies[i].id == time.movieId) {
-          movieWithWatchTime.watchTime = time.time
-          movies[i] = movieWithWatchTime
-        }
-      }
-    }
+    // Baue ein neues Array mit actors: {id, name}[]
+    const responseMovies = movies.map((movie) => {
+      const actorObjs = movie.actors?.map((a: any) => ({ id: a.actor.id, name: a.actor.name })) || [];
+      const time = watchTime.find((t) => t.movieId === movie.id);
+      return {
+        ...movie,
+        actors: actorObjs,
+        ...(time ? { watchTime: time.time } : {}),
+      };
+    });
 
     db.$disconnect()
-    return Response.json(movies, { status: 200 })
+    return Response.json(responseMovies, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

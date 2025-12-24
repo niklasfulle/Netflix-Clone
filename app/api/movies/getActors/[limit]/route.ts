@@ -33,24 +33,32 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       return Response.json(null, { status: 404 })
     }
 
+    // Find actors who have at least one movie (movie.type === 'Movie')
     const actors = await db.actor.findMany({
       where: {
         movies: {
-          gt: 0,
-        }
+          some: {
+            movie: {
+              type: 'Movie',
+            },
+          },
+        },
       },
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
       skip: start,
       take: limitNum,
-    })
+      include: {
+        movies: {
+          include: {
+            movie: true,
+          },
+        },
+      },
+    });
 
-    const actorArray: string[] = []
-    actors.forEach((actor: Actor) => actorArray.push(actor.name));
-
-    db.$disconnect()
-
+    const actorArray: string[] = actors.map((actor: Actor) => actor.name);
     return Response.json(actorArray, { status: 200 })
   } catch (error) {
     console.log(error)

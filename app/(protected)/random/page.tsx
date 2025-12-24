@@ -40,15 +40,22 @@ export default function RandomPage() {
         </p>
       </nav>
       <video
-        id="videoElement"
-        autoPlay
-        controls
-        className="w-full h-full"
-        src={movie?.videoUrl}
-        ref={videoRef}
-      >
-        <track kind="captions"></track>
-      </video>
+          id="videoElement"
+          autoPlay
+          controls
+          className="w-full h-full"
+          ref={videoRef}
+          poster={movie.thumbnailUrl}
+          onTimeUpdate={() => {
+            // Auto-save alle 10 Sekunden
+            if (videoRef.current && Math.floor(videoRef.current.currentTime) % 10 === 0) {
+              setMovieWatchTime();
+            }
+          }}
+        >
+          <source src={`/api/video/${movie.id}`} type="video/mp4" />
+          <track kind="captions"></track>
+        </video>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+"use client";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,6 +48,12 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
         </Link>
         {user?.role == UserRole.ADMIN && (
           <>
+            <hr className="h-px bg-gray-600 border-0" />
+            <Link href="/admin">
+              <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
+                Admin
+              </div>
+            </Link>
             <hr className="h-px bg-gray-600 border-0" />
             <Link href="/add">
               <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">

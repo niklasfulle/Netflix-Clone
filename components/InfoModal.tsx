@@ -5,6 +5,7 @@ import { AiOutlineClose } from "react-icons/ai";
 
 import FavoriteButton from "@/components/FavoriteButton";
 import useMovie from "@/hooks/movies/useMovie";
+import useMovieViews from "@/hooks/movies/useMovieViews";
 import useInfoModal from "@/hooks/useInfoModal";
 
 import PlayButton from "./PlayButton";
@@ -30,6 +31,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const [isDesktop, setIsDesktop] = useState(true);
   const { movieId } = useInfoModal();
   const { data: movie } = useMovie(movieId);
+  const { data: views } = useMovieViews(movieId);
   const user = useCurrentUser();
   const router = useRouter();
 
@@ -74,26 +76,26 @@ const InfoModal: React.FC<InfoModalProps> = ({
 
   return (
     <div className="fixed inset-0 px-1 sm:px-0 sm:mt-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
-      <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-md">
+      <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-2xl shadow-2xl border border-zinc-800">
         <div
-          className={`${
+          className={`$${
             isVisible ? "scale-100" : "scale-0"
-          } transform duration-300 relative flex-auto bg-zinc-900 drop-shadow-md`}
+          } transform duration-300 relative flex-auto bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 drop-shadow-2xl`}
         >
           <div className="relative h-96">
             {isDesktop && (
               <video
-                className="w-full brightness-[60%] object-cover aspect-video h-full"
+                className="w-full brightness-[60%] object-cover aspect-video h-full rounded-t-2xl"
                 autoPlay
                 muted
                 loop
                 poster={movie?.thumbnailUrl}
-                src={movie?.videoUrl}
+                src={movie?.id ? `/api/video/billboard/${movie.id}` : undefined}
               ></video>
             )}
             {!isDesktop && (
               <Image
-                className="w-full brightness-[60%] object-cover h-[60%] md:h-[75%]"
+                className="w-full brightness-[60%] object-cover h-[60%] md:h-[75%] rounded-t-2xl"
                 src={movie?.thumbnailUrl}
                 height={1080}
                 width={1920}
@@ -102,15 +104,15 @@ const InfoModal: React.FC<InfoModalProps> = ({
             )}
             <button
               onClick={handleClose}
-              className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70"
+              className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70 border border-zinc-700 hover:bg-zinc-800 transition"
             >
               <AiOutlineClose className="text-white" size={20} />
             </button>
             <div className="absolute bottom-[24%] md:bottom-[10%] left-10">
-              <p className="h-full mb-8 text-3xl font-bold text-white md:text-4xl">
+              <p className="h-full mb-8 text-4xl font-extrabold text-white md:text-5xl drop-shadow-lg">
                 {movie?.title}
               </p>
-              <div className="flex flex-row gap-4 items-center">
+              <div className="flex flex-row gap-4 items-center mt-2">
                 {movie?.id && (
                   <>
                     <PlayButton movieId={movie?.id} />
@@ -123,28 +125,56 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 )}
               </div>
             </div>
-          </div>
-          <div className="px-12 sm:pt-8 -mt-20 sm:mt-0 pb-4">
-            <p className="text-lg font-semibold ">
-              <span className="text-white">{movie?.title}</span>
-            </p>
-            <div className="flex flex-row gap-8 mt-3">
-              <p className="text-lg text-white">{movie?.duration}</p>
-              <p className="text-lg text-white">{movie?.genre}</p>
-
-              <p
-                onClick={() => linkToSearch(movie?.actor)}
-                className="text-lg text-white underline underline-offset-1 cursor-pointer"
-                role="link"
-              >
-                {movie?.actor}
-              </p>
-            </div>
-            {movie?.description != "test" && (
-              <p className="text-lg text-white">{movie?.description}</p>
+            {typeof views?.count === 'number' && (
+              <div className="absolute top-3 left-3 bg-black bg-opacity-70 rounded-full px-4 py-1 text-white text-sm font-semibold border border-zinc-700 shadow">
+                👁️ {views.count} Views
+              </div>
             )}
           </div>
-          <PlaylistSelect playlists={playlists} movieId={movieId as string} />
+          <div className="px-12 sm:pt-8 -mt-20 sm:mt-0 pb-4">
+            <div className="flex flex-row items-center gap-6 mb-2">
+              <span className="text-2xl font-bold text-white">{movie?.title}</span>
+              <span className="text-base text-zinc-400">{movie?.duration}</span>
+              <span className="text-base text-zinc-400">{movie?.genre}</span>
+              {Array.isArray(movie?.actors) && movie.actors.length > 0 && (
+                <>
+                  {movie.actors.map((actor: any, idx: number) => {
+                    let actorName = '';
+                    let key = '';
+                    if (typeof actor === 'string') {
+                      actorName = actor;
+                      key = actor;
+                    } else if (actor?.name && actor?.id) {
+                      actorName = actor.name;
+                      key = actor.id;
+                    } else if (actor?.actor?.name && actor?.actor?.id) {
+                      actorName = actor.actor.name;
+                      key = actor.actor.id;
+                    } else {
+                      return null;
+                    }
+                    return (
+                      <span
+                        key={key}
+                        onClick={() => linkToSearch(actorName)}
+                        className="text-base text-blue-400 underline underline-offset-2 cursor-pointer hover:text-blue-300 mr-2"
+                        role="link"
+                      >
+                        {actorName}
+                        {idx < movie.actors.length - 1 ? '' : ''}
+                      </span>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+            {movie?.description && movie?.description !== "test" && (
+              <p className="text-lg text-zinc-200 mb-4 whitespace-pre-line leading-relaxed">{movie?.description}</p>
+            )}
+          </div>
+          <div className="px-12 pb-6">
+            <PlaylistSelect playlists={playlists} movieId={movieId as string} />
+          </div>
         </div>
       </div>
     </div>

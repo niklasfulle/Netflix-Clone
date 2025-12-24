@@ -47,8 +47,8 @@ const BillboardSeries = () => {
           muted
           loop
           poster={data?.thumbnailUrl}
-          src={data?.videoUrl}
-        ></video>
+          src={data?.id ? `/api/video/billboard/${data.id}` : undefined}
+        />
       )}
       {!isLoading && !isDesktop && (
         <Image

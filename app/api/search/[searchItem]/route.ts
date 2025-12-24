@@ -37,9 +37,22 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
             title: { contains: searchItem }
           },
           {
-            actor: { contains: searchItem }
-          }
-        ]
+            actors: {
+              some: {
+                actor: {
+                  name: { contains: searchItem },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "asc"

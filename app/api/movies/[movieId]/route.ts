@@ -34,27 +34,33 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       return Response.json(null, { status: 404 })
     }
 
+
     const movie = await db.movie.findUnique({
-      where: { id: movieId }
+      where: { id: movieId },
+      include: {
+        actors: {
+          include: {
+            actor: true
+          }
+        }
+      }
     });
 
     if (!movie) {
-      return Response.json(null, { status: 404 })
+      return Response.json(null, { status: 404 }) 
     }
 
-    const movieWithWatchTime: {
-      id: string;
-      title: string;
-      description: string;
-      videoUrl: string;
-      thumbnailUrl: string;
-      type: string;
-      genre: string;
-      actor: string;
-      duration: string;
-      createdAt: Date;
-      watchTime?: any;
-    } = { ...movie, watchTime: undefined };
+    // Collect all actor objects and IDs
+    const actorObjs = movie.actors.map(ma => ({ id: ma.actor.id, name: ma.actor.name }));
+    const actorIds = actorObjs.map(a => a.id);
+
+    // Remove old actor field if present, and always return actors as array of objects and IDs
+    const movieWithWatchTime: any = {
+      ...movie,
+      actors: actorObjs,
+      actorIds,
+      watchTime: undefined,
+    };
 
     const movieWatchTime = await db.movieWatchTime.findFirst({
       where: {
@@ -65,11 +71,10 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     })
 
     if (movieWatchTime) {
-      movieWithWatchTime.watchTime = movieWatchTime.time
+      movieWithWatchTime.watchTime = movieWatchTime.time;
     }
-
-    db.$disconnect()
-    return Response.json(movieWithWatchTime, { status: 200 })
+    db.$disconnect();
+    return Response.json(movieWithWatchTime, { status: 200 });
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

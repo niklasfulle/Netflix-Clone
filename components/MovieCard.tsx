@@ -148,16 +148,52 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             <p className="text-white text-[10px] text-base lg:text-sm">
               {data.genre}
             </p>
-            <p
-              onClick={(e) => {
-                e.stopPropagation();
-                linkToSearch(data.actor);
-              }}
-              className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer"
-              role="link"
-            >
-              {data.actor}
-            </p>
+            {Array.isArray(data.actors) && data.actors.length > 0 ? (
+              <span>
+                {data.actors.map((a: any, idx: number) => {
+                  let actorName = '';
+                  let key = '';
+                  if (typeof a === 'string') {
+                    actorName = a;
+                    key = a;
+                  } else if (a?.id && a?.name) {
+                    actorName = a.name;
+                    key = a.id;
+                  } else if (a?.actor?.name && a?.actor?.id) {
+                    actorName = a.actor.name;
+                    key = a.actor.id;
+                  } else {
+                    return null;
+                  }
+                  return (
+                    <span
+                      key={key}
+                      onClick={e => {
+                        e.stopPropagation();
+                        linkToSearch(actorName);
+                      }}
+                      className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer mr-1"
+                      role="link"
+                    >
+                      {actorName}{idx < data.actors.length - 1 ? '  ' : ''}
+                    </span>
+                  );
+                })}
+              </span>
+            ) : (
+              data.actor ? (
+                <span
+                  onClick={e => {
+                    e.stopPropagation();
+                    linkToSearch(data.actor);
+                  }}
+                  className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer"
+                  role="link"
+                >
+                  {data.actor}
+                </span>
+              ) : null
+            )}
           </div>
         </div>
       </div>

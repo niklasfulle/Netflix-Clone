@@ -68,7 +68,7 @@ export const WatchTimeSchema = z.object({
 export const MovieSchema = z.object({
   movieName: z.string().min(1, 'Name must be set'),
   movieDescripton: z.string().min(1, 'Descripton must be set'),
-  movieActor: z.string().min(1, 'Actor must be set'),
+  movieActor: z.array(z.string().min(1)).min(1, 'Mindestens ein Actor muss gewählt werden'),
   movieType: z.string().min(1, 'Type must be set'),
   movieGenre: z.string().min(1, 'Genre must be set'),
   movieDuration: z.string().min(1, 'Duration must be set').regex(/^(\d{1,2}:)?\d{2}:\d{2}$/g, 'Invalid duration'),

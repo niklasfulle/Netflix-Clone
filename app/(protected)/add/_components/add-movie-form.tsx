@@ -1,5 +1,5 @@
 "use client";
-import { useTransition, useState, useRef } from "react";
+import { useTransition, useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as z from "zod";
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MovieSchema } from "@/schemas";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useChunkedUpload } from "@/hooks/useChunkedUpload";
 import { Upload, X, Check, RefreshCw } from "lucide-react";
@@ -46,12 +47,32 @@ export const AddMovieForm = () => {
 
   const { uploadFile, uploadProgress, isUploading } = useChunkedUpload();
 
+  const [allActors, setAllActors] = useState<{ id: string; name: string }[]>([]);
+  const [actorsLoading, setActorsLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch all actors from backend
+    const fetchActors = async () => {
+      setActorsLoading(true);
+      try {
+        const res = await fetch("/api/actors");
+        const data = await res.json();
+        // Accepts either array of {id, name,...} or fallback to []
+        setAllActors(Array.isArray(data) ? data.map((a: any) => ({ id: a.id, name: a.name })) : []);
+      } catch {
+        setAllActors([]);
+      }
+      setActorsLoading(false);
+    };
+    fetchActors();
+  }, []);
+
   const form = useForm<z.infer<typeof MovieSchema>>({
     resolver: zodResolver(MovieSchema),
     defaultValues: {
       movieName: "",
       movieDescripton: "",
-      movieActor: "",
+      movieActor: [],
       movieType: "",
       movieGenre: "",
       movieDuration: "",
@@ -243,7 +264,7 @@ export const AddMovieForm = () => {
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     if (!thumbnailUrl) {
-      toast.error("Bitte wähle ein Thumbnail aus!");
+      toast.error("Please select a thumbnail!");
       return;
     }
 
@@ -315,14 +336,14 @@ export const AddMovieForm = () => {
             name="movieActor"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white">Actor</FormLabel>
+                <FormLabel className="text-white">Actors</FormLabel>
                 <FormControl>
-                  <Input
-                    className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
-                    {...field}
-                    disabled={isPending}
-                    placeholder=""
-                    type="text"
+                  <MultiSelect
+                    options={allActors.map(a => ({ label: a.name, value: a.id }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isPending || actorsLoading}
+                    placeholder="Select actors..."
                   />
                 </FormControl>
                 <FormMessage />
@@ -341,7 +362,7 @@ export const AddMovieForm = () => {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
-                        <SelectValue placeholder="Wählen..." />
+                        <SelectValue placeholder="Select..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-zinc-800 text-white border-gray-500">
@@ -365,7 +386,7 @@ export const AddMovieForm = () => {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
-                        <SelectValue placeholder="Wählen..." />
+                        <SelectValue placeholder="Select..." />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-zinc-800 text-white border-gray-500">
@@ -402,9 +423,8 @@ export const AddMovieForm = () => {
             />
           </div>
 
-          {/* Video Upload mit schöneren Buttons */}
           <div>
-            <FormLabel className="text-white">Video hochladen</FormLabel>
+            <FormLabel className="text-white">Upload Video</FormLabel>
             <div className="mt-2 space-y-3">
               <div className="relative">
                 <input
@@ -444,10 +464,10 @@ export const AddMovieForm = () => {
                       <>
                         <Upload className="w-10 h-10 text-gray-400 mb-2" />
                         <p className="text-sm text-white">
-                          Klicken um Video auszuwählen
+                          Click to select a video
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          MP4, MOV, AVI oder andere Videoformate
+                          MP4, MOV, AVI or other video formats
                         </p>
                       </>
                     )}
@@ -466,17 +486,17 @@ export const AddMovieForm = () => {
                     {isUploading ? (
                       <>
                         <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                        Lädt hoch... {uploadProgress}%
+                        Uploading... {uploadProgress}%
                       </>
                     ) : uploadedVideoPath ? (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        Hochgeladen
+                        Uploaded
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Video hochladen
+                        Upload Video
                       </>
                     )}
                   </Button>
@@ -502,7 +522,6 @@ export const AddMovieForm = () => {
             </div>
           </div>
 
-          {/* Video Preview (versteckt) */}
           {videoPreviewUrl && (
             <div className="hidden">
               <video ref={videoRef} src={videoPreviewUrl} />
@@ -510,18 +529,17 @@ export const AddMovieForm = () => {
             </div>
           )}
 
-          {/* Thumbnail Auswahl */}
           {showThumbnailSelector && thumbnailOptions.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Thumbnail auswählen</FormLabel>
+                <FormLabel className="text-white">Select Thumbnail</FormLabel>
                 <Button
                   type="button"
                   onClick={regenerateThumbnails}
                   className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Neue generieren
+                  Regenerate
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -538,18 +556,17 @@ export const AddMovieForm = () => {
             </div>
           )}
 
-          {/* Thumbnail Vorschau mit Abwählen-Button */}
           {thumbnailUrl && !showThumbnailSelector && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Gewähltes Thumbnail</FormLabel>
+                <FormLabel className="text-white">Selected Thumbnail</FormLabel>
                 <Button
                   type="button"
                   onClick={deselectThumbnail}
                   className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
                 >
                   <X className="w-3 h-3 mr-1" />
-                  Abwählen
+                  Deselect
                 </Button>
               </div>
               <img
@@ -560,14 +577,13 @@ export const AddMovieForm = () => {
             </div>
           )}
 
-          {/* Manueller Thumbnail Upload */}
           <FormField
             control={form.control}
             name="movieThumbnail"
             render={() => (
               <FormItem>
                 <FormLabel className="text-white">
-                  Oder Thumbnail manuell hochladen
+                  Or upload thumbnail manually
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -584,7 +600,7 @@ export const AddMovieForm = () => {
                     >
                       <div className="flex items-center gap-2 text-gray-400">
                         <Upload className="w-5 h-5" />
-                        <span className="text-sm">Thumbnail hochladen</span>
+                        <span className="text-sm">Upload Thumbnail</span>
                       </div>
                     </label>
                   </div>

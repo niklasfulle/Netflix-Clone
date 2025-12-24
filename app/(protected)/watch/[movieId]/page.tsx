@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
+import { addMovieView } from "@/actions/watch/add-movie-view";
 import useMovie from "@/hooks/movies/useMovie";
 
 const Watch = () => {
@@ -27,6 +28,13 @@ const Watch = () => {
       videoRef.current.currentTime = data.watchTime;
     }
   }, [data?.watchTime, search]);
+
+  useEffect(() => {
+    if (movieId) {
+      addMovieView({ movieId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!data) {
     return null;
