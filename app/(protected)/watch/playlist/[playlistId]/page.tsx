@@ -15,23 +15,27 @@ const Watch = () => {
 
   async function setMovieWatchTime() {
     const video = document.getElementById("videoElement") as HTMLVideoElement;
-    const movieId = playlist?.movies[currentMovie].id;
-    updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
+    const movieId = playlist?.movies[currentMovie]?.id;
+    if (movieId && video) {
+      updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
+    }
   }
 
   const updateMovie = (dir: number) => {
-    console.log(currentMovie + dir);
-    if (
-      currentMovie + dir != -1 ||
-      currentMovie + dir > playlist?.movies.lenght - 1
-    )
-      setCurrentMovie(currentMovie + dir);
+    if (!playlist?.movies) return;
+    const newIndex = currentMovie + dir;
+    if (newIndex >= 0 && newIndex < playlist.movies.length) {
+      setCurrentMovie(newIndex);
+    }
   };
 
   const handleVideoEnded = () => {
     setMovieWatchTime();
     updateMovie(1);
   };
+
+  const hasMultiple = playlist?.movies?.length > 1;
+  const current = playlist?.movies?.[currentMovie];
 
   return (
     <div className="w-screen h-screen bg-black relative">
@@ -46,10 +50,10 @@ const Watch = () => {
         />
         <p className="font-bold text-white text-xl xl:text-3xl flex flex-row">
           <span className="pr-3 font-light">Watching: </span>
-          {playlist?.movies[currentMovie].title}
+          {current?.title}
         </p>
       </nav>
-      {currentMovie == 0 && (
+      {hasMultiple && currentMovie === 0 && (
         <button
           onClick={() => updateMovie(1)}
           className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
@@ -64,7 +68,7 @@ const Watch = () => {
           />
         </button>
       )}
-      {currentMovie > 0 && currentMovie < playlist?.movies.length - 1 && (
+      {hasMultiple && currentMovie > 0 && currentMovie < playlist.movies.length - 1 && (
         <>
           <button
             className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
@@ -94,7 +98,7 @@ const Watch = () => {
           </button>
         </>
       )}
-      {currentMovie == playlist?.movies.length - 1 && (
+      {hasMultiple && currentMovie === playlist.movies.length - 1 && (
         <button
           onClick={() => updateMovie(-1)}
           className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
@@ -109,17 +113,21 @@ const Watch = () => {
           />
         </button>
       )}
-      <video
-        id="videoElement"
-        controls
-        autoPlay
-        className="w-full h-full"
-        src={playlist?.movies[currentMovie].videoUrl}
-        ref={videoRef}
-        onEnded={handleVideoEnded}
-      >
-        <track kind="captions"></track>
-      </video>
+      {current?.id && (
+        <video
+          key={current.id} // <--- Das ist wichtig!
+          id="videoElement"
+          autoPlay
+          controls
+          className="w-full h-full"
+          ref={videoRef}
+          poster={current.thumbnailUrl}
+          onEnded={handleVideoEnded}
+        >
+          <source src={`/api/video/${current.id}`} type="video/mp4" />
+          <track kind="captions"></track>
+        </video>
+      )}
     </div>
   );
 };

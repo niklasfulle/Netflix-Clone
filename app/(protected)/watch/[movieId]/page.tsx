@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
@@ -13,19 +13,20 @@ const Watch = () => {
   const { data } = useMovie(movieId);
 
   const searchParams = useSearchParams();
-
   const search = searchParams.get("start");
 
   async function setMovieWatchTime() {
-    const video = document.getElementById("videoElement") as HTMLVideoElement;
-    updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
+    const video = videoRef.current;
+    if (video) {
+      updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
+    }
   }
 
-  let watchTime = data?.watchTime;
-  if (search) {
-    watchTime = 0;
-  }
-  const videoURL = data?.videoUrl + "#t=" + watchTime;
+  useEffect(() => {
+    if (videoRef.current && data?.watchTime && !search) {
+      videoRef.current.currentTime = data.watchTime;
+    }
+  }, [data?.watchTime, search]);
 
   if (!data) {
     return null;
@@ -54,8 +55,14 @@ const Watch = () => {
         className="w-full h-full"
         ref={videoRef}
         poster={data.thumbnailUrl}
+        onTimeUpdate={() => {
+          // Auto-save alle 10 Sekunden
+          if (videoRef.current && Math.floor(videoRef.current.currentTime) % 10 === 0) {
+            setMovieWatchTime();
+          }
+        }}
       >
-        <source src={videoURL} type="video/mp4" />
+        <source src={`/api/video/${movieId}`} type="video/mp4" />
         <track kind="captions"></track>
       </video>
     </div>
