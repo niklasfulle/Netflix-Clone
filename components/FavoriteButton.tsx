@@ -20,19 +20,27 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
     return list.includes(movieId);
   }, [currentProfil, movieId]);
 
-  const toggleFavorites = useCallback(async () => {
+  const toggleFavorites = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const currentFavoriteIds = currentProfil?.favoriteIds || [];
     let updatedFavoriteIds;
 
     if (isFavorite) {
+      // Entferne movieId aus der Liste
+      updatedFavoriteIds = currentFavoriteIds.filter((id: string) => id !== movieId);
       remove({ movieId });
     } else {
+      // Füge movieId zur Liste hinzu
+      updatedFavoriteIds = [...currentFavoriteIds, movieId];
       add({ movieId });
     }
 
+    // Optimistic Update - aktualisiert sofort im UI
     mutate({
       ...currentProfil,
-      favoriteids: updatedFavoriteIds,
-    });
+      favoriteIds: updatedFavoriteIds,
+    }, false); // false = kein revalidate
 
     mutateFavorites();
   }, [movieId, isFavorite, currentProfil, mutate, mutateFavorites]);
@@ -40,12 +48,12 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
   const Icon = isFavorite ? FaCheck : FaPlus;
 
   return (
-    <button
+    <div
       onClick={toggleFavorites}
-      className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item  hover:border-neutral-300"
+      className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item hover:border-neutral-300"
     >
       <Icon className="text-white" size={20} />
-    </button>
+    </div>
   );
 };
 

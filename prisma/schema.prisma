@@ -26,6 +26,7 @@ model User{
   profil                Profil[]
   isTwoFactorEnabled    Boolean   @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
+  isBlocked             Boolean   @default(false)
 }
 
 model Account {
@@ -93,24 +94,32 @@ model Profil {
 }
 
 model Movie {
-  id           String @id @unique @default(cuid())
+  id           String   @id @unique @default(cuid())
   title        String
   description  String
   videoUrl     String
   thumbnailUrl String
   type         String
   genre        String
-  actor        String
   duration     String
   createdAt    DateTime  @default(now())
+  actors       MovieActor[]
 }
 
+
 model Actor {
-  id           String @id @unique @default(cuid())
-  name         String
-  movies       Int
-  series       Int
-  createdAt    DateTime  @default(now())
+  id        String   @id @unique @default(cuid())
+  name      String  @unique
+  createdAt DateTime @default(now())
+  movies    MovieActor[]
+}
+
+model MovieActor {
+  movie   Movie   @relation(fields: [movieId], references: [id])
+  movieId String
+  actor   Actor   @relation(fields: [actorId], references: [id])
+  actorId String
+  @@id([movieId, actorId])
 }
 
 model ProfilImg {
@@ -124,6 +133,14 @@ model MovieWatchTime {
   profilId     String
   movieId      String
   time         Int
+}
+
+model MovieView {
+  id           String @id @unique @default(cuid())
+  userId       String
+  profilId     String
+  movieId      String
+  createdAt      DateTime  @default(now())
 }
 
 model Playlist {

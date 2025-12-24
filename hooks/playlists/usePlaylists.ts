@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import fetcher from '@/lib/fetcher';
 
 const usePlaylists = () => {
-  const { data, error, isLoading } = useSWR("/api/playlist", fetcher, {
+  const { data, error, isLoading, mutate } = useSWR("/api/playlist", fetcher, {
     revalidateIfStale: true,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
@@ -13,6 +13,7 @@ const usePlaylists = () => {
     data,
     error,
     isLoading,
+    mutate,
   }
 };
 export default usePlaylists;

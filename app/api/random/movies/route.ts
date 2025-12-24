@@ -27,7 +27,9 @@ export async function GET() {
     })
 
     db.$disconnect()
-    return Response.json(randomMovies[0], { status: 200 })
+    // Ensure the result is JSON serializable
+    const safeMovie = randomMovies[0] ? JSON.parse(JSON.stringify(randomMovies[0])) : null;
+    return Response.json(safeMovie, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

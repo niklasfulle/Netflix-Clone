@@ -37,7 +37,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
   const router = useRouter();
 
   const checkWindowSize = () => {
-    let windowWidth: number = 0; // Initialize with a default value
+    let windowWidth: number = 0;
     if (typeof window !== "undefined") {
       windowWidth = window.innerWidth;
     }
@@ -63,8 +63,8 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
   }, [isDesktop]);
 
   return (
-    <button
-      className="group bg-zinc-900 col-span relative h-[24vw] lg:h-[12vw]"
+    <div
+      className="group bg-zinc-900 col-span relative h-[24vw] lg:h-[12vw] cursor-pointer"
       onClick={() => handleClick(data?.id)}
     >
       <div className="relative rounded-md">
@@ -105,7 +105,10 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
       </div>
       <div className="z-50 opacity-0 absolute top-0 transition duration-200 scale-0 sm:group-hover:scale-100 sm:group-hover:-translate-y-[6vw] min-w-2/3 lg:w-full sm:group-hover:opacity-100">
         <Image
-          onClick={() => openModal(data?.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            openModal(data?.id);
+          }}
           className="cursor-pointer object-cover aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw]"
           src={data.thumbnailUrl}
           alt="Thumbnail2"
@@ -118,15 +121,18 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               <MovieCardPlayButton movieId={data?.id} />
               <RestartButton movieId={data?.id} />
               <FavoriteButton movieId={data?.id} />
-              <button
-                onClick={() => openModal(data?.id)}
-                className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item  hover:border-neutral-300"
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openModal(data?.id);
+                }}
+                className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item hover:border-neutral-300"
               >
                 <FaChevronDown
                   className="text-white sm:group-hover/item:text-neutral-300 mt-0.5"
                   size={20}
                 />
-              </button>
+              </div>
             </div>
           </div>
           <p className="hidden mt-4 font-semibold lg:block text-left">
@@ -142,17 +148,56 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             <p className="text-white text-[10px] text-base lg:text-sm">
               {data.genre}
             </p>
-            <p
-              onClick={() => linkToSearch(data.actor)}
-              className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1"
-              role="link"
-            >
-              {data.actor}
-            </p>
+            {Array.isArray(data.actors) && data.actors.length > 0 ? (
+              <span>
+                {data.actors.map((a: any, idx: number) => {
+                  let actorName = '';
+                  let key = '';
+                  if (typeof a === 'string') {
+                    actorName = a;
+                    key = a;
+                  } else if (a?.id && a?.name) {
+                    actorName = a.name;
+                    key = a.id;
+                  } else if (a?.actor?.name && a?.actor?.id) {
+                    actorName = a.actor.name;
+                    key = a.actor.id;
+                  } else {
+                    return null;
+                  }
+                  return (
+                    <span
+                      key={key}
+                      onClick={e => {
+                        e.stopPropagation();
+                        linkToSearch(actorName);
+                      }}
+                      className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer mr-1"
+                      role="link"
+                    >
+                      {actorName}{idx < data.actors.length - 1 ? '  ' : ''}
+                    </span>
+                  );
+                })}
+              </span>
+            ) : (
+              data.actor ? (
+                <span
+                  onClick={e => {
+                    e.stopPropagation();
+                    linkToSearch(data.actor);
+                  }}
+                  className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer"
+                  role="link"
+                >
+                  {data.actor}
+                </span>
+              ) : null
+            )}
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 

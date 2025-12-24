@@ -22,13 +22,22 @@ export async function GET() {
       return Response.json(null, { status: 404 })
     }
 
+
     const movies = await db.movie.findMany({
       where: {
         type: "Movie"
-      }, take: 20,
-    })
+      },
+      take: 20,
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
+    });
 
-    movies.reverse()
+    movies.reverse();
 
     const watchTime = await db.movieWatchTime.findMany({
       where: {

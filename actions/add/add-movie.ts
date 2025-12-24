@@ -24,9 +24,11 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
     return { error: "Invalid fields!" }
   }
 
-  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data
 
-  await db.movie.create({
+  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data;
+
+  // Create the movie
+  const createdMovie = await db.movie.create({
     data: {
       title: movieName,
       description: movieDescripton,
@@ -34,42 +36,22 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
       thumbnailUrl: thumbnailUrl,
       type: movieType,
       genre: movieGenre,
-      actor: movieActor,
-      duration: movieDuration
+      duration: movieDuration,
     }
-  })
+  });
 
-  const actor = await db.actor.findFirst({
-    where: {
-      name: movieActor
-    }
-  })
-
-  if (actor) {
-    const movieCount = movieType == "Movie" ? 1 : 0
-    const serieCount = movieType == "Serie" ? 1 : 0
-
-    await db.actor.update({
-      where: {
-        id: actor.id
-      },
-      data: {
-        movies: actor.movies + movieCount,
-        series: actor.series + serieCount,
-      }
-    })
-
-  } else {
-    const movieCount = movieType == "Movie" ? 1 : 0
-    const serieCount = movieType == "Serie" ? 1 : 0
-
-    await db.actor.create({
-      data: {
-        name: movieActor,
-        movies: movieCount,
-        series: serieCount,
-      }
-    })
+  // Connect all selected actors via MovieActor join table
+  if (Array.isArray(movieActor) && movieActor.length > 0) {
+    await Promise.all(
+      movieActor.map((actorId: string) =>
+        db.movieActor.create({
+          data: {
+            movieId: createdMovie.id,
+            actorId,
+          },
+        })
+      )
+    );
   }
 
   return { success: "Movie added!" }

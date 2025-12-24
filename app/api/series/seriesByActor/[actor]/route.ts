@@ -9,9 +9,9 @@ type Params = {
   actor: string
 }
 
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
   try {
-    const actor = params.actor
+    const { actor } = await context.params
 
     const user = await currentUser()
 
@@ -30,17 +30,25 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       return Response.json(null, { status: 404 })
     }
 
+
+    // Find all series where the actor is linked via MovieActor join table
     const series = await db.movie.findMany({
       where: {
-        type: "Serie",
-        actor: actor
+        type: 'Serie',
+        actors: {
+          some: {
+            actor: {
+              name: actor,
+            },
+          },
+        },
       },
       orderBy: {
-        createdAt: "asc"
-      }
-    })
+        createdAt: 'asc',
+      },
+    });
 
-    series.reverse()
+    series.reverse();
 
     const watchTime = await db.movieWatchTime.findMany({
       where: {

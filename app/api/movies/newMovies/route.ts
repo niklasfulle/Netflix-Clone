@@ -30,6 +30,13 @@ export async function GET() {
         createdAt: 'desc',
       },
       take: 4,
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
     })
 
     const watchTime = await db.movieWatchTime.findMany({
@@ -39,31 +46,33 @@ export async function GET() {
       }
     })
 
-    for (let i = 0; i < movies.length; i++) {
-      for (const time of watchTime) {
-        const movieWithWatchTime: {
-          id: string;
-          title: string;
-          description: string;
-          videoUrl: string;
-          thumbnailUrl: string;
-          type: string;
-          genre: string;
-          actor: string;
-          duration: string;
-          createdAt: Date;
-          watchTime?: number;
-        } = { ...movies[i], watchTime: undefined };
-
-        if (movies[i].id == time.movieId) {
-          movieWithWatchTime.watchTime = time.time
-          movies[i] = movieWithWatchTime
-        }
-      }
+    // Map movie id to watchTime
+    const watchTimeMap = new Map<string, number>();
+    for (const wt of watchTime) {
+      watchTimeMap.set(wt.movieId, wt.time);
     }
 
+    // Build response array with correct types
+    const moviesResponse = movies.map((movie: any) => {
+      const actorNames = movie.actors?.map((a: any) => a.actor.name) || [];
+      const wt = watchTimeMap.get(movie.id);
+      return {
+        id: movie.id,
+        title: movie.title,
+        description: movie.description,
+        videoUrl: movie.videoUrl,
+        thumbnailUrl: movie.thumbnailUrl,
+        type: movie.type,
+        genre: movie.genre,
+        actors: actorNames,
+        duration: movie.duration,
+        createdAt: movie.createdAt,
+        ...(wt !== undefined ? { watchTime: wt } : {}),
+      };
+    });
+
     db.$disconnect()
-    return Response.json(movies, { status: 200 })
+    return Response.json(moviesResponse, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

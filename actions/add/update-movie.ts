@@ -34,14 +34,12 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
 
   const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data
 
-  
-
+  // Update Movie-Daten (ohne actor)
   await db.movie.update({
     where: { id: movieId },
     data: {
       title: movieName,
       description: movieDescripton,
-      actor: movieActor,
       type: movieType,
       genre: movieGenre,
       duration: movieDuration,
@@ -49,6 +47,16 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
       thumbnailUrl: thumbnailUrl
     }
   })
+
+  // Alle bisherigen Actor-Relationen löschen
+  await db.movieActor.deleteMany({ where: { movieId } });
+
+  // Neue Actor-Relationen anlegen
+  if (Array.isArray(movieActor)) {
+    for (const actorId of movieActor) {
+      await db.movieActor.create({ data: { movieId, actorId } });
+    }
+  }
 
   return { success: "Movie updated!" }
 }

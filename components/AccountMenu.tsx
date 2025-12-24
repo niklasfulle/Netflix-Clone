@@ -1,3 +1,4 @@
+"use client";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -48,6 +49,12 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
         {user?.role == UserRole.ADMIN && (
           <>
             <hr className="h-px bg-gray-600 border-0" />
+            <Link href="/admin">
+              <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
+                Admin
+              </div>
+            </Link>
+            <hr className="h-px bg-gray-600 border-0" />
             <Link href="/add">
               <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
                 Add new Movies
@@ -62,12 +69,15 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
           </div>
         </Link>
         <hr className="h-px bg-gray-600 border-0" />
-        <button
-          className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline"
+        <div
+          role="button"
+          tabIndex={0}
+          className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline cursor-pointer"
           onClick={() => signOut()}
+          onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') signOut(); }}
         >
           Sign out of Netflix
-        </button>
+        </div>
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         link_dark: "text-gray-300 underline-offset-4 hover:underline",
         auth: "w-full py-3 mt-6 font-semibold text-white transition bg-red-600 rounded-md hover:bg-red-800",
+        save: "w-full py-3 mt-6 font-semibold text-white transition bg-green-600 rounded-md hover:bg-green-800",
       },
       size: {
         default: "h-9 px-4 py-2",
