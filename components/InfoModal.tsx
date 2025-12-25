@@ -132,13 +132,17 @@ const InfoModal: React.FC<InfoModalProps> = ({
             )}
           </div>
           <div className="px-12 sm:pt-8 -mt-20 sm:mt-0 pb-4">
-            <div className="flex flex-row items-center gap-6 mb-2">
-              <span className="text-2xl font-bold text-white">{movie?.title}</span>
+            {/* Titel in eigene Zeile */}
+            <div className="mb-2">
+              <span className="block text-2xl font-bold text-white w-full">{movie?.title}</span>
+            </div>
+            {/* Metadaten in separater Zeile */}
+            <div className="flex flex-row flex-wrap items-center gap-6 mb-2">
               <span className="text-base text-zinc-400">{movie?.duration}</span>
               <span className="text-base text-zinc-400">{movie?.genre}</span>
               {Array.isArray(movie?.actors) && movie.actors.length > 0 && (
                 <>
-                  {movie.actors.map((actor: any, idx: number) => {
+                  {movie.actors.map((actor: any, idx: number) => {  
                     let actorName = '';
                     let key = '';
                     if (typeof actor === 'string') {

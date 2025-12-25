@@ -16,8 +16,19 @@ export async function GET() {
 
     const randomMovies = await db.movie.findMany({
       take: 1,
-      skip: randomIndex
-    })
+      skip: randomIndex,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        videoUrl: true,
+        thumbnailUrl: true,
+        type: true,
+        genre: true,
+        duration: true,
+        createdAt: true,
+      },
+    });
 
     db.$disconnect()
     // Prüfe, ob ein Movie gefunden wurde
@@ -29,9 +40,8 @@ export async function GET() {
     const serializedMovie = {
       ...movie,
       createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
-      updatedAt: movie.updatedAt?.toISOString?.() ?? movie.updatedAt,
-    }
-    return Response.json(serializedMovie, { status: 200 })
+    };
+    return Response.json(serializedMovie, { status: 200 });
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

@@ -1,10 +1,10 @@
-FROM node:18
-ARG POSTGRESQL_URL= 
-ARG AUTH_TRUST_HOST= 
+FROM node:22
 WORKDIR /netflix-clone
 COPY package*.json .
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY . .
-EXPOSE 6000
+COPY .env_production .env
+EXPOSE 3000
+RUN npx prisma generate
 RUN npm run build
-RUN npm run start
+CMD npx prisma db push && npm run start

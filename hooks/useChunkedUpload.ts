@@ -12,6 +12,7 @@ export const useChunkedUpload = () => {
 
     setIsUploading(true);
     setUploadProgress(0);
+    console.log('[UPLOAD] Starte Upload:', { fileName: file.name, totalChunks, fileId, videoType, generatedId });
 
     try {
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
@@ -28,35 +29,48 @@ export const useChunkedUpload = () => {
         formData.append("videoType", videoType);
         formData.append("generatedId", generatedId);
 
+        console.log(`[UPLOAD] Sende Chunk ${chunkIndex + 1}/${totalChunks} (Bytes ${start}-${end})`);
         const response = await fetch("/api/movies/upload-chunk", {
           method: "POST",
           body: formData,
         });
 
-        if (!response.ok) {
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.error(`[UPLOAD] Fehler beim Parsen der Response für Chunk ${chunkIndex + 1}:`, jsonErr);
           throw new Error("Chunk upload failed");
         }
 
-        const data = await response.json();
-        
+        if (!response.ok) {
+          // Show backend error if available
+          const errorMsg = data?.error || "Chunk upload failed";
+          console.error(`[UPLOAD] Fehler vom Server für Chunk ${chunkIndex + 1}:`, errorMsg, data);
+          throw new Error(errorMsg);
+        }
+
         // Update Progress
         const progress = Math.round(((chunkIndex + 1) / totalChunks) * 100);
         setUploadProgress(progress);
+        console.log(`[UPLOAD] Chunk ${chunkIndex + 1}/${totalChunks} erfolgreich, Fortschritt: ${progress}%`, data);
 
         // Wenn alle Chunks hochgeladen wurden
         if (data.completed) {
           setIsUploading(false);
           setUploadProgress(100);
+          console.log('[UPLOAD] Upload abgeschlossen! Server-Response:', data);
           return { filePath: data.filePath, videoId: data.videoId };
         }
       }
 
+      console.error('[UPLOAD] Upload unvollständig – nicht alle Chunks wurden bestätigt!');
       throw new Error("Upload incomplete");
-    } catch (error) {
-      console.error("Upload error:", error);
+    } catch (error: any) {
+      console.error("[UPLOAD] Fehler im Upload-Prozess:", error);
       setIsUploading(false);
       setUploadProgress(0);
-      toast.error("Upload fehlgeschlagen!");
+      toast.error(error?.message || "Upload fehlgeschlagen!");
       return null;
     }
   };

@@ -1,9 +1,10 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<Response> {
   const MOVIE_FOLDER = process.env.MOVIE_FOLDER || "./movies";
   const SERIES_FOLDER = process.env.SERIES_FOLDER || "./series";
 
@@ -58,19 +59,30 @@ export async function POST(req: NextRequest) {
         writeStream.write(chunkBuffer);
         fs.unlinkSync(chunkPath); // Lösche Chunk nach dem Zusammenfügen
       }
+      writeStream.end(); // Wichtig: Stream korrekt beenden, damit 'finish' ausgelöst wird
 
-      writeStream.end();
-
-      return new Promise((resolve) => {
-        writeStream.on("finish", () => {
-          resolve(NextResponse.json({ 
-            success: true, 
-            filePath: finalPath,
-            videoId: generatedId,
-            completed: true 
-          }));
+      try {
+        await new Promise<void>((resolve, reject) => {
+          writeStream.on("finish", () => {
+            console.log("[UPLOAD-CHUNK] WriteStream finished, sending response for final chunk.");
+            resolve();
+          });
+          writeStream.on("error", (err) => {
+            console.error("[UPLOAD-CHUNK] WriteStream error:", err);
+            reject(err);
+          });
         });
-      });
+        console.log("[UPLOAD-CHUNK] Response sent for completed upload:", finalPath);
+        return NextResponse.json({ 
+          success: true, 
+          filePath: finalPath,
+          videoId: generatedId,
+          completed: true 
+        });
+      } catch (err: any) {
+        console.error("Chunk merge error:", err);
+        return NextResponse.json({ error: "Chunk merge failed", details: err?.message || String(err), completed: false }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ 

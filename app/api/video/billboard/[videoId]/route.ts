@@ -27,15 +27,20 @@ export async function GET(
 
     const extensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
     let videoPath = "";
-    
-    for (const ext of extensions) {
-      const testPath = path.join(baseFolder, `${movie.videoUrl}${ext}`);
-      if (fs.existsSync(testPath)) {
-        videoPath = testPath;
-        break;
+    // Zuerst ohne Extension prüfen
+    const directPath = path.join(baseFolder, movie.videoUrl);
+    if (fs.existsSync(directPath)) {
+      videoPath = directPath;
+    } else {
+      // Falls nicht gefunden, mit Extension suchen
+      for (const ext of extensions) {
+        const testPath = path.join(baseFolder, `${movie.videoUrl}${ext}`);
+        if (fs.existsSync(testPath)) {
+          videoPath = testPath;
+          break;
+        }
       }
     }
-
     if (!videoPath || !fs.existsSync(videoPath)) {
       return NextResponse.json({ error: "Video file not found" }, { status: 404 });
     }

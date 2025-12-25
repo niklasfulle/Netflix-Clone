@@ -35,9 +35,8 @@ export async function GET() {
     const serializedMovie = {
       ...movie,
       createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
-      updatedAt: movie.updatedAt?.toISOString?.() ?? movie.updatedAt,
-    }
-    return Response.json(serializedMovie, { status: 200 })
+    };
+    return Response.json(serializedMovie, { status: 200 });
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

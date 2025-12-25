@@ -52,31 +52,32 @@ export const deleteMovie = async (movieId: string) => {
       where: { id: movieId }
     });
 
-    // Update Actor counts
-    const actor = await db.actor.findFirst({
-      where: { name: movie.actor }
+    // Update Actor counts for all actors of this movie
+    const movieActors = await db.movieActor.findMany({
+      where: { movieId },
+      include: { actor: true },
     });
 
-    if (actor) {
-      const movieCount = movie.type === "Movie" ? -1 : 0;
-      const serieCount = movie.type === "Serie" ? -1 : 0;
+    for (const movieActor of movieActors) {
+      const actor = movieActor.actor;
+      // Count remaining movies and series for this actor
+      const remainingMovieCount = await db.movieActor.count({
+        where: {
+          actorId: actor.id,
+          movie: { type: "Movie" },
+        },
+      });
+      const remainingSerieCount = await db.movieActor.count({
+        where: {
+          actorId: actor.id,
+          movie: { type: "Serie" },
+        },
+      });
 
-      const newMovieCount = Math.max(0, actor.movies + movieCount);
-      const newSerieCount = Math.max(0, actor.series + serieCount);
-
-      if (newMovieCount === 0 && newSerieCount === 0) {
-        // Lösche Actor wenn keine Movies/Series mehr
+      if (remainingMovieCount === 0 && remainingSerieCount === 0) {
+        // Delete actor if no movies/series left
         await db.actor.delete({
-          where: { id: actor.id }
-        });
-      } else {
-        // Update counts
-        await db.actor.update({
           where: { id: actor.id },
-          data: {
-            movies: newMovieCount,
-            series: newSerieCount,
-          }
         });
       }
     }

@@ -29,10 +29,40 @@ export default function AdminUsersPage() {
     setTimeout(() => setSuccess(""), 2000);
   };
 
+  const [sortKey, setSortKey] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
   const filteredUsers = users.filter(u =>
     u.name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let aValue = a[sortKey];
+    let bValue = b[sortKey];
+    if (sortKey === "createdAt") {
+      aValue = new Date(a.createdAt).getTime();
+      bValue = new Date(b.createdAt).getTime();
+    }
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    return 0;
+  });
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -60,17 +90,17 @@ export default function AdminUsersPage() {
             <table className="w-full text-left border-separate border-spacing-y-1">
               <thead>
                 <tr className="bg-zinc-900/80">
-                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold">Name</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Email</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Role</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Created</th>
+                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("name")}>Name {sortKey === "name" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("email")}>Email {sortKey === "email" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("role")}>Role {sortKey === "role" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("createdAt")}>Created {sortKey === "createdAt" && (sortDirection === "asc" ? "▲" : "▼")}</th>
                   <th className="py-3 px-4 text-zinc-300 font-bold">Profiles</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Status</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("isBlocked")}>Status {sortKey === "isBlocked" && (sortDirection === "asc" ? "▲" : "▼")}</th>
                   <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map(user => (
+                {sortedUsers.map(user => (
                   <tr key={user.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-medium text-zinc-100">{user.name}</td>
                     <td className="py-2 px-4 text-zinc-200">{user.email}</td>

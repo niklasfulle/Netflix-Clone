@@ -43,8 +43,15 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
         id: {
           in: profil.favoriteIds
         }
-      }
-    })
+      },
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
+    });
 
     const watchTime = await db.movieWatchTime.findMany({
       where: {
@@ -54,31 +61,27 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       }
     })
 
-    for (let i = 0; i < movies.length; i++) {
-      for (const time of watchTime) {
-        const movieWithWatchTime: {
-          id: string;
-          title: string;
-          description: string;
-          videoUrl: string;
-          thumbnailUrl: string;
-          type: string;
-          genre: string;
-          actor: string;
-          duration: string;
-          createdAt: Date;
-          watchTime?: number;
-        } = { ...movies[i], watchTime: undefined };
+    // Build response array with required shape
+    const responseMovies = movies.map((movie) => {
+      const actorNames = movie.actors.map((ma: any) => ma.actor.name).join(", ");
+      const timeObj = watchTime.find((t) => t.movieId === movie.id);
+      return {
+        id: movie.id,
+        title: movie.title,
+        description: movie.description,
+        videoUrl: movie.videoUrl,
+        thumbnailUrl: movie.thumbnailUrl,
+        type: movie.type,
+        genre: movie.genre,
+        actor: actorNames,
+        duration: movie.duration,
+        createdAt: movie.createdAt,
+        watchTime: timeObj ? timeObj.time : undefined,
+      };
+    });
 
-        if (movies[i].id == time.movieId) {
-          movieWithWatchTime.watchTime = time.time
-          movies[i] = movieWithWatchTime
-        }
-      }
-    }
-
-    db.$disconnect()
-    return Response.json(movies, { status: 200 })
+    db.$disconnect();
+    return Response.json(responseMovies, { status: 200 });
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 400 })

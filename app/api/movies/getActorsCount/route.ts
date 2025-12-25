@@ -30,13 +30,25 @@ export async function GET() {
       orderBy: {
         id: "asc",
       },
-    })
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
+    });
 
-    const actors = new Set<string>([])
-    movies.forEach((movie: Movie) => actors.add(movie.actor));
+    const actors = new Set<string>();
+    movies.forEach((movie) => {
+      movie.actors.forEach((ma: any) => {
+        if (ma.actor && ma.actor.name) {
+          actors.add(ma.actor.name);
+        }
+      });
+    });
 
-    const actorArray: string[] = []
-    actors.forEach((actor: string) => actorArray.push(actor));
+    const actorArray: string[] = Array.from(actors);
 
     db.$disconnect()
     return Response.json(actorArray.length, { status: 200 })

@@ -61,6 +61,40 @@ export default function AdminActorsPage() {
     }
   };
 
+  const [sortKey, setSortKey] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedActors = [...actors].sort((a, b) => {
+    let aValue = a[sortKey];
+    let bValue = b[sortKey];
+    if (sortKey === "name") {
+      aValue = a.name;
+      bValue = b.name;
+    }
+    if (sortKey === "movieCount" || sortKey === "seriesCount" || sortKey === "views") {
+      aValue = Number(a[sortKey]);
+      bValue = Number(b[sortKey]);
+    }
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortDirection === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    return 0;
+  });
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-3xl font-extrabold mb-6 text-zinc-100 tracking-tight">Actors Management</h1>
@@ -93,15 +127,15 @@ export default function AdminActorsPage() {
             <table className="w-full text-left border-separate border-spacing-y-1">
               <thead>
                 <tr className="bg-zinc-900/80">
-                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold">Name</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Movies</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Series</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Views</th>
+                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("name")}>Name {sortKey === "name" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("movieCount")}>Movies {sortKey === "movieCount" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("seriesCount")}>Series {sortKey === "seriesCount" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("views")}>Views {sortKey === "views" && (sortDirection === "asc" ? "▲" : "▼")}</th>
                   <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {actors.map(actor => (
+                {sortedActors.map(actor => (
                   <tr key={actor.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-medium text-zinc-100">{actor.name}</td>
                     <td className="py-2 px-4 text-zinc-200">{actor.movieCount}</td>

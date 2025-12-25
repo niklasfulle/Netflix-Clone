@@ -46,6 +46,13 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       orderBy: {
         createdAt: 'asc',
       },
+      include: {
+        actors: {
+          include: {
+            actor: true,
+          },
+        },
+      },
     });
 
     series.reverse();
@@ -57,31 +64,26 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       }
     })
 
-    for (let i = 0; i < series.length; i++) {
-      for (const time of watchTime) {
-        const movieWithWatchTime: {
-          id: string;
-          title: string;
-          description: string;
-          videoUrl: string;
-          thumbnailUrl: string;
-          type: string;
-          genre: string;
-          actor: string;
-          duration: string;
-          createdAt: Date;
-          watchTime?: number;
-        } = { ...series[i], watchTime: undefined };
-
-        if (series[i].id == time.movieId) {
-          movieWithWatchTime.watchTime = time.time
-          series[i] = movieWithWatchTime
-        }
-      }
-    }
-
-    db.$disconnect()
-    return Response.json(series, { status: 200 })
+    // Build response array with required shape
+    const responseSeries = series.map((serie) => {
+      const actorNames = serie.actors.map((ma: any) => ma.actor.name).join(", ");
+      const timeObj = watchTime.find((t) => t.movieId === serie.id);
+      return {
+        id: serie.id,
+        title: serie.title,
+        description: serie.description,
+        videoUrl: serie.videoUrl,
+        thumbnailUrl: serie.thumbnailUrl,
+        type: serie.type,
+        genre: serie.genre,
+        actor: actorNames,
+        duration: serie.duration,
+        createdAt: serie.createdAt,
+        watchTime: timeObj ? timeObj.time : undefined,
+      };
+    });
+    db.$disconnect();
+    return Response.json(responseSeries, { status: 200 });
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })
