@@ -8,6 +8,7 @@ interface MovieAdminTableProps {
     type: string;
     createdAt: string;
     views: number;
+    actors?: any[];
   }>;
 }
 
@@ -30,14 +31,21 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
   );
 
   const sorted = [...filtered].sort((a, b) => {
-    let aValue = a[sortKey];
-    let bValue = b[sortKey];
-    // Für Actors: alphabetisch nach erstem Actor
-    if (sortKey === "actors") {
+    let aValue: string | number = "";
+    let bValue: string | number = "";
+    if (sortKey === "title" || sortKey === "type") {
+      aValue = a[sortKey as "title" | "type"];
+      bValue = b[sortKey as "title" | "type"];
+    } else if (sortKey === "views") {
+      aValue = a.views;
+      bValue = b.views;
+    } else if (sortKey === "createdAt") {
+      aValue = new Date(a.createdAt).getTime();
+      bValue = new Date(b.createdAt).getTime();
+    } else if (sortKey === "actors") {
       aValue = Array.isArray(a.actors) && a.actors.length > 0 ? (a.actors[0]?.actor?.name || a.actors[0]?.name || "") : "";
       bValue = Array.isArray(b.actors) && b.actors.length > 0 ? (b.actors[0]?.actor?.name || b.actors[0]?.name || "") : "";
     }
-    // Für createdAt: nach Datum
     if (sortKey === "createdAt") {
       aValue = new Date(a.createdAt).getTime();
       bValue = new Date(b.createdAt).getTime();
