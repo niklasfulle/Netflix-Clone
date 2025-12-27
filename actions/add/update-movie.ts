@@ -5,25 +5,38 @@ import { currentRole, currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { MovieSchema } from '@/schemas';
 import { UserRole } from '@prisma/client';
+import { logBackendAction } from '@/lib/logger';
 import fs from 'fs';
 import path from 'path';
 
 export const updateMovie = async (movieId: string, values: z.infer<typeof MovieSchema>, thumbnailUrl: string) => {
-  const user = await currentUser()
-  const role = await currentRole()
+  const user = await currentUser();
+  const role = await currentRole();
+
+  logBackendAction('updateMovie_called', {
+    userId: user?.id,
+    userEmail: user?.email,
+    role,
+    movieId,
+    values,
+    thumbnailUrl,
+  });
 
   if (!user) {
-    return { error: "Unauthorized!" }
+    logBackendAction('updateMovie_unauthorized', { movieId, values });
+    return { error: "Unauthorized!" };
   }
 
   if (role !== UserRole.ADMIN) {
-    return { error: "Not allowed Server Action!" }
+    logBackendAction('updateMovie_not_allowed', { userId: user.id, role, movieId });
+    return { error: "Not allowed Server Action!" };
   }
 
   const validatedField = MovieSchema.safeParse(values);
 
   if (!validatedField.success) {
-    return { error: "Invalid fields!" }
+    logBackendAction('updateMovie_invalid_fields', { userId: user.id, movieId, values });
+    return { error: "Invalid fields!" };
   }
 
   const movie = await db.movie.findUnique({

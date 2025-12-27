@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 const StatsChart = dynamic(() => import("@/components/admin/StatsChart"), { ssr: false });
+const StatsBarChart = dynamic(() => import("@/components/admin/StatsBarChart"), { ssr: false });
 import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -9,7 +10,7 @@ export default function AdminStatsPage() {
   const { data, isLoading, error } = useSWR("/api/statistics/admin-overview", fetcher);
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-5xl mx-auto p-6">
       <h1 className="text-3xl font-extrabold mb-6 text-zinc-100 tracking-tight">Statistics</h1>
       <div className="bg-zinc-800 rounded-2xl shadow-2xl p-6 border mb-8">
         <h2 className="text-xl font-semibold mb-4 text-zinc-100">Overview</h2>
@@ -34,6 +35,17 @@ export default function AdminStatsPage() {
                   No data available.
                 </div>
               )}
+              {/* BarChart für Movies & Series pro Monat */}
+              <div className="mt-10">
+                <h3 className="text-lg font-semibold text-zinc-200 mb-4">Movies & Series Added Per Month</h3>
+                {data.monthly && data.monthly.length > 0 ? (
+                  <StatsBarChart data={data.monthly} />
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-zinc-400 border-2 border-zinc-700 border-dashed rounded-xl">
+                    No monthly data available.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : null}

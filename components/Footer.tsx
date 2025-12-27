@@ -1,4 +1,7 @@
+
 const Footer = () => {
+  // Version aus Umgebungsvariable lesen (nur bei NEXT_PUBLIC_ im Next.js-Frontend verfügbar)
+  const version = process.env.NEXT_PUBLIC_VERSION || process.env.VERSION || "1.5.1";
   return (
     <div className="w-full flex flex-row gap-10 p-2 nd:p-3 justify-center bg-zinc-800">
       <div className=" text-zinc-400 text-xs md:text-sm">
@@ -8,7 +11,7 @@ const Footer = () => {
         </p>
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm">
-        Version: <span className="text-zinc-200">1.5.0</span>
+        Version: <span className="text-zinc-200">{version}</span>
       </div>
     </div>
   );

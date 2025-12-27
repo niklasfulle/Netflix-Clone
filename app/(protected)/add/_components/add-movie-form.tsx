@@ -46,6 +46,33 @@ export const AddMovieForm = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const { uploadFile, uploadProgress, isUploading } = useChunkedUpload();
+  const [estimatedTime, setEstimatedTime] = useState<string>("");
+  const uploadStartTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isUploading && uploadStartTimeRef.current === null && uploadProgress > 0) {
+      uploadStartTimeRef.current = Date.now();
+    }
+    if (!isUploading) {
+      uploadStartTimeRef.current = null;
+      setEstimatedTime("");
+      return;
+    }
+    if (isUploading && videoFile && uploadProgress > 0 && uploadProgress < 100 && uploadStartTimeRef.current) {
+      const elapsedMs = Date.now() - uploadStartTimeRef.current;
+      const elapsedSec = elapsedMs / 1000;
+      const progress = uploadProgress / 100;
+      if (progress > 0) {
+        const totalSec = elapsedSec / progress;
+        const remainingSec = Math.max(0, totalSec - elapsedSec);
+        const min = Math.floor(remainingSec / 60);
+        const sec = Math.round(remainingSec % 60);
+        setEstimatedTime(`${min > 0 ? min + 'm ' : ''}${sec}s`);
+      } else {
+        setEstimatedTime("");
+      }
+    }
+  }, [isUploading, uploadProgress, videoFile]);
 
   const [allActors, setAllActors] = useState<{ id: string; name: string }[]>([]);
   const [actorsLoading, setActorsLoading] = useState(true);
@@ -512,11 +539,17 @@ export const AddMovieForm = () => {
               )}
 
               {isUploading && (
-                <div className="w-full bg-zinc-700 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-red-600 h-2 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
+                <div className="w-full">
+                  <div className="bg-zinc-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-red-600 h-2 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>{uploadProgress}%</span>
+                    {estimatedTime && <span>~{estimatedTime} left</span>}
+                  </div>
                 </div>
               )}
             </div>

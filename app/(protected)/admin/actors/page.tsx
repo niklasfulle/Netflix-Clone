@@ -95,6 +95,12 @@ export default function AdminActorsPage() {
     return 0;
   });
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const totalPages = Math.ceil(sortedActors.length / pageSize);
+  const paginatedActors = sortedActors.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-3xl font-extrabold mb-6 text-zinc-100 tracking-tight">Actors Management</h1>
@@ -123,6 +129,7 @@ export default function AdminActorsPage() {
         ) : actors.length === 0 ? (
           <div className="text-zinc-400">No actors available.</div>
         ) : (
+        <>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-separate border-spacing-y-1">
               <thead>
@@ -135,7 +142,7 @@ export default function AdminActorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedActors.map(actor => (
+                {paginatedActors.map(actor => (
                   <tr key={actor.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-medium text-zinc-100">{actor.name}</td>
                     <td className="py-2 px-4 text-zinc-200">{actor.movieCount}</td>
@@ -154,6 +161,24 @@ export default function AdminActorsPage() {
               </tbody>
             </table>
           </div>
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            >
+              &lt;
+            </button>
+            <span className="text-zinc-300">Seite {page} / {totalPages}</span>
+            <button
+              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages || totalPages === 0}
+            >
+              &gt;
+            </button>
+          </div>
+          </>
         )}
       </div>
     </div>

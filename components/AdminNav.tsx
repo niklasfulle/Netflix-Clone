@@ -73,6 +73,7 @@ const AdminNav = () => {
                     <NavbarItem label="Actors" href="/admin/actors" />
                     <NavbarItem label="Movies/Series" href="/admin/movies" />
                     <NavbarItem label="Statistics" href="/admin/statistics" />
+                    <NavbarItem label="Logs" href="/admin/logs" />
                 </div>
                 <button
                     onClick={toggleMobileMenu}

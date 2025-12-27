@@ -38,6 +38,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
             Statistics
           </div>
         </Link>
+        <Link href={"/admin/logs"}>
+          <div className="px-3 text-center text-white hover:underline">
+            Logs
+          </div>
+        </Link>
       </div>
     </div>
   );
