@@ -105,7 +105,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
       }
       
       form.setValue("movieDuration", formattedDuration);
-      toast.success(`Videolänge: ${formattedDuration}`);
+      toast.success(`Video length: ${formattedDuration}`);
     };
   };
 
@@ -154,30 +154,30 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
   const regenerateThumbnails = () => {
     const randomOffset = Math.floor(Math.random() * 10) * 10;
     generateThumbnails(randomOffset);
-    toast.success("Neue Thumbnails werden generiert...");
+    toast.success("New thumbnails are being generated...");
   };
 
   const selectThumbnail = (thumbnail: string) => {
     setThumbnailUrl(thumbnail);
     setShowThumbnailSelector(false);
-    toast.success("Thumbnail ausgewählt!");
+    toast.success("Thumbnail selected!");
   };
 
   const deselectThumbnail = () => {
     setThumbnailUrl("");
     setShowThumbnailSelector(true);
-    toast.success("Thumbnail abgewählt!");
+    toast.success("Thumbnail deselected!");
   };
 
   const uploadVideo = async () => {
     if (!videoFile) {
-      toast.error("Bitte wähle zuerst ein Video aus!");
+      toast.error("Please select a video first!");
       return;
     }
 
     const videoType = form.getValues("movieType");
     if (!videoType) {
-      toast.error("Bitte wähle einen Typ aus!");
+      toast.error("Please select a type!");
       return;
     }
 
@@ -186,7 +186,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
     if (result) {
       setUploadedVideoPath(result.filePath);
       form.setValue("movieVideo", result.videoId);
-      toast.success("Video erfolgreich hochgeladen!");
+      toast.success("Video uploaded successfully!");
       
       setTimeout(() => {
         generateThumbnails();
@@ -197,7 +197,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
   const cancelUpload = async () => {
     if (!uploadedVideoPath) {
       resetUploadState();
-      toast.success("Abgebrochen!");
+      toast.success("Cancelled!");
       return;
     }
 
@@ -214,12 +214,12 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
 
       if (data.success) {
         resetUploadState();
-        toast.success("Video gelöscht!");
+        toast.success("Video deleted!");
       } else {
-        toast.error("Fehler beim Löschen!");
+        toast.error("Error during deletion!");
       }
     } catch (error) {
-      toast.error("Fehler beim Löschen!");
+      toast.error("Error deleting video!");
     }
   };
 
@@ -421,8 +421,6 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
               )}
             />
           </div>
-
-          {/* Video Upload mit schöneren Buttons */}
           <div>
             <FormLabel className="text-white">Upload Video (optional)</FormLabel>
             <div className="mt-2 space-y-3">
@@ -630,8 +628,6 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
               </FormItem>
             )}
           />
-
-                    {/* Delete Confirmation */}
           {showDeleteConfirm && (
             <div className="p-4 border-2 border-red-500 rounded-lg bg-red-900/20 mt-4">
               <p className="text-white text-center mb-4">

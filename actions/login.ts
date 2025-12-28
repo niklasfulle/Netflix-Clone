@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import { AuthError } from 'next-auth';
 import * as z from 'zod';
 
@@ -16,6 +17,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedField = LoginSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('login_invalid_fields', { values }, 'error');
     return { error: "Invalid fields!" }
   }
 
@@ -24,14 +26,14 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   const existingUser = await getUserByEmail(email)
 
   if (!existingUser?.email || !existingUser.hashedPassword) {
+    logBackendAction('login_email_not_exist', { email }, 'error');
     return { error: "Email does not exist!" }
   }
 
   if (!existingUser.emailVerified) {
     const verificationToken = await generateVerificationToken(email)
-
     await sendVerificationEmail(verificationToken.email, verificationToken.token)
-
+    logBackendAction('login_confirmation_sent', { email }, 'info');
     return { success: "Confirmation email sent!" }
   }
 
@@ -40,12 +42,14 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
       const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email)
 
       if (!twoFactorToken || twoFactorToken.token !== code) {
+        logBackendAction('login_invalid_code', { email }, 'error');
         return { error: "Invalid code!" }
       }
 
       const hasExpired = new Date(twoFactorToken.expires) < new Date()
 
       if (hasExpired) {
+        logBackendAction('login_code_expired', { email }, 'error');
         return { error: "Code has expired!" }
       }
 
@@ -75,6 +79,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
         twoFactorToken.token
       )
 
+      logBackendAction('login_two_factor_sent', { email }, 'info');
       return { twoFactor: true }
     }
   }
@@ -84,14 +89,16 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type == "CredentialsSignin") {
+        logBackendAction('login_invalid_credentials', { email }, 'error');
         return { error: "Invalid credentials!" }
       }
       else {
+        logBackendAction('login_auth_error', { email, error: String(error) }, 'error');
         return { error: "Something went wrong!" }
       }
-
     }
-
+    logBackendAction('login_unknown_error', { email, error: String(error) }, 'error');
     throw error
   }
+  logBackendAction('login_success', { email }, 'info');
 }

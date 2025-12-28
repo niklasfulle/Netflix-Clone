@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 
 import { currentUser } from '@/lib/auth';
@@ -13,17 +14,15 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
   try {
     const { movieId } = await context.params
 
-    if (typeof movieId !== "string") {
-      throw new Error("Invalid ID")
-    }
-
-    if (!movieId) {
+    if (typeof movieId !== "string" || !movieId) {
+      logBackendAction('api_favorites_movieid_invalid_id', { movieId }, 'error');
       throw new Error("Invalid ID")
     }
 
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_favorites_movieid_no_user', { movieId }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -35,6 +34,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     })
 
     if (!profil) {
+      logBackendAction('api_favorites_movieid_no_profil', { userId: user.id, movieId }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -81,8 +81,10 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     });
 
     db.$disconnect();
+    logBackendAction('api_favorites_movieid_success', { userId: user.id, profilId: profil.id, movieId }, 'info');
     return Response.json(responseMovies, { status: 200 });
   } catch (error) {
+    logBackendAction('api_favorites_movieid_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 400 })
   }

@@ -37,7 +37,20 @@ const Watch = () => {
   }, []);
 
   if (!data) {
-    return null;
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-black">
+        <div className="text-center">
+          <h1 className="text-3xl text-white font-bold mb-4">Not found</h1>
+          <p className="text-zinc-400 mb-6">The movie or series could not be found.</p>
+          <button
+            className="bg-red-600 hover:bg-red-800 text-white px-6 py-3 rounded-md font-semibold shadow-md transition-all"
+            onClick={() => router.push("/")}
+          >
+            Back to home
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

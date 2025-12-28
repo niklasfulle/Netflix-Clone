@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 
 import { currentUser } from '@/lib/auth';
@@ -9,14 +10,17 @@ export const use = async (values: z.infer<typeof ProfilIdSchema>) => {
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('profilUse_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
   const validatedField = ProfilIdSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('profilUse_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
+  logBackendAction('profilUse_success', { userId: user.id, profilId: validatedField.data.profilId }, 'info');
 
   const { profilId } = validatedField.data
 

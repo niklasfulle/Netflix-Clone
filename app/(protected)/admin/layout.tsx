@@ -1,5 +1,13 @@
 import React from 'react';
 import AdminNav from '@/components/AdminNav';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Netflix - Admin",
+  icons: {
+    icon: "/icon.ico",
+  },
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,4 +25,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 }
 import AccountMenu from '@/components/AccountMenu';import Footer from '@/components/Footer';
+
 

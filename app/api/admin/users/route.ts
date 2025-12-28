@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -31,8 +32,10 @@ export async function GET() {
       profil: undefined,
     }));
 
+    logBackendAction('api_admin_users_route_success', { userCount: usersWithBlocked.length }, 'info');
     return NextResponse.json(usersWithBlocked);
   } catch (error) {
+    logBackendAction('api_admin_users_route_error', { error: String(error) }, 'error');
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

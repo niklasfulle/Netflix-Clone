@@ -20,22 +20,25 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
     movieId,
     values,
     thumbnailUrl,
-  });
+  }, 'info');
+
 
   if (!user) {
-    logBackendAction('updateMovie_unauthorized', { movieId, values });
+    logBackendAction('updateMovie_unauthorized', { movieId, values }, 'error');
     return { error: "Unauthorized!" };
   }
 
+
   if (role !== UserRole.ADMIN) {
-    logBackendAction('updateMovie_not_allowed', { userId: user.id, role, movieId });
+    logBackendAction('updateMovie_not_allowed', { userId: user.id, role, movieId }, 'error');
     return { error: "Not allowed Server Action!" };
   }
 
   const validatedField = MovieSchema.safeParse(values);
 
+
   if (!validatedField.success) {
-    logBackendAction('updateMovie_invalid_fields', { userId: user.id, movieId, values });
+    logBackendAction('updateMovie_invalid_fields', { userId: user.id, movieId, values }, 'error');
     return { error: "Invalid fields!" };
   }
 

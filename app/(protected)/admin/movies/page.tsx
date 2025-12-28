@@ -1,34 +1,44 @@
 "use client";
-import React from "react";
-import useSWR from "swr";
-import fetcher from "@/lib/fetcher";
+import React, { useEffect, useState } from "react";
 import MovieAdminTable from "@/components/admin/MovieAdminTable";
 
-function useAllMoviesAndSeries() {
-  const { data: movies, error: moviesError } = useSWR("/api/movies/all", fetcher);
-  const { data: series, error: seriesError } = useSWR("/api/series/all", fetcher);
-  return {
-    data: [
-      ...(movies || []),
-      ...(series || []),
-    ],
-    isLoading: !movies || !series,
-    error: moviesError || seriesError,
-  };
-}
-
 export default function AdminMoviesPage() {
-  const { data, isLoading, error } = useAllMoviesAndSeries();
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
-  // Views holen
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/movies/all?page=${page}&pageSize=${pageSize}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.movies) {
+          setMovies(data.movies);
+          setTotalPages(data.totalPages);
+        } else {
+          setError("Fehler beim Laden der Filme.");
+        }
+      })
+      .catch(() => setError("Fehler beim Laden der Filme."))
+      .finally(() => setLoading(false));
+  }, [page]);
+
   return (
     <div>
-      {isLoading ? (
+      {loading ? (
         <div>Loading...</div>
       ) : error ? (
-        <div className="text-red-500">Error while loading</div>
+        <div className="text-red-500">{error}</div>
       ) : (
-        <MovieAdminTable items={data || []} />
+        <MovieAdminTable
+          items={movies}
+          page={page}
+          setPage={setPage}
+          totalPages={totalPages}
+        />
       )}
     </div>
   );

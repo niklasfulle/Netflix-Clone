@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 
 import { currentUser } from '@/lib/auth';
@@ -9,12 +10,14 @@ export const add = async (values: z.infer<typeof FavoriteIdSchema>) => {
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('favoriteAdd_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
   const validatedField = FavoriteIdSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('favoriteAdd_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
 
@@ -26,6 +29,7 @@ export const add = async (values: z.infer<typeof FavoriteIdSchema>) => {
   })
 
   if (!profil) {
+    logBackendAction('favoriteAdd_no_profil', { userId: user.id }, 'error');
     return { error: "No profil found!" }
   }
 
@@ -38,8 +42,10 @@ export const add = async (values: z.infer<typeof FavoriteIdSchema>) => {
   })
 
   if (!existingMovie) {
+    logBackendAction('favoriteAdd_invalid_movie', { userId: user.id, movieId }, 'error');
     return { error: "Invalid fields!" }
   }
+  logBackendAction('favoriteAdd_success', { userId: user.id, movieId }, 'info');
 
   const updatedProfil = await db.profil.update({
     where: {

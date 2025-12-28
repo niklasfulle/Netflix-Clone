@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 
 import { currentUser } from '@/lib/auth';
@@ -9,6 +10,7 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>, mov
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('updatePlaylist_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
@@ -20,14 +22,17 @@ export const updatePlaylist = async (values: z.infer<typeof PlaylistSchema>, mov
   })
 
   if (!profil) {
+    logBackendAction('updatePlaylist_no_profil', { userId: user.id }, 'error');
     return { error: "No profil found!" }
   }
 
   const validatedField = PlaylistSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('updatePlaylist_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
+  logBackendAction('updatePlaylist_success', { userId: user.id, playlistId: validatedField.data.playlistId }, 'info');
 
   const { playlistId, playlistName } = validatedField.data
 

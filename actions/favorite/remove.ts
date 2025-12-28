@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import { without } from 'lodash';
 import * as z from 'zod';
 
@@ -10,12 +11,14 @@ export const remove = async (values: z.infer<typeof FavoriteIdSchema>) => {
   const user1 = await currentUser()
 
   if (!user1) {
+    logBackendAction('favoriteRemove_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
   const validatedField = FavoriteIdSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('favoriteRemove_invalid_fields', { userId: user1.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
 
@@ -27,6 +30,7 @@ export const remove = async (values: z.infer<typeof FavoriteIdSchema>) => {
   })
 
   if (!profil) {
+    logBackendAction('favoriteRemove_no_profil', { userId: user1.id }, 'error');
     return { error: "No profil found!" }
   }
 
@@ -39,8 +43,10 @@ export const remove = async (values: z.infer<typeof FavoriteIdSchema>) => {
   })
 
   if (!existingMovie) {
+    logBackendAction('favoriteRemove_invalid_movie', { userId: user1.id, movieId }, 'error');
     return { error: "Invalid fields!" }
   }
+  logBackendAction('favoriteRemove_success', { userId: user1.id, movieId }, 'info');
 
   const updateFavoriteIds: any = without(profil.favoriteIds, movieId)
 

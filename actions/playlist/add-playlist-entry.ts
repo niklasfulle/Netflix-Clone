@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 
 import { currentUser } from '@/lib/auth';
@@ -9,6 +10,7 @@ export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSche
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('addPlaylistEntry_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
@@ -20,12 +22,14 @@ export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSche
   })
 
   if (!profil) {
+    logBackendAction('addPlaylistEntry_no_profil', { userId: user.id }, 'error');
     return { error: "No profil found!" }
   }
 
   const validatedField = PlaylistSelectSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('addPlaylistEntry_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
 
@@ -40,8 +44,10 @@ export const addPlaylistEntry = async (values: z.infer<typeof PlaylistSelectSche
   const isInPlaylist = PlaylistEntires.find(playlistEntry => playlistEntry.movieId === movieId);
 
   if (isInPlaylist) {
+    logBackendAction('addPlaylistEntry_already_in_playlist', { userId: user.id, playlistId, movieId }, 'error');
     return { error: "Already in Playlist" }
   }
+  logBackendAction('addPlaylistEntry_success', { userId: user.id, playlistId, movieId }, 'info');
 
   await db.playlistEntry.create({
     data: {

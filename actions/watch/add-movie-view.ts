@@ -1,5 +1,5 @@
 "use server";
-
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -12,12 +12,14 @@ export const addMovieView = async (values: z.infer<typeof MovieViewSchema>) => {
   const user = await currentUser();
 
   if (!user) {
+    logBackendAction('watchAddMovieView_unauthorized', {}, 'error');
     return { error: 'Unauthorized!' };
   }
 
   const validatedField = MovieViewSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('watchAddMovieView_invalid_fields', { userId: user.id, values }, 'error');
     return { error: 'Invalid fields!' };
   }
 
@@ -31,8 +33,10 @@ export const addMovieView = async (values: z.infer<typeof MovieViewSchema>) => {
   });
 
   if (!profil) {
+    logBackendAction('watchAddMovieView_no_profil', { userId: user.id }, 'error');
     return { error: 'Invalid fields!' };
   }
+  logBackendAction('watchAddMovieView_success', { userId: user.id, movieId }, 'info');
 
 
   // Prüfe, ob heute schon ein View existiert

@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import bcrypt from 'bcryptjs';
 import * as z from 'zod';
 
@@ -15,12 +16,14 @@ export const settings = async (
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('settings_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
   const dbUser = await getUserById(user.id as string)
 
   if (!dbUser) {
+    logBackendAction('settings_dbuser_unauthorized', { userId: user.id }, 'error');
     return { error: "Unauthorized!" }
   }
 
@@ -35,6 +38,7 @@ export const settings = async (
     const existingUser = await getUserByEmail(values.email)
 
     if (existingUser && existingUser.id !== user.id) {
+      logBackendAction('settings_email_in_use', { userId: user.id, email: values.email }, 'error');
       return { error: "Email allready in use!" }
     }
 
@@ -49,8 +53,10 @@ export const settings = async (
     const passwordMatch = await bcrypt.compare(values.password, dbUser.hashedPassword)
 
     if (!passwordMatch) {
+      logBackendAction('settings_incorrect_password', { userId: user.id }, 'error');
       return { error: "Incorrect password!" }
     }
+  logBackendAction('settings_success', { userId: user.id }, 'info');
 
     const hashedPassword = await bcrypt.hash(values.newPassword, 10)
 

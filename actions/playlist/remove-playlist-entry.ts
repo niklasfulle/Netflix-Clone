@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
 
 import { currentUser } from '@/lib/auth';
@@ -9,6 +10,7 @@ export const removePlaylistEntry = async (values: z.infer<typeof PlaylistSelectS
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('removePlaylistEntry_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
@@ -20,17 +22,18 @@ export const removePlaylistEntry = async (values: z.infer<typeof PlaylistSelectS
   })
 
   if (!profil) {
+    logBackendAction('removePlaylistEntry_no_profil', { userId: user.id }, 'error');
     return { error: "No profil found!" }
   }
 
   const validatedField = PlaylistSelectSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('removePlaylistEntry_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
 
   const { playlistId, movieId } = validatedField.data
-
 
   await db.playlistEntry.deleteMany({
     where: {
@@ -38,6 +41,8 @@ export const removePlaylistEntry = async (values: z.infer<typeof PlaylistSelectS
       movieId: movieId
     }
   })
+
+  logBackendAction('removePlaylistEntry_success', { userId: user.id, playlistId, movieId }, 'info');
 
   return { success: "Removed from Playlist" }
 }

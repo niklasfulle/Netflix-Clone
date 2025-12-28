@@ -32,6 +32,12 @@ export default function AdminHomePage() {
               <span className="block text-zinc-400 text-sm font-normal">Usage statistics and system overview</span>
             </Link>
           </li>
+          <li>
+            <Link href="/admin/logs" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
+              📝 Logs
+              <span className="block text-zinc-400 text-sm font-normal">Alle System- und Backend-Logs einsehen</span>
+            </Link>
+          </li>
         </ul>
       </div>
       <div className="text-zinc-400 text-sm text-center">

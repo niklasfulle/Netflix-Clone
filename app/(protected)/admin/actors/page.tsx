@@ -1,28 +1,74 @@
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function AdminActorsPage() {
-  const [actors, setActors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+import useSWR from "swr";
 
-  const fetchActors = async () => {
+
+
+interface Actor {
+  id: string;
+  name: string;
+  movieCount: number;
+  seriesCount: number;
+  views: number;
+}
+
+interface Movie {
+  // Add more fields as needed
+  id: string;
+  title: string;
+}
+
+interface Series {
+  // Add more fields as needed
+  id: string;
+  title: string;
+}
+
+interface ActorsApiResponse {
+  actors: Actor[];
+  total: number;
+  totalPages: number;
+}
+
+const fetcher = <T,>(url: string): Promise<T> => fetch(url).then(r => r.json());
+
+export default function AdminActorsPage() {
+  const [actors, setActors] = useState<Actor[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [name, setName] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalActors, setTotalActors] = useState<number>(0);
+  const pageSize = 20;
+  const { data: movies } = useSWR<Movie[]>("/api/movies/all", fetcher<Movie[]>);
+  const { data: series } = useSWR<Series[]>("/api/series/all", fetcher<Series[]>);
+
+  const fetchActors = async (pageNum: number = page) => {
     setLoading(true);
-    const res = await fetch("/api/actors");
-    const data = await res.json();
-    setActors(data);
+    const res = await fetch(`/api/actors?page=${pageNum}&pageSize=${pageSize}`);
+    const data: ActorsApiResponse = await res.json();
+    setActors(data.actors);
+    setTotalActors(data.total);
+    setTotalPages(data.totalPages);
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
+  useEffect(() => {
+    fetchActors(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  const handleDelete = async (id: string): Promise<void> => {
     setError("");
     setSuccess("");
     const res = await fetch(`/api/actors?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setSuccess("Actor deleted!");
-      fetchActors();
+      fetchActors(page);
     } else {
       let data = {};
       try {
@@ -34,11 +80,7 @@ export default function AdminActorsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchActors();
-  }, []);
-
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -55,51 +97,12 @@ export default function AdminActorsPage() {
     if (res.ok) {
       setSuccess("Actor added!");
       setName("");
-      fetchActors();
+      setPage(1);
+      fetchActors(1);
     } else {
       setError(data.error || "Error adding actor.");
     }
   };
-
-  const [sortKey, setSortKey] = useState<string>("name");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDirection("asc");
-    }
-  };
-
-  const sortedActors = [...actors].sort((a, b) => {
-    let aValue = a[sortKey];
-    let bValue = b[sortKey];
-    if (sortKey === "name") {
-      aValue = a.name;
-      bValue = b.name;
-    }
-    if (sortKey === "movieCount" || sortKey === "seriesCount" || sortKey === "views") {
-      aValue = Number(a[sortKey]);
-      bValue = Number(b[sortKey]);
-    }
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-    }
-    return 0;
-  });
-
-  // Pagination
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
-  const totalPages = Math.ceil(sortedActors.length / pageSize);
-  const paginatedActors = sortedActors.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -123,7 +126,12 @@ export default function AdminActorsPage() {
         {success && <div className="text-green-400 animate-pulse font-medium">{success}</div>}
       </div>
       <div className=" bg-zinc-800 rounded-2xl shadow-2xl p-6 border">
-        <h2 className="text-xl font-semibold mb-4 text-zinc-100">All Actors</h2>
+        <h2 className="text-xl font-semibold mb-4 text-zinc-100">
+          All Actors
+          <span className="ml-2 text-base text-zinc-400 font-normal">({actors.length})</span>
+          <span className="ml-4 text-base text-zinc-400 font-normal">Movies: {movies ? movies.length : '...'}</span>
+          <span className="ml-4 text-base text-zinc-400 font-normal">Series: {series ? series.length : '...'}</span>
+        </h2>
         {loading ? (
           <div className="text-zinc-400">loading...</div>
         ) : actors.length === 0 ? (
@@ -134,15 +142,15 @@ export default function AdminActorsPage() {
             <table className="w-full text-left border-separate border-spacing-y-1">
               <thead>
                 <tr className="bg-zinc-900/80">
-                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("name")}>Name {sortKey === "name" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("movieCount")}>Movies {sortKey === "movieCount" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("seriesCount")}>Series {sortKey === "seriesCount" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("views")}>Views {sortKey === "views" && (sortDirection === "asc" ? "▲" : "▼")}</th>
+                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold">Name</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold">Movies</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold">Series</th>
+                  <th className="py-3 px-4 text-zinc-300 font-bold">Views</th>
                   <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedActors.map(actor => (
+                {actors.map(actor => (
                   <tr key={actor.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-medium text-zinc-100">{actor.name}</td>
                     <td className="py-2 px-4 text-zinc-200">{actor.movieCount}</td>

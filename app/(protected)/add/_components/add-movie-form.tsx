@@ -142,7 +142,7 @@ export const AddMovieForm = () => {
       }
 
       form.setValue("movieDuration", formattedDuration);
-      toast.success(`Videolänge: ${formattedDuration}`);
+      toast.success(`Video length: ${formattedDuration}`);
     };
   };
 
@@ -193,30 +193,30 @@ export const AddMovieForm = () => {
     // Erzeuge neue Thumbnails mit zufälligem Offset
     const randomOffset = Math.floor(Math.random() * 10) * 10; // 0-90%
     generateThumbnails(randomOffset);
-    toast.success("Neue Thumbnails werden generiert...");
+    toast.success("New thumbnails are being generated...");
   };
 
   const selectThumbnail = (thumbnail: string) => {
     setThumbnailUrl(thumbnail);
     setShowThumbnailSelector(false);
-    toast.success("Thumbnail ausgewählt!");
+    toast.success("Thumbnail selected!");
   };
 
   const deselectThumbnail = () => {
     setThumbnailUrl("");
     setShowThumbnailSelector(true);
-    toast.success("Thumbnail abgewählt!");
+    toast.success("Thumbnail deselected!");
   };
 
   const uploadVideo = async () => {
     if (!videoFile) {
-      toast.error("Bitte wähle zuerst ein Video aus!");
+      toast.error("Please select a video first!");
       return;
     }
 
     const videoType = form.getValues("movieType");
     if (!videoType) {
-      toast.error("Bitte wähle einen Typ aus!");
+      toast.error("Please select a type!");
       return;
     }
 
@@ -225,7 +225,7 @@ export const AddMovieForm = () => {
     if (result) {
       setUploadedVideoPath(result.filePath);
       form.setValue("movieVideo", result.videoId); // Speichere die ID statt des Pfades
-      toast.success("Video erfolgreich hochgeladen!");
+      toast.success("Video successfully uploaded!");
 
       setTimeout(() => {
         generateThumbnails();
@@ -236,7 +236,7 @@ export const AddMovieForm = () => {
   const cancelUpload = async () => {
     if (!uploadedVideoPath) {
       resetUploadState();
-      toast.success("Abgebrochen!");
+      toast.success("Cancelled!");
       return;
     }
 
@@ -253,12 +253,12 @@ export const AddMovieForm = () => {
 
       if (data.success) {
         resetUploadState();
-        toast.success("Video gelöscht!");
+        toast.success("Video deleted!");
       } else {
-        toast.error("Fehler beim Löschen!");
+        toast.error("Error deleting video!");
       }
     } catch (error) {
-      toast.error("Fehler beim Löschen!");
+      toast.error("Error deleting video!");
     }
   };
 
@@ -304,6 +304,9 @@ export const AddMovieForm = () => {
 
         if (data?.success) {
           form.reset();
+          form.setValue("movieActor", []);
+          form.setValue("movieType", "");
+          form.setValue("movieGenre", "");
           setThumbnailUrl("");
           setVideoFile(null);
           setVideoPreviewUrl("");
@@ -377,8 +380,6 @@ export const AddMovieForm = () => {
               </FormItem>
             )}
           />
-
-          {/* Type, Genre und Duration in einer Zeile */}
           <div className="grid grid-cols-3 gap-2">
             <FormField
               control={form.control}
@@ -494,7 +495,7 @@ export const AddMovieForm = () => {
                           Click to select a video
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
-                          MP4, MOV, AVI or other video formats
+                          MP4 file, max. 2GB
                         </p>
                       </>
                     )}

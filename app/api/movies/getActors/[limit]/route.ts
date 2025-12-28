@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 
 import { currentUser } from '@/lib/auth';
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_movies_getActors_limit_no_user', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -30,6 +32,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     })
 
     if (!profil) {
+      logBackendAction('api_movies_getActors_limit_no_profil', { userId: user.id }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -59,8 +62,10 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     });
 
     const actorArray: string[] = actors.map((actor: Actor) => actor.name);
+    logBackendAction('api_movies_getActors_limit_success', { userId: user.id, profilId: profil.id, count: actorArray.length }, 'info');
     return Response.json(actorArray, { status: 200 })
   } catch (error) {
+    logBackendAction('api_movies_getActors_limit_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 200 })
   }

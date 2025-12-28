@@ -10,15 +10,17 @@ interface MovieAdminTableProps {
     views: number;
     actors?: any[];
   }>;
+  page?: number;
+  setPage?: (page: number) => void;
+  totalPages?: number;
 }
 
 
-const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
+const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items, page, setPage, totalPages }) => {
   const [search, setSearch] = React.useState("");
   const [sortKey, setSortKey] = React.useState<string>("title");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
-  const [page, setPage] = React.useState(1);
-  const pageSize = 20;
+  // Pagination now handled by parent
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -64,9 +66,7 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
     return 0;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(sorted.length / pageSize);
-  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+  // No local pagination, use all items from parent
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -76,7 +76,10 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
           className="border border-zinc-700 rounded-lg px-4 py-3 bg-zinc-900 text-white flex-1 focus:outline-none focus:ring-2 focus:ring-red-600 transition-all shadow-sm placeholder:text-zinc-400"
           placeholder="Search by title..."
           value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
+          onChange={e => {
+            setSearch(e.target.value);
+            if (setPage) setPage(1);
+          }}
         />
       </div>
       <div className="bg-zinc-800 rounded-2xl shadow-2xl p-6 border">
@@ -94,12 +97,12 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
               </tr>
             </thead>
             <tbody>
-              {paginated.length === 0 ? (
+              {items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 px-4 text-zinc-400 text-center">No movies or series found.</td>
                 </tr>
               ) : (
-                paginated.map((item, idx) => (
+                items.map((item, idx) => (
                   <tr key={item.id + '-' + idx} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-semibold text-zinc-100">{item.title}</td>
                     <td className="py-2 px-4 font-semibold text-zinc-200">
@@ -121,23 +124,25 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items }) => {
           </table>
         </div>
         {/* Pagination Controls */}
-        <div className="flex justify-center items-center gap-2 mt-6">
-          <button
-            className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-            onClick={() => setPage(page - 1)}
-            disabled={page === 1}
-          >
-            &lt;
-          </button>
-          <span className="text-zinc-300">Seite {page} / {totalPages}</span>
-          <button
-            className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-            onClick={() => setPage(page + 1)}
-            disabled={page === totalPages || totalPages === 0}
-          >
-            &gt;
-          </button>
-        </div>
+        {typeof page === 'number' && typeof setPage === 'function' && typeof totalPages === 'number' && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            >
+              &lt;
+            </button>
+            <span className="text-zinc-300">Seite {page} / {totalPages}</span>
+            <button
+              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages || totalPages === 0}
+            >
+              &gt;
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

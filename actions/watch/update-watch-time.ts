@@ -1,6 +1,6 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 import * as z from 'zod';
-
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { WatchTimeSchema } from '@/schemas';
@@ -9,12 +9,14 @@ export const updateWatchTime = async (values: z.infer<typeof WatchTimeSchema>) =
   const user = await currentUser()
 
   if (!user) {
+    logBackendAction('watchUpdateWatchTime_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
 
   const validatedField = WatchTimeSchema.safeParse(values);
 
   if (!validatedField.success) {
+    logBackendAction('watchUpdateWatchTime_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
 
@@ -28,8 +30,10 @@ export const updateWatchTime = async (values: z.infer<typeof WatchTimeSchema>) =
   })
 
   if (!profil) {
+    logBackendAction('watchUpdateWatchTime_no_profil', { userId: user.id }, 'error');
     return { error: "Invalid fields!" }
   }
+  logBackendAction('watchUpdateWatchTime_success', { userId: user.id, movieId }, 'info');
 
   const check = await db.movieWatchTime.findMany({
     where: {

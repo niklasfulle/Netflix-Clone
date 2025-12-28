@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 
 import { currentUser } from '@/lib/auth';
@@ -14,12 +15,14 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     const { movieId } = await context.params
 
     if (!movieId) {
+      logBackendAction('api_movies_movieid_no_id', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_movies_movieid_no_user', { movieId }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -31,6 +34,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     })
 
     if (!profil) {
+      logBackendAction('api_movies_movieid_no_profil', { userId: user.id, movieId }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -47,6 +51,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     });
 
     if (!movie) {
+      logBackendAction('api_movies_movieid_not_found', { userId: user.id, movieId }, 'error');
       return Response.json(null, { status: 404 }) 
     }
 
@@ -74,8 +79,10 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       movieWithWatchTime.watchTime = movieWatchTime.time;
     }
     db.$disconnect();
+    logBackendAction('api_movies_movieid_success', { userId: user.id, movieId }, 'info');
     return Response.json(movieWithWatchTime, { status: 200 });
   } catch (error) {
+    logBackendAction('api_movies_movieid_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 200 })
   }

@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     const generatedId = formData.get("generatedId") as string;
 
     if (!chunk || chunkIndex === undefined || !totalChunks || !fileName || !fileId) {
+      logBackendAction('api_movies_upload_chunk_missing_params', {}, 'error');
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest): Promise<Response> {
           });
         });
         console.log("[UPLOAD-CHUNK] Response sent for completed upload:", finalPath);
+        logBackendAction('api_movies_upload_chunk_success', { filePath: finalPath, videoId: generatedId }, 'info');
         return NextResponse.json({ 
           success: true, 
           filePath: finalPath,
@@ -81,10 +84,12 @@ export async function POST(req: NextRequest): Promise<Response> {
         });
       } catch (err: any) {
         console.error("Chunk merge error:", err);
+        logBackendAction('api_movies_upload_chunk_merge_error', { error: String(err) }, 'error');
         return NextResponse.json({ error: "Chunk merge failed", details: err?.message || String(err), completed: false }, { status: 500 });
       }
     }
 
+    logBackendAction('api_movies_upload_chunk_partial_success', { chunkIndex, fileId }, 'info');
     return NextResponse.json({ 
       success: true, 
       chunkIndex,
@@ -93,6 +98,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   } catch (error) {
     console.error("Chunk upload error:", error);
+    logBackendAction('api_movies_upload_chunk_error', { error: String(error) }, 'error');
     return NextResponse.json({ error: "Chunk upload failed" }, { status: 500 });
   }
 }

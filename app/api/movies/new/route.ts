@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -8,6 +9,7 @@ export async function GET() {
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_movies_new_no_user', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -19,6 +21,7 @@ export async function GET() {
     })
 
     if (!profil) {
+      logBackendAction('api_movies_new_no_profil', { userId: user.id }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -55,8 +58,10 @@ export async function GET() {
     });
 
     db.$disconnect()
+    logBackendAction('api_movies_new_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
     return Response.json(responseMovies, { status: 200 })
   } catch (error) {
+    logBackendAction('api_movies_new_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 200 })
   }

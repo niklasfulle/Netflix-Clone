@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { Movie } from '@prisma/client';
@@ -9,6 +10,7 @@ export async function GET() {
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_movies_getActorsCount_no_user', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -20,6 +22,7 @@ export async function GET() {
     })
 
     if (!profil) {
+      logBackendAction('api_movies_getActorsCount_no_profil', { userId: user.id }, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -51,8 +54,10 @@ export async function GET() {
     const actorArray: string[] = Array.from(actors);
 
     db.$disconnect()
+    logBackendAction('api_movies_getActorsCount_success', { userId: user.id, profilId: profil.id, count: actorArray.length }, 'info');
     return Response.json(actorArray.length, { status: 200 })
   } catch (error) {
+    logBackendAction('api_movies_getActorsCount_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 200 })
   }

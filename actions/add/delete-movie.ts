@@ -1,4 +1,5 @@
 "use server"
+import { logBackendAction } from '@/lib/logger';
 
 import { currentRole, currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -11,20 +12,24 @@ export const deleteMovie = async (movieId: string) => {
   const role = await currentRole()
 
   if (!user) {
+    logBackendAction('deleteMovie_unauthorized', { movieId }, 'error');
     return { error: "Unauthorized!" }
   }
 
   if (role !== UserRole.ADMIN) {
+    logBackendAction('deleteMovie_not_allowed', { userId: user.id, role, movieId }, 'error');
     return { error: "Not allowed Server Action!" }
   }
 
   try {
+    logBackendAction('deleteMovie_called', { userId: user.id, role, movieId }, 'info');
     // Hole Movie-Daten bevor es gelöscht wird
     const movie = await db.movie.findUnique({
       where: { id: movieId }
     });
 
     if (!movie) {
+      logBackendAction('deleteMovie_not_found', { userId: user.id, movieId }, 'error');
       return { error: "Movie not found!" }
     }
 
@@ -82,8 +87,10 @@ export const deleteMovie = async (movieId: string) => {
       }
     }
 
+    logBackendAction('deleteMovie_success', { userId: user.id, movieId }, 'info');
     return { success: "Movie deleted successfully!" }
   } catch (error) {
+    logBackendAction('deleteMovie_error', { userId: user?.id, movieId, error: String(error) }, 'error');
     console.error("Delete movie error:", error);
     return { error: "Failed to delete movie!" }
   }

@@ -6,6 +6,7 @@ import { FaChevronDown } from 'react-icons/fa';
 import AccountMenu from '@/components/AccountMenu';
 import MobileMenuAdmin from '@/components/MobileMenuAdmin';
 import NavbarItem from '@/components/NavbarItem';
+import { useAdminCounts } from './admin/useAdminCounts';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 
 const TOP_OFFSET = 66;
@@ -48,8 +49,7 @@ const AdminNav = () => {
     return (
         <nav className="fixed z-40 w-full bg-black bg-opacity-30">
             <div
-                className={`px-4 md:px-16 py-3 md:py-6 flex flex-row items-center transition duration-500 ${showBackground ? "bg-zinc-900 bg-opacity-90" : ""
-                    }`}
+                className={`px-4 md:px-16 py-3 md:py-6 flex flex-row items-center transition duration-500 ${showBackground ? "bg-zinc-900 bg-opacity-90" : ""}`}
             >
                 <Image
                     className="hidden w-auto h-7 lg:h-7 md:block"

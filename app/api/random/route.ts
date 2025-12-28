@@ -1,3 +1,4 @@
+import { logBackendAction } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
@@ -8,6 +9,7 @@ export async function GET() {
     const user = await currentUser()
 
     if (!user) {
+      logBackendAction('api_random_route_no_user', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -33,6 +35,7 @@ export async function GET() {
     db.$disconnect()
     // Prüfe, ob ein Movie gefunden wurde
     if (!randomMovies[0]) {
+      logBackendAction('api_random_route_no_movie', { userId: user.id }, 'error');
       return Response.json(null, { status: 200 })
     }
     // Serialisiere Date-Objekte explizit
@@ -41,8 +44,10 @@ export async function GET() {
       ...movie,
       createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
     };
+    logBackendAction('api_random_route_success', { userId: user.id, movieId: movie.id }, 'info');
     return Response.json(serializedMovie, { status: 200 });
   } catch (error) {
+    logBackendAction('api_random_route_error', { error: String(error) }, 'error');
     console.log(error)
     return Response.json(null, { status: 200 })
   }
