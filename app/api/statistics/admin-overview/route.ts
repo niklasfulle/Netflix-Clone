@@ -15,7 +15,7 @@ export async function GET() {
   const movieCounts: Record<string, number> = {};
   const seriesCounts: Record<string, number> = {};
   for (const m of movies) {
-    const key = `${m.createdAt.getFullYear()}-${(m.createdAt.getMonth()+1).toString().padStart(2,'0')}-${m.createdAt.getDate().toString().padStart(2,'0')}`;
+    const key = `${m.createdAt.getFullYear()}-${(m.createdAt.getMonth()+1).toString().padStart(2,'0')}`; // Nur Jahr und Monat
     if (m.type === 'Movie') movieCounts[key] = (movieCounts[key] || 0) + 1;
     if (m.type === 'Serie') seriesCounts[key] = (seriesCounts[key] || 0) + 1;
   }
@@ -29,7 +29,8 @@ export async function GET() {
   });
 
   // Monthly (nicht kumuliert)
-  const monthly = allKeys.map(key => ({
+  const monthlyKeys = Array.from(new Set([...Object.keys(movieCounts), ...Object.keys(seriesCounts)])).sort();
+  const monthly = monthlyKeys.map(key => ({
     month: key,
     movies: movieCounts[key] || 0,
     series: seriesCounts[key] || 0,

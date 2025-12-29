@@ -35,7 +35,6 @@ export default function AdminStatsPage() {
                   No data available.
                 </div>
               )}
-              {/* BarChart für Movies & Series pro Monat */}
               <div className="mt-10">
                 <h3 className="text-lg font-semibold text-zinc-200 mb-4">Movies & Series Added Per Month</h3>
                 {data.monthly && data.monthly.length > 0 ? (

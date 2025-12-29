@@ -12,6 +12,8 @@ type LogEntry = {
 };
 
 
+
+
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +23,23 @@ export default function AdminLogsPage() {
   const [totalLogs, setTotalLogs] = useState(0);
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const pageSize = 20;
+
+  const handleClearLogs = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/logs/clear", { method: "POST" });
+      if (!res.ok) throw new Error("Fehler beim Leeren der Logs.");
+      // Nach dem Löschen neu laden
+      setLogs([]);
+      setTotalLogs(0);
+      setTotalPages(1);
+    } catch (err) {
+      setError("Fehler beim Leeren der Logs.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -54,6 +73,7 @@ export default function AdminLogsPage() {
         {!loading && !error && logs.length > 0 && (
           <>
           <div className="mb-4 flex flex-wrap gap-4 items-center">
+            
             <label className="text-zinc-300 text-sm font-medium">Level filtern:</label>
             <select
               className="bg-zinc-700 text-zinc-100 rounded px-3 py-2 outline-none border border-zinc-600"
@@ -65,6 +85,13 @@ export default function AdminLogsPage() {
               <option value="warning">Warning</option>
               <option value="error">Error</option>
             </select>
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow"
+              onClick={handleClearLogs}
+              disabled={loading}
+            >
+              Logs leeren
+            </button>
             <span className="text-zinc-400 text-xs">({filteredLogs.length} angezeigt)</span>
           </div>
           <div className="overflow-x-auto rounded-2xl">

@@ -64,17 +64,16 @@ const Billboard = () => {
         />
       )}
       <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 lg:max-w-[60%]">
-        <p className="w-full h-full font-bold text-white text-2xl md:text-5xl lg:text-6xl drop-shadow-xl">
+        <p className="w-full font-bold text-white text-2xl md:text-5xl lg:text-6xl drop-shadow-xl overflow-hidden text-ellipsis line-clamp-2">
           {data?.title}
         </p>
         {data?.description != "test" && (
-          <p className="text-white text-[8px] text-lg mt-3 md:mt-8 w-[90%] md:w-[80%] lg:w-[90%] drop-shadow-xl">
+          <p className="text-white text-[8px] text-lg mt-3 md:mt-8 w-[90%] md:w-[80%] lg:w-[90%] drop-shadow-xl overflow-hidden text-ellipsis line-clamp-3 max-h-20">
             {data?.description.substring(0, 250)}
             {data?.description.length >= 140 && "..."}
           </p>
         )}
-        {data?.description == "test"}
-        <div className="flex flex-row items-center gap-3 mt-3 md:mt-4">
+        <div className="flex flex-row items-center gap-3 mt-3 md:mt-4 z-10">
           <BillboardPlayButton movieId={data?.id} />
           <BillboardInfoButton movieId={data?.id} />
         </div>
