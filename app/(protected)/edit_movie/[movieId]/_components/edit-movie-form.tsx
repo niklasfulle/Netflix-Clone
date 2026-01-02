@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { updateMovie } from "@/actions/add/update-movie";
 import { MultiSelect } from "@/components/ui/multi-select";
-import useActors from "@/hooks/useActors";
+import useActorsAll from "@/hooks/useActorsAll";
 import { deleteMovie } from "@/actions/add/delete-movie";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +41,7 @@ interface EditMovieFormProps {
 }
 
 export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
-  const { actors: actorOptions, isLoading: actorsLoading } = useActors();
+  const { actors: actorOptions, isLoading: actorsLoading } = useActorsAll();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -339,7 +339,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
                 <FormLabel className="text-white">Actors</FormLabel>
                 <FormControl>
                   <MultiSelect
-                    options={actorOptions.map((a: any) => ({ label: a.name, value: a.id }))}
+                    options={Array.isArray(actorOptions?.actors) ? actorOptions.actors.map((a: any) => ({ label: a.name, value: a.id })) : Array.isArray(actorOptions) ? actorOptions.map((a: any) => ({ label: a.name, value: a.id })) : []}
                     value={field.value || []}
                     onChange={field.onChange}
                     placeholder={actorsLoading ? "Loading..." : "Select actors"}

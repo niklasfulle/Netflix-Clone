@@ -12,7 +12,7 @@ export default function AdminMoviesPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/movies/all?page=${page}&pageSize=${pageSize}`)
+    fetch(`/api/movies/admin?page=${page}&pageSize=${pageSize}`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.movies) {

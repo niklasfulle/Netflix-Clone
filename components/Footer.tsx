@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 const Footer = () => {
   // Version und Jahr nur auf dem Client dynamisch setzen
-  const version = "1.6.1";
+  const version = "1.6.2.4";
   const [year, setYear] = useState(2025);
 
   useEffect(() => {

@@ -6,23 +6,27 @@ export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
   try {
-    // Pagination entfernt: Alle Movies werden zurückgegeben
-    const user = await currentUser()
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const pageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+    const user = await currentUser();
     if (!user) {
-      logBackendAction('api_movies_all_no_user', {}, 'error');
-      return Response.json(null, { status: 404 })
+      logBackendAction('api_movies_admin_no_user', {}, 'error');
+      return Response.json(null, { status: 404 });
     }
     const profil = await db.profil.findFirst({
       where: { userId: user.id, inUse: true }
-    })
+    });
     if (!profil) {
-      logBackendAction('api_movies_all_no_profil', { userId: user.id }, 'error');
-      return Response.json(null, { status: 404 })
+      logBackendAction('api_movies_admin_no_profil', { userId: user.id }, 'error');
+      return Response.json(null, { status: 404 });
     }
+    const total = await db.movie.count({});
     const movies = await db.movie.findMany({
-      where: { type: "Movie" },
       orderBy: { createdAt: 'desc' },
       include: { actors: { include: { actor: true } } },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
     // Views für alle Movies holen
     const views = await db.movieView.groupBy({
@@ -35,13 +39,16 @@ export async function GET(request: Request) {
       views: viewMap.get(m.id) || 0,
     }));
     db.$disconnect();
-    logBackendAction('api_movies_all_success', { userId: user.id, profilId: profil.id, count: moviesWithViews.length }, 'info');
+    logBackendAction('api_movies_admin_success', { userId: user.id, profilId: profil.id, count: moviesWithViews.length }, 'info');
     return Response.json({
       movies: moviesWithViews,
-      total: moviesWithViews.length
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
     }, { status: 200 });
   } catch (error) {
-    logBackendAction('api_movies_all_error', { error: String(error) }, 'error');
+    logBackendAction('api_movies_admin_error', { error: String(error) }, 'error');
     console.log(error);
     return Response.json(null, { status: 200 });
   }

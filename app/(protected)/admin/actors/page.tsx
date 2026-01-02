@@ -44,10 +44,12 @@ export default function AdminActorsPage() {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalActors, setTotalActors] = useState<number>(0);
   const pageSize = 20;
-  const { data: moviesResponse } = useSWR("/api/movies/all", fetcher<any>);
+  const { data: moviesResponse } = useSWR<{ movies: Movie[]; total: number }>("/api/movies/all", fetcher<any>);
   const movies: Movie[] = moviesResponse?.movies || [];
+  const moviesTotal: number = moviesResponse?.total ?? (Array.isArray(movies) ? movies.length : 0);
 
-  const { data: series } = useSWR<Series[]>("/api/series/all", fetcher<Series[]>);
+  const { data: seriesResponse } = useSWR<Series[]>("/api/series/all", fetcher<any>);
+  const series: Series[] = seriesResponse || [];
 
   const fetchActors = async (pageNum: number = page) => {
     setLoading(true);
@@ -131,7 +133,7 @@ export default function AdminActorsPage() {
         <h2 className="text-xl font-semibold mb-4 text-zinc-100">
           All Actors
           <span className="ml-2 text-base text-zinc-400 font-normal">({actors.length})</span>
-          <span className="ml-4 text-base text-zinc-400 font-normal">Movies: {Array.isArray(movies) ? movies.length : '...'}</span>
+          <span className="ml-4 text-base text-zinc-400 font-normal">Movies: {moviesResponse ? moviesTotal : '...'}</span>
           <span className="ml-4 text-base text-zinc-400 font-normal">Series: {Array.isArray(series) ? series.length : '...'}</span>
         </h2>
         {loading ? (

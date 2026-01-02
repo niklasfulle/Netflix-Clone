@@ -3,7 +3,6 @@ import { useTransition, useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as z from "zod";
-import crypto from "crypto";
 
 import { addMovie } from "@/actions/add/add-movie";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,7 @@ export const AddMovieForm = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const { uploadFile, uploadProgress, isUploading } = useChunkedUpload();
+  const { uploadFile, uploadProgress, isUploading, cancelUpload } = useChunkedUpload();
   const [estimatedTime, setEstimatedTime] = useState<string>("");
   const uploadStartTimeRef = useRef<number | null>(null);
 
@@ -82,10 +81,10 @@ export const AddMovieForm = () => {
     const fetchActors = async () => {
       setActorsLoading(true);
       try {
-        const res = await fetch("/api/actors");
+        const res = await fetch("/api/actors/all");
         const data = await res.json();
-        // Accepts either array of {id, name,...} or fallback to []
-        setAllActors(Array.isArray(data) ? data.map((a: any) => ({ id: a.id, name: a.name })) : []);
+        // Backend liefert { actors: [...] }
+        setAllActors(Array.isArray(data.actors) ? data.actors.map((a: any) => ({ id: a.id, name: a.name })) : []);
       } catch {
         setAllActors([]);
       }
@@ -233,13 +232,18 @@ export const AddMovieForm = () => {
     }
   };
 
-  const cancelUpload = async () => {
+  const handleCancelUpload = async () => {
+    if (isUploading) {
+      cancelUpload();
+      resetUploadState();
+      toast.success("Upload abgebrochen!");
+      return;
+    }
     if (!uploadedVideoPath) {
       resetUploadState();
       toast.success("Cancelled!");
       return;
     }
-
     try {
       const response = await fetch("/api/movies/delete", {
         method: "DELETE",
@@ -248,9 +252,7 @@ export const AddMovieForm = () => {
         },
         body: JSON.stringify({ filePath: uploadedVideoPath }),
       });
-
       const data = await response.json();
-
       if (data.success) {
         resetUploadState();
         toast.success("Video deleted!");
@@ -530,8 +532,8 @@ export const AddMovieForm = () => {
                   </Button>
                   <Button
                     type="button"
-                    onClick={cancelUpload}
-                    disabled={isPending || isUploading}
+                    onClick={handleCancelUpload}
+                    disabled={isPending}
                     className="h-11 px-4 bg-zinc-700 hover:bg-zinc-600 text-white"
                   >
                     <X className="w-4 h-4" />

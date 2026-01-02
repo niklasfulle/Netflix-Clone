@@ -82,7 +82,25 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
           return { error: 'Videodatei nicht gefunden!' };
         }
       }
-      fs.renameSync(oldPath, newPath);
+      try {
+        fs.renameSync(oldPath, newPath);
+      } catch (err: any) {
+        if (err.code === 'EXDEV') {
+          // Cross-device: Fallback auf copy + unlink
+          const readStream = fs.createReadStream(oldPath);
+          const writeStream = fs.createWriteStream(newPath);
+          await new Promise((resolve, reject) => {
+            readStream.on('error', reject);
+            writeStream.on('error', reject);
+            writeStream.on('close', resolve);
+            readStream.pipe(writeStream);
+          });
+          fs.unlinkSync(oldPath);
+          console.log('[UPDATE-MOVIE] Datei kopiert und Original gelöscht (cross-device):', oldPath, '->', newPath);
+        } else {
+          throw err;
+        }
+      }
       console.log('[UPDATE-MOVIE] Datei verschoben:', oldPath, '->', newPath);
       // Passe movieVideo an, speichere ohne Extension
       const baseName = path.parse(fileName).name;

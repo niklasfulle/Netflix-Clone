@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 
 export const useChunkedUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const uploadFile = async (file: File, videoType: string, generatedId: string): Promise<{ filePath: string; videoId: string } | null> => {
     const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB pro Chunk
@@ -12,10 +13,14 @@ export const useChunkedUpload = () => {
 
     setIsUploading(true);
     setUploadProgress(0);
+    abortControllerRef.current = new AbortController();
     console.log('[UPLOAD] Starte Upload:', { fileName: file.name, totalChunks, fileId, videoType, generatedId });
 
     try {
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        if (abortControllerRef.current?.signal.aborted) {
+          throw new Error("Upload abgebrochen!");
+        }
         const start = chunkIndex * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, file.size);
         const chunk = file.slice(start, end);
@@ -33,6 +38,7 @@ export const useChunkedUpload = () => {
         const response = await fetch("/api/movies/upload-chunk", {
           method: "POST",
           body: formData,
+          signal: abortControllerRef.current.signal,
         });
 
         let data;
@@ -60,6 +66,7 @@ export const useChunkedUpload = () => {
           setIsUploading(false);
           setUploadProgress(100);
           console.log('[UPLOAD] Upload abgeschlossen! Server-Response:', data);
+          abortControllerRef.current = null;
           return { filePath: data.filePath, videoId: data.videoId };
         }
       }
@@ -67,13 +74,30 @@ export const useChunkedUpload = () => {
       console.error('[UPLOAD] Upload unvollständig – nicht alle Chunks wurden bestätigt!');
       throw new Error("Upload incomplete");
     } catch (error: any) {
-      console.error("[UPLOAD] Fehler im Upload-Prozess:", error);
-      setIsUploading(false);
-      setUploadProgress(0);
-      toast.error(error?.message || "Upload fehlgeschlagen!");
-      return null;
+      if (error.name === 'AbortError' || error.message === 'Upload abgebrochen!' || error === 'cancelled by user') {
+        toast.error('Upload abgebrochen!');
+        setIsUploading(false);
+        setUploadProgress(0);
+        abortControllerRef.current = null;
+        console.info("[UPLOAD] Upload wurde vom Nutzer abgebrochen.");
+        return null;
+      } else {
+        toast.error(error?.message || "Upload fehlgeschlagen!");
+        setIsUploading(false);
+        setUploadProgress(0);
+        abortControllerRef.current = null;
+        console.error("[UPLOAD] Fehler im Upload-Prozess:", error);
+        return null;
+      }
     }
   };
 
-  return { uploadFile, uploadProgress, isUploading };
+  const cancelUpload = () => {
+    if (abortControllerRef.current) {
+      // Grund für den Abbruch mitgeben (vermeidet Warnung)
+      abortControllerRef.current.abort("cancelled by user");
+    }
+  };
+
+  return { uploadFile, uploadProgress, isUploading, cancelUpload };
 };
