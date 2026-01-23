@@ -5,6 +5,7 @@ import { FaArrowLeft } from "react-icons/fa";
 
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
 import { addMovieView } from "@/actions/watch/add-movie-view";
+import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
 import useMovie from "@/hooks/movies/useMovie";
 
 const Watch = () => {
@@ -32,6 +33,7 @@ const Watch = () => {
   useEffect(() => {
     if (movieId) {
       addMovieView({ movieId });
+      addToWatchlist({ movieId });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

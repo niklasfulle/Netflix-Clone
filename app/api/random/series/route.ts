@@ -1,44 +1,28 @@
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getRandomMovie, serializeMovie, handleApiError } from '@/lib/api-helpers';
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const user = await currentUser()
+    const user = await currentUser();
 
     if (!user) {
-      return Response.json(null, { status: 404 })
+      return Response.json(null, { status: 404 });
     }
 
-    const movieCount = await db.movie.count({
-      where: {
-        type: "Serie"
-      }
-    })
-    const randomIndex = Math.floor(Math.random() * movieCount)
+    const movie = await getRandomMovie('Serie');
 
-    const randomMovies = await db.movie.findMany({
-      where: {
-        type: "Serie"
-      },
-      take: 1,
-      skip: randomIndex
-    })
-
-    db.$disconnect()
-    if (!randomMovies[0]) {
-      return Response.json(null, { status: 200 })
+    if (!movie) {
+      db.$disconnect();
+      return Response.json(null, { status: 200 });
     }
-    // Serialisiere Date-Objekte explizit
-    const movie = randomMovies[0]
-    const serializedMovie = {
-      ...movie,
-      createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
-    };
+
+    db.$disconnect();
+    const serializedMovie = serializeMovie(movie);
     return Response.json(serializedMovie, { status: 200 });
   } catch (error) {
-    console.log(error)
-    return Response.json(null, { status: 200 })
+    return handleApiError(error);
   }
 }

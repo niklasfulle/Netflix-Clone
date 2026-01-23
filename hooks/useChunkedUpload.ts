@@ -9,7 +9,11 @@ export const useChunkedUpload = () => {
   const uploadFile = async (file: File, videoType: string, generatedId: string): Promise<{ filePath: string; videoId: string } | null> => {
     const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB pro Chunk
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const fileId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Use crypto.getRandomValues for better randomness and avoid deprecated substr
+    const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(9)))
+      .map(b => b.toString(36).padStart(2, '0'))
+      .join('');
+    const fileId = `${Date.now()}_${randomPart}`;
 
     setIsUploading(true);
     setUploadProgress(0);

@@ -10,6 +10,7 @@ import useInfoModal from '@/hooks/useInfoModal';
 import useSearchItem from '@/hooks/useSearchItem';
 
 import SearchList from '../_components/SearchList';
+import Footer from '@/components/Footer';
 
 export default function MoviesPage() {
   const params = useParams<{ searchItem: string }>();
@@ -33,7 +34,7 @@ export default function MoviesPage() {
     <>
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
-      <div className="pt-40 pb-40">
+      <div className="pt-40 pb-40 min-h-screen">
         <SearchList
           title="Search Result for:"
           data={results}
@@ -41,6 +42,7 @@ export default function MoviesPage() {
           searchItem={params.searchItem}
         />
       </div>
+      <Footer />
     </>
   );
 }

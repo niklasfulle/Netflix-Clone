@@ -12,8 +12,8 @@ const PlaylistAddCard: React.FC<PlaylistAddCardProps> = ({
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
-    if (typeof window !== "undefined") {
-      windowWidth = window.innerWidth;
+    if (globalThis.window !== undefined) {
+      windowWidth = globalThis.window.innerWidth;
     }
     if (windowWidth >= 640) {
       setIsDesktop(true);

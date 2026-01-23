@@ -24,6 +24,7 @@ model User{
   updatedAt             DateTime  @updatedAt 
   accounts              Account[]
   profil                Profil[]
+  watchlists            Watchlist[]
   isTwoFactorEnabled    Boolean   @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
   isBlocked             Boolean   @default(false)
@@ -91,6 +92,7 @@ model Profil {
   createdAt      DateTime  @default(now())
   favoriteIds    String[]
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlists     Watchlist[]
 }
 
 model Movie {
@@ -104,6 +106,7 @@ model Movie {
   duration     String
   createdAt    DateTime  @default(now())
   actors       MovieActor[]
+  watchlists   Watchlist[]
 }
 
 
@@ -159,4 +162,18 @@ model PlaylistEntry {
   order        Int
   movieId      String
   createdAt      DateTime  @default(now())
+}
+
+model Watchlist {
+  id        String   @id @unique @default(cuid())
+  userId    String
+  profilId  String
+  movieId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil    Profil   @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([profilId, movieId])
 }

@@ -19,11 +19,11 @@ function calculateBarWidth(duration: string, watchTime: number): number {
   const i: string[] = duration.split(":");
   let sec: number;
   if (i.length == 1) {
-    sec = parseInt(i[0]);
+    sec = Number.parseInt(i[0]);
   } else if (i.length == 2) {
-    sec = parseInt(i[0]) * 60 + parseInt(i[1]);
+    sec = Number.parseInt(i[0]) * 60 + Number.parseInt(i[1]);
   } else if (i.length == 3) {
-    sec = parseInt(i[0]) * 60 * 60 + parseInt(i[1]) * 60 + parseInt(i[2]);
+    sec = Number.parseInt(i[0]) * 60 * 60 + Number.parseInt(i[1]) * 60 + Number.parseInt(i[2]);
   }
 
   return Math.floor(watchTime / (sec! / 100));
@@ -38,8 +38,8 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
 
   const checkWindowSize = () => {
     let windowWidth: number = 0;
-    if (typeof window !== "undefined") {
-      windowWidth = window.innerWidth;
+    if (globalThis.window !== undefined) {
+      windowWidth = globalThis.window.innerWidth;
     }
     if (windowWidth >= 640) {
       setIsDesktop(true);
@@ -62,10 +62,85 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
     checkWindowSize();
   }, [isDesktop]);
 
+
+  let actorsElement: React.ReactNode = null;
+  if (Array.isArray(data.actors) && data.actors.length > 0) {
+    actorsElement = (
+      <span>
+        {data.actors.map((a: any, idx: number) => {
+          let actorName = '';
+          let key = '';
+          if (typeof a === 'string') {
+            actorName = a;
+            key = a;
+          } else if (a?.id && a?.name) {
+            actorName = a.name;
+            key = a.id;
+          } else if (a?.actor?.name && a?.actor?.id) {
+            actorName = a.actor.name;
+            key = a.actor.id;
+          } else {
+            return null;
+          }
+          return (
+            <a
+              key={key}
+              href={`/search/${encodeURIComponent(actorName)}`}
+              tabIndex={0}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                linkToSearch(actorName);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  linkToSearch(actorName);
+                }
+              }}
+              className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer mr-1"
+            >
+              {actorName}{idx < data.actors.length - 1 ? '  ' : ''}
+            </a>
+          );
+        })}
+      </span>
+    );
+  } else if (data.actor) {
+    actorsElement = (
+      <a
+        href={`/search/${encodeURIComponent(data.actor)}`}
+        tabIndex={0}
+        onClick={e => {
+          e.stopPropagation();
+          e.preventDefault();
+          linkToSearch(data.actor);
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            linkToSearch(data.actor);
+          }
+        }}
+        className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer"
+      >
+        {data.actor}
+      </a>
+    );
+  }
+
   return (
     <div
       className="group bg-zinc-900 col-span relative h-[24vw] lg:h-[12vw] cursor-pointer"
+      role="button"
+      tabIndex={0}
       onClick={() => handleClick(data?.id)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick(data?.id);
+        }
+      }}
     >
       <div className="relative rounded-md">
         {isLoading && (
@@ -122,6 +197,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               <RestartButton movieId={data?.id} />
               <FavoriteButton movieId={data?.id} />
               <div
+                role="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   openModal(data?.id);
@@ -148,52 +224,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             <p className="text-white text-[10px] text-base lg:text-sm">
               {data.genre}
             </p>
-            {Array.isArray(data.actors) && data.actors.length > 0 ? (
-              <span>
-                {data.actors.map((a: any, idx: number) => {
-                  let actorName = '';
-                  let key = '';
-                  if (typeof a === 'string') {
-                    actorName = a;
-                    key = a;
-                  } else if (a?.id && a?.name) {
-                    actorName = a.name;
-                    key = a.id;
-                  } else if (a?.actor?.name && a?.actor?.id) {
-                    actorName = a.actor.name;
-                    key = a.actor.id;
-                  } else {
-                    return null;
-                  }
-                  return (
-                    <span
-                      key={key}
-                      onClick={e => {
-                        e.stopPropagation();
-                        linkToSearch(actorName);
-                      }}
-                      className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer mr-1"
-                      role="link"
-                    >
-                      {actorName}{idx < data.actors.length - 1 ? '  ' : ''}
-                    </span>
-                  );
-                })}
-              </span>
-            ) : (
-              data.actor ? (
-                <span
-                  onClick={e => {
-                    e.stopPropagation();
-                    linkToSearch(data.actor);
-                  }}
-                  className="text-white text-[10px] text-base lg:text-sm md:text-center underline underline-offset-1 cursor-pointer"
-                  role="link"
-                >
-                  {data.actor}
-                </span>
-              ) : null
-            )}
+            {actorsElement}
           </div>
         </div>
       </div>

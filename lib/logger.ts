@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const LOG_FILE_PATH = path.join(process.cwd(), 'logs', 'backend.log');
 
@@ -16,7 +16,7 @@ function filterDetails(level: LogLevel, action: string, details: Record<string, 
   if (details.userEmail) base.userEmail = details.userEmail;
   if (details.role) base.role = details.role;
   if (details.movieId) base.movieId = details.movieId;
-  if (details.values && details.values.movieName) base.movieName = details.values.movieName;
+  if (details.values?.movieName) base.movieName = details.values.movieName;
   return base;
 }
 

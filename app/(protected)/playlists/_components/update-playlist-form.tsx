@@ -84,11 +84,9 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
 
   const onClickDelete = (movieId: string) => {
     if (!movieRemoved && !movieMoved && playlist.movies.length >= 1) {
-      setMovies([
-        ...playlist.movies.filter((movie: any) => movie.id != movieId),
-      ]);
+      setMovies(playlist.movies.filter((movie: any) => movie.id != movieId));
     } else if (movieRemoved || movieMoved) {
-      setMovies([...movies.filter((movie: any) => movie.id != movieId)]);
+      setMovies(movies.filter((movie: any) => movie.id != movieId));
     }
 
     setMovieRemoved(!movieRemoved);

@@ -48,7 +48,7 @@ export const addMovieView = async (values: z.infer<typeof MovieViewSchema>) => {
   const existingView = await db.movieView.findFirst({
     where: {
       userId: user.id!,
-      profilId: profil.id!,
+      profilId: profil.id,
       movieId,
       createdAt: {
         gte: startOfDay,
@@ -61,7 +61,7 @@ export const addMovieView = async (values: z.infer<typeof MovieViewSchema>) => {
     await db.movieView.create({
       data: {
         userId: user.id!,
-        profilId: profil.id!,
+        profilId: profil.id,
         movieId,
       },
     });

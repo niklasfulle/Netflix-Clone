@@ -59,9 +59,6 @@ export async function GET() {
     db.$disconnect()
     logBackendAction('api_favorites_route_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
     return Response.json(responseMovies, { status: 200 })
-
-    db.$disconnect()
-    return Response.json(movies, { status: 200 })
   } catch (error) {
     logBackendAction('api_favorites_route_error', { error: String(error) }, 'error');
     console.log(error)

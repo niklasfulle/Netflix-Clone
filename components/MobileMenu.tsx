@@ -38,6 +38,11 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
             Playlists
           </div>
         </Link>
+        <Link href={"/watchlist"}>
+          <div className="px-3 text-center text-white hover:underline">
+            Watchlist
+          </div>
+        </Link>
         <Link href={"/random"}>
           <div className="px-3 text-center text-white hover:underline">
             Random

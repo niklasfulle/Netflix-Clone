@@ -59,7 +59,7 @@ export async function GET() {
     const moviesResponse = movies.map((movie: any) => {
       const actorNames = movie.actors?.map((a: any) => a.actor.name) || [];
       const wt = watchTimeMap.get(movie.id);
-      return {
+      const movieObj: any = {
         id: movie.id,
         title: movie.title,
         description: movie.description,
@@ -70,8 +70,13 @@ export async function GET() {
         actors: actorNames,
         duration: movie.duration,
         createdAt: movie.createdAt,
-        ...(wt !== undefined ? { watchTime: wt } : {}),
       };
+      if (wt === undefined) {
+        // Do not add watchTime if undefined
+      } else {
+        movieObj.watchTime = wt;
+      }
+      return movieObj;
     });
 
     db.$disconnect()

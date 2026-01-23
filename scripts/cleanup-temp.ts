@@ -1,5 +1,5 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 // Löscht alte Dateien im temp-Ordner, die älter als X Minuten sind
 export async function cleanupTempFolders({
@@ -19,14 +19,10 @@ export async function cleanupTempFolders({
     const files = fs.readdirSync(tempFolder);
     for (const file of files) {
       const filePath = path.join(tempFolder, file);
-      try {
-        const stat = fs.statSync(filePath);
-        if (now - stat.mtimeMs > maxAgeMs) {
-          fs.unlinkSync(filePath);
-          deletedFiles.push(filePath);
-        }
-      } catch (err) {
-        // Fehler ignorieren, Datei ggf. schon gelöscht
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > maxAgeMs) {
+        fs.unlinkSync(filePath);
+        deletedFiles.push(filePath);
       }
     }
   }

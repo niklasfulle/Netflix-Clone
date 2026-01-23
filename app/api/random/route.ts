@@ -14,6 +14,12 @@ export async function GET() {
     }
 
     const movieCount = await db.movie.count()
+    if (movieCount === 0) {
+      logBackendAction('api_random_route_no_movies_in_db', { userId: user.id }, 'error');
+      db.$disconnect();
+      return Response.json(null, { status: 200 });
+    }
+    // Math.random() is safe here because this endpoint is not security-critical and does not expose sensitive data based on randomness.
     const randomIndex = Math.floor(Math.random() * movieCount)
 
     const randomMovies = await db.movie.findMany({

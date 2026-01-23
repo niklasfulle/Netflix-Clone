@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { db } from "@/lib/db";
 
 const ONE_MINUTE_IN_BYTES = 10 * 1024 * 1024; // Ungefähr 10MB für 1 Minute (abhängig von Bitrate)
@@ -60,8 +60,8 @@ export async function GET(
     }
 
     const parts = range.replace(/bytes=/, "").split("-");
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? Math.min(parseInt(parts[1], 10), maxSize - 1) : maxSize - 1;
+    const start = Number.parseInt(parts[0], 10);
+    const end = parts[1] ? Math.min(Number.parseInt(parts[1], 10), maxSize - 1) : maxSize - 1;
     const chunksize = end - start + 1;
     const file = fs.createReadStream(videoPath, { start, end });
 

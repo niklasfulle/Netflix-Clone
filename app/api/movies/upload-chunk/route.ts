@@ -1,9 +1,8 @@
 import { logBackendAction } from '@/lib/logger';
 
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
 
 export async function POST(req: NextRequest): Promise<Response> {
   const MOVIE_FOLDER = process.env.MOVIE_FOLDER || "./movies";
@@ -12,8 +11,8 @@ export async function POST(req: NextRequest): Promise<Response> {
   try {
     const formData = await req.formData();
     const chunk = formData.get("chunk") as File;
-    const chunkIndex = parseInt(formData.get("chunkIndex") as string);
-    const totalChunks = parseInt(formData.get("totalChunks") as string);
+    const chunkIndex = Number.parseInt(formData.get("chunkIndex") as string);
+    const totalChunks = Number.parseInt(formData.get("totalChunks") as string);
     const fileName = formData.get("fileName") as string;
     const fileId = formData.get("fileId") as string;
     const videoType = formData.get("videoType") as string; // "Movie" oder "Serie"

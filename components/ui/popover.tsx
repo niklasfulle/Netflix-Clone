@@ -7,7 +7,7 @@ import {
 } from "@radix-ui/react-popover"
 
 const PopoverContent = React.forwardRef<
-  React.ElementRef<typeof RadixPopoverContent>,
+  React.ComponentRef<typeof RadixPopoverContent>,
   React.ComponentPropsWithoutRef<typeof RadixPopoverContent>
 >(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
   <RadixPopoverContent

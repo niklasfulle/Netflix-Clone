@@ -29,11 +29,10 @@ export default function SeriesPage() {
   const [limit, setLimit] = useState(3);
   const [actors, setActors] = useState([]);
 
-  // Define a memoized function for fetching the product list
   const fetchActorsCount = useMemo(
     () => async () => {
       try {
-        const response = await axios.get("/api/series/getActorsCount"); // Replace with your API endpoint
+        const response = await axios.get("/api/series/getActorsCount"); 
         setActorsCount(response.data);
       } catch (error) {
         console.error("Error fetching Actors Count:", error);
@@ -42,7 +41,6 @@ export default function SeriesPage() {
     []
   );
 
-  // Fetch the product list on component mount
   useEffect(() => {
     fetchActorsCount();
   }, [fetchActorsCount]);
@@ -62,7 +60,6 @@ export default function SeriesPage() {
     [start]
   );
 
-  // Fetch the product list on component mount
   useEffect(() => {
     fetchActors();
   }, [fetchActors]);

@@ -10,32 +10,32 @@ export default function AdminHomePage() {
         <ul className="space-y-4">
           <li>
             <Link href="/admin/users" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
-              👤 User Management
-              <span className="block text-zinc-400 text-sm font-normal">View, search, block users and see profiles</span>
+              👤 User Management{' '}
+              <span className="block text-zinc-400 text-sm font-normal mt-1">View, search, block users and see profiles</span>
             </Link>
           </li>
           <li>
             <Link href="/admin/actors" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
-              🎭 Actor Management
-              <span className="block text-zinc-400 text-sm font-normal">Add, delete actors and see statistics</span>
+              🎭 Actor Management{' '}
+              <span className="block text-zinc-400 text-sm font-normal mt-1">Add, delete actors and see statistics</span>
             </Link>
           </li>
           <li>
             <Link href="/admin/movies" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
-              🎬 Movies/Series Management
-              <span className="block text-zinc-400 text-sm font-normal">Browse all movies & series, see views and edit</span>
+              🎬 Movies/Series Management{' '}
+              <span className="block text-zinc-400 text-sm font-normal mt-1">Browse all movies & series, see views and edit</span>
             </Link>
           </li>
           <li>
             <Link href="/admin/statistics" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
-              📊 Statistics
-              <span className="block text-zinc-400 text-sm font-normal">Usage statistics and system overview</span>
+              📊 Statistics{' '}
+              <span className="block text-zinc-400 text-sm font-normal mt-1">Usage statistics and system overview</span>
             </Link>
           </li>
           <li>
             <Link href="/admin/logs" className="block bg-zinc-900/80 hover:bg-zinc-700/60 transition-all rounded-xl px-6 py-4 text-lg font-semibold text-zinc-100 border border-zinc-700 shadow">
-              📝 Logs
-              <span className="block text-zinc-400 text-sm font-normal">Alle System- und Backend-Logs einsehen</span>
+              📝 Logs{' '}
+              <span className="block text-zinc-400 text-sm font-normal mt-1">Alle System- und Backend-Logs einsehen</span>
             </Link>
           </li>
         </ul>

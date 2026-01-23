@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function UserBlockButton({ userId, isBlocked, onChange }: { userId: string; isBlocked: boolean; onChange: (blocked: boolean) => void }) {
+export default function UserBlockButton({ userId, isBlocked, onChange }: Readonly<{ userId: string; isBlocked: boolean; onChange: (blocked: boolean) => void }>) {
   const [loading, setLoading] = useState(false);
   const handleBlock = async () => {
     setLoading(true);

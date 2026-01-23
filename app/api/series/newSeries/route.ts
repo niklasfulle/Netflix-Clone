@@ -58,9 +58,6 @@ export async function GET() {
     });
     db.$disconnect()
     return Response.json(responseSeries, { status: 200 })
-
-    db.$disconnect()
-    return Response.json(series, { status: 200 })
   } catch (error) {
     console.log(error)
     return Response.json(null, { status: 200 })

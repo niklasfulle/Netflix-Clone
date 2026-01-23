@@ -74,6 +74,7 @@ const Navbar = () => {
           <NavbarItem label="Series" href="/series" />
           <NavbarItem label="My List" href="/mylist" />
           <NavbarItem label="Playlists" href="/playlists" />
+          <NavbarItem label="Watchlist" href="/watchlist" />
           <NavbarItem label="Random" href="/random" />
         </div>
         <button

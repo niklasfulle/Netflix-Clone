@@ -3,7 +3,6 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
-
 import { useCurrentUser } from "@/hooks/use-current-user";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import { UserRole } from "@prisma/client";

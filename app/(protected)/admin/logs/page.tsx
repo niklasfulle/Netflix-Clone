@@ -30,11 +30,11 @@ export default function AdminLogsPage() {
     try {
       const res = await fetch("/api/logs/clear", { method: "POST" });
       if (!res.ok) throw new Error("Fehler beim Leeren der Logs.");
-      // Nach dem Löschen neu laden
       setLogs([]);
       setTotalLogs(0);
       setTotalPages(1);
     } catch (err) {
+      console.error("Error clearing logs:", err);
       setError("Fehler beim Leeren der Logs.");
     } finally {
       setLoading(false);
@@ -74,8 +74,9 @@ export default function AdminLogsPage() {
           <>
           <div className="mb-4 flex flex-wrap gap-4 items-center">
             
-            <label className="text-zinc-300 text-sm font-medium">Level filtern:</label>
+            <label htmlFor="levelFilter" className="text-zinc-300 text-sm font-medium">Level filtern:</label>
             <select
+              id="levelFilter"
               className="bg-zinc-700 text-zinc-100 rounded px-3 py-2 outline-none border border-zinc-600"
               value={levelFilter}
               onChange={e => { setLevelFilter(e.target.value); setPage(1); }}
@@ -92,7 +93,7 @@ export default function AdminLogsPage() {
             >
               Logs leeren
             </button>
-            <span className="text-zinc-400 text-xs">({filteredLogs.length} angezeigt)</span>
+            <span className="text-zinc-400 text-xs">({totalLogs} angezeigt)</span>
           </div>
           <div className="overflow-x-auto rounded-2xl">
             <table className="min-w-full text-sm text-left bg-zinc-900 rounded-2xl overflow-hidden shadow-lg">
@@ -120,12 +121,16 @@ export default function AdminLogsPage() {
                     </td>
                     <td className="px-4 py-2 text-zinc-100 text-[15px]">{log.action || "-"}</td>
                     <td className="px-4 py-2 font-mono max-w-[180px] truncate text-zinc-400 text-[15px]">{log.userId || "-"}</td>
-                    <td className={
-                      "px-4 py-2 font-bold text-[15px] " +
-                      (log.level === 'error' ? 'text-red-500' : log.level === 'warning' ? 'text-yellow-400' : 'text-green-400')
-                    }>
-                      {log.level || "-"}
-                    </td>
+                    {(() => {
+                      let levelColor = "text-green-400";
+                      if (log.level === 'error') levelColor = "text-red-500";
+                      else if (log.level === 'warning') levelColor = "text-yellow-400";
+                      return (
+                        <td className={"px-4 py-2 font-bold text-[15px] " + levelColor}>
+                          {log.level || "-"}
+                        </td>
+                      );
+                    })()}
                     <td className="px-4 py-2">
                       <button
                         className="rounded-full p-2 bg-zinc-700 hover:bg-blue-600 transition-colors text-blue-300 hover:text-white shadow group-hover:scale-110"

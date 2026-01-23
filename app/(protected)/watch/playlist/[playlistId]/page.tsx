@@ -5,6 +5,7 @@ import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 import { updateWatchTime } from "@/actions/watch/update-watch-time";
 import { addMovieView } from "@/actions/watch/add-movie-view";
+import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
 import usePlaylist from "@/hooks/playlists/usePlaylist";
 
 const Watch = () => {
@@ -34,6 +35,7 @@ const Watch = () => {
     const movieId = playlist?.movies?.[currentMovie]?.id;
     if (movieId) {
       addMovieView({ movieId });
+      addToWatchlist({ movieId });
     }
   }, [currentMovie, playlist]);
 
@@ -122,7 +124,6 @@ const Watch = () => {
         </button>
       )}
       {current?.id && (
-
         <video
           id="videoElement"
           autoPlay
@@ -136,6 +137,7 @@ const Watch = () => {
               setMovieWatchTime();
             }
           }}
+          onEnded={handleVideoEnded}
         >
           <source src={`/api/video/${current.id}`} type="video/mp4" />
           <track kind="captions"></track>

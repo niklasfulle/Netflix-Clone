@@ -22,11 +22,9 @@ export async function GET() {
 
     if (!profil) {
       logBackendAction('api_favorite_route_no_profil', { userId: user.id }, 'error');
+      db.$disconnect();
       return Response.json(null, { status: 404 })
     }
-
-    db.$disconnect()
-    logBackendAction('api_favorite_route_success', { userId: user.id, profilId: profil.id }, 'info');
     return Response.json(profil, { status: 200 })
   } catch (error) {
     logBackendAction('api_favorite_route_error', { error: String(error) }, 'error');

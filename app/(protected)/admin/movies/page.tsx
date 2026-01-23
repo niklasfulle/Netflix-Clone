@@ -15,7 +15,7 @@ export default function AdminMoviesPage() {
     fetch(`/api/movies/admin?page=${page}&pageSize=${pageSize}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.movies) {
+        if (data?.movies) {
           setMovies(data.movies);
           setTotalPages(data.totalPages);
         } else {
@@ -26,20 +26,22 @@ export default function AdminMoviesPage() {
       .finally(() => setLoading(false));
   }, [page]);
 
-  return (
-    <div>
-      {loading ? (
-        <div>Loading...</div>
-      ) : error ? (
-        <div className="text-red-500">{error}</div>
-      ) : (
-        <MovieAdminTable
-          items={movies}
-          page={page}
-          setPage={setPage}
-          totalPages={totalPages}
-        />
-      )}
-    </div>
-  );
+  const renderContent = () => {
+    if (loading) {
+      return <div>Loading...</div>;
+    }
+    if (error) {
+      return <div className="text-red-500">{error}</div>;
+    }
+    return (
+      <MovieAdminTable
+        items={movies}
+        page={page}
+        setPage={setPage}
+        totalPages={totalPages}
+      />
+    );
+  };
+
+  return <div>{renderContent()}</div>;
 }

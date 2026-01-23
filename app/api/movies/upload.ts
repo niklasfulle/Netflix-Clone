@@ -1,8 +1,7 @@
 import { logBackendAction } from '@/lib/logger';
 import { NextRequest, NextResponse } from "next/server";
-import formidable from "formidable";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 export const config = {
   api: {
@@ -10,9 +9,18 @@ export const config = {
   },
 };
 
+// Set a safe content length limit (e.g., 1GB)
+const MAX_CONTENT_LENGTH = 1 * 1024 * 1024 * 1024; // 1GB
+
 export async function POST(req: NextRequest) {
-  const form = new formidable.IncomingForm();
   const MOVIE_FOLDER = process.env.MOVIE_FOLDER || "./movies";
+
+  // Check content-length header
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && Number.parseInt(contentLength, 10) > MAX_CONTENT_LENGTH) {
+    logBackendAction('api_movies_upload_too_large', { contentLength }, 'error');
+    return NextResponse.json({ error: "File too large" }, { status: 413 });
+  }
 
   const formData = await req.formData();
   const file = formData.get("video") as File;
@@ -20,6 +28,12 @@ export async function POST(req: NextRequest) {
   if (!file) {
     logBackendAction('api_movies_upload_no_file', {}, 'error');
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+  }
+
+  // Check file size property if available
+  if ('size' in file && file.size > MAX_CONTENT_LENGTH) {
+    logBackendAction('api_movies_upload_too_large_file', { size: file.size }, 'error');
+    return NextResponse.json({ error: "File too large" }, { status: 413 });
   }
 
   try {

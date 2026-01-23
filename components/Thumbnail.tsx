@@ -11,11 +11,11 @@ function calculateBarWidth(duration: string, watchTime: number): number {
   const i: string[] = duration.split(":");
   let sec: number;
   if (i.length == 1) {
-    sec = parseInt(i[0]);
+    sec = Number.parseInt(i[0]);
   } else if (i.length == 2) {
-    sec = parseInt(i[0]) * 60 + parseInt(i[1]);
+    sec = Number.parseInt(i[0]) * 60 + Number.parseInt(i[1]);
   } else if (i.length == 3) {
-    sec = parseInt(i[0]) * 60 * 60 + parseInt(i[1]) * 60 + parseInt(i[2]);
+    sec = Number.parseInt(i[0]) * 60 * 60 + Number.parseInt(i[1]) * 60 + Number.parseInt(i[2]);
   }
 
   return Math.floor(watchTime / (sec! / 100)) - 1.5;

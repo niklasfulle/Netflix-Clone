@@ -31,39 +31,45 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items, page, setPage,
     }
   };
 
+  const getActorName = (item: any) => {
+    if (!Array.isArray(item.actors) || item.actors.length === 0) return "";
+    return item.actors[0]?.actor?.name || item.actors[0]?.name || "";
+  };
+
+  const getSortValue = (item: any, key: string): string | number => {
+    if (key === "title" || key === "type") {
+      return item[key];
+    }
+    if (key === "views") {
+      return item.views;
+    }
+    if (key === "createdAt") {
+      return new Date(item.createdAt).getTime();
+    }
+    if (key === "actors") {
+      return getActorName(item);
+    }
+    return "";
+  };
+
+  const compareValues = (aValue: string | number, bValue: string | number, direction: "asc" | "desc") => {
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return direction === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    }
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return direction === "asc" ? aValue - bValue : bValue - aValue;
+    }
+    return 0;
+  };
+
   const filtered = items.filter((item) =>
     item.title.toLowerCase().includes(search.toLowerCase())
   );
 
   const sorted = [...filtered].sort((a, b) => {
-    let aValue: string | number = "";
-    let bValue: string | number = "";
-    if (sortKey === "title" || sortKey === "type") {
-      aValue = a[sortKey as "title" | "type"];
-      bValue = b[sortKey as "title" | "type"];
-    } else if (sortKey === "views") {
-      aValue = a.views;
-      bValue = b.views;
-    } else if (sortKey === "createdAt") {
-      aValue = new Date(a.createdAt).getTime();
-      bValue = new Date(b.createdAt).getTime();
-    } else if (sortKey === "actors") {
-      aValue = Array.isArray(a.actors) && a.actors.length > 0 ? (a.actors[0]?.actor?.name || a.actors[0]?.name || "") : "";
-      bValue = Array.isArray(b.actors) && b.actors.length > 0 ? (b.actors[0]?.actor?.name || b.actors[0]?.name || "") : "";
-    }
-    if (sortKey === "createdAt") {
-      aValue = new Date(a.createdAt).getTime();
-      bValue = new Date(b.createdAt).getTime();
-    }
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return sortDirection === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
-    }
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-    }
-    return 0;
+    const aValue = getSortValue(a, sortKey);
+    const bValue = getSortValue(b, sortKey);
+    return compareValues(aValue, bValue, sortDirection);
   });
 
   // No local pagination, use all items from parent
@@ -97,12 +103,12 @@ const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items, page, setPage,
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-4 px-4 text-zinc-400 text-center">No movies or series found.</td>
                 </tr>
               ) : (
-                items.map((item, idx) => (
+                sorted.map((item, idx) => (
                   <tr key={item.id + '-' + idx} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
                     <td className="py-2 px-4 font-semibold text-zinc-100">{item.title}</td>
                     <td className="py-2 px-4 font-semibold text-zinc-200">

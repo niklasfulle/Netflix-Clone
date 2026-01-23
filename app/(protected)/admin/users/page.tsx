@@ -8,7 +8,6 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const fetchUsers = async () => {
@@ -82,16 +81,15 @@ export default function AdminUsersPage() {
         />
       </div>
       <div className="min-h-6 mb-4">
-        {error && <div className="text-red-400 animate-pulse font-medium">{error}</div>}
         {success && <div className="text-green-400 animate-pulse font-medium">{success}</div>}
       </div>
       <div className=" bg-zinc-800 rounded-2xl shadow-2xl p-6 border">
         <h2 className="text-xl font-semibold mb-4 text-zinc-100">All Users</h2>
-        {loading ? (
-          <div className="text-zinc-400">loading...</div>
-        ) : filteredUsers.length === 0 ? (
+        {loading && <div className="text-zinc-400">loading...</div>}
+        {!loading && filteredUsers.length === 0 && (
           <div className="text-zinc-400">No users found.</div>
-        ) : (
+        )}
+        {!loading && filteredUsers.length > 0 && (
         <>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-separate border-spacing-y-1">

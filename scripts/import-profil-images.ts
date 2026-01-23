@@ -1,8 +1,8 @@
 
 import { PrismaClient } from '@prisma/client';
-const fs = require('fs');
-const path = require('path');
-const sharp = require('sharp');
+import fs from 'node:fs';
+import path from 'node:path';
+import sharp from 'sharp';
 
 const prisma = new PrismaClient();
 
@@ -22,13 +22,13 @@ async function main() {
       }
       // Prüfen, ob bereits vorhanden
       const exists = await prisma.profilImg.findFirst({ where: { url: fileName } });
-      if (!exists) {
+      if (exists) {
+        console.log(`Already exists: ${fileName}`);
+      } else {
         await prisma.profilImg.create({
           data: { url: fileName },
         });
         console.log(`Added: ${fileName}`);
-      } else {
-        console.log(`Already exists: ${fileName}`);
       }
     } catch (err) {
       console.error(`Fehler bei ${fileName}:`, err);
@@ -36,11 +36,11 @@ async function main() {
   }
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+try {
+  await main();
+} catch (e) {
+  console.error(e);
+  process.exit(1);
+} finally {
+  await prisma.$disconnect();
+}

@@ -11,14 +11,14 @@ import {
 
 
 interface StatsChartProps {
-  data: Array<{ day: string; movies: number; series: number }>;
+  readonly data: ReadonlyArray<{ day: string; movies: number; series: number }>;
 }
 
-export default function StatsChart({ data }: StatsChartProps) {
+export default function StatsChart({ data }: Readonly<StatsChartProps>) {
   return (
     <div className="w-full h-[420px] md:h-[520px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+        <LineChart data={[...data]} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#52525b" />
           <XAxis dataKey="day" stroke="#a1a1aa" fontSize={12} />
           <YAxis stroke="#a1a1aa" fontSize={12} allowDecimals={false} />

@@ -75,11 +75,7 @@ export default function AdminActorsPage() {
       fetchActors(page);
     } else {
       let data = {};
-      try {
-        data = await res.json();
-      } catch (e) {
-        // Keine oder ungültige JSON-Antwort
-      }
+      data = await res.json();
       setError((data as any).error || "Error deleting actor.");
     }
   };
@@ -108,6 +104,66 @@ export default function AdminActorsPage() {
     }
   };
 
+  let actorsContent;
+  if (loading) {
+    actorsContent = <div className="text-zinc-400">loading...</div>;
+  } else if (actors.length === 0) {
+    actorsContent = <div className="text-zinc-400">No actors available.</div>;
+  } else {
+    actorsContent = (
+      <>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-separate border-spacing-y-1">
+            <thead>
+              <tr className="bg-zinc-900/80">
+                <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold">Name</th>
+                <th className="py-3 px-4 text-zinc-300 font-bold">Movies</th>
+                <th className="py-3 px-4 text-zinc-300 font-bold">Series</th>
+                <th className="py-3 px-4 text-zinc-300 font-bold">Views</th>
+                <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {actors.map(actor => (
+                <tr key={actor.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
+                  <td className="py-2 px-4 font-medium text-zinc-100">{actor.name}</td>
+                  <td className="py-2 px-4 text-zinc-200">{actor.movieCount}</td>
+                  <td className="py-2 px-4 text-zinc-200">{actor.seriesCount}</td>
+                  <td className="py-2 px-4 text-zinc-200">{actor.views}</td>
+                  <td className="py-2 px-4">
+                    {actor.movieCount === 0 && actor.seriesCount === 0 && (
+                      <button
+                        className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-600"
+                        onClick={() => handleDelete(actor.id)}
+                      >Delete</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex justify-center items-center gap-2 mt-6">
+          <button
+            className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+          >
+            &lt;
+          </button>
+          <span className="text-zinc-300">Seite {page} / {totalPages}</span>
+          <button
+            className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages || totalPages === 0}
+          >
+            &gt;
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-3xl font-extrabold mb-6 text-zinc-100 tracking-tight">Actors Management</h1>
@@ -131,67 +187,12 @@ export default function AdminActorsPage() {
       </div>
       <div className=" bg-zinc-800 rounded-2xl shadow-2xl p-6 border">
         <h2 className="text-xl font-semibold mb-4 text-zinc-100">
-          All Actors
-          <span className="ml-2 text-base text-zinc-400 font-normal">({actors.length})</span>
+          All Actors {" "}
+          <span className="text-base text-zinc-400 font-normal">({totalActors})</span>
           <span className="ml-4 text-base text-zinc-400 font-normal">Movies: {moviesResponse ? moviesTotal : '...'}</span>
           <span className="ml-4 text-base text-zinc-400 font-normal">Series: {Array.isArray(series) ? series.length : '...'}</span>
         </h2>
-        {loading ? (
-          <div className="text-zinc-400">loading...</div>
-        ) : actors.length === 0 ? (
-          <div className="text-zinc-400">No actors available.</div>
-        ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-separate border-spacing-y-1">
-              <thead>
-                <tr className="bg-zinc-900/80">
-                  <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold">Name</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Movies</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Series</th>
-                  <th className="py-3 px-4 text-zinc-300 font-bold">Views</th>
-                  <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {actors.map(actor => (
-                  <tr key={actor.id} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
-                    <td className="py-2 px-4 font-medium text-zinc-100">{actor.name}</td>
-                    <td className="py-2 px-4 text-zinc-200">{actor.movieCount}</td>
-                    <td className="py-2 px-4 text-zinc-200">{actor.seriesCount}</td>
-                    <td className="py-2 px-4 text-zinc-200">{actor.views}</td>
-                    <td className="py-2 px-4">
-                      {actor.movieCount === 0 && actor.seriesCount === 0 && (
-                        <button
-                          className="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-red-600"
-                          onClick={() => handleDelete(actor.id)}
-                        >Delete</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <button
-              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-              onClick={() => setPage(page - 1)}
-              disabled={page === 1}
-            >
-              &lt;
-            </button>
-            <span className="text-zinc-300">Seite {page} / {totalPages}</span>
-            <button
-              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-              onClick={() => setPage(page + 1)}
-              disabled={page === totalPages || totalPages === 0}
-            >
-              &gt;
-            </button>
-          </div>
-          </>
-        )}
+        {actorsContent}
       </div>
     </div>
   );

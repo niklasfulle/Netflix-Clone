@@ -1,9 +1,10 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const Footer = () => {
   // Version und Jahr nur auf dem Client dynamisch setzen
-  const version = "1.6.2.4";
+  const version = "1.7";
   const [year, setYear] = useState(2025);
 
   useEffect(() => {
@@ -20,6 +21,9 @@ const Footer = () => {
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm">
         Version: <span className="text-zinc-200">{version}</span>
+      </div>
+      <div className=" text-zinc-200 text-xs md:text-sm underline hover:text-zinc-400">
+        <Link href="/changelog">Change Log</Link>
       </div>
     </div>
   );

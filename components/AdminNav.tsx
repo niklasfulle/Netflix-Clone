@@ -2,11 +2,9 @@
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { FaChevronDown } from 'react-icons/fa';
-
 import AccountMenu from '@/components/AccountMenu';
 import MobileMenuAdmin from '@/components/MobileMenuAdmin';
 import NavbarItem from '@/components/NavbarItem';
-import { useAdminCounts } from './admin/useAdminCounts';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 
 const TOP_OFFSET = 66;

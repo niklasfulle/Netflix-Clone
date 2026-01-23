@@ -8,7 +8,7 @@ import { FaArrowLeft, FaPen, FaPlus, FaRegSave, FaRegTrashAlt } from 'react-icon
 import { remove } from '@/actions/profil/remove';
 import { save } from '@/actions/profil/save';
 import { update } from '@/actions/profil/update';
-import { use } from '@/actions/profil/use';
+import { use as useProfil } from '@/actions/profil/use';
 import Footer from '@/components/Footer';
 import Input from '@/components/Input';
 import ProfilModal from '@/components/ProfilModal';
@@ -24,6 +24,7 @@ const ProfilesPage = () => {
   const [profilImg, setProfilImg] = useState<string>("Frog.png");
   const [profilName, setProfilName] = useState<string>("");
   const { isOpen, openModal, closeModal } = useProfilModal();
+  const _useProfilAction = useProfil;
 
   let size = 0;
   if (profiles) {
@@ -76,7 +77,7 @@ const ProfilesPage = () => {
   };
 
   const profileUse = async (profilId: string) => {
-    use({ profilId })
+    _useProfilAction({ profilId })
       .then((data) => {
         if (data?.error) {
           toast.error(data?.error);

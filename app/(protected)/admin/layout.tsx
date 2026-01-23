@@ -1,6 +1,7 @@
 import React from 'react';
 import AdminNav from '@/components/AdminNav';
 import { Metadata } from 'next';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: "Netflix - Admin",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { readonly children: React.ReactNode }) {
   return (
     <>
         <div className="min-h-screen flex flex-col bg-zinc-900">
@@ -24,6 +25,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </>
   );
 }
-import AccountMenu from '@/components/AccountMenu';import Footer from '@/components/Footer';
 
 

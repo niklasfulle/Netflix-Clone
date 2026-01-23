@@ -1,7 +1,7 @@
 import { cleanupTempFolders } from "./cleanup-temp";
-import path from "path";
+import path from "node:path";
 
-async function main() {
+try {
   // Passe die Pfade ggf. an dein Projekt an
   const baseFolders = [
     path.resolve(__dirname, "../movies"),
@@ -15,9 +15,7 @@ async function main() {
   } else {
     console.log("Gelöschte temp-Dateien:", deleted);
   }
-}
-
-main().catch(e => {
+} catch (e) {
   console.error(e);
   process.exit(1);
-});
+}

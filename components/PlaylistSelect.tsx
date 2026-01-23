@@ -26,7 +26,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
 }) => {
   const [isPending, startTransition] = useTransition();
   const [newPlaylistName, setNewPlaylistName] = useState("");
-  const [localPlaylists, setLocalPlaylists] = useState(playlists);
+  const [localPlaylists] = useState(playlists);
   const [selectValue, setSelectValue] = useState("");
   const { mutate } = usePlaylists() || {};
 
@@ -46,7 +46,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
       }
       startTransition(async () => {
         const res = await addPlaylist({ playlistName: newPlaylistName });
-        if (res?.success && res?.playlist && res.playlist.id) {
+        if (res?.success && res?.playlist?.id) {
           toast.success(res.success);
           setNewPlaylistName("");
           if (mutate) mutate();

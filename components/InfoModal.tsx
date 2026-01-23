@@ -37,8 +37,8 @@ const InfoModal: React.FC<InfoModalProps> = ({
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
-    if (typeof window !== "undefined") {
-      windowWidth = window.innerWidth;
+    if (globalThis.window !== undefined) {
+      windowWidth = globalThis.window.innerWidth;
     }
     if (windowWidth >= 1024) {
       setIsDesktop(true);
@@ -157,16 +157,26 @@ const InfoModal: React.FC<InfoModalProps> = ({
                     } else {
                       return null;
                     }
+                    const handleKeyDown = (e: React.KeyboardEvent<HTMLAnchorElement>) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        linkToSearch(actorName);
+                      }
+                    };
                     return (
-                      <span
+                      <a
                         key={key}
-                        onClick={() => linkToSearch(actorName)}
+                        href={`/search/${encodeURIComponent(actorName)}`}
+                        onClick={e => {
+                          e.preventDefault();
+                          linkToSearch(actorName);
+                        }}
+                        onKeyDown={handleKeyDown}
                         className="text-base text-blue-400 underline underline-offset-2 cursor-pointer hover:text-blue-300 mr-2"
-                        role="link"
+                        tabIndex={0}
                       >
                         {actorName}
-                        {idx < movie.actors.length - 1 ? '' : ''}
-                      </span>
+                      </a>
                     );
                   })}
                 </>
