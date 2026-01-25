@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 import useInfoModal from '@/hooks/useInfoModal';
 
-interface MovieCardProps {
+interface ThumbnailProps {
   data: Record<string, any>;
   isLoading: boolean;
 }
@@ -21,7 +21,7 @@ function calculateBarWidth(duration: string, watchTime: number): number {
   return Math.floor(watchTime / (sec! / 100)) - 1.5;
 }
 
-const Thumbnail: React.FC<MovieCardProps> = ({ data, isLoading }) => {
+const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
   const { openModal } = useInfoModal();
   const barWidth: string =
     calculateBarWidth(data?.duration, data?.watchTime) + "%";

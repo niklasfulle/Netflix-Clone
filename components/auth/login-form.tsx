@@ -126,6 +126,7 @@ export const LoginForm = () => {
                           type="password"
                         />
                       </FormControl>
+                      <FormMessage />
                       <Button
                         size="sm"
                         variant="link_dark"
@@ -134,7 +135,6 @@ export const LoginForm = () => {
                       >
                         <Link href="/auth/reset">Forgot password?</Link>
                       </Button>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />

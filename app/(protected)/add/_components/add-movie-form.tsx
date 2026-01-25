@@ -1,5 +1,5 @@
 "use client";
-import { useTransition, useState, useRef, useEffect } from "react";
+import { useTransition, useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import * as z from "zod";
@@ -25,8 +25,10 @@ import {
 import { MovieSchema } from "@/schemas";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useChunkedUpload } from "@/hooks/useChunkedUpload";
-import { Upload, X, Check, RefreshCw } from "lucide-react";
+import { useVideoThumbnailUpload } from "@/hooks/useVideoThumbnailUpload";
+import { ThumbnailSelector } from "@/components/ThumbnailSelector";
+import { ThumbnailPreview } from "@/components/ThumbnailPreview";
+import { Upload, X, Check } from "lucide-react";
 
 // Lese die Optionen aus den ENV-Variablen
 const TYPE_OPTIONS = process.env.NEXT_PUBLIC_TYPE?.split(",") || ["Movie", "Serie"];
@@ -34,19 +36,48 @@ const GENRE_OPTIONS = process.env.NEXT_PUBLIC_GENRE?.split(",") || ["Action", "C
 
 export const AddMovieForm = () => {
   const [isPending, startTransition] = useTransition();
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState("");
-  const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
-  const [thumbnailOptions, setThumbnailOptions] = useState<string[]>([]);
-  const [uploadedVideoPath, setUploadedVideoPath] = useState<string>("");
-  const [generatedVideoId, setGeneratedVideoId] = useState<string>("");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const { uploadFile, uploadProgress, isUploading, cancelUpload } = useChunkedUpload();
   const [estimatedTime, setEstimatedTime] = useState<string>("");
   const uploadStartTimeRef = useRef<number | null>(null);
+
+  const {
+    videoFile,
+    videoPreviewUrl,
+    thumbnailUrl,
+    showThumbnailSelector,
+    thumbnailOptions,
+    uploadProgress,
+    isUploading,
+    uploadedVideoPath,
+    videoRef,
+    canvasRef,
+    handleVideoUpload: baseHandleVideoUpload,
+    uploadVideo: baseUploadVideo,
+    createDataUri,
+    cancelUpload,
+    regenerateThumbnails,
+    selectThumbnail,
+    deselectThumbnail,
+    resetUploadState,
+    setThumbnailUrl,
+  } = useVideoThumbnailUpload();
+
+  const [allActors, setAllActors] = useState<{ id: string; name: string }[]>([]);
+  const [actorsLoading, setActorsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActors = async () => {
+      setActorsLoading(true);
+      try {
+        const res = await fetch("/api/actors/all");
+        const data = await res.json();
+        setAllActors(Array.isArray(data.actors) ? data.actors.map((a: any) => ({ id: a.id, name: a.name })) : []);
+      } catch {
+        setAllActors([]);
+      }
+      setActorsLoading(false);
+    };
+    fetchActors();
+  }, []);
 
   useEffect(() => {
     if (isUploading && uploadStartTimeRef.current === null && uploadProgress > 0) {
@@ -73,26 +104,6 @@ export const AddMovieForm = () => {
     }
   }, [isUploading, uploadProgress, videoFile]);
 
-  const [allActors, setAllActors] = useState<{ id: string; name: string }[]>([]);
-  const [actorsLoading, setActorsLoading] = useState(true);
-
-  useEffect(() => {
-    // Fetch all actors from backend
-    const fetchActors = async () => {
-      setActorsLoading(true);
-      try {
-        const res = await fetch("/api/actors/all");
-        const data = await res.json();
-        // Backend liefert { actors: [...] }
-        setAllActors(Array.isArray(data.actors) ? data.actors.map((a: any) => ({ id: a.id, name: a.name })) : []);
-      } catch {
-        setAllActors([]);
-      }
-      setActorsLoading(false);
-    };
-    fetchActors();
-  }, []);
-
   const form = useForm<z.infer<typeof MovieSchema>>({
     resolver: zodResolver(MovieSchema),
     defaultValues: {
@@ -107,192 +118,24 @@ export const AddMovieForm = () => {
     },
   });
 
-  // Math.random() is safe to use here because video IDs only need to be unique for temporary client-side identification
-  // and do not require cryptographic security. This is not used for authentication, authorization, or sensitive data.
-  const generateVideoId = () => {
-    return `video_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  };
-
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setVideoFile(file);
-    const previewUrl = URL.createObjectURL(file);
-    setVideoPreviewUrl(previewUrl);
-
-    // Generiere ID für das Video
-    const videoId = generateVideoId();
-    setGeneratedVideoId(videoId);
-
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.src = previewUrl;
-
-    video.onloadedmetadata = () => {
-      const duration = video.duration;
-      const hours = Math.floor(duration / 3600);
-      const minutes = Math.floor((duration % 3600) / 60);
-      const seconds = Math.floor(duration % 60);
-
-      let formattedDuration = "";
-      if (hours > 0) {
-        formattedDuration = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-      } else {
-        formattedDuration = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-      }
-
-      form.setValue("movieDuration", formattedDuration);
-      toast.success(`Video length: ${formattedDuration}`);
-    };
-  };
-
-  const generateThumbnails = (startOffset: number = 0) => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const duration = video.duration;
-    const thumbnails: string[] = [];
-    let captureCount = 0;
-    const totalCaptures = 6;
-
-    // Startpunkt mit Offset verschieben (z.B. 0%, 10%, 20%, etc.)
-    const offsetPercentage = startOffset / 100;
-
-    const captureFrame = (time: number) => {
-      video.currentTime = time;
-    };
-
-    video.onseeked = () => {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
-      thumbnails.push(thumbnail);
-      captureCount++;
-
-      if (captureCount < totalCaptures) {
-        const basePosition = (duration / totalCaptures) * captureCount;
-        const offset = duration * offsetPercentage * 0.1; // 10% Verschiebung pro Klick
-        captureFrame(Math.min(basePosition + offset, duration - 1));
-      } else {
-        setThumbnailOptions(thumbnails);
-        setShowThumbnailSelector(true);
-      }
-    };
-
-    const firstFrameTime = Math.max(0, (duration / totalCaptures) * offsetPercentage);
-    captureFrame(firstFrameTime);
-  };
-
-  const regenerateThumbnails = () => {
-    // Erzeuge neue Thumbnails mit zufälligem Offset
-    // Math.random() is safe here because the offset is only used for thumbnail generation and does not require cryptographic security.
-    const randomOffset = Math.floor(Math.random() * 10) * 10; // 0-90%
-    generateThumbnails(randomOffset);
-    toast.success("New thumbnails are being generated...");
-  };
-
-  const selectThumbnail = (thumbnail: string) => {
-    setThumbnailUrl(thumbnail);
-    setShowThumbnailSelector(false);
-    toast.success("Thumbnail selected!");
-  };
-
-  const deselectThumbnail = () => {
-    setThumbnailUrl("");
-    setShowThumbnailSelector(true);
-    toast.success("Thumbnail deselected!");
+    await baseHandleVideoUpload(e, (duration) => {
+      form.setValue("movieDuration", duration);
+    });
   };
 
   const uploadVideo = async () => {
-    if (!videoFile) {
-      toast.error("Please select a video first!");
-      return;
-    }
-
     const videoType = form.getValues("movieType");
-    if (!videoType) {
-      toast.error("Please select a type!");
-      return;
-    }
-
-    const result = await uploadFile(videoFile, videoType, generatedVideoId);
-
-    if (result) {
-      setUploadedVideoPath(result.filePath);
-      form.setValue("movieVideo", result.videoId); 
-      toast.success("Video successfully uploaded!");
-
-      setTimeout(() => {
-        generateThumbnails();
-      }, 500);
-    }
+    await baseUploadVideo(videoType, (result) => {
+      form.setValue("movieVideo", result.videoId);
+    });
   };
 
   const handleCancelUpload = async () => {
-    if (isUploading) {
-      cancelUpload();
-      resetUploadState();
-      toast.success("Upload abgebrochen!");
-      return;
-    }
-    if (!uploadedVideoPath) {
-      resetUploadState();
-      toast.success("Cancelled!");
-      return;
-    }
-    try {
-      const response = await fetch("/api/movies/delete", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ filePath: uploadedVideoPath }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        resetUploadState();
-        toast.success("Video deleted!");
-      } else {
-        toast.error("Error deleting video!");
-      }
-    } catch (error) {
-      console.error("Error deleting video:", error);
-      toast.error("Error deleting video!");
-    }
-  };
-
-  const resetUploadState = () => {
-    setVideoFile(null);
-    setVideoPreviewUrl("");
-    setUploadedVideoPath("");
-    setGeneratedVideoId("");
-    setThumbnailUrl("");
-    setThumbnailOptions([]);
-    setShowThumbnailSelector(false);
-    form.setValue("movieVideo", "");
-    form.setValue("movieDuration", "");
-
-    const fileInput = document.querySelector('input[type="file"][accept="video/*"]') as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
-  };
-
-  const createDataUri = (e: any) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setThumbnailUrl(reader.result as string);
-      setShowThumbnailSelector(false);
-    };
-    reader.readAsDataURL(file);
+    await cancelUpload(() => {
+      form.setValue("movieVideo", "");
+      form.setValue("movieDuration", "");
+    });
   };
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
@@ -303,23 +146,17 @@ export const AddMovieForm = () => {
 
     startTransition(() => {
       addMovie(values, thumbnailUrl).then((data) => {
-        if (data?.error) {
+        if (data && 'error' in data && data.error) {
           form.reset();
-          toast.error(data?.error);
-        }
-
-        if (data?.success) {
+          toast.error(data.error);
+        } else if (data && 'success' in data && data.success) {
           form.reset();
           form.setValue("movieActor", []);
           form.setValue("movieType", "");
           form.setValue("movieGenre", "");
           setThumbnailUrl("");
-          setVideoFile(null);
-          setVideoPreviewUrl("");
-          setThumbnailOptions([]);
-          setUploadedVideoPath("");
-          setGeneratedVideoId("");
-          toast.success(data?.success);
+          resetUploadState();
+          toast.success(data.success);
         }
       });
     });
@@ -488,11 +325,6 @@ export const AddMovieForm = () => {
                         <p className="text-xs text-gray-400 mt-1">
                           {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
-                        {generatedVideoId && (
-                          <p className="text-xs text-gray-500 mt-1 font-mono">
-                            ID: {generatedVideoId}
-                          </p>
-                        )}
                       </>
                     ) : (
                       <>
@@ -514,14 +346,14 @@ export const AddMovieForm = () => {
                   <Button
                     type="button"
                     onClick={uploadVideo}
-                    disabled={isUploading || isPending || !!uploadedVideoPath}
+                    disabled={isUploading || !!uploadedVideoPath || !form.getValues("movieType")}
                     className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
                   >
                     {(() => {
                       if (isUploading) {
                         return <><Upload className="w-4 h-4 mr-2 animate-pulse" />Uploading... {uploadProgress}%</>;
                       }
-                      if (uploadedVideoPath) {
+                      if (videoPreviewUrl) {
                         return <><Check className="w-4 h-4 mr-2" />Uploaded</>;
                       }
                       return <><Upload className="w-4 h-4 mr-2" />Upload Video</>;
@@ -560,103 +392,36 @@ export const AddMovieForm = () => {
             <div className="hidden">
               {/* NOSONAR */}
               <video ref={videoRef} src={videoPreviewUrl}>
+                <track kind="captions" />
               </video>
               <canvas ref={canvasRef} />
             </div>
           )}
 
           {showThumbnailSelector && thumbnailOptions.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Select Thumbnail</FormLabel>
-                <Button
-                  type="button"
-                  onClick={regenerateThumbnails}
-                  className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  Regenerate
-                </Button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {thumbnailOptions.map((thumb, index) => (
-                  <button
-                    type="button"
-                    key={thumb}
-                    onClick={() => selectThumbnail(thumb)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        selectThumbnail(thumb);
-                      }
-                    }}
-                    className="w-full h-auto p-0 border-2 border-transparent hover:border-red-600 rounded transition-all focus:outline-none focus:ring-2 focus:ring-red-600"
-                    aria-label={`Select thumbnail ${index + 1}`}
-                  >
-                    <img
-                      src={thumb}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-auto rounded"
-                      draggable={false}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ThumbnailSelector
+              thumbnailOptions={thumbnailOptions}
+              onSelectThumbnail={selectThumbnail}
+              onRegenerate={regenerateThumbnails}
+            />
           )}
 
           {thumbnailUrl && !showThumbnailSelector && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <FormLabel className="text-white">Selected Thumbnail</FormLabel>
-                <Button
-                  type="button"
-                  onClick={deselectThumbnail}
-                  className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
-                >
-                  <X className="w-3 h-3 mr-1" />
-                  Deselect
-                </Button>
-              </div>
-              <img
-                src={thumbnailUrl}
-                alt="Selected Thumbnail"
-                className="w-full h-auto rounded border-2 border-green-500"
-              />
-            </div>
+            <ThumbnailPreview
+              thumbnailUrl={thumbnailUrl}
+              onDeselect={deselectThumbnail}
+              onManualUpload={createDataUri}
+              showDeselect
+              useImage
+            />
           )}
 
-          <FormField
-            control={form.control}
-            name="movieThumbnail"
-            render={() => (
-              <FormItem>
-                <FormLabel className="text-white">
-                  Or upload thumbnail manually
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <input
-                      id="thumbnail-upload"
-                      className="hidden"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e: any) => createDataUri(e)}
-                    />
-                    <label
-                      htmlFor="thumbnail-upload"
-                      className="flex items-center justify-center w-full h-20 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer bg-zinc-800 hover:bg-zinc-700 hover:border-gray-400 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <Upload className="w-5 h-5" />
-                        <span className="text-sm">Upload Thumbnail</span>
-                      </div>
-                    </label>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {!thumbnailUrl && (
+            <ThumbnailPreview
+              thumbnailUrl=""
+              onManualUpload={createDataUri}
+            />
+          )}
 
           <FormField
             control={form.control}

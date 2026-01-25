@@ -48,8 +48,8 @@ export const useChunkedUpload = () => {
         let data;
         try {
           data = await response.json();
-        } catch (jsonErr) {
-          console.error(`[UPLOAD] Fehler beim Parsen der Response für Chunk ${chunkIndex + 1}:`, jsonErr);
+        } catch (error_) {
+          console.error(`[UPLOAD] Fehler beim Parsen der Response für Chunk ${chunkIndex + 1}:`, error_);
           throw new Error("Chunk upload failed");
         }
 

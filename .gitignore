@@ -45,3 +45,6 @@ next-env.d.ts
 /logs/*
 
 .scannerwork
+
+sonar.ps1
+sonar.sh

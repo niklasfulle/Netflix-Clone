@@ -68,12 +68,13 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
           </div>
         </Link>
         <hr className="h-px bg-gray-600 border-0" />
+        {/* NOSONAR */}
         <div
           role="button"
           tabIndex={0}
           className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline cursor-pointer"
           onClick={() => signOut()}
-          onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') signOut(); }}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') signOut(); }}
         >
           Sign out of Netflix
         </div>

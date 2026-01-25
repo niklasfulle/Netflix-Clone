@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 interface LoginButtonProps {
   children: React.ReactNode;
   mode?: "modal" | "redirect";
-  asChild?: boolean;
 }
 
 export const LoginButton = ({
@@ -18,12 +17,23 @@ export const LoginButton = ({
     router.push("/auth/login");
   };
 
+  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   if (mode === "modal") {
     return <span>TODO: Implement modal</span>;
   }
   return (
-    <span onClick={onClick} className="cursor-pointer">
+    <button
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      className="cursor-pointer bg-transparent border-none p-0"
+    >
       {children}
-    </span>
+    </button>
   );
 };

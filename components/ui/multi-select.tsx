@@ -48,6 +48,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
       <div
         className={`flex flex-wrap gap-1 items-center min-h-[44px] bg-zinc-800 border border-gray-500 rounded px-2 py-1 cursor-pointer ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-red-500"}`}
         onClick={() => !disabled && setOpen(v => !v)}
+        role="button"
         tabIndex={0}
       >
         {value.length === 0 && (

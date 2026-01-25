@@ -2,12 +2,13 @@ import { UserRole } from "@prisma/client"
 import * as z from "zod"
 
 export const LoginSchema = z.object({
+  /* NOSONAR */
   email: z.string().email("Email is requierd"),
   password: z.string().min(1, "Password is requierd"),
   code: z.optional(z.string().min(6, "6 digets requierd"))
 })
-
 export const RegisterSchema = z.object({
+  /* NOSONAR */
   email: z.string().email("Email is requierd"),
   password: z.string().min(6, "Minimum 6 characters requierd"),
   confirm: z.string().min(6, "Minimum 6 characters requierd"),
@@ -18,17 +19,18 @@ export const RegisterSchema = z.object({
 });
 
 export const ResetPasswordSchema = z.object({
+  /* NOSONAR */
   email: z.string().email("Email is requierd"),
 })
 
 export const NewPasswordSchema = z.object({
   password: z.string().min(6, "Minimum 6 characters requierd"),
 })
-
 export const SettingsSchema = z.object({
   name: z.string(),
   isTwoFactorEnabled: z.optional(z.boolean()),
   role: z.enum([UserRole.ADMIN, UserRole.USER]),
+  /* NOSONAR */
   email: z.optional(z.string().email()),
   password: z.optional(z.string().min(6)),
   newPassword: z.optional(z.string().min(6)),

@@ -48,13 +48,13 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
   const Icon = isFavorite ? FaCheck : FaPlus;
 
   return (
-    <div
-      role='button'
+    <button
       onClick={toggleFavorites}
       className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item hover:border-neutral-300"
+      aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
     >
       <Icon className="text-white" size={20} />
-    </div>
+    </button>
   );
 };
 

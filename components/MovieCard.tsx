@@ -2,9 +2,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { isMobile } from "react-device-detect";
 import { FaChevronDown } from "react-icons/fa";
-
 import useInfoModal from "@/hooks/useInfoModal";
-
 import FavoriteButton from "./FavoriteButton";
 import MovieCardPlayButton from "./MovieCardPlayButton";
 import RestartButton from "./RestartButton";
@@ -158,7 +156,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
         )}
         {!isLoading && (
           <Image
-            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[24vw] lg:h-[12vw]"
+            className="cursor-pointer object-contain transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[24vw] lg:h-[12vw] bg-black"
             src={data.thumbnailUrl}
             alt="Thumbnail"
             width={1920}
@@ -184,7 +182,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             e.stopPropagation();
             openModal(data?.id);
           }}
-          className="cursor-pointer object-cover aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw]"
+          className="cursor-pointer object-contain aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw] bg-black"
           src={data.thumbnailUrl}
           alt="Thumbnail2"
           width={1920}
@@ -196,8 +194,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
               <MovieCardPlayButton movieId={data?.id} />
               <RestartButton movieId={data?.id} />
               <FavoriteButton movieId={data?.id} />
-              <div
-                role="button"
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   openModal(data?.id);
@@ -208,7 +205,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
                   className="text-white sm:group-hover/item:text-neutral-300 mt-0.5"
                   size={20}
                 />
-              </div>
+              </button>
             </div>
           </div>
           <p className="hidden mt-4 font-semibold lg:block text-left">
