@@ -189,10 +189,10 @@ describe('MovieCard', () => {
       expect(image.getAttribute('height')).toBe('1080');
     });
 
-    test('should have object-contain class', () => {
+    test('should have object-cover class', () => {
       render(<MovieCard data={mockMovieData} isLoading={false} />);
       const image = screen.getByTestId('image-Thumbnail');
-      expect(image.className).toMatch(/object-contain/);
+      expect(image.className).toMatch(/object-cover/);
     });
   });
 

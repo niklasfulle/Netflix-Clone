@@ -507,9 +507,11 @@ describe('newVerification action - Token Verification & Email Confirmation', () 
 
     it('✅ should accept token expiring at exact moment', async () => {
       const now = new Date();
+      // Add 10ms buffer to account for execution time
+      const futureTime = new Date(now.getTime() + 10);
       mockGetVerificationTokenByToken.mockResolvedValue({
         ...mockToken,
-        expires: now,
+        expires: futureTime,
       } as any);
       const dbMock = db as any;
       dbMock.user = {

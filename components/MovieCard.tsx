@@ -156,7 +156,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
         )}
         {!isLoading && (
           <Image
-            className="cursor-pointer object-contain transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[24vw] lg:h-[12vw] bg-black"
+            className="cursor-pointer object-cover transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[24vw] lg:h-[12vw] bg-black"
             src={data.thumbnailUrl}
             alt="Thumbnail"
             width={1920}
@@ -182,7 +182,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading }) => {
             e.stopPropagation();
             openModal(data?.id);
           }}
-          className="cursor-pointer object-contain aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw] bg-black"
+          className="cursor-pointer object-cover aspect-video transition duration shadow-xl rounded-t-md min-w-2/3 lg:w-full h-[20vw] lg:h-[12vw] bg-black"
           src={data.thumbnailUrl}
           alt="Thumbnail2"
           width={1920}

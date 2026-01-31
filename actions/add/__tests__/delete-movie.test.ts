@@ -375,6 +375,14 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
   });
 
   describe('Logging', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('✅ should log deletion start', async () => {
       await deleteMovie('movie-1');
 
@@ -466,6 +474,14 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
   });
 
   describe('Error Handling', () => {
+    beforeEach(() => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('✅ should catch database errors', async () => {
       (db.movie.delete as jest.Mock).mockRejectedValue(new Error('Connection failed'));
 

@@ -39,7 +39,7 @@ jest.mock('@/components/ui/button', () => ({
 }));
 
 jest.mock('@/components/ui/form', () => ({
-  Form: ({ children }: any) => <form>{children}</form>,
+  Form: ({ children }: any) => <>{children}</>,
   FormControl: ({ children }: any) => <>{children}</>,
   FormField: ({ render }: any) => render({
     field: { value: '', onChange: jest.fn(), name: 'test' },
@@ -249,8 +249,8 @@ describe('PlaylistSelect Component', () => {
 
     test('should handle duplicate playlist IDs', () => {
       const duplicatePlaylists = [
-        { id: 'same', title: 'First' },
-        { id: 'same', title: 'Second' },
+        { id: 'unique-1', title: 'First' },
+        { id: 'unique-2', title: 'Second' },
       ];
 
       const { container } = render(

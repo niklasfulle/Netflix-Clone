@@ -71,14 +71,14 @@ describe('BillboardBase', () => {
       expect(video).toBeInTheDocument();
     });
 
-    it('should render image on mobile when not loading', () => {
+    it('should render image on mobile when not loading', async () => {
       Object.defineProperty(globalThis.window, 'innerWidth', {
         writable: true,
         configurable: true,
         value: 500,
       });
       render(<BillboardBase data={mockData} isLoading={false} />);
-      waitFor(() => {
+      await waitFor(() => {
         const image = screen.getByTestId('next-image');
         expect(image).toBeInTheDocument();
       });

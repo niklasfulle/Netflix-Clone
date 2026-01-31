@@ -107,7 +107,7 @@ export default function AdminActorsPage() {
   let actorsContent;
   if (loading) {
     actorsContent = <div className="text-zinc-400">loading...</div>;
-  } else if (actors.length === 0) {
+  } else if (!actors || actors.length === 0) {
     actorsContent = <div className="text-zinc-400">No actors available.</div>;
   } else {
     actorsContent = (

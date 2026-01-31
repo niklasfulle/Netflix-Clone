@@ -47,7 +47,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
         )}
         {!isLoading && (
           <Image
-            className="w-full transition shadow-xl cursor-pointer oobject-cover duration max-w-64 aspect-video rounded-t-md"
+            className="w-full transition shadow-xl cursor-pointer object-cover duration max-w-64 aspect-video rounded-t-md"
             src={data.thumbnailUrl}
             alt="Thumbnail"
             width={500}
