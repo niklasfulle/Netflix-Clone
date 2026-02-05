@@ -1,22 +1,21 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 
 import fetcher from '@/lib/fetcher';
 
-const useRandom = () => {
-  const uniqueKey = useMemo(() => `/api/random?context=other&t=${Date.now()}`, []);
+const useMovieList = () => {
+  const [uniqueKey] = useState(() => `/api/movies/random?count=20&t=${Date.now()}`);
   
   const { data, error, isLoading } = useSWR(uniqueKey, fetcher, {
     revalidateIfStale: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
-  })
-
+    dedupingInterval: 0,
+  });
   return {
     data,
     error,
-    isLoading,
+    isLoading
   }
-}
-
-export default useRandom
+};
+export default useMovieList;

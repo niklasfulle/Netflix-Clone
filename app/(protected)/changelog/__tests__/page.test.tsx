@@ -52,19 +52,20 @@ describe("ChangelogPage", () => {
   });
 
   describe("Changelog Entries Display", () => {
-    it("displays version 1.7 entry", () => {
+    it("displays version 1.7.1 entry", () => {
       render(<ChangelogPage />);
-      expect(screen.getByText(/Version 1.7/)).toBeInTheDocument();
+      expect(screen.getByText("Version 1.7.1", { exact: false })).toBeInTheDocument();
     });
 
     it("displays version 1.0.0 entry", () => {
       render(<ChangelogPage />);
-      expect(screen.getByText(/Version 1.0.0/)).toBeInTheDocument();
+      expect(screen.getByText("Version 1.0.0", { exact: false })).toBeInTheDocument();
     });
 
     it("displays all version entries", () => {
       render(<ChangelogPage />);
       const versions = [
+        "Version 1.7.1",
         "Version 1.7",
         "Version 1.6.4",
         "Version 1.6.3",
@@ -80,7 +81,8 @@ describe("ChangelogPage", () => {
       ];
 
       versions.forEach((version) => {
-        expect(screen.getByText(new RegExp(version))).toBeInTheDocument();
+        const elements = screen.getAllByText(version, { exact: false });
+        expect(elements.length).toBeGreaterThan(0);
       });
     });
 
@@ -131,7 +133,7 @@ describe("ChangelogPage", () => {
     it("renders changelog entries as list items", () => {
       render(<ChangelogPage />);
       const listItems = screen.getAllByRole("listitem");
-      expect(listItems.length).toBeGreaterThanOrEqual(12);
+      expect(listItems.length).toBeGreaterThanOrEqual(13);
     });
 
     it("renders each changelog entry in a container with border", () => {
@@ -153,7 +155,7 @@ describe("ChangelogPage", () => {
     it("displays version text with correct formatting", () => {
       render(<ChangelogPage />);
       const versionElements = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(versionElements.length).toBe(12);
+      expect(versionElements.length).toBe(13);
     });
 
     it("version text has correct styling", () => {
@@ -218,6 +220,7 @@ describe("ChangelogPage", () => {
     it("displays all version numbers", () => {
       render(<ChangelogPage />);
       const versionNumbers = [
+        "1.7.1",
         "1.7",
         "1.6.4",
         "1.6.3",
@@ -233,9 +236,9 @@ describe("ChangelogPage", () => {
       ];
 
       versionNumbers.forEach((version) => {
-        expect(
-          screen.getByText(new RegExp(`Version ${version.replace(/\./g, "\\.")}`))
-        ).toBeInTheDocument();
+        const versionText = `Version ${version}`;
+        const elements = screen.getAllByText(versionText, { exact: true });
+        expect(elements.length).toBeGreaterThan(0);
       });
     });
 
@@ -290,11 +293,11 @@ describe("ChangelogPage", () => {
   });
 
   describe("Individual Version Details", () => {
-    it("version 1.7 is first in changelog", () => {
+    it("version 1.7.1 is first in changelog", () => {
       render(<ChangelogPage />);
-      screen.getByText("Version 1.7");
+      screen.getByText("Version 1.7.1");
       const allVersions = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersions[0]).toHaveTextContent("Version 1.7");
+      expect(allVersions[0]).toHaveTextContent("Version 1.7.1");
     });
 
     it("version 1.0.0 is last in changelog", () => {
@@ -376,7 +379,7 @@ describe("ChangelogPage", () => {
     it("handles changelog with all entries present", () => {
       render(<ChangelogPage />);
       const allVersionText = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersionText).toHaveLength(12);
+      expect(allVersionText).toHaveLength(13);
     });
 
     it("renders correctly with various text lengths", () => {

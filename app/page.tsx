@@ -5,10 +5,10 @@ import InfoModal from '@/components/InfoModal';
 import MovieList from '@/components/MovieList';
 import Navbar from '@/components/Navbar';
 import Row from '@/components/Row';
-import useMovieList from '@/hooks/movies/useMovieList';
+import useRandomMovieList from '@/hooks/movies/useRandomMovieList';
 import useNewMovieList from '@/hooks/movies/useNewMovieList';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
-import useSeriesList from '@/hooks/series/useSeriesList';
+import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
 
@@ -16,8 +16,8 @@ export default function Home() {
   const { isOpen, closeModal } = useInfoModal();
   const { data: newMovies = [], isLoading: isLoadingNewMovieList } =
     useNewMovieList();
-  const { data: movies = [], isLoading: isLoadingMovieList } = useMovieList();
-  const { data: series = [], isLoading: isLoadingSeriesList } = useSeriesList();
+  const { data: movies = [], isLoading: isLoadingMovieList } = useRandomMovieList();
+  const { data: series = [], isLoading: isLoadingSeriesList } = useRandomSeriesList();
   const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
     useFavorites();
   const { data: playlists } = usePlaylists();

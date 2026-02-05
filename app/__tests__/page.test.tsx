@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Home from '@/app/page';
-import useMovieList from '@/hooks/movies/useMovieList';
+import useRandomMovieList from '@/hooks/movies/useRandomMovieList';
 import useNewMovieList from '@/hooks/movies/useNewMovieList';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
-import useSeriesList from '@/hooks/series/useSeriesList';
+import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
 
@@ -58,17 +58,17 @@ jest.mock('@/components/Row', () => {
 });
 
 // Mock alle Hooks
-jest.mock('@/hooks/movies/useMovieList');
+jest.mock('@/hooks/movies/useRandomMovieList');
 jest.mock('@/hooks/movies/useNewMovieList');
 jest.mock('@/hooks/playlists/usePlaylists');
-jest.mock('@/hooks/series/useSeriesList');
+jest.mock('@/hooks/series/useRandomSeriesList');
 jest.mock('@/hooks/useFavorites');
 jest.mock('@/hooks/useInfoModal');
 
-const mockUseMovieList = useMovieList as jest.MockedFunction<typeof useMovieList>;
+const mockUseRandomMovieList = useRandomMovieList as jest.MockedFunction<typeof useRandomMovieList>;
 const mockUseNewMovieList = useNewMovieList as jest.MockedFunction<typeof useNewMovieList>;
 const mockUsePlaylists = usePlaylists as jest.MockedFunction<typeof usePlaylists>;
-const mockUseSeriesList = useSeriesList as jest.MockedFunction<typeof useSeriesList>;
+const mockUseRandomSeriesList = useRandomSeriesList as jest.MockedFunction<typeof useRandomSeriesList>;
 const mockUseFavorites = useFavorites as jest.MockedFunction<typeof useFavorites>;
 const mockUseInfoModal = useInfoModal as jest.MockedFunction<typeof useInfoModal>;
 
@@ -87,11 +87,11 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: [],
         isLoading: false,
       } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomSeriesList.mockReturnValue({
         data: [],
         isLoading: false,
       } as any);
@@ -143,11 +143,11 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: [],
         isLoading: false,
       } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomSeriesList.mockReturnValue({
         data: [],
         isLoading: false,
       } as any);
@@ -172,16 +172,16 @@ describe('Home Page (page.tsx)', () => {
       expect(mockUseNewMovieList).toHaveBeenCalled();
     });
 
-    it('should call useMovieList hook', () => {
+    it('should call useRandomMovieList hook', () => {
       render(<Home />);
 
-      expect(mockUseMovieList).toHaveBeenCalled();
+      expect(mockUseRandomMovieList).toHaveBeenCalled();
     });
 
-    it('should call useSeriesList hook', () => {
+    it('should call useRandomSeriesList hook', () => {
       render(<Home />);
 
-      expect(mockUseSeriesList).toHaveBeenCalled();
+      expect(mockUseRandomSeriesList).toHaveBeenCalled();
     });
 
     it('should call useFavorites hook', () => {
@@ -214,8 +214,8 @@ describe('Home Page (page.tsx)', () => {
         data: mockNewMovies,
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -231,11 +231,11 @@ describe('Home Page (page.tsx)', () => {
         { id: '3', title: 'Movie 3' },
       ];
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: mockMovies,
         isLoading: false,
       } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -250,8 +250,8 @@ describe('Home Page (page.tsx)', () => {
         { id: '2', title: 'Series 2' },
       ];
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({
         data: mockSeries,
         isLoading: false,
       } as any);
@@ -266,8 +266,8 @@ describe('Home Page (page.tsx)', () => {
     it('should display favorite movies when data is loaded', () => {
       const mockFavorites = [{ id: '1', title: 'Favorite Movie' }];
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({
         data: mockFavorites,
         isLoading: false,
@@ -284,11 +284,11 @@ describe('Home Page (page.tsx)', () => {
         data: undefined,
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: undefined,
         isLoading: false,
       } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomSeriesList.mockReturnValue({
         data: undefined,
         isLoading: false,
       } as any);
@@ -324,8 +324,8 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: true,
       } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -339,8 +339,8 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: true } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: true } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -354,8 +354,8 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: true } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: true } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -369,8 +369,8 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: true } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -387,8 +387,8 @@ describe('Home Page (page.tsx)', () => {
         closeModal: jest.fn(),
       } as any);
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -404,8 +404,8 @@ describe('Home Page (page.tsx)', () => {
         closeModal: mockCloseModal,
       } as any);
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
 
@@ -425,8 +425,8 @@ describe('Home Page (page.tsx)', () => {
         closeModal: jest.fn(),
       } as any);
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: mockPlaylists } as any);
 
@@ -443,8 +443,8 @@ describe('Home Page (page.tsx)', () => {
         closeModal: jest.fn(),
       } as any);
       mockUseNewMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseMovieList.mockReturnValue({ data: [], isLoading: false } as any);
-      mockUseSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
+      mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
       mockUsePlaylists.mockReturnValue({ data: [] } as any);
     });
@@ -523,11 +523,11 @@ describe('Home Page (page.tsx)', () => {
         data: mockNewMovies,
         isLoading: false,
       } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: mockMovies,
         isLoading: false,
       } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomSeriesList.mockReturnValue({
         data: mockSeries,
         isLoading: false,
       } as any);
@@ -554,11 +554,11 @@ describe('Home Page (page.tsx)', () => {
         data: [],
         isLoading: true,
       } as any);
-      mockUseMovieList.mockReturnValue({
+      mockUseRandomMovieList.mockReturnValue({
         data: [],
         isLoading: true,
       } as any);
-      mockUseSeriesList.mockReturnValue({
+      mockUseRandomSeriesList.mockReturnValue({
         data: [],
         isLoading: true,
       } as any);

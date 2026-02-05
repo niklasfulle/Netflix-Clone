@@ -3,6 +3,12 @@ import Navbar from '@/components/Navbar';
 
 const changelog = [
   {
+    version: '1.7.1',
+    changes: [
+      'Bug fixes by random generated movies and series',
+    ],
+  },
+  {
     version: '1.7',
     changes: [
       'Changelog introduced',

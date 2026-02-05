@@ -14,6 +14,7 @@ export async function GET() {
     }
 
     const movieCount = await db.movie.count()
+    
     if (movieCount === 0) {
       logBackendAction('api_random_route_no_movies_in_db', { userId: user.id }, 'error');
       db.$disconnect();

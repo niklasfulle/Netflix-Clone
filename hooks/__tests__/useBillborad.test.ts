@@ -58,7 +58,7 @@ describe('useBillboard', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('should call useSWR with correct endpoint and revalidation options', () => {
+  it('should call useSWR with correct endpoint pattern and revalidation options', () => {
     (useSWR as jest.Mock).mockReturnValue({
       data: undefined,
       error: undefined,
@@ -67,18 +67,18 @@ describe('useBillboard', () => {
 
     renderHook(() => useBillboard());
 
-    expect(useSWR).toHaveBeenCalledWith(
-      '/api/random',
-      expect.any(Function),
-      expect.objectContaining({
-        revalidateIfStale: false,
-        revalidateOnFocus: false,
-        revalidateOnReconnect: false,
-      })
-    );
+    const callArgs = (useSWR as jest.Mock).mock.calls[0];
+    const endpoint = callArgs[0];
+    const options = callArgs[2];
+
+    // Prüfe dass der Endpoint das richtige Muster hat
+    expect(endpoint).toMatch(/^\/api\/random\?context=billboard&t=\d+$/);
+    expect(options.revalidateIfStale).toBe(false);
+    expect(options.revalidateOnFocus).toBe(false);
+    expect(options.revalidateOnReconnect).toBe(false);
   });
 
-  it('should disable revalidation to keep data static', () => {
+  it('should disable revalidation and deduping to keep data fresh on each mount', () => {
     (useSWR as jest.Mock).mockReturnValue({
       data: { id: '1' },
       error: undefined,
@@ -91,5 +91,29 @@ describe('useBillboard', () => {
     expect(callOptions.revalidateIfStale).toBe(false);
     expect(callOptions.revalidateOnFocus).toBe(false);
     expect(callOptions.revalidateOnReconnect).toBe(false);
+  });
+
+  it('should generate unique key with timestamp on each mount', async () => {
+    (useSWR as jest.Mock).mockReturnValue({
+      data: { id: '1' },
+      error: undefined,
+      isLoading: false,
+    });
+
+    const { unmount } = renderHook(() => useBillboard());
+    const firstKey = (useSWR as jest.Mock).mock.calls[0][0];
+    unmount();
+
+    // Kleine Verzögerung um sicherzustellen, dass Date.now() unterschiedlich ist
+    await new Promise(resolve => setTimeout(resolve, 5));
+
+    jest.clearAllMocks();
+    renderHook(() => useBillboard());
+    const secondKey = (useSWR as jest.Mock).mock.calls[0][0];
+
+    // Die Keys sollten unterschiedlich sein (verschiedene Timestamps)
+    expect(firstKey).toMatch(/\/api\/random\?context=billboard&t=\d+/);
+    expect(secondKey).toMatch(/\/api\/random\?context=billboard&t=\d+/);
+    expect(firstKey).not.toBe(secondKey);
   });
 });
