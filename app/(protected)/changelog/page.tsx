@@ -3,6 +3,13 @@ import Navbar from '@/components/Navbar';
 
 const changelog = [
   {
+    version: '1.7.2',
+    changes: [
+      'Bug fixes for footer layout',
+      'Bug fixes for search functionality',
+    ],
+  },
+  {
     version: '1.7.1',
     changes: [
       'Bug fixes by random generated movies and series',

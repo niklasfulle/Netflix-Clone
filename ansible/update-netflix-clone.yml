@@ -1,33 +1,65 @@
 ---
-- name: Update Netflix
-  hosts: RaspberryPi
-  become: true
-  gather_facts: False
-
+- name: Update Netflix Clone Docker Container
+  hosts: netflix
+  gather_facts: no
+  vars:
+    docker_compose_path: "/root/netflix-clone"
+    docker_registry: "salkin263"
+    image_name: "netflix-clone"
+  
   tasks:
-    - name: Stop Netflix
-      chdir: /projects/Netflix-Clone
-      shell: pm2 stop netflix-clone
+    - name: Read version from local version.txt
+      delegate_to: localhost
+      slurp:
+        src: "../version.txt"
+      register: version_file
 
-    - name: Remove Netflix from pm2
-      chdir: /projects/Netflix-Clone
-      shell: pm2 delete netflix-clone
+    - name: Set version variable
+      set_fact:
+        app_version: "{{ (version_file.content | b64decode).strip() }}"
 
-    - name: update Netflix github repository
-      git:
-        repo: https://github.com/niklasfulle/netflix-clone.git
-        dest: /projects/Netflix-Clone
-        clone: no
-        update: yes
+    - name: Display version to update
+      debug:
+        msg: "Updating to version {{ app_version }}"
 
-    - name: Install dependencies Netflix
-      chdir: /projects/Netflix-Clone
-      shell: npm install
+    - name: Ensure docker-compose directory exists
+      file:
+        path: "{{ docker_compose_path }}"
+        state: directory
+        mode: '0755'
 
-    - name: Build Netflix
-      chdir: /projects/Netflix-Clone
-      shell: npm run build
+    - name: Copy docker-compose.yml to remote host
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ docker_compose_path }}/docker-compose.yml"
+        mode: '0644'
+      register: compose_file
 
-    - name: Start Netflix
-      chdir: /projects/Netflix-Clone
-      shell: pm2 start netflix-clone -- start --port 6969
+    - name: Stop and remove existing container
+      community.docker.docker_compose:
+        project_src: "{{ docker_compose_path }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Pull new Docker image
+      community.docker.docker_image:
+        name: "{{ docker_registry }}:{{ image_name }}:{{ app_version }}"
+        source: pull
+        force_source: yes
+
+    - name: Start container with new version
+      community.docker.docker_compose:
+        project_src: "{{ docker_compose_path }}"
+        state: present
+        pull: yes
+
+    - name: Wait for container to be healthy
+      wait_for:
+        host: localhost
+        port: 3000
+        delay: 5
+        timeout: 60
+
+    - name: Display completion message
+      debug:
+        msg: "Netflix Clone successfully updated to version {{ app_version }}"

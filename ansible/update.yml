@@ -1,12 +1,74 @@
 ---
-- name: Update Raspberry Pi
-  hosts: RaspberryPi
-  become: true
-  gather_facts: False
-
+- name: Update Netflix Clone Docker Container (Simple Version)
+  hosts: netflix
+  gather_facts: no
+  vars:
+    docker_compose_path: "/root/netflix-clone"
+    docker_registry: "salkin263"
+    image_name: "netflix-clone"
+  
   tasks:
-    - name: Update and Upgrade
-      ansible.builtin.apt:
-        name: aptitude
-        state: present
-        update_cache: true
+    - name: Read version from local version.txt
+      delegate_to: localhost
+      slurp:
+        src: "{{ playbook_dir }}/../version.txt"
+      register: version_file
+
+    - name: Set version variable
+      set_fact:
+        app_version: "{{ (version_file.content | b64decode).strip() }}"
+
+    - name: Display version to update
+      debug:
+        msg: "Updating to version {{ app_version }}"
+
+    - name: Ensure docker-compose directory exists
+      file:
+        path: "{{ docker_compose_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy docker-compose.yml to remote host
+      template:
+        src: docker-compose.yml.j2
+        dest: "{{ docker_compose_path }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Stop existing container
+      shell: |
+        cd {{ docker_compose_path }}
+        docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
+        docker stop netflix-clone 2>/dev/null || true
+        docker rm netflix-clone 2>/dev/null || true
+      args:
+        executable: /bin/bash
+
+    - name: Pull new Docker image
+      shell: |
+        docker pull {{ docker_registry }}/{{ image_name }}:{{ app_version }}
+      args:
+        executable: /bin/bash
+
+    - name: Start container with new version
+      shell: |
+        cd {{ docker_compose_path }}
+        docker compose up -d 2>/dev/null || docker-compose up -d 2>/dev/null
+      args:
+        executable: /bin/bash
+
+    - name: Wait for container to start
+      pause:
+        seconds: 10
+
+    - name: Check if container is running
+      shell: docker ps | grep netflix-clone
+      register: container_status
+      ignore_errors: yes
+
+    - name: Display container status
+      debug:
+        msg: "{{ container_status.stdout }}"
+
+    - name: Display completion message
+      debug:
+        msg: "Netflix Clone successfully updated to version {{ app_version }}"

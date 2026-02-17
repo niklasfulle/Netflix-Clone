@@ -1,0 +1,10 @@
+services:
+  app:
+    image: {{ docker_registry }}/{{ image_name }}:{{ app_version }}
+    container_name: netflix-clone
+    ports:
+      - "3000:3000"
+    volumes:
+      - /movies:/movies
+      - /series:/series
+    restart: unless-stopped
