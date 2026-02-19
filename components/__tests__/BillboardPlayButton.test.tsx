@@ -73,15 +73,15 @@ describe('BillboardPlayButton', () => {
     it('should link to correct watch page', () => {
       render(<BillboardPlayButton movieId="movie-1" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-1');
+      expect(link).toHaveAttribute('href', '/watch/movie-1?from=null');
     });
 
     it('should handle different movieIds', () => {
       const { rerender } = render(<BillboardPlayButton movieId="movie-123" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-123');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-123?from=null');
 
       rerender(<BillboardPlayButton movieId="movie-456" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-456');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-456?from=null');
     });
 
     it('should construct proper href with movieId', () => {
@@ -94,30 +94,31 @@ describe('BillboardPlayButton', () => {
       render(<BillboardPlayButton movieId="movie-1" />);
       const link = screen.getByRole('link');
       expect(link.getAttribute('href')).toMatch(/^\/watch\//);
+      expect(link.getAttribute('href')).toMatch(/\?from=null$/);
     });
 
     it('should work with special characters in movieId', () => {
       render(<BillboardPlayButton movieId="movie-!@#" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-!@#');
+      expect(link).toHaveAttribute('href', '/watch/movie-!@#?from=null');
     });
 
     it('should work with numeric movieId', () => {
       render(<BillboardPlayButton movieId="12345" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/12345');
+      expect(link).toHaveAttribute('href', '/watch/12345?from=null');
     });
 
     it('should work with empty movieId', () => {
       render(<BillboardPlayButton movieId="" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/');
+      expect(link).toHaveAttribute('href', '/watch/?from=null');
     });
 
     it('should handle movieId with slashes', () => {
       render(<BillboardPlayButton movieId="movie/id" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie/id');
+      expect(link).toHaveAttribute('href', '/watch/movie/id?from=null');
     });
   });
 
@@ -274,15 +275,15 @@ describe('BillboardPlayButton', () => {
     it('should use movieId in href', () => {
       render(<BillboardPlayButton movieId="test-movie" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/test-movie');
+      expect(link).toHaveAttribute('href', '/watch/test-movie?from=null');
     });
 
     it('should update href when movieId changes', () => {
       const { rerender } = render(<BillboardPlayButton movieId="movie-1" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1?from=null');
 
       rerender(<BillboardPlayButton movieId="movie-2" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2?from=null');
     });
 
     it('should work with very long movieId', () => {
@@ -295,7 +296,7 @@ describe('BillboardPlayButton', () => {
     it('should pass movieId correctly to href template', () => {
       render(<BillboardPlayButton movieId="specific-id" />);
       const link = screen.getByRole('link');
-      expect(link.getAttribute('href')).toBe('/watch/specific-id');
+      expect(link.getAttribute('href')).toBe('/watch/specific-id?from=null');
     });
   });
 
@@ -315,7 +316,7 @@ describe('BillboardPlayButton', () => {
     it('should navigate to watch page on click', () => {
       render(<BillboardPlayButton movieId="movie-1" />);
       const link = screen.getByRole('link') as HTMLAnchorElement;
-      expect(link.href).toContain('/watch/movie-1');
+      expect(link.href).toContain('/watch/movie-1?from=null');
     });
 
     it('should wrap div in link element', () => {
@@ -348,7 +349,7 @@ describe('BillboardPlayButton', () => {
     it('should be focusable', () => {
       render(<BillboardPlayButton movieId="movie-1" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href');
+      expect(link).toHaveAttribute('href', '/watch/movie-1?from=null');
     });
   });
 
@@ -445,31 +446,31 @@ describe('BillboardPlayButton', () => {
     it('should handle movieId with spaces', () => {
       render(<BillboardPlayButton movieId="movie with spaces" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie with spaces');
+      expect(link).toHaveAttribute('href', '/watch/movie with spaces?from=null');
     });
 
     it('should handle movieId with hyphens', () => {
       render(<BillboardPlayButton movieId="movie-id-123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-id-123');
+      expect(link).toHaveAttribute('href', '/watch/movie-id-123?from=null');
     });
 
     it('should handle movieId with underscores', () => {
       render(<BillboardPlayButton movieId="movie_id_123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie_id_123');
+      expect(link).toHaveAttribute('href', '/watch/movie_id_123?from=null');
     });
 
     it('should handle numeric movieId', () => {
       render(<BillboardPlayButton movieId="12345" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/12345');
+      expect(link).toHaveAttribute('href', '/watch/12345?from=null');
     });
 
     it('should handle movieId with dots', () => {
       render(<BillboardPlayButton movieId="movie.123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie.123');
+      expect(link).toHaveAttribute('href', '/watch/movie.123?from=null');
     });
 
     it('should handle very long movieId', () => {
@@ -477,23 +478,24 @@ describe('BillboardPlayButton', () => {
       render(<BillboardPlayButton movieId={longId} />);
       const link = screen.getByRole('link');
       expect(link.getAttribute('href')).toContain(longId);
+      expect(link.getAttribute('href')).toContain('?from=null');
     });
 
     it('should handle movieId with URL-like patterns', () => {
       render(<BillboardPlayButton movieId="movie:id:123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie:id:123');
+      expect(link).toHaveAttribute('href', '/watch/movie:id:123?from=null');
     });
 
     it('should update correctly when movieId changes multiple times', () => {
       const { rerender } = render(<BillboardPlayButton movieId="movie-1" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1?from=null');
 
       rerender(<BillboardPlayButton movieId="movie-2" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2?from=null');
 
       rerender(<BillboardPlayButton movieId="movie-3" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-3');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-3?from=null');
     });
   });
 
@@ -635,14 +637,14 @@ describe('BillboardPlayButton', () => {
     it('should construct dynamic href', () => {
       render(<BillboardPlayButton movieId="dynamic-id" />);
       const link = screen.getByRole('link');
-      expect(link.getAttribute('href')).toBe('/watch/dynamic-id');
+      expect(link.getAttribute('href')).toBe('/watch/dynamic-id?from=null');
     });
 
     it('should use template string for href', () => {
       const movieId = 'test-123';
       render(<BillboardPlayButton movieId={movieId} />);
       const link = screen.getByRole('link');
-      expect(link.getAttribute('href')).toBe(`/watch/${movieId}`);
+      expect(link.getAttribute('href')).toBe(`/watch/${movieId}?from=null`);
     });
   });
 
@@ -689,17 +691,17 @@ describe('BillboardPlayButton', () => {
       expect(link).toBeInTheDocument();
       expect(icon).toBeInTheDocument();
       expect(text).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', '/watch/movie-1');
+      expect(link).toHaveAttribute('href', '/watch/movie-1?from=null');
     });
 
     it('should handle full workflow', () => {
       const { rerender } = render(<BillboardPlayButton movieId="movie-1" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-1?from=null');
       expect(screen.getByTestId('play-icon')).toBeInTheDocument();
       expect(screen.getByText('Play')).toBeInTheDocument();
 
       rerender(<BillboardPlayButton movieId="movie-2" />);
-      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2');
+      expect(screen.getByRole('link')).toHaveAttribute('href', '/watch/movie-2?from=null');
       expect(screen.getByTestId('play-icon')).toBeInTheDocument();
       expect(screen.getByText('Play')).toBeInTheDocument();
 
@@ -715,7 +717,7 @@ describe('BillboardPlayButton', () => {
       const updatedLink = screen.getByRole('link').getAttribute('href');
 
       expect(firstLink).not.toBe(updatedLink);
-      expect(updatedLink).toBe('/watch/updated');
+      expect(updatedLink).toBe('/watch/updated?from=null');
     });
 
     it('should be interactive element', () => {

@@ -3,6 +3,12 @@ import Navbar from '@/components/Navbar';
 
 const changelog = [
   {
+    version: '1.7.3',
+    changes: [
+      'Bug fixes for back navigation'
+    ],
+  },
+  {
     version: '1.7.2',
     changes: [
       'Bug fixes for footer layout',

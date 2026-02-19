@@ -16,6 +16,7 @@ const Watch = () => {
 
   const searchParams = useSearchParams();
   const search = searchParams.get("start");
+  const from = searchParams.get("from");
 
   async function setMovieWatchTime() {
     const video = videoRef.current;
@@ -63,7 +64,7 @@ const Watch = () => {
           size={40}
           onClick={() => {
             setMovieWatchTime();
-            router.push("/");
+            router.push(from || "/");
           }}
         />
         <p className="font-bold text-white text-xl xl:text-3xl flex flex-row">

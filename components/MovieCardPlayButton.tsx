@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import React from 'react';
 import { FaPlay } from 'react-icons/fa';
+import { usePathname } from 'next/navigation';
 
 interface MovieCardPlayButtonProps {
   movieId: string;
@@ -9,8 +12,10 @@ interface MovieCardPlayButtonProps {
 const MovieCardPlayButton: React.FC<MovieCardPlayButtonProps> = ({
   movieId,
 }) => {
+  const pathname = usePathname();
+  
   return (
-    <Link href={`/watch/${movieId}`}>
+    <Link href={`/watch/${movieId}?from=${encodeURIComponent(pathname)}`}>
       <div className="flex flex-row items-center p-1 xl:p-2 h-10 w-10 xl:w-auto justify-center text-md font-semibold transition bg-white rounded-full xl:rounded-md cursor-pointer xl:text-lg hover:bg-neutral-400">
         <FaPlay size={20} className="m-1 xl:m-0 xl:mr-2 mr-0.5" />
         <p className="hidden xl:block">Play</p>

@@ -61,14 +61,14 @@ describe('RestartButton Component', () => {
     it('should generate correct href with movieId', () => {
       render(<RestartButton movieId="movie-456" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-456?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie-456?start=0&from=null');
     });
 
     it('should have start=0 parameter in href', () => {
       render(<RestartButton movieId="789" />);
       const link = screen.getByRole('link');
       const href = link.getAttribute('href');
-      expect(href).toContain('?start=0');
+      expect(href).toContain('?start=0&from=null');
     });
 
     it('should construct href with /watch/ prefix', () => {
@@ -76,41 +76,42 @@ describe('RestartButton Component', () => {
       const link = screen.getByRole('link');
       const href = link.getAttribute('href');
       expect(href).toMatch(/^\/watch\//);
+      expect(href).toContain('?start=0&from=null');
     });
 
     it('should handle different movieIds correctly', () => {
       const { rerender } = render(<RestartButton movieId="id1" />);
       let link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/id1?start=0');
+      expect(link).toHaveAttribute('href', '/watch/id1?start=0&from=null');
 
       rerender(<RestartButton movieId="id2" />);
       link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/id2?start=0');
+      expect(link).toHaveAttribute('href', '/watch/id2?start=0&from=null');
     });
 
     it('should work with numeric movieIds', () => {
       render(<RestartButton movieId="12345" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/12345?start=0');
+      expect(link).toHaveAttribute('href', '/watch/12345?start=0&from=null');
     });
 
     it('should work with alphanumeric movieIds', () => {
       render(<RestartButton movieId="movie-uuid-456" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-uuid-456?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie-uuid-456?start=0&from=null');
     });
 
     it('should work with special characters in movieId', () => {
       render(<RestartButton movieId="movie_456" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie_456?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie_456?start=0&from=null');
     });
 
     it('should handle long movieIds', () => {
       const longId = 'a'.repeat(50);
       render(<RestartButton movieId={longId} />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', `/watch/${longId}?start=0`);
+      expect(link).toHaveAttribute('href', `/watch/${longId}?start=0&from=null`);
     });
   });
 
@@ -244,38 +245,38 @@ describe('RestartButton Component', () => {
     it('should handle empty string movieId', () => {
       render(<RestartButton movieId="" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/?start=0');
+      expect(link).toHaveAttribute('href', '/watch/?start=0&from=null');
     });
 
     it('should handle movieId with forward slashes', () => {
       render(<RestartButton movieId="category/movie/123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/category/movie/123?start=0');
+      expect(link).toHaveAttribute('href', '/watch/category/movie/123?start=0&from=null');
     });
 
     it('should handle movieId with hyphens', () => {
       render(<RestartButton movieId="movie-title-2023" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie-title-2023?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie-title-2023?start=0&from=null');
     });
 
     it('should handle movieId with underscores', () => {
       render(<RestartButton movieId="movie_title_2023" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie_title_2023?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie_title_2023?start=0&from=null');
     });
 
     it('should handle movieId with dots', () => {
       render(<RestartButton movieId="movie.title.2023" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie.title.2023?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie.title.2023?start=0&from=null');
     });
 
     it('should handle UUID format movieId', () => {
       const uuid = '550e8400-e29b-41d4-a716-446655440000';
       render(<RestartButton movieId={uuid} />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', `/watch/${uuid}?start=0`);
+      expect(link).toHaveAttribute('href', `/watch/${uuid}?start=0&from=null`);
     });
   });
 
@@ -319,37 +320,37 @@ describe('RestartButton Component', () => {
       const veryLongId = 'a'.repeat(500);
       render(<RestartButton movieId={veryLongId} />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', `/watch/${veryLongId}?start=0`);
+      expect(link).toHaveAttribute('href', `/watch/${veryLongId}?start=0&from=null`);
     });
 
     it('should handle movieId with spaces (URL encoded)', () => {
       render(<RestartButton movieId="movie title" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/movie title?start=0');
+      expect(link).toHaveAttribute('href', '/watch/movie title?start=0&from=null');
     });
 
     it('should handle numeric movieId starting with 0', () => {
       render(<RestartButton movieId="00123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/00123?start=0');
+      expect(link).toHaveAttribute('href', '/watch/00123?start=0&from=null');
     });
 
     it('should handle negative numeric movieId', () => {
       render(<RestartButton movieId="-123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/-123?start=0');
+      expect(link).toHaveAttribute('href', '/watch/-123?start=0&from=null');
     });
 
     it('should handle movieId with uppercase letters', () => {
       render(<RestartButton movieId="MOVIE-123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/MOVIE-123?start=0');
+      expect(link).toHaveAttribute('href', '/watch/MOVIE-123?start=0&from=null');
     });
 
     it('should handle movieId with mixed case', () => {
       render(<RestartButton movieId="Movie-Title-123" />);
       const link = screen.getByRole('link');
-      expect(link).toHaveAttribute('href', '/watch/Movie-Title-123?start=0');
+      expect(link).toHaveAttribute('href', '/watch/Movie-Title-123?start=0&from=null');
     });
   });
 
@@ -363,8 +364,8 @@ describe('RestartButton Component', () => {
       );
       const links = screen.getAllByRole('link');
       expect(links).toHaveLength(2);
-      expect(links[0]).toHaveAttribute('href', '/watch/movie1?start=0');
-      expect(links[1]).toHaveAttribute('href', '/watch/movie2?start=0');
+      expect(links[0]).toHaveAttribute('href', '/watch/movie1?start=0&from=null');
+      expect(links[1]).toHaveAttribute('href', '/watch/movie2?start=0&from=null');
     });
 
     it('should render multiple icons correctly', () => {
@@ -386,8 +387,8 @@ describe('RestartButton Component', () => {
         </>
       );
       let links = screen.getAllByRole('link');
-      expect(links[0]).toHaveAttribute('href', '/watch/movie1?start=0');
-      expect(links[1]).toHaveAttribute('href', '/watch/movie2?start=0');
+      expect(links[0]).toHaveAttribute('href', '/watch/movie1?start=0&from=null');
+      expect(links[1]).toHaveAttribute('href', '/watch/movie2?start=0&from=null');
 
       rerender(
         <>
@@ -396,8 +397,8 @@ describe('RestartButton Component', () => {
         </>
       );
       links = screen.getAllByRole('link');
-      expect(links[0]).toHaveAttribute('href', '/watch/movieA?start=0');
-      expect(links[1]).toHaveAttribute('href', '/watch/movieB?start=0');
+      expect(links[0]).toHaveAttribute('href', '/watch/movieA?start=0&from=null');
+      expect(links[1]).toHaveAttribute('href', '/watch/movieB?start=0&from=null');
     });
   });
 
@@ -412,7 +413,7 @@ describe('RestartButton Component', () => {
       movieIds.forEach((id) => {
         const { unmount } = render(<RestartButton movieId={id} />);
         const link = screen.getByRole('link');
-        expect(link).toHaveAttribute('href', `/watch/${id}?start=0`);
+        expect(link).toHaveAttribute('href', `/watch/${id}?start=0&from=null`);
         unmount();
       });
     });
@@ -424,13 +425,7 @@ describe('RestartButton Component', () => {
       const link = screen.getByRole('link');
       const href = link.getAttribute('href');
       expect(href).toContain('start=0');
-    });
-
-    it('should have start=0 at the end of href', () => {
-      render(<RestartButton movieId="movie-123" />);
-      const link = screen.getByRole('link');
-      const href = link.getAttribute('href');
-      expect(href).toMatch(/start=0$/);
+      expect(href).toContain('from=null');
     });
 
     it('should use query parameter syntax', () => {

@@ -320,7 +320,7 @@ describe("Watch Page Component", () => {
 
     it("should navigate to home after saving watch time", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/<FaArrowLeft[\s\S]*?onClick[\s\S]*?router\.push\("\/"\)/);
+      expect(source).toMatch(/<FaArrowLeft[\s\S]*?onClick[\s\S]*?router\.push\(from \|\| "\/"\)/);
     });
 
     it("should display Watching label", () => {

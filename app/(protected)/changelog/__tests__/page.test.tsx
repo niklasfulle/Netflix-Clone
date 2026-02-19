@@ -155,7 +155,7 @@ describe("ChangelogPage", () => {
     it("displays version text with correct formatting", () => {
       render(<ChangelogPage />);
       const versionElements = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(versionElements.length).toBe(14);
+      expect(versionElements.length).toBe(15);
     });
 
     it("version text has correct styling", () => {
@@ -220,6 +220,7 @@ describe("ChangelogPage", () => {
     it("displays all version numbers", () => {
       render(<ChangelogPage />);
       const versionNumbers = [
+        "1.7.3",
         "1.7.2",
         "1.7.1",
         "1.7",
@@ -294,11 +295,11 @@ describe("ChangelogPage", () => {
   });
 
   describe("Individual Version Details", () => {
-    it("version 1.7.2 is first in changelog", () => {
+    it("version 1.7.3 is first in changelog", () => {
       render(<ChangelogPage />);
-      screen.getByText("Version 1.7.2");
+      screen.getByText("Version 1.7.3");
       const allVersions = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersions[0]).toHaveTextContent("Version 1.7.2");
+      expect(allVersions[0]).toHaveTextContent("Version 1.7.3");
     });
 
     it("version 1.0.0 is last in changelog", () => {
@@ -380,7 +381,7 @@ describe("ChangelogPage", () => {
     it("handles changelog with all entries present", () => {
       render(<ChangelogPage />);
       const allVersionText = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersionText).toHaveLength(14);
+      expect(allVersionText).toHaveLength(15);
     });
 
     it("renders correctly with various text lengths", () => {

@@ -62,14 +62,14 @@ describe('PlayButton Component', () => {
     test('should render Link with correct href', () => {
       render(<PlayButton movieId={mockMovieId} />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe(`/watch/${mockMovieId}`);
+      expect(link.getAttribute('href')).toBe(`/watch/${mockMovieId}?from=null`);
     });
 
     test('should use movieId in href', () => {
       const customMovieId = 'custom-movie-456';
       render(<PlayButton movieId={customMovieId} />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe(`/watch/${customMovieId}`);
+      expect(link.getAttribute('href')).toBe(`/watch/${customMovieId}?from=null`);
     });
 
     test('should handle different movieId values', () => {
@@ -77,7 +77,7 @@ describe('PlayButton Component', () => {
       movieIds.forEach((id) => {
         const { container } = render(<PlayButton movieId={id} />);
         const link = container.querySelector('a');
-        expect(link?.getAttribute('href')).toBe(`/watch/${id}`);
+        expect(link?.getAttribute('href')).toBe(`/watch/${id}?from=null`);
       });
     });
 
@@ -254,32 +254,32 @@ describe('PlayButton Component', () => {
     test('should handle movieId with numbers', () => {
       render(<PlayButton movieId="12345" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/12345');
+      expect(link.getAttribute('href')).toBe('/watch/12345?from=null');
     });
 
     test('should handle movieId with alphanumeric characters', () => {
       render(<PlayButton movieId="movie-abc123" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie-abc123');
+      expect(link.getAttribute('href')).toBe('/watch/movie-abc123?from=null');
     });
 
     test('should handle movieId with underscores', () => {
       render(<PlayButton movieId="my_movie_id" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/my_movie_id');
+      expect(link.getAttribute('href')).toBe('/watch/my_movie_id?from=null');
     });
 
     test('should handle long movieId', () => {
       const longId = 'a'.repeat(100);
       render(<PlayButton movieId={longId} />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe(`/watch/${longId}`);
+      expect(link.getAttribute('href')).toBe(`/watch/${longId}?from=null`);
     });
 
     test('should handle empty movieId', () => {
       render(<PlayButton movieId="" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/');
+      expect(link.getAttribute('href')).toBe('/watch/?from=null');
     });
   });
 
@@ -390,19 +390,19 @@ describe('PlayButton Component', () => {
     test('should handle special characters in movieId', () => {
       render(<PlayButton movieId="movie-@#$-123" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie-@#$-123');
+      expect(link.getAttribute('href')).toBe('/watch/movie-@#$-123?from=null');
     });
 
     test('should handle numeric string movieId', () => {
       render(<PlayButton movieId="0" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/0');
+      expect(link.getAttribute('href')).toBe('/watch/0?from=null');
     });
 
     test('should handle movieId with slashes', () => {
       render(<PlayButton movieId="movie/id" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie/id');
+      expect(link.getAttribute('href')).toBe('/watch/movie/id?from=null');
     });
 
     test('should render multiple instances independently', () => {
@@ -412,14 +412,14 @@ describe('PlayButton Component', () => {
       const link1 = container1.querySelector('a');
       const link2 = container2.querySelector('a');
 
-      expect(link1?.getAttribute('href')).toBe('/watch/movie1');
-      expect(link2?.getAttribute('href')).toBe('/watch/movie2');
+      expect(link1?.getAttribute('href')).toBe('/watch/movie1?from=null');
+      expect(link2?.getAttribute('href')).toBe('/watch/movie2?from=null');
     });
 
     test('should handle unicode characters in movieId', () => {
       render(<PlayButton movieId="movie-🎬" />);
       const link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie-🎬');
+      expect(link.getAttribute('href')).toBe('/watch/movie-🎬?from=null');
     });
   });
 
@@ -436,11 +436,11 @@ describe('PlayButton Component', () => {
     test('should handle prop updates', () => {
       const { rerender } = render(<PlayButton movieId="movie1" />);
       let link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie1');
+      expect(link.getAttribute('href')).toBe('/watch/movie1?from=null');
 
       rerender(<PlayButton movieId="movie2" />);
       link = screen.getByTestId('play-link');
-      expect(link.getAttribute('href')).toBe('/watch/movie2');
+      expect(link.getAttribute('href')).toBe('/watch/movie2?from=null');
     });
 
     test('should render consistently', () => {
