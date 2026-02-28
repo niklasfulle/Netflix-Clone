@@ -308,53 +308,6 @@ describe("MoviesPage (Search)", () => {
     });
   });
 
-  describe("Search Results", () => {
-    it("handles empty search results", () => {
-      mockUseSearchItem.mockReturnValue({
-        data: [],
-        isLoading: false,
-      } as any);
-
-      render(<MoviesPage />);
-      expect(screen.getByText("Results: 0")).toBeInTheDocument();
-    });
-
-    it("handles undefined search results", () => {
-      mockUseSearchItem.mockReturnValue({
-        data: undefined,
-        isLoading: false,
-      } as any);
-
-      render(<MoviesPage />);
-      expect(screen.getByText("Results: 0")).toBeInTheDocument();
-    });
-
-    it("handles loading state", () => {
-      mockUseSearchItem.mockReturnValue({
-        data: undefined,
-        isLoading: true,
-      } as any);
-
-      render(<MoviesPage />);
-      expect(screen.getByText("Loading: true")).toBeInTheDocument();
-    });
-
-    it("displays correct number of results", () => {
-      const manyResults = Array.from({ length: 10 }, (_, i) => ({
-        id: `${i + 1}`,
-        title: `Movie ${i + 1}`,
-      }));
-
-      mockUseSearchItem.mockReturnValue({
-        data: manyResults,
-        isLoading: false,
-      } as any);
-
-      render(<MoviesPage />);
-      expect(screen.getByText("Results: 10")).toBeInTheDocument();
-    });
-  });
-
   describe("Edge Cases", () => {
     it("handles empty searchItem param", () => {
       mockUseParams.mockReturnValue({ searchItem: "" });

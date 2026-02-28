@@ -25,7 +25,7 @@ const SearchList: React.FC<SearchListProps> = ({
       <div>
         <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
           {title}
-          <span className="pl-3 font-thin italic">{searchItem}</span>
+          <span className="pl-3 font-thin italic">{searchItem.replace(/%20/g, ' ')}</span>
         </p>
         <div className="grid grid-cols-2 gap-4 mt-4 lg:grid-cols-4 md:gap-4">
           {data.map((movie) => (

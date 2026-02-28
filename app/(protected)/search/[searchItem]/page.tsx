@@ -35,12 +35,20 @@ export default function MoviesPage() {
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <div className="pt-40 pb-40 min-h-screen">
-        <SearchList
-          title="Search Result for:"
-          data={results}
-          isLoading={isLoadingSearch}
-          searchItem={params.searchItem}
-        />
+        {isEmpty(results) && !isLoadingSearch ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <p className="text-white text-lg md:text-2xl">
+              No results found for "{params.searchItem.replace(/%20/g, ' ')}"
+            </p>
+          </div>
+        ) : (
+          <SearchList
+            title="Search Result for:"
+            data={results}
+            isLoading={isLoadingSearch}
+            searchItem={params.searchItem}
+          />
+        )}
       </div>
       <Footer />
     </>
