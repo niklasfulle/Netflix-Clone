@@ -15,10 +15,10 @@ Ein vollständig funktionierendes Netflix-ähnliches Streaming-Platform mit [Nex
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+, React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma ORM
+- **Frontend**: Next.js 16.1.6, React 19.2.3, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Prisma ORM 5.20.0
 - **Database**: PostgreSQL
-- **Authentication**: NextAuth.js
+- **Authentication**: NextAuth.js 5.0.0
 - **Testing**: Jest
 - **Deployment**: Docker, Ansible
 
@@ -74,12 +74,12 @@ npm test          # Tests ausführen
 
 ## Testing
 
-Das Projekt verfügt über **4.950 Unit Tests** mit umfassender Test-Coverage:
+Das Projekt verfügt über **9.525 Unit Tests** mit umfassender Test-Coverage:
 
 ### Test-Statistiken
-- **Gesamt Tests**: 4.950 ✅
-- **Test Suites**: 117 ✅
-- **Ausführungszeit**: ~30s
+- **Gesamt Tests**: 9.525 ✅
+- **Test Suites**: 196 ✅
+- **Ausführungszeit**: ~33s
 - **Alle Tests bestanden**: ✅ 100%
 
 ### Auth-Komponenten Test-Coverage
@@ -111,7 +111,7 @@ Das Projekt verfügt über **4.950 Unit Tests** mit umfassender Test-Coverage:
 ### Test-Commands
 
 ```bash
-npm test                    # Alle 4.950 Tests ausführen
+npm test                    # Alle 9.525 Tests ausführen
 npm run test:watch          # Tests im Watch-Modus
 npm run test:coverage       # Coverage-Report generieren (HTML + LCOV)
 ```
