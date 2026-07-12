@@ -90,6 +90,37 @@ const Watch = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ensure handlers are attached when the video element is mounted.
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let attached = false;
+
+    const tryAttach = () => {
+      const el = videoRef.current;
+      if (el) {
+        attachVolumeHandlers(el);
+        attached = true;
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryAttach()) {
+      interval = setInterval(() => {
+        if (tryAttach() && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }, 100);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      // detach listeners
+      attachVolumeHandlers(null);
+    };
+  }, []);
+
   if (!data) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-black">
@@ -142,37 +173,6 @@ const Watch = () => {
       </video>
     </div>
   );
-};
-
-  // Ensure handlers are attached when the video element is mounted.
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    let attached = false;
-
-    const tryAttach = () => {
-      const el = videoRef.current;
-      if (el) {
-        attachVolumeHandlers(el);
-        attached = true;
-        return true;
-      }
-      return false;
-    };
-
-    if (!tryAttach()) {
-      interval = setInterval(() => {
-        if (tryAttach() && interval) {
-          clearInterval(interval);
-          interval = null;
-        }
-      }, 100);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-      // detach listeners
-      attachVolumeHandlers(null);
-    };
-  }, []);
+  }
 
 export default Watch;
