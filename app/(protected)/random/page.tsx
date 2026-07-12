@@ -8,6 +8,55 @@ import useRandom from '@/hooks/useRandom';
 
 export default function RandomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const _prevVideoEl = useRef<HTMLVideoElement | null>(null);
+
+  const attachVolumeHandlers = (el: HTMLVideoElement | null) => {
+    // detach previous
+    if (_prevVideoEl.current && _prevVideoEl.current !== el) {
+      const old = _prevVideoEl.current as any;
+      const fn = old.__onVolumeChange;
+      if (fn) old.removeEventListener('volumechange', fn);
+      try {
+        delete old.__onVolumeChange;
+      } catch (e) {}
+    }
+
+    if (!el) {
+      _prevVideoEl.current = null;
+      videoRef.current = null;
+      return;
+    }
+
+    try {
+      const savedVolume = localStorage.getItem('videoVolume');
+      const savedMuted = localStorage.getItem('videoMuted');
+
+      if (savedVolume !== null) {
+        const vol = parseFloat(savedVolume);
+        if (!Number.isNaN(vol)) el.volume = Math.min(1, Math.max(0, vol));
+      }
+      if (savedMuted !== null) {
+        el.muted = savedMuted === 'true';
+      }
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
+    const onVolumeChange = () => {
+      try {
+        localStorage.setItem('videoVolume', String(el.volume));
+        localStorage.setItem('videoMuted', String(el.muted));
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    el.addEventListener('volumechange', onVolumeChange);
+    (el as any).__onVolumeChange = onVolumeChange;
+
+    _prevVideoEl.current = el;
+    videoRef.current = el;
+  };
   const router = useRouter();
   const { data: movie } = useRandom();
 
@@ -44,7 +93,7 @@ export default function RandomPage() {
           autoPlay
           controls
           className="w-full h-full"
-          ref={videoRef}
+          ref={attachVolumeHandlers}
           poster={movie.thumbnailUrl}
           onTimeUpdate={() => {
             // Auto-save alle 10 Sekunden
