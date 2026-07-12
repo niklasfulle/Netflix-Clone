@@ -220,6 +220,7 @@ describe("ChangelogPage", () => {
     it("displays all version numbers", () => {
       render(<ChangelogPage />);
       const versionNumbers = [
+        "1.7.4",
         "1.7.3",
         "1.7.2",
         "1.7.1",
@@ -295,11 +296,11 @@ describe("ChangelogPage", () => {
   });
 
   describe("Individual Version Details", () => {
-    it("version 1.7.3 is first in changelog", () => {
+    it("version 1.7.4 is first in changelog", () => {
       render(<ChangelogPage />);
-      screen.getByText("Version 1.7.3");
+      screen.getByText("Version 1.7.4");
       const allVersions = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersions[0]).toHaveTextContent("Version 1.7.3");
+      expect(allVersions[0]).toHaveTextContent("Version 1.7.4");
     });
 
     it("version 1.0.0 is last in changelog", () => {

@@ -3,6 +3,13 @@ import Navbar from '@/components/Navbar';
 
 const changelog = [
   {
+    version: '1.7.4',
+    changes: [
+      'Volume and mute settings are now saved in localStorage and restored on page load',
+      'Updated dependencies for improved performance and security'
+    ],
+  },
+  {
     version: '1.7.3',
     changes: [
       'Bug fixes for back navigation'
