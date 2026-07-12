@@ -155,7 +155,7 @@ describe("ChangelogPage", () => {
     it("displays version text with correct formatting", () => {
       render(<ChangelogPage />);
       const versionElements = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(versionElements.length).toBe(15);
+      expect(versionElements.length).toBe(16);
     });
 
     it("version text has correct styling", () => {
@@ -382,7 +382,7 @@ describe("ChangelogPage", () => {
     it("handles changelog with all entries present", () => {
       render(<ChangelogPage />);
       const allVersionText = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersionText).toHaveLength(15);
+      expect(allVersionText).toHaveLength(16);
     });
 
     it("renders correctly with various text lengths", () => {

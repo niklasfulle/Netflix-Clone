@@ -128,7 +128,7 @@ const Watch = () => {
         autoPlay
         controls
         className="w-full h-full"
-        ref={attachVolumeHandlers}
+        ref={videoRef}
         poster={data.thumbnailUrl}
         onTimeUpdate={() => {
           // Auto-save alle 10 Sekunden
@@ -143,5 +143,36 @@ const Watch = () => {
     </div>
   );
 };
+
+  // Ensure handlers are attached when the video element is mounted.
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let attached = false;
+
+    const tryAttach = () => {
+      const el = videoRef.current;
+      if (el) {
+        attachVolumeHandlers(el);
+        attached = true;
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryAttach()) {
+      interval = setInterval(() => {
+        if (tryAttach() && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }, 100);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      // detach listeners
+      attachVolumeHandlers(null);
+    };
+  }, []);
 
 export default Watch;
