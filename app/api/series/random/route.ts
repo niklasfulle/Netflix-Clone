@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
     
     if (allSeries.length === 0) {
       logBackendAction('api_series_random_route_no_series', { userId: user.id }, 'info');
-      db.$disconnect();
       return Response.json([], { status: 200 });
     }
 
@@ -61,8 +60,6 @@ export async function GET(req: NextRequest) {
       ...serie,
       createdAt: serie.createdAt?.toISOString?.() ?? serie.createdAt,
     }));
-
-    db.$disconnect();
     logBackendAction('api_series_random_route_success', { 
       userId: user.id, 
       profilId: profil.id, 

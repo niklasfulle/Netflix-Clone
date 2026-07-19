@@ -3,6 +3,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Footer from '../Footer';
+import { APP_VERSION } from '@/lib/version';
 
 // Mock next/link
 jest.mock('next/link', () => {
@@ -48,7 +49,7 @@ describe('Footer', () => {
     test('should render exactly the right content', () => {
       render(<Footer />);
       expect(screen.getByText(/Niklas Fulle/)).toBeInTheDocument();
-      expect(screen.getByText(/1.7.4/)).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
     });
   });
 
@@ -190,7 +191,7 @@ describe('Footer', () => {
 
     test('should display correct version number', () => {
       render(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
     });
 
     test('should have zinc-400 text color for label', () => {
@@ -201,7 +202,7 @@ describe('Footer', () => {
 
     test('should have zinc-200 color for version number', () => {
       render(<Footer />);
-      const versionNum = screen.getByText('1.7.4');
+      const versionNum = screen.getByText(APP_VERSION);
       expect(versionNum.className).toMatch(/text-zinc-200/);
     });
 
@@ -296,7 +297,7 @@ describe('Footer', () => {
       expect(screen.getByText(/©/)).toBeInTheDocument();
       expect(screen.getByText('Niklas Fulle')).toBeInTheDocument();
       expect(screen.getByText('Version:')).toBeInTheDocument();
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
       expect(screen.getByText('Change Log')).toBeInTheDocument();
     });
   });
@@ -332,9 +333,9 @@ describe('Footer', () => {
   });
 
   describe('Version Display', () => {
-    test('should display version 1.7.4', () => {
+    test('should display the application version', () => {
       render(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
     });
 
     test('should have version label before number', () => {
@@ -345,9 +346,9 @@ describe('Footer', () => {
 
     test('should be static version not dynamic', () => {
       const { rerender } = render(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
       rerender(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
     });
   });
 
@@ -443,7 +444,7 @@ describe('Footer', () => {
 
     test('should have light text for emphasis', () => {
       render(<Footer />);
-      const lightTexts = [screen.getByText('Niklas Fulle'), screen.getByText('1.7.4')];
+      const lightTexts = [screen.getByText('Niklas Fulle'), screen.getByText(APP_VERSION)];
       lightTexts.forEach(element => {
         expect(element.className).toMatch(/text-zinc-200/);
       });
@@ -484,7 +485,7 @@ describe('Footer', () => {
         screen.getByText(/Copyright/),
         screen.getByText('Niklas Fulle'),
         screen.getByText(/Version:/),
-        screen.getByText('1.7.4'),
+        screen.getByText(APP_VERSION),
         screen.getByText('Change Log'),
       ];
       textElements.forEach(element => {
@@ -536,7 +537,7 @@ describe('Footer', () => {
       expect(screen.getByText(/©/)).toBeInTheDocument();
       expect(screen.getByText(new RegExp(currentYear.toString()))).toBeInTheDocument();
       expect(screen.getByText('Niklas Fulle')).toBeInTheDocument();
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
       expect(screen.getByText('Change Log')).toBeInTheDocument();
     });
 
@@ -568,10 +569,10 @@ describe('Footer', () => {
 
     test('should maintain state across rerenders', () => {
       const { rerender } = render(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
 
       rerender(<Footer />);
-      expect(screen.getByText('1.7.4')).toBeInTheDocument();
+      expect(screen.getByText(APP_VERSION)).toBeInTheDocument();
     });
 
     test('should handle year rollover correctly', () => {

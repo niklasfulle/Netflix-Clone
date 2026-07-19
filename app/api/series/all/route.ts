@@ -1,9 +1,14 @@
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const user = await currentUser()
     if (!user) {
@@ -30,7 +35,6 @@ export async function GET() {
       ...s,
       views: viewMap.get(s.id) || 0,
     }));
-    db.$disconnect();
     return Response.json(seriesWithViews, { status: 200 });
   } catch (error) {
     console.log(error);

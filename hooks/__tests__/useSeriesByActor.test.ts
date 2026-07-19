@@ -25,7 +25,23 @@ describe('useSeriesByActor', () => {
 
     expect(result.current.data).toEqual(mockSeries);
     expect(useSWR).toHaveBeenCalledWith(
-      '/api/series/seriesByActor/Actor 1',
+      '/api/series/seriesByActor/Actor%201',
+      expect.any(Function),
+      expect.any(Object)
+    );
+  });
+
+  it('encodes actor names that contain URL control characters', () => {
+    (useSWR as jest.Mock).mockReturnValue({
+      data: [],
+      error: undefined,
+      isLoading: false,
+    });
+
+    renderHook(() => useSeriesByActor('AC/DC #1'));
+
+    expect(useSWR).toHaveBeenCalledWith(
+      '/api/series/seriesByActor/AC%2FDC%20%231',
       expect.any(Function),
       expect.any(Object)
     );

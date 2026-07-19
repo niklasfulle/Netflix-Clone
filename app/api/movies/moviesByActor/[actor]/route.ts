@@ -1,6 +1,5 @@
 import { logBackendAction } from '@/lib/logger';
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getMoviesByActor,
@@ -26,8 +25,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       user.id,
       profil.id
     );
-
-    db.$disconnect();
     logBackendAction('api_movies_moviesByActor_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
     return Response.json(responseMovies, { status: 200 });
   } catch (error) {

@@ -66,8 +66,6 @@ export async function GET() {
 
       playlistsWithEntries.push(playlistWithEntries)
     }
-
-    db.$disconnect()
     return Response.json(playlistsWithEntries, { status: 200 })
   } catch (error) {
     console.log(error)

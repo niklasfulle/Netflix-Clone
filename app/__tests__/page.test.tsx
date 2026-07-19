@@ -7,6 +7,7 @@ import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
+import useContinueWatching from '@/hooks/useContinueWatching';
 
 // Mock alle Komponenten
 jest.mock('@/components/Billboard', () => {
@@ -64,6 +65,9 @@ jest.mock('@/hooks/playlists/usePlaylists');
 jest.mock('@/hooks/series/useRandomSeriesList');
 jest.mock('@/hooks/useFavorites');
 jest.mock('@/hooks/useInfoModal');
+jest.mock('@/hooks/useContinueWatching', () =>
+  jest.fn(() => ({ data: [], isLoading: false }))
+);
 
 const mockUseRandomMovieList = useRandomMovieList as jest.MockedFunction<typeof useRandomMovieList>;
 const mockUseNewMovieList = useNewMovieList as jest.MockedFunction<typeof useNewMovieList>;
@@ -71,6 +75,9 @@ const mockUsePlaylists = usePlaylists as jest.MockedFunction<typeof usePlaylists
 const mockUseRandomSeriesList = useRandomSeriesList as jest.MockedFunction<typeof useRandomSeriesList>;
 const mockUseFavorites = useFavorites as jest.MockedFunction<typeof useFavorites>;
 const mockUseInfoModal = useInfoModal as jest.MockedFunction<typeof useInfoModal>;
+const mockUseContinueWatching = useContinueWatching as jest.MockedFunction<
+  typeof useContinueWatching
+>;
 
 describe('Home Page (page.tsx)', () => {
   beforeEach(() => {
@@ -130,6 +137,14 @@ describe('Home Page (page.tsx)', () => {
       expect(screen.getByTestId('row-Movies')).toBeInTheDocument();
       expect(screen.getByTestId('row-Series')).toBeInTheDocument();
       expect(screen.getByTestId('row-Favorites')).toBeInTheDocument();
+    });
+
+    it('should render Continue Watching like the New movie grid', () => {
+      render(<Home />);
+
+      expect(
+        screen.getByTestId('movie-list-Continue Watching')
+      ).toBeInTheDocument();
     });
   });
 
@@ -194,6 +209,12 @@ describe('Home Page (page.tsx)', () => {
       render(<Home />);
 
       expect(mockUsePlaylists).toHaveBeenCalled();
+    });
+
+    it('should call useContinueWatching hook', () => {
+      render(<Home />);
+
+      expect(mockUseContinueWatching).toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,10 @@ function compareLocale(a: string, b: string) {
 }
 
 export async function GET() {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // Movies/Series count by month, total views
   const movies = await db.movie.findMany({
     select: { id: true, type: true, createdAt: true },

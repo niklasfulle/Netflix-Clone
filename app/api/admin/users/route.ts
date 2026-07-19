@@ -1,8 +1,13 @@
 import { logBackendAction } from '@/lib/logger';
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isCurrentUserAdmin } from "@/lib/admin-auth";
 
 export async function GET() {
+  if (!(await isCurrentUserAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const users = await db.user.findMany({
       select: {
@@ -10,6 +15,7 @@ export async function GET() {
         name: true,
         email: true,
         role: true,
+        isBlocked: true,
         createdAt: true,
         profil: {
           select: {
@@ -24,10 +30,8 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    // Fallback für isBlocked falls nicht im Schema
     const usersWithBlocked = users.map((user) => ({
       ...user,
-      isBlocked: false, 
       profiles: user.profil,
       profil: undefined,
     }));

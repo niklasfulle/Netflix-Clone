@@ -6,8 +6,6 @@ export const dynamic = "force-dynamic"
 export async function GET() {
   try {
     const profilImgs = await db.profilImg.findMany()
-    db.$disconnect()
-
     logBackendAction('api_profilimg_route_success', {}, 'info');
     return Response.json(profilImgs, { status: 200 })
   } catch (error) {

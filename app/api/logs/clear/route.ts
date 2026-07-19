@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
+import { isCurrentUserAdmin } from "@/lib/admin-auth";
 
 export async function POST() {
+  if (!(await isCurrentUserAdmin())) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const logsDir = path.join(process.cwd(), "logs");
     if (fs.existsSync(logsDir)) {

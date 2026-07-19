@@ -1,6 +1,6 @@
 services:
   app:
-    image: salkin263/netflix-clone:1.7.2
+    image: salkin263/netflix-clone:${APP_VERSION:-latest}
     container_name: netflix-clone
     ports:
       - "3000:3000"

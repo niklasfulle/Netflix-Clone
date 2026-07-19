@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import fetcher from '@/lib/fetcher';
 
-const getUser = () => {
+const useUser = () => {
   const { data, error, isLoading } = useSWR("/api/auth/session", fetcher, {
     revalidateIfStale: true,
     revalidateOnFocus: true,
@@ -17,4 +17,4 @@ const getUser = () => {
   }
 }
 
-export default getUser
+export default useUser

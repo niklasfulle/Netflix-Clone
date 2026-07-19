@@ -24,6 +24,12 @@ jest.mock("@/hooks/useRandom");
 jest.mock("@/actions/watch/update-watch-time", () => ({
   updateWatchTime: jest.fn(),
 }));
+jest.mock("@/actions/watch/add-movie-view", () => ({
+  addMovieView: jest.fn(),
+}));
+jest.mock("@/actions/watch/add-to-watchlist", () => ({
+  addToWatchlist: jest.fn(),
+}));
 
 // Import after mocks
 import RandomPage from "../page";

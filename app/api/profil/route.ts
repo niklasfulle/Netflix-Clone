@@ -21,8 +21,6 @@ export async function GET() {
         createdAt: "asc"
       }
     })
-
-    db.$disconnect()
     logBackendAction('api_profil_route_success', { userId: user.id }, 'info');
     return Response.json(profiles, { status: 200 })
   } catch (error) {

@@ -7,10 +7,12 @@ import { updateWatchTime } from "@/actions/watch/update-watch-time";
 import { addMovieView } from "@/actions/watch/add-movie-view";
 import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
 import usePlaylist from "@/hooks/playlists/usePlaylist";
+import { getWatchProgressSaveSecond } from "@/lib/watch-progress-save";
 
 const Watch = () => {
   const playlistId = useParams<{ playlistId: string }>().playlistId;
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastSavedSecondRef = useRef(-1);
   const router = useRouter();
   const { data: playlist } = usePlaylist(playlistId);
   const [currentMovie, setCurrentMovie] = useState<number>(0);
@@ -27,6 +29,7 @@ const Watch = () => {
     if (!playlist?.movies) return;
     const newIndex = currentMovie + dir;
     if (newIndex >= 0 && newIndex < playlist.movies.length) {
+      setMovieWatchTime();
       setCurrentMovie(newIndex);
     }
   };
@@ -34,6 +37,7 @@ const Watch = () => {
   React.useEffect(() => {
     const movieId = playlist?.movies?.[currentMovie]?.id;
     if (movieId) {
+      lastSavedSecondRef.current = -1;
       addMovieView({ movieId });
       addToWatchlist({ movieId });
     }
@@ -49,7 +53,7 @@ const Watch = () => {
 
   return (
     <div className="w-screen h-screen bg-black relative">
-      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-8 p-4 bg-black bg-opacity-70">
+      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-3 sm:gap-8 p-4 bg-black bg-opacity-70">
         <FaArrowLeft
           className="text-white cursor-pointer"
           size={40}
@@ -58,9 +62,14 @@ const Watch = () => {
             router.push("/playlists");
           }}
         />
-        <p className="font-bold text-white text-xl xl:text-3xl flex flex-row">
-          <span className="pr-3 font-light">Watching: </span>
-          {current?.title}
+        <p className="player-title-marquee font-bold text-white text-xl xl:text-3xl">
+          <span
+            className="player-title-marquee-track"
+            data-title={`Watching: ${current?.title ?? ""}`}
+          >
+            <span className="pr-3 font-light">Watching: </span>
+            {current?.title}
+          </span>
         </p>
       </nav>
       {hasMultiple && currentMovie === 0 && (
@@ -132,8 +141,13 @@ const Watch = () => {
           ref={videoRef}
           poster={current.thumbnailUrl}
           onTimeUpdate={() => {
-            // Auto-save alle 10 Sekunden
-            if (videoRef.current && Math.floor(videoRef.current.currentTime) % 10 === 0) {
+            if (!videoRef.current) return;
+            const saveSecond = getWatchProgressSaveSecond(
+              videoRef.current.currentTime,
+              lastSavedSecondRef.current,
+            );
+            if (saveSecond !== null) {
+              lastSavedSecondRef.current = saveSecond;
               setMovieWatchTime();
             }
           }}

@@ -25,7 +25,23 @@ describe('useMoviesByActor', () => {
 
     expect(result.current.data).toEqual(mockMovies);
     expect(useSWR).toHaveBeenCalledWith(
-      '/api/movies/moviesByActor/Tom Cruise',
+      '/api/movies/moviesByActor/Tom%20Cruise',
+      expect.any(Function),
+      expect.any(Object)
+    );
+  });
+
+  it('encodes actor names that contain URL control characters', () => {
+    (useSWR as jest.Mock).mockReturnValue({
+      data: [],
+      error: undefined,
+      isLoading: false,
+    });
+
+    renderHook(() => useMoviesByActor('AC/DC #1'));
+
+    expect(useSWR).toHaveBeenCalledWith(
+      '/api/movies/moviesByActor/AC%2FDC%20%231',
       expect.any(Function),
       expect.any(Object)
     );

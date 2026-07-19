@@ -56,7 +56,6 @@ export async function GET() {
         ...(time ? { watchTime: time.time } : {}),
       };
     });
-    db.$disconnect()
     return Response.json(responseSeries, { status: 200 })
   } catch (error) {
     console.log(error)

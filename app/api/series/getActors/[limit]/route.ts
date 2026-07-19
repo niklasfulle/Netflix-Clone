@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getActorsWithPagination,
@@ -23,8 +22,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     if (error) return error;
 
     const actorArray = await getActorsWithPagination('Serie', start, limitNum);
-
-    db.$disconnect();
     return Response.json(actorArray, { status: 200 });
   } catch (error) {
     return handleApiError(error);

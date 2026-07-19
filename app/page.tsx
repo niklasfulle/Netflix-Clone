@@ -11,6 +11,7 @@ import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
+import useContinueWatching from '@/hooks/useContinueWatching';
 
 export default function Home() {
   const { isOpen, closeModal } = useInfoModal();
@@ -21,6 +22,10 @@ export default function Home() {
   const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
     useFavorites();
   const { data: playlists } = usePlaylists();
+  const {
+    data: continueWatching = [],
+    isLoading: isLoadingContinueWatching,
+  } = useContinueWatching();
 
   return (
     <>
@@ -28,6 +33,11 @@ export default function Home() {
       <Navbar />
       <Billboard />
       <div className="pb-12 min-h-screen">
+        <MovieList
+          title="Continue Watching"
+          data={continueWatching}
+          isLoading={isLoadingContinueWatching}
+        />
         <MovieList
           title="New"
           data={newMovies}

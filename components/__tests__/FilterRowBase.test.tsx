@@ -4,6 +4,19 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import FilterRowBase from '../FilterRowBase';
 import { Movie } from '@prisma/client';
+import { RANDOM_PLAYLIST_STORAGE_KEY } from '@/lib/random-playlist';
+import { toast } from 'react-hot-toast';
+
+const mockPush = jest.fn();
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/movies',
+  useRouter: () => ({ push: mockPush }),
+}));
+
+jest.mock('react-hot-toast', () => ({
+  toast: { error: jest.fn() },
+}));
 
 // Mock react-icons
 jest.mock('react-icons/fa', () => ({
@@ -17,6 +30,7 @@ jest.mock('react-icons/fa', () => ({
       Right
     </button>
   ),
+  FaRandom: (props: any) => <svg data-testid="shuffle-icon" {...props} />,
 }));
 
 // Mock Thumbnail component
@@ -35,8 +49,24 @@ jest.mock('lodash', () => ({
   isEmpty: (arr: any) => !arr || arr.length === 0,
 }));
 
-// Mock scrollTo on HTMLElement
-Element.prototype.scrollTo = jest.fn();
+// Give the carousel a deterministic, scrollable viewport in JSDOM.
+Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+  configurable: true,
+  get: () => 500,
+});
+Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+  configurable: true,
+  get: () => 1000,
+});
+Element.prototype.scrollTo = jest.fn(function (
+  this: HTMLElement,
+  options?: ScrollToOptions | number,
+  _y?: number
+) {
+  const left = typeof options === 'number' ? options : options?.left ?? 0;
+  this.scrollLeft = left;
+  this.dispatchEvent(new Event('scroll'));
+}) as typeof Element.prototype.scrollTo;
 
 const mockMovies: Movie[] = [
   {
@@ -75,6 +105,12 @@ const mockMovies: Movie[] = [
 ];
 
 describe('FilterRowBase', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+    (toast.error as jest.Mock).mockClear();
+    sessionStorage.clear();
+  });
+
   describe('Rendering', () => {
     test('should render without crashing', () => {
       render(
@@ -259,15 +295,124 @@ describe('FilterRowBase', () => {
     });
   });
 
+  describe('Random Playlist', () => {
+    test('should render a random play button when movies are available', () => {
+      render(
+        <FilterRowBase title="Test Actor" movies={mockMovies} isLoading={false} />
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Play Test Actor in random order' })
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('shuffle-icon')).toBeInTheDocument();
+    });
+
+    test('should keep the random play button above the swipe area with a mobile touch target', () => {
+      render(
+        <FilterRowBase title="Test Actor" movies={mockMovies} isLoading={false} />
+      );
+
+      const button = screen.getByRole('button', {
+        name: 'Play Test Actor in random order',
+      });
+      const header = screen.getByText('Test Actor').parentElement;
+
+      expect(header?.className).toMatch(/relative/);
+      expect(header?.className).toMatch(/z-30/);
+      expect(button.className).toMatch(/w-11/);
+      expect(button.className).toMatch(/h-11/);
+      expect(button.className).toMatch(/touch-manipulation/);
+      expect(screen.getByTestId('shuffle-icon').getAttribute('class')).toMatch(/pointer-events-none/);
+    });
+
+    test('should not render a random play button for an empty row', () => {
+      render(
+        <FilterRowBase title="Test Actor" movies={[]} isLoading={false} />
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Play Test Actor in random order' })
+      ).not.toBeInTheDocument();
+    });
+
+    test('should not render a random play button for a single video', () => {
+      render(
+        <FilterRowBase
+          title="Test Actor"
+          movies={[mockMovies[0]]}
+          isLoading={false}
+        />
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Play Test Actor in random order' })
+      ).not.toBeInTheDocument();
+    });
+
+    test('should store a shuffled temporary playlist and open its player', () => {
+      render(
+        <FilterRowBase title="Test Actor" movies={mockMovies} isLoading={false} />
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Play Test Actor in random order' })
+      );
+
+      const stored = JSON.parse(
+        sessionStorage.getItem(RANDOM_PLAYLIST_STORAGE_KEY) as string
+      );
+
+      expect(stored.title).toBe('Test Actor');
+      expect(stored.returnPath).toBe('/movies');
+      expect(stored.movies).toHaveLength(mockMovies.length);
+      expect(stored.movies.map((movie: Movie) => movie.id).sort()).toEqual(
+        mockMovies.map((movie) => movie.id).sort()
+      );
+      stored.movies.forEach((movie: Record<string, unknown>) => {
+        expect(Object.keys(movie).sort()).toEqual([
+          'id',
+          'thumbnailUrl',
+          'title',
+        ]);
+      });
+      expect(mockPush).toHaveBeenCalledWith('/watch/random');
+    });
+
+    test('should show an error and stay on the page when storage fails', () => {
+      const setItem = jest
+        .spyOn(Storage.prototype, 'setItem')
+        .mockImplementationOnce(() => {
+          throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+        });
+
+      try {
+        render(
+          <FilterRowBase title="Large Actor" movies={mockMovies} isLoading={false} />
+        );
+
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Play Large Actor in random order' })
+        );
+
+        expect(toast.error).toHaveBeenCalledWith(
+          'Playlist could not be started. Please try again.'
+        );
+        expect(mockPush).not.toHaveBeenCalled();
+      } finally {
+        setItem.mockRestore();
+      }
+    });
+  });
+
   describe('Chevron Buttons', () => {
-    test('should render left chevron button', () => {
+    test('should hide the left chevron at the starting position', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
+      expect(screen.queryByTestId('chevron-left')).not.toBeInTheDocument();
     });
 
-    test('should render right chevron button', () => {
+    test('should render the right chevron when more content is available', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
@@ -286,62 +431,44 @@ describe('FilterRowBase', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron.className).toMatch(/text-white/);
+      expect(screen.getByTestId('chevron-right').className).toMatch(/text-white/);
     });
 
     test('should be clickable', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron).toBeEnabled();
+      expect(screen.getByTestId('chevron-right')).toBeEnabled();
     });
   });
 
   describe('Left Chevron Button', () => {
-    test('should have hidden class initially', () => {
+    test('should appear after scrolling to the right', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron.className).toMatch(/hidden/);
+      fireEvent.click(screen.getByTestId('chevron-right'));
+
+      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
     });
 
-    test('should remove hidden class after scroll', () => {
+    test('should disappear again at the starting position', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      const rightChevron = screen.getByTestId('chevron-right');
+      fireEvent.click(screen.getByTestId('chevron-right'));
+      fireEvent.click(screen.getByTestId('chevron-left'));
 
-      fireEvent.click(rightChevron);
-
-      expect(leftChevron.className).not.toMatch(/hidden/);
-    });
-
-    test('should be clickable', () => {
-      render(
-        <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
-      );
-      const leftChevron = screen.getByTestId('chevron-left');
-      const rightChevron = screen.getByTestId('chevron-right');
-
-      fireEvent.click(rightChevron);
-      expect(() => {
-        fireEvent.click(leftChevron);
-      }).not.toThrow();
+      expect(screen.queryByTestId('chevron-left')).not.toBeInTheDocument();
+      expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
     });
 
     test('should call scrollTo on click', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      const rightChevron = screen.getByTestId('chevron-right');
-
-      fireEvent.click(rightChevron);
-      fireEvent.click(leftChevron);
+      fireEvent.click(screen.getByTestId('chevron-right'));
+      fireEvent.click(screen.getByTestId('chevron-left'));
 
       expect(Element.prototype.scrollTo).toHaveBeenCalled();
     });
@@ -367,18 +494,14 @@ describe('FilterRowBase', () => {
       }).not.toThrow();
     });
 
-    test('should trigger isMoved state change', () => {
+    test('should hide at the end of the row', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const rightChevron = screen.getByTestId('chevron-right');
-      const leftChevron = screen.getByTestId('chevron-left');
+      fireEvent.click(screen.getByTestId('chevron-right'));
 
-      expect(leftChevron.className).toMatch(/hidden/);
-
-      fireEvent.click(rightChevron);
-
-      expect(leftChevron.className).not.toMatch(/hidden/);
+      expect(screen.queryByTestId('chevron-right')).not.toBeInTheDocument();
+      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
     });
   });
 
@@ -417,7 +540,7 @@ describe('FilterRowBase', () => {
       const { container } = render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      expect(container.querySelector('svg')).not.toBeInTheDocument();
+      expect(container.querySelector('svg.animate-spin')).not.toBeInTheDocument();
     });
   });
 
@@ -499,12 +622,15 @@ describe('FilterRowBase', () => {
       expect(scrollContainer?.className).toMatch(/h-44/);
     });
 
-    test('should have overflow-x-hidden on scroll container', () => {
+    test('should allow native horizontal overflow on mobile', () => {
       const { container } = render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const scrollContainer = container.querySelector('[class*="overflow-x-hidden"]');
-      expect(scrollContainer?.className).toMatch(/overflow-x-hidden/);
+      const scrollContainer = container.querySelector('[class*="overflow-x-auto"]');
+      expect(scrollContainer?.className).toMatch(/overflow-x-auto/);
+      expect(scrollContainer?.className).toMatch(/touch-pan-x/);
+      expect(scrollContainer?.className).toMatch(/snap-x/);
+      expect(scrollContainer?.className).toMatch(/md:overflow-x-hidden/);
     });
   });
 
@@ -531,17 +657,16 @@ describe('FilterRowBase', () => {
       expect(Element.prototype.scrollTo).toHaveBeenCalled();
     });
 
-    test('should update isMoved on scroll', () => {
-      render(
+    test('should update arrows after native scrolling', () => {
+      const { container } = render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
+      const scrollContainer = container.querySelector('[class*="overflow-x-auto"]') as HTMLElement;
+      scrollContainer.scrollLeft = 250;
+      fireEvent.scroll(scrollContainer);
 
-      expect(leftChevron.className).toMatch(/hidden/);
-
-      fireEvent.click(screen.getByTestId('chevron-right'));
-
-      expect(leftChevron.className).not.toMatch(/hidden/);
+      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
+      expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
     });
   });
 
@@ -550,8 +675,7 @@ describe('FilterRowBase', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron.className).toMatch(/group-hover:opacity-100/);
+      expect(screen.getByTestId('chevron-right').className).toMatch(/group-hover:opacity-100/);
     });
 
     test('should have hover scale effect', () => {
@@ -566,16 +690,14 @@ describe('FilterRowBase', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron.className).toMatch(/transition/);
+      expect(screen.getByTestId('chevron-right').className).toMatch(/transition/);
     });
 
     test('should have initial opacity-0', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
-      expect(leftChevron.className).toMatch(/opacity-0/);
+      expect(screen.getByTestId('chevron-right').className).toMatch(/opacity-0/);
     });
   });
 
@@ -584,9 +706,7 @@ describe('FilterRowBase', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const leftChevron = screen.getByTestId('chevron-left');
       const rightChevron = screen.getByTestId('chevron-right');
-      expect(leftChevron.tagName).toBe('BUTTON');
       expect(rightChevron.tagName).toBe('BUTTON');
     });
 
@@ -621,7 +741,7 @@ describe('FilterRowBase', () => {
         <FilterRowBase title="All Movies" movies={mockMovies} isLoading={false} />
       );
       expect(screen.getByText('All Movies')).toBeInTheDocument();
-      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
+      expect(screen.queryByTestId('chevron-left')).not.toBeInTheDocument();
       expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
       mockMovies.forEach(movie => {
         expect(screen.getByTestId(`thumbnail-${movie.id}`)).toBeInTheDocument();
@@ -632,14 +752,13 @@ describe('FilterRowBase', () => {
       render(
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
-      const rightChevron = screen.getByTestId('chevron-right');
-      const leftChevron = screen.getByTestId('chevron-left');
+      fireEvent.click(screen.getByTestId('chevron-right'));
+      expect(screen.getByTestId('chevron-left')).toBeInTheDocument();
+      expect(screen.queryByTestId('chevron-right')).not.toBeInTheDocument();
 
-      fireEvent.click(rightChevron);
-      expect(leftChevron.className).not.toMatch(/hidden/);
-
-      fireEvent.click(leftChevron);
-      expect(leftChevron.className).not.toMatch(/hidden/);
+      fireEvent.click(screen.getByTestId('chevron-left'));
+      expect(screen.queryByTestId('chevron-left')).not.toBeInTheDocument();
+      expect(screen.getByTestId('chevron-right')).toBeInTheDocument();
     });
 
     test('should render correctly with different titles', () => {

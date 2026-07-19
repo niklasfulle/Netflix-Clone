@@ -1,4 +1,3 @@
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getMoviesWithWatchTime,
@@ -20,8 +19,6 @@ export async function GET() {
     );
 
     const responseMovies = transformMoviesResponse(movies, watchTime);
-
-    db.$disconnect();
     return Response.json(responseMovies, { status: 200 });
   } catch (error) {
     return handleApiError(error);

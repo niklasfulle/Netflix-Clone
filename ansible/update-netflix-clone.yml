@@ -8,15 +8,15 @@
     image_name: "netflix-clone"
   
   tasks:
-    - name: Read version from local version.txt
+    - name: Read version from local package.json
       delegate_to: localhost
       slurp:
-        src: "../version.txt"
-      register: version_file
+        src: "{{ playbook_dir }}/../package.json"
+      register: package_file
 
     - name: Set version variable
       set_fact:
-        app_version: "{{ (version_file.content | b64decode).strip() }}"
+        app_version: "{{ (package_file.content | b64decode | from_json).version }}"
 
     - name: Display version to update
       debug:
@@ -41,9 +41,19 @@
         state: absent
       ignore_errors: yes
 
+    - name: Remove old Netflix Clone images and dangling layers
+      shell: |
+        old_image_ids=$(docker image ls --quiet "{{ docker_registry }}/{{ image_name }}" | sort -u)
+        if [ -n "$old_image_ids" ]; then
+          docker image rm --force $old_image_ids
+        fi
+        docker image prune --force
+      args:
+        executable: /bin/bash
+
     - name: Pull new Docker image
       community.docker.docker_image:
-        name: "{{ docker_registry }}:{{ image_name }}:{{ app_version }}"
+        name: "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
         source: pull
         force_source: yes
 

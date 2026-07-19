@@ -1,6 +1,8 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import ChangelogPage from "../page";
+import { getChangelog } from "@/lib/changelog";
+import { APP_VERSION } from "@/lib/version";
 
 // Mock Navbar component
 jest.mock("@/components/Navbar", () => {
@@ -155,7 +157,7 @@ describe("ChangelogPage", () => {
     it("displays version text with correct formatting", () => {
       render(<ChangelogPage />);
       const versionElements = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(versionElements.length).toBe(16);
+      expect(versionElements).toHaveLength(getChangelog().length);
     });
 
     it("version text has correct styling", () => {
@@ -220,6 +222,7 @@ describe("ChangelogPage", () => {
     it("displays all version numbers", () => {
       render(<ChangelogPage />);
       const versionNumbers = [
+        APP_VERSION,
         "1.7.4",
         "1.7.3",
         "1.7.2",
@@ -296,11 +299,11 @@ describe("ChangelogPage", () => {
   });
 
   describe("Individual Version Details", () => {
-    it("version 1.7.4 is first in changelog", () => {
+    it("the application version is first in changelog", () => {
       render(<ChangelogPage />);
-      screen.getByText("Version 1.7.4");
+      screen.getByText(`Version ${APP_VERSION}`);
       const allVersions = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersions[0]).toHaveTextContent("Version 1.7.4");
+      expect(allVersions[0]).toHaveTextContent(`Version ${APP_VERSION}`);
     });
 
     it("version 1.0.0 is last in changelog", () => {
@@ -382,7 +385,7 @@ describe("ChangelogPage", () => {
     it("handles changelog with all entries present", () => {
       render(<ChangelogPage />);
       const allVersionText = screen.getAllByText(/Version \d+\.\d+(\.\d+)?/);
-      expect(allVersionText).toHaveLength(16);
+      expect(allVersionText).toHaveLength(getChangelog().length);
     });
 
     it("renders correctly with various text lengths", () => {

@@ -1,5 +1,4 @@
 import { logBackendAction } from '@/lib/logger';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getActorNamesForType,
@@ -14,8 +13,6 @@ export async function GET() {
     if (error) return error;
 
     const actorArray = await getActorNamesForType('Movie');
-
-    db.$disconnect();
     logBackendAction('api_movies_getActorsCount_success', { userId: user.id, profilId: profil.id, count: actorArray.length }, 'info');
     return Response.json(actorArray.length, { status: 200 });
   } catch (error) {

@@ -25,7 +25,6 @@ export async function GET(req: NextRequest) {
     
     if (allMovies.length === 0) {
       logBackendAction('api_movies_random_route_no_movies', { userId: user.id }, 'info');
-      db.$disconnect();
       return Response.json([], { status: 200 });
     }
 
@@ -61,8 +60,6 @@ export async function GET(req: NextRequest) {
       ...movie,
       createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
     }));
-
-    db.$disconnect();
     logBackendAction('api_movies_random_route_success', { 
       userId: user.id, 
       profilId: profil.id, 

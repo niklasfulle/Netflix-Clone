@@ -1,10 +1,27 @@
 # Docker Build and Ansible Deployment Script
 # This script builds the Docker image and deploys it to the LXC container
-# Usage: .\deploy.ps1 [--skip-docker]
+# Usage: .\deploy.ps1 [-SkipDocker] [-p "SSH password"]
 
 param(
-    [switch]$SkipDocker
+    [switch]$SkipDocker,
+    [Alias("p")]
+    [string]$Password = $env:NETFLIX_DEPLOY_PASSWORD
 )
+
+function ConvertTo-WslPath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$WindowsPath
+    )
+
+    $normalizedPath = $WindowsPath.Replace('\', '/')
+    if ($normalizedPath -notmatch '^([A-Za-z]):/(.*)$') {
+        throw "Cannot convert path to WSL format: $WindowsPath"
+    }
+
+    $drive = $Matches[1].ToLowerInvariant()
+    return "/mnt/$drive/$($Matches[2])"
+}
 
 # Check and load Ansible configuration
 if (-not (Test-Path "ansible\hosts")) {
@@ -14,9 +31,8 @@ if (-not (Test-Path "ansible\hosts")) {
     Pop-Location
 }
 
-# Read version from version.txt
-$version = Get-Content -Path "version.txt" -Raw
-$version = $version.Trim()
+# Read the canonical application version from package.json
+$version = (Get-Content -Path "package.json" -Raw | ConvertFrom-Json).version
 
 if (-not $SkipDocker) {
     # Check if Docker is running
@@ -185,19 +201,48 @@ if ($useWSL) {
         Write-Host "sshpass installed successfully" -ForegroundColor Green
     }
     
-    Write-Host "`nYou will be prompted for the SSH password for root@192.168.1.155" -ForegroundColor Yellow
-    Write-Host "Enter the root password when prompted.`n" -ForegroundColor Cyan
-    
-    # Run with password prompt and explicit SSH options
-    wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts update.yml --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
-} else {
-    ansible-playbook update.yml --ask-pass
 }
 
-$ansibleExitCode = $LASTEXITCODE
+$passwordFile = $null
 
-# Return to original directory
-Pop-Location
+try {
+    if ($Password) {
+        $passwordFile = Join-Path ([System.IO.Path]::GetTempPath()) ("netflix-deploy-{0}.json" -f [guid]::NewGuid())
+        $passwordJson = @{ ansible_password = $Password } | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText(
+            $passwordFile,
+            $passwordJson,
+            (New-Object System.Text.UTF8Encoding($false))
+        )
+        Write-Host "Using the password supplied via -p/-Password or NETFLIX_DEPLOY_PASSWORD." -ForegroundColor Green
+    }
+
+    if ($useWSL) {
+        if ($passwordFile) {
+            $wslPasswordFile = ConvertTo-WslPath -WindowsPath $passwordFile
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts update.yml --extra-vars '@$wslPasswordFile' --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+        } else {
+            Write-Host "`nYou will be prompted for the SSH password for root@192.168.1.155" -ForegroundColor Yellow
+            Write-Host "Enter the root password when prompted.`n" -ForegroundColor Cyan
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts update.yml --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+        }
+    } else {
+        if ($passwordFile) {
+            ansible-playbook update.yml --extra-vars "@$passwordFile"
+        } else {
+            ansible-playbook update.yml --ask-pass
+        }
+    }
+
+    $ansibleExitCode = $LASTEXITCODE
+} finally {
+    if ($passwordFile -and (Test-Path -LiteralPath $passwordFile)) {
+        Remove-Item -LiteralPath $passwordFile -Force
+    }
+
+    # Return to original directory
+    Pop-Location
+}
 
 if ($ansibleExitCode -ne 0) {
     Write-Host "`nAnsible deployment failed!" -ForegroundColor Red

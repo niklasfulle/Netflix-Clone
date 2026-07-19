@@ -1,118 +1,10 @@
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
-
-const changelog = [
-  {
-    version: '1.7.4',
-    changes: [
-      'Volume and mute settings are now saved in localStorage and restored on page load',
-      'Updated dependencies for improved performance and security'
-    ],
-  },
-  {
-    version: '1.7.3',
-    changes: [
-      'Bug fixes for back navigation'
-    ],
-  },
-  {
-    version: '1.7.2',
-    changes: [
-      'Bug fixes for footer layout',
-      'Bug fixes for search functionality',
-    ],
-  },
-  {
-    version: '1.7.1',
-    changes: [
-      'Bug fixes by random generated movies and series',
-    ],
-  },
-  {
-    version: '1.7',
-    changes: [
-      'Changelog introduced',
-      'Watch History page added',
-      'Bug fixes and minor improvements with Sonarqube analysis',
-    ],
-  },
-  {
-    version: '1.6.4',
-    changes: [
-      'Bug fixes and minor improvements',
-    ],
-  },
-  {
-    version: '1.6.3',
-    changes: [
-      'Bug fixes and minor improvements',
-    ],
-  },
-  {
-    version: '1.6.2',
-    changes: [
-      'Bug fixes and minor improvements',
-    ],
-  },
-  {
-    version: '1.6.1',
-    changes: [
-      'Bug fixes and minor improvements',
-    ],
-  },
-  {
-    version: '1.6.0',
-    changes: [
-      'Logging introduced for all backend activities',
-    ],
-  },
-  {
-    version: '1.5.0',
-    changes: [
-      'Admin page introduced',
-      '- User management',
-      '- Actor management',
-      '- Movie management',
-      '- Statistics',
-    ],
-  },
-  {
-    version: '1.4.0',
-    changes: [
-      'Backend rework',
-      '- Improved performance',
-      '- Video streaming introduced for faster loading times',
-    ],
-  },
-  {
-    version: '1.3.0',
-    changes: [
-      'Playlists introduced',
-      '- Create, edit, and delete playlists',
-      'Movies page updated',
-    ],
-  },
-  {
-    version: '1.2.0',
-    changes: [
-      'Random page added',
-    ],
-  },
-  {
-    version: '1.1.0',
-    changes: [
-      'Bug fixes and minor improvements',
-    ],
-  },
-  {
-    version: '1.0.0',
-    changes: [
-      'First release of the Netflix app',
-    ],
-  },
-];
+import { getChangelog } from '@/lib/changelog';
 
 export default function ChangelogPage() {
+  const changelog = getChangelog();
+
   return (
     <>
       <Navbar />
@@ -125,7 +17,7 @@ export default function ChangelogPage() {
                 <span className="text-xl font-semibold">Version {entry.version}</span>
               </div>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                {entry.changes.map((change, idx) => (
+                {entry.changes.map((change) => (
                   <li key={change}>{change}</li>
                 ))}
               </ul>

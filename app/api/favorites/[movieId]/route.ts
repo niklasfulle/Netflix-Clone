@@ -79,8 +79,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
         watchTime: timeObj ? timeObj.time : undefined,
       };
     });
-
-    db.$disconnect();
     logBackendAction('api_favorites_movieid_success', { userId: user.id, profilId: profil.id, movieId }, 'info');
     return Response.json(responseMovies, { status: 200 });
   } catch (error) {

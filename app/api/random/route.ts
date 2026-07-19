@@ -17,7 +17,6 @@ export async function GET() {
     
     if (movieCount === 0) {
       logBackendAction('api_random_route_no_movies_in_db', { userId: user.id }, 'error');
-      db.$disconnect();
       return Response.json(null, { status: 200 });
     }
     // Math.random() is safe here because this endpoint is not security-critical and does not expose sensitive data based on randomness.
@@ -38,8 +37,6 @@ export async function GET() {
         createdAt: true,
       },
     });
-
-    db.$disconnect()
     // Prüfe, ob ein Movie gefunden wurde
     if (!randomMovies[0]) {
       logBackendAction('api_random_route_no_movie', { userId: user.id }, 'error');

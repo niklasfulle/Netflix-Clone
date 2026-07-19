@@ -1,9 +1,14 @@
 
 import { db } from '@/lib/db';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+	if (!(await isCurrentUserAdmin())) {
+		return Response.json({ error: 'Forbidden' }, { status: 403 });
+	}
+
 	// Alle Actors alphabetisch sortiert, ohne Pagination
 	const actors = await db.actor.findMany({
 		orderBy: { name: 'asc' },

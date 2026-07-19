@@ -74,8 +74,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     } = { ...playlist, movies: movies };
 
     playlistsWithEntries = playlistWithEntries
-
-    db.$disconnect()
     return Response.json(playlistsWithEntries, { status: 200 })
   } catch (error) {
     console.log(error)

@@ -1,5 +1,4 @@
 import { currentUser } from '@/lib/auth';
-import { db } from '@/lib/db';
 import { getRandomMovie, handleApiError } from '@/lib/api-helpers';
 
 export const dynamic = "force-dynamic"
@@ -15,11 +14,8 @@ export async function GET() {
     const movie = await getRandomMovie('Movie');
 
     if (!movie) {
-      db.$disconnect();
       return Response.json(null, { status: 200 });
     }
-
-    db.$disconnect();
     const safeMovie = structuredClone(movie);
     return Response.json(safeMovie, { status: 200 });
   } catch (error) {

@@ -73,8 +73,6 @@ export async function GET(request: Request, { params }: RouteParams) {
     });
 
     const responseMovies = transformMoviesResponse(movies, watchTime);
-
-    db.$disconnect();
     logBackendAction(
       'api_search_route_success',
       {

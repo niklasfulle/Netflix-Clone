@@ -1,5 +1,4 @@
 import { logBackendAction } from '@/lib/logger';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getMoviesWithWatchTime,
@@ -21,8 +20,6 @@ export async function GET() {
     );
 
     const responseMovies = transformMoviesResponse(movies, watchTime);
-
-    db.$disconnect();
     logBackendAction('api_movies_route_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
     return Response.json(responseMovies, { status: 200 });
   } catch (error) {

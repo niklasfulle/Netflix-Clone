@@ -1,6 +1,5 @@
 import { logBackendAction } from '@/lib/logger';
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getActorsWithPagination,
@@ -24,8 +23,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     if (error) return error;
 
     const actorArray = await getActorsWithPagination('Movie', start, limitNum);
-
-    db.$disconnect();
     logBackendAction('api_movies_getActors_limit_success', { userId: user.id, profilId: profil.id, count: actorArray.length }, 'info');
     return Response.json(actorArray, { status: 200 });
   } catch (error) {

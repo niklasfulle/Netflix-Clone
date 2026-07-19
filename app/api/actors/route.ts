@@ -1,5 +1,10 @@
 import { logBackendAction } from '@/lib/logger';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 export async function DELETE(request: Request) {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) {
@@ -28,6 +33,10 @@ import { db } from '@/lib/db';
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // Pagination: ?page=1&pageSize=20
   const { searchParams } = new URL(request.url);
   const page = Number.parseInt(searchParams.get('page') || '1', 10);
@@ -80,6 +89,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { name } = await request.json();
   if (!name || typeof name !== 'string') {
     logBackendAction('api_actors_route_name_required', {}, 'error');

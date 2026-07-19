@@ -11,7 +11,7 @@ export async function cleanupTempFolders({
 }) {
   const now = Date.now();
   const maxAgeMs = maxAgeMinutes * 60 * 1000;
-  let deletedFiles: string[] = [];
+  const deletedFiles: string[] = [];
 
   for (const baseFolder of baseFolders) {
     const tempFolder = path.join(baseFolder, "temp");

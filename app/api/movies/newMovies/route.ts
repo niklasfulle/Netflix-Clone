@@ -78,8 +78,6 @@ export async function GET() {
       }
       return movieObj;
     });
-
-    db.$disconnect()
     logBackendAction('api_movies_newMovies_success', { userId: user.id, profilId: profil.id, count: moviesResponse.length }, 'info');
     return Response.json(moviesResponse, { status: 200 })
   } catch (error) {

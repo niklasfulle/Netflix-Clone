@@ -118,6 +118,12 @@ npm run test:coverage       # Coverage-Report generieren (HTML + LCOV)
 
 Coverage-Report: [coverage/lcov-report/index.html](coverage/lcov-report/index.html)
 
+## Versionierung und Changelog
+
+Die aktuelle Anwendungsversion wird ausschließlich im Feld `version` der `package.json` gesetzt. Anwendung, Build- und Deployment-Skripte lesen sie von dort.
+
+Release-Änderungen werden in `CHANGELOG.md` gepflegt. Der Eintrag `## [current]` wird auf der Changelog-Seite automatisch mit der aktuellen Anwendungsversion beschriftet.
+
 ### Neue Test-Suites (Januar 2026)
 
 Umfassende statische Analyse-Tests hinzugefügt für Auth-Komponenten:

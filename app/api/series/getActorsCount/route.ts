@@ -1,4 +1,3 @@
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getActorNamesForType,
@@ -13,8 +12,6 @@ export async function GET() {
     if (error) return error;
 
     const actorArray = await getActorNamesForType('Serie');
-
-    db.$disconnect();
     return Response.json(actorArray.length, { status: 200 });
   } catch (error) {
     return handleApiError(error);

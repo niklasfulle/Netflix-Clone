@@ -78,7 +78,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     if (movieWatchTime) {
       movieWithWatchTime.watchTime = movieWatchTime.time;
     }
-    db.$disconnect();
     logBackendAction('api_movies_movieid_success', { userId: user.id, movieId }, 'info');
     return Response.json(movieWithWatchTime, { status: 200 });
   } catch (error) {

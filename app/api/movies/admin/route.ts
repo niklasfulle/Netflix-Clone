@@ -1,10 +1,15 @@
 import { logBackendAction } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request) {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
@@ -38,7 +43,6 @@ export async function GET(request: Request) {
       ...m,
       views: viewMap.get(m.id) || 0,
     }));
-    db.$disconnect();
     logBackendAction('api_movies_admin_success', { userId: user.id, profilId: profil.id, count: moviesWithViews.length }, 'info');
     return Response.json({
       movies: moviesWithViews,

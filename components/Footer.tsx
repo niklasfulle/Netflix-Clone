@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { APP_VERSION } from "@/lib/version";
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const Footer = () => {
-  // Version und Jahr nur auf dem Client dynamisch setzen
-  const version = "1.7.4";
   const [year, setYear] = useState(2026);
 
   useEffect(() => {
@@ -20,11 +20,12 @@ const Footer = () => {
         </p>
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm text-center md:text-left">
-        Version: <span className="text-zinc-200">{version}</span>
+        Version: <span className="text-zinc-200">{APP_VERSION}</span>
       </div>
       <div className=" text-zinc-200 text-xs md:text-sm underline hover:text-zinc-400 text-center md:text-left">
         <Link href="/changelog">Change Log</Link>
       </div>
+      <LanguageSwitcher />
     </div>
   );
 };

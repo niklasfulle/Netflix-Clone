@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 const LOG_FILE_PATH = path.join(process.cwd(), 'logs', 'backend.log');
 
 export async function GET(req: NextRequest) {
+  if (!(await isCurrentUserAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(req.url);
   const page = Number.parseInt(searchParams.get('page') || '1', 10);
   const pageSize = Number.parseInt(searchParams.get('pageSize') || '20', 10);

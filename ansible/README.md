@@ -39,7 +39,7 @@ sudo apt install ansible
 
 ### Update durchführen
 
-Das Playbook liest automatisch die Version aus `version.txt` und aktualisiert den Container:
+Das Playbook liest automatisch die Version aus `package.json` und aktualisiert den Container:
 
 ```bash
 cd ansible
@@ -69,7 +69,7 @@ ansible-playbook update.yml -v
 
 ## Was passiert beim Update?
 
-1. Version wird aus `version.txt` gelesen (z.B. 1.7.2)
+1. Version wird aus `package.json` gelesen
 2. `docker-compose.yml` wird auf dem LXC Container aktualisiert
 3. Alter Container wird gestoppt und entfernt
 4. Neues Docker-Image wird gepullt

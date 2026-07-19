@@ -52,9 +52,8 @@ if (-not $dockerRunning) {
     }
 }
 
-# Read version from version.txt
-$version = Get-Content -Path "version.txt" -Raw
-$version = $version.Trim()
+# Read the canonical application version from package.json
+$version = (Get-Content -Path "package.json" -Raw | ConvertFrom-Json).version
 
 Write-Host "Building Docker image for version: $version" -ForegroundColor Green
 

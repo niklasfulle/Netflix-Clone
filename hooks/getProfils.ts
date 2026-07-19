@@ -2,7 +2,7 @@ import useSWR from 'swr';
 
 import fetcher from '@/lib/fetcher';
 
-const getProfils = () => {
+const useProfils = () => {
   const { data, error, isLoading } = useSWR("/api/profil", fetcher, {
     revalidateIfStale: true,
     revalidateOnFocus: true,
@@ -16,4 +16,4 @@ const getProfils = () => {
   }
 }
 
-export default getProfils
+export default useProfils

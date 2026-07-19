@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
 import {
   getUserAndProfile,
   getMoviesByActor,
@@ -25,8 +24,6 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       user.id,
       profil.id
     );
-
-    db.$disconnect();
     return Response.json(responseSeries, { status: 200 });
   } catch (error) {
     return handleApiError(error);

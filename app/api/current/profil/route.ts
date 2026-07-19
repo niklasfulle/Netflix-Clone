@@ -24,8 +24,6 @@ export async function GET() {
       logBackendAction('api_current_profil_no_profil', { userId: user.id }, 'error');
       return Response.json(null, { status: 404 })
     }
-
-    db.$disconnect()
     logBackendAction('api_current_profil_success', { userId: user.id, profilId: profil.id }, 'info');
     return Response.json(profil, { status: 200 })
   } catch (error) {

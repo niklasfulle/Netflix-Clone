@@ -1,8 +1,15 @@
 import { isEmpty } from 'lodash';
-import React, { useRef, useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FaChevronLeft, FaChevronRight, FaRandom } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 import Thumbnail from '@/components/Thumbnail';
+import {
+  RANDOM_PLAYLIST_STORAGE_KEY,
+  compactPlaylistMovies,
+  shuffleMovies,
+} from '@/lib/random-playlist';
 import { Movie } from '@prisma/client';
 
 interface FilterRowBaseProps {
@@ -12,55 +19,120 @@ interface FilterRowBaseProps {
 }
 
 const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading }) => {
-  const [isMoved, setIsMoved] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const handleClick = (direction: string) => {
-    setIsMoved(true);
+  const playRandom = () => {
+    if (movies.length < 2) return;
 
-    if (rowRef.current) {
-      const { scrollLeft, clientWidth } = rowRef.current;
+    try {
+      const compactMovies = compactPlaylistMovies(shuffleMovies(movies));
+      sessionStorage.setItem(
+        RANDOM_PLAYLIST_STORAGE_KEY,
+        JSON.stringify({
+          title,
+          movies: compactMovies,
+          returnPath: pathname,
+        })
+      );
+      router.push('/watch/random');
+    } catch {
+      toast.error('Playlist could not be started. Please try again.');
+    }
+  };
 
-      const scrollTo =
+  const updateScrollState = useCallback(() => {
+    const row = rowRef.current;
+    if (!row) return;
+
+    const maxScrollLeft = Math.max(0, row.scrollWidth - row.clientWidth);
+    setCanScrollLeft(row.scrollLeft > 1);
+    setCanScrollRight(row.scrollLeft < maxScrollLeft - 1);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    window.addEventListener('resize', updateScrollState);
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updateScrollState);
+
+    if (rowRef.current) resizeObserver?.observe(rowRef.current);
+
+    return () => {
+      window.removeEventListener('resize', updateScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [movies, updateScrollState]);
+
+  const handleClick = (direction: 'left' | 'right') => {
+    const row = rowRef.current;
+
+    if (row) {
+      const { scrollLeft, clientWidth, scrollWidth } = row;
+      const maxScrollLeft = Math.max(0, scrollWidth - clientWidth);
+
+      const nextScrollLeft =
         direction === "left"
-          ? scrollLeft - clientWidth
-          : scrollLeft + clientWidth;
+          ? Math.max(0, scrollLeft - clientWidth)
+          : Math.min(maxScrollLeft, scrollLeft + clientWidth);
 
-      rowRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
+      row.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
     }
   };
 
   return (
     <div className="h-auto px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12">
-      <p className="-mb-8 font-semibold text-white text-md md:text-xl lg:text-2xl ">
-        {title}
-      </p>
+      <div className="relative z-30 flex items-center gap-3 -mb-8">
+        <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
+          {title}
+        </p>
+        {movies.length >= 2 && (
+          <button
+            type="button"
+            onClick={playRandom}
+            className="flex items-center justify-center w-11 h-11 text-white transition-colors bg-transparent cursor-pointer touch-manipulation hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full"
+            aria-label={`Play ${title} in random order`}
+            title={`Play ${title} in random order`}
+          >
+            <FaRandom className="pointer-events-none" size={22} aria-hidden="true" />
+          </button>
+        )}
+      </div>
       {!isEmpty(movies) && (
         <div className="relative h-auto group">
-          <FaChevronLeft
-            size={30}
-            className={`text-white absolute top-0 bottom-0 left-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${
-              !isMoved && "hidden"
-            }`}
-            onClick={() => handleClick("left")}
-          />
+          {canScrollLeft && (
+            <FaChevronLeft
+              size={30}
+              className="hidden text-white absolute top-0 bottom-0 left-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 md:block"
+              onClick={() => handleClick("left")}
+            />
+          )}
           <div
             ref={rowRef}
-            className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
+            onScroll={updateScrollState}
+            className="flex items-center h-44 space-x-0.5 overflow-x-auto overscroll-x-contain touch-pan-x snap-x snap-mandatory md:space-x-2.5 md:overflow-x-hidden md:snap-none scrollbar-hide"
           >
             {movies.map((movie: Movie) => (
-              <Thumbnail
-                key={movie.id}
-                data={movie}
-                isLoading={isLoading}
-              />
+              <div key={movie.id} className="shrink-0 snap-start">
+                <Thumbnail
+                  data={movie}
+                  isLoading={isLoading}
+                />
+              </div>
             ))}
           </div>
-          <FaChevronRight
-            size={30}
-            className={`text-white absolute top-0 bottom-0 right-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100`}
-            onClick={() => handleClick("right")}
-          />
+          {canScrollRight && (
+            <FaChevronRight
+              size={30}
+              className="hidden text-white absolute top-0 bottom-0 right-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 md:block"
+              onClick={() => handleClick("right")}
+            />
+          )}
         </div>
       )}
       {isEmpty(movies) && (

@@ -264,9 +264,9 @@ describe("Watch Page Component", () => {
       expect(source).toContain("onTimeUpdate=");
     });
 
-    it("should check current time modulo 10", () => {
+    it("should use the deduplicating ten-second save helper", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/onTimeUpdate[\s\S]*?currentTime\) % 10 === 0/);
+      expect(source).toMatch(/onTimeUpdate[\s\S]*?getWatchProgressSaveSecond\(/);
     });
 
     it("should call setMovieWatchTime every 10 seconds", () => {
@@ -276,17 +276,17 @@ describe("Watch Page Component", () => {
 
     it("should check videoRef.current exists in onTimeUpdate", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/onTimeUpdate[\s\S]*?if \(videoRef\.current/);
+      expect(source).toMatch(/onTimeUpdate[\s\S]*?if \(!videoRef\.current\) return/);
     });
 
-    it("should use Math.floor for time comparison", () => {
+    it("should remember the last saved second", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/onTimeUpdate[\s\S]*?Math\.floor\(videoRef\.current\.currentTime\)/);
+      expect(source).toMatch(/onTimeUpdate[\s\S]*?lastSavedSecondRef\.current = saveSecond/);
     });
 
-    it("should have comment about auto-save every 10 seconds", () => {
+    it("should pass the current time to the save helper", () => {
       const source = getComponentSource();
-      expect(source).toContain("// Auto-save alle 10 Sekunden");
+      expect(source).toMatch(/getWatchProgressSaveSecond\([\s\S]*?videoRef\.current\.currentTime/);
     });
   });
 

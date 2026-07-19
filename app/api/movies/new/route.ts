@@ -56,8 +56,6 @@ export async function GET() {
         ...(time ? { watchTime: time.time } : {}),
       };
     });
-
-    db.$disconnect()
     logBackendAction('api_movies_new_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
     return Response.json(responseMovies, { status: 200 })
   } catch (error) {
