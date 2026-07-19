@@ -2,8 +2,10 @@ import './globals.css';
 import { Metadata } from 'next';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
+import { UserRole } from '@prisma/client';
 
 import { auth } from '@/auth';
+import DebugPanel from '@/components/DebugPanel';
 import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 export const metadata: Metadata = {
@@ -29,6 +31,7 @@ export default async function RootLayout({
           <LanguageProvider>
             {children}
           </LanguageProvider>
+          <DebugPanel adminAllowed={session?.user?.role === UserRole.ADMIN} />
           <Toaster position="bottom-right" gutter={5} />
         </body>
       </html>

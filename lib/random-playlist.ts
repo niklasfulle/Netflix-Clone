@@ -2,10 +2,8 @@ import type { Movie } from '@prisma/client';
 
 export const RANDOM_PLAYLIST_STORAGE_KEY = 'randomActorPlaylist';
 
-export type RandomPlaylistMovie = Pick<
-  Movie,
-  'id' | 'title' | 'thumbnailUrl'
->;
+export type RandomPlaylistMovie = Pick<Movie, 'id' | 'title'> &
+  Partial<Pick<Movie, 'thumbnailUrl'>>;
 
 export interface RandomPlaylist {
   title: string;
@@ -16,11 +14,18 @@ export interface RandomPlaylist {
 export function compactPlaylistMovies(
   movies: Movie[]
 ): RandomPlaylistMovie[] {
-  return movies.map(({ id, title, thumbnailUrl }) => ({
-    id,
-    title,
-    thumbnailUrl,
-  }));
+  return movies.map(({ id, title, thumbnailUrl }) => {
+    const canStoreThumbnail =
+      Boolean(thumbnailUrl) &&
+      thumbnailUrl.length <= 2048 &&
+      !/^(?:data|blob):/i.test(thumbnailUrl);
+
+    return {
+      id,
+      title,
+      ...(canStoreThumbnail ? { thumbnailUrl } : {}),
+    };
+  });
 }
 
 export function shuffleMovies(movies: Movie[]): Movie[] {

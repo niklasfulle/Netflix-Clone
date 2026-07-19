@@ -12,6 +12,7 @@ import {
 } from "@/lib/random-playlist";
 import type { RandomPlaylist } from "@/lib/random-playlist";
 import { getWatchProgressSaveSecond } from "@/lib/watch-progress-save";
+import { recordDebug } from "@/lib/debug";
 
 const RandomWatch = () => {
   const router = useRouter();
@@ -24,11 +25,28 @@ const RandomWatch = () => {
   useEffect(() => {
     try {
       const storedPlaylist = sessionStorage.getItem(RANDOM_PLAYLIST_STORAGE_KEY);
+      recordDebug("player_storage_read", {
+        stored: storedPlaylist !== null,
+        characters: storedPlaylist?.length ?? 0,
+      });
       if (storedPlaylist) {
-        setPlaylist(JSON.parse(storedPlaylist));
+        const parsedPlaylist = JSON.parse(storedPlaylist) as RandomPlaylist;
+        recordDebug("player_playlist_parsed", {
+          title: parsedPlaylist.title,
+          movieCount: parsedPlaylist.movies?.length ?? 0,
+        });
+        setPlaylist(parsedPlaylist);
       }
-    } catch {
-      sessionStorage.removeItem(RANDOM_PLAYLIST_STORAGE_KEY);
+    } catch (error) {
+      recordDebug("player_playlist_error", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      try {
+        sessionStorage.removeItem(RANDOM_PLAYLIST_STORAGE_KEY);
+      } catch {
+        recordDebug("player_storage_cleanup_failed");
+      }
     } finally {
       setIsLoaded(true);
     }

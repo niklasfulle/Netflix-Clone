@@ -4,6 +4,15 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- Actor playlists omit embedded thumbnails to stay within Safari session storage limits
+- Administrators can enable global on-device diagnostics with `?debug=1` to trace errors, requests, navigation, network status, and UI interactions
+
+## 1.8.3
+
+- Optional on-device playlist diagnostics can trace Safari touch, storage, and navigation failures
+
+## 1.8.2
+
 - Admin pages and administration APIs now enforce the administrator role without redirecting valid admins to profile selection
 - User blocking now uses a valid API route and displays the persisted blocked state
 - Player progress autosave no longer sends duplicate updates at ten-second boundaries

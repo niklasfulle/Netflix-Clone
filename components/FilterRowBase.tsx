@@ -11,6 +11,11 @@ import {
   shuffleMovies,
 } from '@/lib/random-playlist';
 import { Movie } from '@prisma/client';
+import {
+  DEBUG_QUERY,
+  isDebugEnabled,
+  recordDebug,
+} from '@/lib/debug';
 
 interface FilterRowBaseProps {
   title: string;
@@ -26,20 +31,46 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
   const router = useRouter();
 
   const playRandom = () => {
-    if (movies.length < 2) return;
+    recordDebug('playlist_click_received', { title, movieCount: movies.length });
+
+    if (movies.length < 2) {
+      recordDebug('playlist_rejected', { reason: 'fewer_than_two_videos' });
+      return;
+    }
 
     try {
       const compactMovies = compactPlaylistMovies(shuffleMovies(movies));
+      const serializedPlaylist = JSON.stringify({
+        title,
+        movies: compactMovies,
+        returnPath: isDebugEnabled()
+          ? `${pathname}?${DEBUG_QUERY}`
+          : pathname,
+      });
+      recordDebug('playlist_serialized', {
+        movieCount: compactMovies.length,
+        characters: serializedPlaylist.length,
+      });
+      sessionStorage.removeItem(RANDOM_PLAYLIST_STORAGE_KEY);
       sessionStorage.setItem(
         RANDOM_PLAYLIST_STORAGE_KEY,
-        JSON.stringify({
-          title,
-          movies: compactMovies,
-          returnPath: pathname,
-        })
+        serializedPlaylist,
       );
-      router.push('/watch/random');
-    } catch {
+      const storedPlaylist = sessionStorage.getItem(RANDOM_PLAYLIST_STORAGE_KEY);
+      recordDebug('playlist_storage_verified', {
+        stored: storedPlaylist !== null,
+        characters: storedPlaylist?.length ?? 0,
+      });
+      const target = isDebugEnabled()
+        ? `/watch/random?${DEBUG_QUERY}`
+        : '/watch/random';
+      recordDebug('playlist_navigation_started', { target });
+      router.push(target);
+    } catch (error) {
+      recordDebug('playlist_error', {
+        name: error instanceof Error ? error.name : 'UnknownError',
+        message: error instanceof Error ? error.message : String(error),
+      });
       toast.error('Playlist could not be started. Please try again.');
     }
   };
@@ -94,6 +125,8 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
         {movies.length >= 2 && (
           <button
             type="button"
+            onPointerDown={() => recordDebug('playlist_pointer_down', { title })}
+            onTouchStart={() => recordDebug('playlist_touch_start', { title })}
             onClick={playRandom}
             className="flex items-center justify-center w-11 h-11 text-white transition-colors bg-transparent cursor-pointer touch-manipulation hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full"
             aria-label={`Play ${title} in random order`}

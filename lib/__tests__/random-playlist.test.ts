@@ -43,4 +43,30 @@ describe('shuffleMovies', () => {
       },
     ]);
   });
+
+  test('omits embedded thumbnails that can exceed Safari storage quotas', () => {
+    const moviesWithEmbeddedThumbnails = Array.from({ length: 20 }, (_, index) => ({
+      id: String(index),
+      title: `Video ${index}`,
+      thumbnailUrl: `data:image/jpeg;base64,${'a'.repeat(170_000)}`,
+    })) as Movie[];
+
+    const compactMovies = compactPlaylistMovies(moviesWithEmbeddedThumbnails);
+    const serialized = JSON.stringify(compactMovies);
+
+    expect(compactMovies).toHaveLength(20);
+    expect(compactMovies.every((movie) => movie.thumbnailUrl === undefined)).toBe(true);
+    expect(serialized.length).toBeLessThan(2_000);
+  });
+
+  test('omits unexpectedly large thumbnail URLs', () => {
+    const movie = {
+      ...movies[0],
+      thumbnailUrl: `https://example.com/${'a'.repeat(3_000)}`,
+    } as Movie;
+
+    expect(compactPlaylistMovies([movie])).toEqual([
+      { id: '1', title: 'One' },
+    ]);
+  });
 });
