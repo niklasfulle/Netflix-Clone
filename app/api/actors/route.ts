@@ -1,109 +1,115 @@
-import { logBackendAction } from '@/lib/logger';
-import { isCurrentUserAdmin } from '@/lib/admin-auth';
-export async function DELETE(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-  if (!id) {
-    logBackendAction('api_actors_route_id_required', {}, 'error');
-    return Response.json({ error: 'ID required' }, { status: 400 });
-  }
-  // Prüfe, ob Actor noch Filme/Serien hat
-  const actor = await db.actor.findUnique({
-    where: { id },
-    include: { movies: true }
-  });
-  if (!actor) {
-    logBackendAction('api_actors_route_not_found', { id }, 'error');
-    return Response.json({ error: 'Actor not found' }, { status: 404 });
-  }
-  if (actor.movies.length > 0) {
-    logBackendAction('api_actors_route_still_linked', { id }, 'error');
-    return Response.json({ error: 'Actor ist noch verknüpft.' }, { status: 400 });
-  }
-    logBackendAction('api_actors_route_delete_success', { id }, 'info');
-  await db.actor.delete({ where: { id } });
-  return Response.json({ success: true });
-}
-import { db } from '@/lib/db';
+import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { db } from "@/lib/db";
+import { logBackendAction } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
+function parsePage(value: string | null, fallback: number, max: number) {
+  const parsed = Number.parseInt(value || "", 10);
+  return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), max) : fallback;
+}
 
-  // Pagination: ?page=1&pageSize=20
+export async function GET(request: Request = new Request("http://localhost/api/actors")) {
+  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
+
   const { searchParams } = new URL(request.url);
-  const page = Number.parseInt(searchParams.get('page') || '1', 10);
-  const pageSize = Number.parseInt(searchParams.get('pageSize') || '20', 10);
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
+  const page = parsePage(searchParams.get("page"), 1, 100_000);
+  const pageSize = parsePage(searchParams.get("pageSize"), 20, 100);
+  const search = searchParams.get("search")?.trim() || "";
+  const orphaned = searchParams.get("orphaned") === "true";
+  const sort = searchParams.get("sort") || "name";
+  const direction = searchParams.get("direction") === "desc" ? "desc" : "asc";
 
-  // Get total count for pagination
-  const totalActors = await db.actor.count();
+  const [actors, viewGroups] = await Promise.all([
+    db.actor.findMany({
+      where: {
+        ...(search && { name: { contains: search, mode: "insensitive" } }),
+        ...(orphaned && { movies: { none: {} } }),
+      },
+      include: {
+        movies: {
+          include: {
+            movie: { select: { id: true, title: true, type: true, status: true, thumbnailUrl: true } },
+          },
+        },
+      },
+    }),
+    db.movieView.groupBy({ by: ["movieId"], _count: { movieId: true } }),
+  ]);
 
-  // Fetch only the actors for the current page
-  const actors = await db.actor.findMany({
-    skip,
-    take,
-    orderBy: { name: 'asc' },
-    include: {
-      movies: {
-        include: {
-          movie: true
-        }
-      }
-    }
-  });
-
-  // Für jeden Actor: Views über MovieView zählen
-  const result = await Promise.all(actors.map(async actor => {
-    const movieCount = actor.movies.filter(ma => ma.movie.type === 'Movie').length;
-    const seriesCount = actor.movies.filter(ma => ma.movie.type === 'Serie').length;
-    let views = 0;
-    for (const ma of actor.movies) {
-      const count = await db.movieView.count({ where: { movieId: ma.movie.id } });
-      views += count;
-    }
+  const viewsByMovie = new Map(viewGroups.map((item) => [item.movieId, item._count.movieId]));
+  const result = actors.map((actor) => {
+    const content = actor.movies.map((entry) => entry.movie);
     return {
       id: actor.id,
       name: actor.name,
-      movieCount,
-      seriesCount,
-      views
+      createdAt: actor.createdAt,
+      movieCount: content.filter((item) => item.type === "Movie").length,
+      seriesCount: content.filter((item) => item.type === "Serie").length,
+      views: content.reduce((sum, item) => sum + (viewsByMovie.get(item.id) || 0), 0),
+      content,
     };
-  }));
+  });
+
+  const sorted = [...result];
+  sorted.sort((left, right) => {
+    const a = sort === "name" ? left.name.toLocaleLowerCase("de") : Number(left[sort as "views" | "movieCount" | "seriesCount"] || 0);
+    const b = sort === "name" ? right.name.toLocaleLowerCase("de") : Number(right[sort as "views" | "movieCount" | "seriesCount"] || 0);
+    const comparison = typeof a === "string" && typeof b === "string" ? a.localeCompare(b, "de") : Number(a) - Number(b);
+    return direction === "asc" ? comparison : -comparison;
+  });
+  const total = sorted.length;
 
   return Response.json({
-    actors: result,
-    total: totalActors,
+    actors: sorted.slice((page - 1) * pageSize, page * pageSize),
+    total,
     page,
     pageSize,
-    totalPages: Math.ceil(totalActors / pageSize)
-  }, { status: 200 });
+    totalPages: Math.ceil(total / pageSize),
+  });
 }
 
 export async function POST(request: Request) {
-  if (!(await isCurrentUserAdmin())) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const rawName = (await request.json()).name;
+  const name = typeof rawName === "string" ? rawName.trim() : "";
+  if (!name) return Response.json({ error: "Name ist erforderlich." }, { status: 400 });
 
-  const { name } = await request.json();
-  if (!name || typeof name !== 'string') {
-    logBackendAction('api_actors_route_name_required', {}, 'error');
-    return Response.json({ error: 'Name required' }, { status: 400 });
-  }
-  const exists = await db.actor.findUnique({ where: { name } });
-  if (exists) {
-    logBackendAction('api_actors_route_already_exists', { name }, 'error');
-    return Response.json({ error: 'Actor already exists' }, { status: 400 });
-  }
+  const exists = await db.actor.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+  if (exists) return Response.json({ error: "Dieser Darsteller existiert bereits." }, { status: 409 });
+
   const actor = await db.actor.create({ data: { name } });
-  logBackendAction('api_actors_route_create_success', { name, id: actor.id }, 'info');
+  logBackendAction("actor_created", { actorId: actor.id }, "info");
   return Response.json(actor, { status: 201 });
+}
+
+export async function PATCH(request: Request) {
+  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const { id, name: rawName } = await request.json();
+  const name = typeof rawName === "string" ? rawName.trim() : "";
+  if (!id || !name) return Response.json({ error: "ID und Name sind erforderlich." }, { status: 400 });
+
+  const duplicate = await db.actor.findFirst({
+    where: { id: { not: id }, name: { equals: name, mode: "insensitive" } },
+  });
+  if (duplicate) return Response.json({ error: "Ein anderer Darsteller verwendet diesen Namen bereits." }, { status: 409 });
+
+  const actor = await db.actor.update({ where: { id }, data: { name } });
+  logBackendAction("actor_renamed", { actorId: id }, "info");
+  return Response.json(actor);
+}
+
+export async function DELETE(request: Request) {
+  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return Response.json({ error: "ID ist erforderlich." }, { status: 400 });
+
+  const actor = await db.actor.findUnique({ where: { id }, include: { movies: true } });
+  if (!actor) return Response.json({ error: "Darsteller wurde nicht gefunden." }, { status: 404 });
+  if (actor.movies.length > 0) {
+    return Response.json({ error: "Verknüpfte Darsteller können nicht gelöscht werden. Führe sie zuerst zusammen oder entferne die Zuordnungen." }, { status: 409 });
+  }
+  await db.actor.delete({ where: { id } });
+  logBackendAction("actor_deleted", { actorId: id }, "info");
+  return Response.json({ success: true });
 }

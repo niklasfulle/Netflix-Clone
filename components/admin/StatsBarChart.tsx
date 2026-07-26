@@ -15,7 +15,7 @@ interface StatsBarChartProps {
 
 export default function StatsBarChart({ data }: Readonly<StatsBarChartProps>) {
   return (
-    <div className="w-full h-[420px] md:h-[520px]">
+    <div className="h-[320px] w-full md:h-[380px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={[...data]} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#52525b" />

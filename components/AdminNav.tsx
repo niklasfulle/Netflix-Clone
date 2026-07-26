@@ -1,113 +1,163 @@
 "use client";
-import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
-import { FaChevronDown } from 'react-icons/fa';
-import AccountMenu from '@/components/AccountMenu';
-import MobileMenuAdmin from '@/components/MobileMenuAdmin';
-import NavbarItem from '@/components/NavbarItem';
-import useCurrentProfil from '@/hooks/useCurrentProfil';
 
-const TOP_OFFSET = 66;
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  BarChart3,
+  Clapperboard,
+  DatabaseBackup,
+  Home,
+  LayoutDashboard,
+  Menu,
+  PlusCircle,
+  ScrollText,
+  Users,
+  UserRoundSearch,
+  X,
+} from "lucide-react";
 
-const AdminNav = () => {
-    const [showMobileMenu, setShowMobileMenu] = useState(false);
-    const [showAccountMenu, setShowAccountMenu] = useState(false);
-    const [showBackground, setShowBackground] = useState(false);
-    const { data: profil } = useCurrentProfil();
+import AccountMenu from "@/components/AccountMenu";
+import useCurrentProfil from "@/hooks/useCurrentProfil";
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.screenY >= TOP_OFFSET) {
-                setShowBackground(true);
-            } else {
-                setShowBackground(false);
-            }
-        };
+const navigation = [
+  { label: "Übersicht", href: "/admin", icon: LayoutDashboard },
+  { label: "Inhalte", href: "/admin/movies", icon: Clapperboard },
+  { label: "New Content", href: "/admin/movies/new", icon: PlusCircle },
+  { label: "Darsteller", href: "/admin/actors", icon: UserRoundSearch },
+  { label: "Benutzer", href: "/admin/users", icon: Users },
+  { label: "Analytics", href: "/admin/statistics", icon: BarChart3 },
+  { label: "Backups", href: "/admin/backups", icon: DatabaseBackup },
+  { label: "System-Logs", href: "/admin/logs", icon: ScrollText },
+];
 
-        window.addEventListener("scroll", handleScroll);
+function NavLinks({ onNavigate }: Readonly<{ onNavigate?: () => void }>) {
+  const pathname = usePathname();
+  const activeHref = navigation
+    .filter(({ href }) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href;
 
-        return () => {
-            window.removeEventListener("scroll", handleScroll);
-        };
-    }, []);
-
-    const toggleMobileMenu = useCallback(() => {
-        setShowMobileMenu((current) => !current);
-    }, []);
-
-    const toggleAccountMenu = useCallback(() => {
-        setShowAccountMenu((current) => !current);
-    }, []);
-
-    let profilImg = "placeholder.png";
-    if (profil != undefined) {
-        profilImg = profil.image;
-    }
-
-    return (
-        <nav className="fixed z-40 w-full bg-black bg-opacity-30">
-            <div
-                className={`px-4 md:px-16 py-3 md:py-6 flex flex-row items-center transition duration-500 ${showBackground ? "bg-zinc-900 bg-opacity-90" : ""}`}
-            >
-                <Image
-                    className="hidden w-auto h-7 lg:h-7 md:block"
-                    src="/images/Logo.png"
-                    alt="Logo"
-                    width={100}
-                    height={100}
-                    priority
-                />
-                <Image
-                    className="block w-auto h-10 md:hidden"
-                    src="/images/Logo2.png"
-                    alt="Logo"
-                    width={500}
-                    height={500}
-                    priority
-                />
-                <div className="flex-row hidden ml-8 gap-7 lg:flex">
-                    <NavbarItem label="Home" href="/" />
-                    <NavbarItem label="User" href="/admin/users" />
-                    <NavbarItem label="Actors" href="/admin/actors" />
-                    <NavbarItem label="Movies/Series" href="/admin/movies" />
-                    <NavbarItem label="Statistics" href="/admin/statistics" />
-                    <NavbarItem label="Logs" href="/admin/logs" />
-                </div>
-                <button
-                    onClick={toggleMobileMenu}
-                    className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
-                >
-                    <p className="text-base text-white">Browse</p>
-                    <FaChevronDown
-                        className={`text-white transition mr-4 ${showMobileMenu ? "rotate-180" : "rotate-0"
-                            }`}
-                    />
-                    <MobileMenuAdmin visible={showMobileMenu} />
-                </button>
-                <div className="flex flex-row items-center ml-auto gap-7">
-                    <button
-                        onClick={toggleAccountMenu}
-                        className="relative flex flex-row items-center gap-2 cursor-pointer"
-                    >
-                        <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
-                            <Image
-                                src={`/images/profil/${profilImg}`}
-                                alt="Profile"
-                                width={320}
-                                height={320}
-                            />
-                        </div>
-                        <FaChevronDown
-                            className={`text-white transition ${showAccountMenu ? "rotate-180" : "rotate-0"
-                                }`}
-                        />
-                        <AccountMenu visible={showAccountMenu} />
-                    </button>
-                </div>
-            </div>
-        </nav>
-    );
+  return (
+    <nav aria-label="Admin-Navigation" className="space-y-1">
+      {navigation.map(({ label, href, icon: Icon }) => {
+        const active = href === activeHref;
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+              active
+                ? "bg-red-600 text-white shadow-lg shadow-red-950/30"
+                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            }`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
+export default function AdminNav() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const { data: profil } = useCurrentProfil();
+  const pathname = usePathname();
 
-export default AdminNav
+  useEffect(() => setMobileOpen(false), [pathname]);
+
+  const profileImage = profil?.image || "placeholder.png";
+
+  const sidebarContent = (
+    <>
+      <div className="flex h-20 items-center border-b border-zinc-800 px-6">
+        <Link href="/admin" className="flex items-center gap-3" aria-label="Netflix Admin Startseite">
+          <Image src="/images/Logo.png" alt="Netflix" width={112} height={32} className="h-7 w-auto" priority />
+          <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300">
+            Admin
+          </span>
+        </Link>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+          Management
+        </p>
+        <NavLinks onNavigate={() => setMobileOpen(false)} />
+      </div>
+      <div className="border-t border-zinc-800 p-4">
+        <Link
+          href="/"
+          className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white"
+        >
+          <Home className="h-4 w-4" />
+          Zur Plattform
+        </Link>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setAccountOpen((open) => !open)}
+            className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-left hover:border-zinc-700"
+            aria-expanded={accountOpen}
+          >
+            <Image
+              src={`/images/profil/${profileImage}`}
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-lg object-cover"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-zinc-100">{profil?.name || "Admin"}</span>
+              <span className="block text-xs text-zinc-500">Konto & Abmelden</span>
+            </span>
+          </button>
+          <AccountMenu visible={accountOpen} />
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-zinc-800 bg-zinc-950 lg:flex">
+        {sidebarContent}
+      </aside>
+
+      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
+        <Link href="/admin" className="flex items-center gap-2">
+          <Image src="/images/Logo2.png" alt="Netflix" width={40} height={40} className="h-9 w-auto" priority />
+          <span className="text-sm font-bold text-white">Admin</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMobileOpen((open) => !open)}
+          className="rounded-lg border border-zinc-800 p-2 text-zinc-200"
+          aria-label={mobileOpen ? "Navigation schließen" : "Navigation öffnen"}
+          aria-expanded={mobileOpen}
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </header>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-30 bg-black/70 pt-16 backdrop-blur-sm lg:hidden">
+          <aside className="flex h-full w-[min(88vw,320px)] flex-col border-r border-zinc-800 bg-zinc-950">
+            <div className="flex-1 px-4 py-6">
+              <NavLinks onNavigate={() => setMobileOpen(false)} />
+            </div>
+            <div className="border-t border-zinc-800 p-4">
+              <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-3 text-zinc-300">
+                <Home className="h-4 w-4" /> Zur Plattform
+              </Link>
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}

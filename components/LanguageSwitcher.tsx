@@ -6,9 +6,8 @@ const LanguageSwitcher = () => {
   const { locale, setLocale } = useLanguage();
 
   return (
-    <div
+    <fieldset
       className="flex overflow-hidden text-xs font-semibold text-white bg-black/80 border border-zinc-600 rounded-md shadow-lg"
-      role="group"
       aria-label="Language"
     >
       <button
@@ -31,7 +30,7 @@ const LanguageSwitcher = () => {
       >
         EN
       </button>
-    </div>
+    </fieldset>
   );
 };
 

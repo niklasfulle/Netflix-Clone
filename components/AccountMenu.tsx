@@ -53,12 +53,6 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ visible }) => {
                 Admin
               </div>
             </Link>
-            <hr className="h-px bg-gray-600 border-0" />
-            <Link href="/add">
-              <div className="flex flex-row items-center justify-center md:p-2 text-center text-white px-3 text-sm hover:underline">
-                Add new Movies
-              </div>
-            </Link>
           </>
         )}
         <hr className="h-px bg-gray-600 border-0" />

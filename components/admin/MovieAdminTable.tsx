@@ -1,157 +1,132 @@
-import React from "react";
-import EditMovieButton from "../EditMovieButton";
+"use client";
 
-interface MovieAdminTableProps {
-  items: Array<{
-    id: string;
-    title: string;
-    type: string;
-    createdAt: string;
-    views: number;
-    actors?: any[];
-  }>;
-  page?: number;
-  setPage?: (page: number) => void;
-  totalPages?: number;
-}
+import Image from "next/image";
+import Link from "next/link";
+import { Eye, FilePenLine } from "lucide-react";
 
-
-const MovieAdminTable: React.FC<MovieAdminTableProps> = ({ items, page, setPage, totalPages }) => {
-  const [search, setSearch] = React.useState("");
-  const [sortKey, setSortKey] = React.useState<string>("title");
-  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("asc");
-  // Pagination now handled by parent
-
-  const handleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDirection("asc");
-    }
-  };
-
-  const getActorName = (item: any) => {
-    if (!Array.isArray(item.actors) || item.actors.length === 0) return "";
-    return item.actors[0]?.actor?.name || item.actors[0]?.name || "";
-  };
-
-  const getSortValue = (item: any, key: string): string | number => {
-    if (key === "title" || key === "type") {
-      return item[key];
-    }
-    if (key === "views") {
-      return item.views;
-    }
-    if (key === "createdAt") {
-      return new Date(item.createdAt).getTime();
-    }
-    if (key === "actors") {
-      return getActorName(item);
-    }
-    return "";
-  };
-
-  const compareValues = (aValue: string | number, bValue: string | number, direction: "asc" | "desc") => {
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return direction === "asc" ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-    }
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return direction === "asc" ? aValue - bValue : bValue - aValue;
-    }
-    return 0;
-  };
-
-  const filtered = items.filter((item) =>
-    item.title.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const aValue = getSortValue(a, sortKey);
-    const bValue = getSortValue(b, sortKey);
-    return compareValues(aValue, bValue, sortDirection);
-  });
-
-  // No local pagination, use all items from parent
-
-  return (
-    <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-3xl font-extrabold mb-6 text-zinc-100 tracking-tight">Movies/Series Management</h1>
-      <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8 items-stretch md:items-end">
-        <input
-          className="border border-zinc-700 rounded-lg px-4 py-3 bg-zinc-900 text-white flex-1 focus:outline-none focus:ring-2 focus:ring-red-600 transition-all shadow-sm placeholder:text-zinc-400"
-          placeholder="Search by title..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            if (setPage) setPage(1);
-          }}
-        />
-      </div>
-      <div className="bg-zinc-800 rounded-2xl shadow-2xl p-6 border">
-        <h2 className="text-xl font-semibold mb-4 text-zinc-100">All Movies & Series</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-separate border-spacing-y-1">
-            <thead>
-              <tr className="bg-zinc-900/80">
-                <th className="py-3 px-4 rounded-l-xl text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("title")}>Title {sortKey === "title" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("actors")}>Actors {sortKey === "actors" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("type")}>Typ {sortKey === "type" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("createdAt")}>Created {sortKey === "createdAt" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                <th className="py-3 px-4 text-zinc-300 font-bold cursor-pointer select-none" onClick={() => handleSort("views")}>Views {sortKey === "views" && (sortDirection === "asc" ? "▲" : "▼")}</th>
-                <th className="py-3 px-4 rounded-r-xl text-zinc-300 font-bold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-4 px-4 text-zinc-400 text-center">No movies or series found.</td>
-                </tr>
-              ) : (
-                sorted.map((item, idx) => (
-                  <tr key={item.id + '-' + idx} className="bg-zinc-800/80 hover:bg-zinc-700/60 transition-all">
-                    <td className="py-2 px-4 font-semibold text-zinc-100">{item.title}</td>
-                    <td className="py-2 px-4 font-semibold text-zinc-200">
-                      {/* Schauspieler aus item.actors */}
-                      {Array.isArray(item.actors) && item.actors.length > 0
-                        ? item.actors.map((a: any) => a?.actor?.name || a?.name || "").filter(Boolean).join(", ")
-                        : <span className="text-zinc-500">-</span>}
-                    </td>
-                    <td className="py-2 px-4 font-semibold text-zinc-200">{item.type}</td>
-                    <td className="py-2 px-4 font-semibold text-zinc-200">{new Date(item.createdAt).toLocaleDateString()}</td>
-                    <td className="py-2 px-4 font-semibold text-zinc-200">{item.views}</td>
-                    <td className="py-2 px-4">
-                      <EditMovieButton movieId={item.id} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination Controls */}
-        {typeof page === 'number' && typeof setPage === 'function' && typeof totalPages === 'number' && (
-          <div className="flex justify-center items-center gap-2 mt-6">
-            <button
-              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-              onClick={() => setPage(page - 1)}
-              disabled={page === 1}
-            >
-              &lt;
-            </button>
-            <span className="text-zinc-300">Seite {page} / {totalPages}</span>
-            <button
-              className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50"
-              onClick={() => setPage(page + 1)}
-              disabled={page === totalPages || totalPages === 0}
-            >
-              &gt;
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+export type AdminMovie = {
+  id: string;
+  title: string;
+  type: string;
+  genre: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  views: number;
+  thumbnailUrl: string;
+  videoUrl?: string;
+  actors?: Array<{ actor?: { name?: string }; name?: string }>;
 };
 
-export default MovieAdminTable;
+const statusStyles = {
+  PUBLISHED: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20",
+  DRAFT: "bg-amber-500/10 text-amber-300 ring-amber-500/20",
+  ARCHIVED: "bg-zinc-700/60 text-zinc-300 ring-zinc-600",
+};
+
+const statusLabels = { PUBLISHED: "Veröffentlicht", DRAFT: "Entwurf", ARCHIVED: "Archiviert" };
+
+export default function MovieAdminTable({
+  items,
+  selected,
+  onSelectionChange,
+  onSort,
+  sort,
+  direction,
+}: Readonly<{
+  items: AdminMovie[];
+  selected: string[];
+  onSelectionChange: (ids: string[]) => void;
+  onSort: (key: string) => void;
+  sort: string;
+  direction: "asc" | "desc";
+}>) {
+  const allSelected = items.length > 0 && items.every((item) => selected.includes(item.id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      onSelectionChange(selected.filter((id) => !items.some((item) => item.id === id)));
+    } else {
+      onSelectionChange(Array.from(new Set([...selected, ...items.map((item) => item.id)])));
+    }
+  };
+
+  const sortableHeader = (label: string, key: string) => (
+    <button type="button" onClick={() => onSort(key)} className="inline-flex items-center gap-1 hover:text-white">
+      {label}
+      {sort === key && <span aria-label={direction === "asc" ? "aufsteigend" : "absteigend"}>{direction === "asc" ? "↑" : "↓"}</span>}
+    </button>
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-[980px] w-full text-left text-sm">
+        <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs uppercase tracking-wide text-zinc-500">
+          <tr>
+            <th className="w-12 px-4 py-3">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Alle sichtbaren Inhalte auswählen" className="accent-red-600" />
+            </th>
+            <th className="px-3 py-3">{sortableHeader("Inhalt", "title")}</th>
+            <th className="px-3 py-3">{sortableHeader("Typ", "type")}</th>
+            <th className="px-3 py-3">{sortableHeader("Genre", "genre")}</th>
+            <th className="px-3 py-3">{sortableHeader("Status", "status")}</th>
+            <th className="px-3 py-3">Darsteller</th>
+            <th className="px-3 py-3 text-right">Views</th>
+            <th className="px-3 py-3">{sortableHeader("Aktualisiert", "updatedAt")}</th>
+            <th className="w-24 px-4 py-3 text-right">Aktionen</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-800">
+          {items.length === 0 && (
+            <tr><td colSpan={9} className="px-6 py-16 text-center text-zinc-500">Keine Inhalte für diese Filter gefunden.</td></tr>
+          )}
+          {items.map((item) => {
+            const actorNames = item.actors?.map((entry) => entry.actor?.name || entry.name).filter(Boolean).join(", ") || "–";
+            return (
+              <tr key={item.id} className="group bg-zinc-900/30 hover:bg-zinc-800/50">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(item.id)}
+                    onChange={() => onSelectionChange(selected.includes(item.id) ? selected.filter((id) => id !== item.id) : [...selected, item.id])}
+                    aria-label={`${item.title} auswählen`}
+                    className="accent-red-600"
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <Image src={item.thumbnailUrl} alt="" width={80} height={48} className="h-12 w-20 rounded-lg bg-zinc-800 object-cover" />
+                    <div className="min-w-0">
+                      <p className="max-w-[240px] truncate font-semibold text-white">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-zinc-600">ID {item.id.slice(-8)}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-zinc-300">{item.type === "Serie" ? "Serie" : "Film"}</td>
+                <td className="px-3 py-3 text-zinc-400">{item.genre}</td>
+                <td className="px-3 py-3">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${statusStyles[item.status]}`}>
+                    {statusLabels[item.status]}
+                  </span>
+                </td>
+                <td className="max-w-[220px] truncate px-3 py-3 text-zinc-400" title={actorNames}>{actorNames}</td>
+                <td className="px-3 py-3 text-right font-medium text-zinc-200">{item.views.toLocaleString("de-DE")}</td>
+                <td className="px-3 py-3 text-zinc-400">{new Date(item.updatedAt || item.createdAt).toLocaleDateString("de-DE")}</td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-1">
+                    <Link href={`/watch/${item.id}`} aria-label={`${item.title} ansehen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                    <Link href={`/edit_movie/${item.id}`} aria-label={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
+                      <FilePenLine className="h-4 w-4" />
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -33,7 +33,7 @@ function describeClick(target: EventTarget | null): Record<string, unknown> {
   };
 }
 
-export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
+export default function DebugPanel({ adminAllowed }: Readonly<DebugPanelProps>) {
   const [enabled, setEnabled] = useState(false);
   const [entries, setEntries] = useState<DebugEntry[]>([]);
   const [collapsed, setCollapsed] = useState(false);
@@ -44,9 +44,9 @@ export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
     if (!debugEnabled) return;
 
     recordDebug('debug_started', {
-      path: getDebugPath(window.location.href),
+      path: getDebugPath(globalThis.location.href),
       userAgent: navigator.userAgent,
-      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      viewport: `${globalThis.innerWidth}x${globalThis.innerHeight}`,
       online: navigator.onLine,
     });
     setEntries(readDebugEntries());
@@ -74,11 +74,11 @@ export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
     const handleVisibility = () => recordDebug('visibility_changed', {
       state: document.visibilityState,
     });
-    let lastLocation = window.location.href;
-    const navigationTimer = window.setInterval(() => {
-      if (window.location.href !== lastLocation) {
+    let lastLocation = globalThis.location.href;
+    const navigationTimer = globalThis.setInterval(() => {
+      if (globalThis.location.href !== lastLocation) {
         const previousPath = getDebugPath(lastLocation);
-        lastLocation = window.location.href;
+        lastLocation = globalThis.location.href;
         recordDebug('navigation', {
           from: previousPath,
           to: getDebugPath(lastLocation),
@@ -86,8 +86,8 @@ export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
       }
     }, 250);
 
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (...args: Parameters<typeof window.fetch>) => {
+    const originalFetch = globalThis.fetch.bind(globalThis);
+    globalThis.fetch = async (...args: Parameters<typeof globalThis.fetch>) => {
       const startedAt = performance.now();
       const path = getDebugPath(args[0]);
       const method = args[1]?.method || (
@@ -116,22 +116,22 @@ export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
       }
     };
 
-    window.addEventListener(DEBUG_EVENT, handleEntry);
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleRejection);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    globalThis.addEventListener(DEBUG_EVENT, handleEntry);
+    globalThis.addEventListener('error', handleError);
+    globalThis.addEventListener('unhandledrejection', handleRejection);
+    globalThis.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
     document.addEventListener('click', handleClick, true);
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      window.fetch = originalFetch;
-      window.clearInterval(navigationTimer);
-      window.removeEventListener(DEBUG_EVENT, handleEntry);
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleRejection);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      globalThis.fetch = originalFetch;
+      globalThis.clearInterval(navigationTimer);
+      globalThis.removeEventListener(DEBUG_EVENT, handleEntry);
+      globalThis.removeEventListener('error', handleError);
+      globalThis.removeEventListener('unhandledrejection', handleRejection);
+      globalThis.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
       document.removeEventListener('click', handleClick, true);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
@@ -150,9 +150,9 @@ export default function DebugPanel({ adminAllowed }: DebugPanelProps) {
 
   const closePanel = () => {
     disableDebug();
-    const url = new URL(window.location.href);
+    const url = new URL(globalThis.location.href);
     url.searchParams.delete('debug');
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    globalThis.history.replaceState(globalThis.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     setEntries([]);
     setEnabled(false);
   };

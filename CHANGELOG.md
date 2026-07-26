@@ -4,6 +4,18 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- The administration area now uses a responsive management dashboard with a dedicated sidebar and shared admin UI components
+- Dashboard metrics summarize users, content, actors, views, active profiles, blocked accounts, recent errors, top content, and system activity
+- Movie and series management now supports server-side search, filters, sorting, CSV export, content statuses, selection, and bulk publishing or archiving
+- The actor directory now supports search, sorting, detail views, renaming, safe deletion, and merging duplicate actors with their content assignments
+- User accounts now support server-side pagination, security filters, role changes, detailed profiles, and temporary blocks with reasons
+- Analytics now includes selectable periods, view trends, active users, average playback progress, top content, catalog growth, genre distribution, and CSV export
+- System logs now support server-side filters, search, auto-refresh, structured details, CSV export, and confirmation-protected clearing of the backend log only
+- Administrators can create password-encrypted database backups and restore them through a validation- and confirmation-protected workflow
+- Content lifecycle states and extended user blocking metadata were added with a database migration
+
+## 1.8.4
+
 - Actor playlists omit embedded thumbnails to stay within Safari session storage limits
 - Administrators can enable global on-device diagnostics with `?debug=1` to trace errors, requests, navigation, network status, and UI interactions
 

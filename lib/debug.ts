@@ -26,7 +26,7 @@ export function initializeDebugAccess(
   isAdmin: boolean,
   search?: string,
 ): boolean {
-  if (typeof window === 'undefined') return false;
+  if (globalThis.window === undefined) return false;
 
   adminAuthorized = isAdmin;
   if (!isAdmin) {
@@ -35,7 +35,7 @@ export function initializeDebugAccess(
     return false;
   }
 
-  const query = search ?? window.location.search;
+  const query = search ?? globalThis.location.search;
   const requestedState = new URLSearchParams(query).get('debug');
 
   try {
@@ -52,9 +52,9 @@ export function initializeDebugAccess(
 }
 
 export function isDebugEnabled(search?: string): boolean {
-  if (typeof window === 'undefined' || !adminAuthorized) return false;
+  if (globalThis.window === undefined || !adminAuthorized) return false;
 
-  const query = search ?? window.location.search;
+  const query = search ?? globalThis.location.search;
   const requestedState = new URLSearchParams(query).get('debug');
   if (requestedState === '1') return true;
   if (requestedState === '0') return false;
@@ -89,11 +89,14 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
         .map(([key, item]) => [key, sanitizeValue(item, depth + 1)]),
     );
   }
-  return String(value);
+  if (typeof value === 'symbol') return value.description ?? '[symbol]';
+  if (typeof value === 'function') return value.name || '[function]';
+  if (typeof value === 'bigint') return value.toString();
+  return '[unsupported value]';
 }
 
 export function readDebugEntries(): DebugEntry[] {
-  if (typeof window === 'undefined' || !adminAuthorized) return [];
+  if (globalThis.window === undefined || !adminAuthorized) return [];
 
   try {
     const stored = sessionStorage.getItem(DEBUG_STORAGE_KEY);
@@ -124,28 +127,29 @@ export function recordDebug(
     // The visible panel still receives the event if browser storage is full.
   }
 
-  window.dispatchEvent(new CustomEvent(DEBUG_EVENT, { detail: entry }));
+  globalThis.dispatchEvent(new CustomEvent(DEBUG_EVENT, { detail: entry }));
 }
 
 export function clearDebugEntries(): void {
-  if (typeof window === 'undefined' || !adminAuthorized) return;
+  if (globalThis.window === undefined || !adminAuthorized) return;
   safeRemove(DEBUG_STORAGE_KEY);
 }
 
 export function disableDebug(): void {
-  if (typeof window === 'undefined') return;
+  if (globalThis.window === undefined) return;
   safeRemove(DEBUG_ACTIVE_STORAGE_KEY);
   safeRemove(DEBUG_STORAGE_KEY);
 }
 
 export function getDebugPath(input: RequestInfo | URL): string {
   try {
-    const raw = typeof Request !== 'undefined' && input instanceof Request
-      ? input.url
-      : String(input);
-    const url = new URL(raw, window.location.origin);
+    const raw = typeof input === 'string' || input instanceof URL
+      ? input
+      : input.url;
+    const url = new URL(raw, globalThis.location.origin);
     const parameterNames = Array.from(new Set(url.searchParams.keys()));
-    return `${url.pathname}${parameterNames.length ? `?${parameterNames.join('&')}` : ''}`;
+    const query = parameterNames.length ? `?${parameterNames.join('&')}` : '';
+    return `${url.pathname}${query}`;
   } catch {
     return '[unknown URL]';
   }

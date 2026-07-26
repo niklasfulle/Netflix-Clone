@@ -199,9 +199,9 @@ describe('AccountMenu', () => {
       expect(screen.getByText('Admin')).toBeInTheDocument();
     });
 
-    it('should render add movies link for admin users', () => {
+    it('should keep content creation out of the platform account menu', () => {
       render(<AccountMenu visible={true} />);
-      expect(screen.getByText('Add new Movies')).toBeInTheDocument();
+      expect(screen.queryByText('Add new Movies')).not.toBeInTheDocument();
     });
 
     it('should link admin to /admin', () => {
@@ -211,15 +211,6 @@ describe('AccountMenu', () => {
         hidden: true,
       });
       expect(adminLink).toHaveAttribute('href', '/admin');
-    });
-
-    it('should link add movies to /add', () => {
-      render(<AccountMenu visible={true} />);
-      const addLink = screen.getByRole('link', {
-        name: /Add new Movies/i,
-        hidden: true,
-      });
-      expect(addLink).toHaveAttribute('href', '/add');
     });
 
     it('should render settings link for admin users', () => {
@@ -232,11 +223,11 @@ describe('AccountMenu', () => {
       expect(screen.getByText('Sign out of Netflix')).toBeInTheDocument();
     });
 
-    it('should have 4 main navigation links for admin users', () => {
+    it('should have 3 main navigation links for admin users', () => {
       render(<AccountMenu visible={true} />);
       const links = screen.getAllByRole('link', { hidden: true });
-      // Profile, Admin, Add Movies, Settings
-      expect(links.length).toBeGreaterThanOrEqual(4);
+      // Profile, Admin, Settings
+      expect(links.length).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -485,8 +476,7 @@ describe('AccountMenu', () => {
       useCurrentUser.mockReturnValue(mockAdminUser);
       const { container } = render(<AccountMenu visible={true} />);
       const dividers = container.querySelectorAll('hr');
-      // More dividers for admin menu with extra options
-      expect(dividers.length).toBeGreaterThan(3);
+      expect(dividers.length).toBeGreaterThanOrEqual(3);
     });
   });
 
@@ -610,12 +600,6 @@ describe('AccountMenu', () => {
       render(<AccountMenu visible={true} />);
       const adminLink = screen.getByText('Admin');
       expect(adminLink).toBeInTheDocument();
-    });
-
-    it('should display add movies link after admin link', () => {
-      render(<AccountMenu visible={true} />);
-      const addMoviesLink = screen.getByText('Add new Movies');
-      expect(addMoviesLink).toBeInTheDocument();
     });
 
     it('should display settings after admin options', () => {

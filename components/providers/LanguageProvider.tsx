@@ -125,19 +125,19 @@ function translateNode(node: Node, locale: Locale) {
   });
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+export function LanguageProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
     const storedLocale = localStorage.getItem(LOCALE_STORAGE_KEY);
     if (storedLocale === 'de' || storedLocale === 'en') {
-      setLocaleState(storedLocale);
+      setLocale(storedLocale);
     }
   }, []);
 
-  const setLocale = useCallback((nextLocale: Locale) => {
+  const changeLocale = useCallback((nextLocale: Locale) => {
     localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
-    setLocaleState(nextLocale);
+    setLocale(nextLocale);
   }, []);
 
   const t = useCallback(
@@ -173,8 +173,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [locale]);
 
   const value = useMemo(
-    () => ({ locale, setLocale, t }),
-    [locale, setLocale, t]
+    () => ({ locale, setLocale: changeLocale, t }),
+    [locale, changeLocale, t]
   );
 
   return (

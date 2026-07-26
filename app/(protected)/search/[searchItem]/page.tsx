@@ -38,7 +38,7 @@ export default function MoviesPage() {
         {isEmpty(results) && !isLoadingSearch ? (
           <div className="flex flex-col items-center justify-center h-full">
             <p className="text-white text-lg md:text-2xl">
-              No results found for &quot;{params.searchItem.replace(/%20/g, ' ')}&quot;
+              No results found for &quot;{params.searchItem.replaceAll('%20', ' ')}&quot;
             </p>
           </div>
         ) : (

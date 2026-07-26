@@ -5,7 +5,7 @@ import { Upload, X, Check } from "lucide-react";
 
 interface VideoUploadFieldProps {
   videoFile: File | null;
-  generatedVideoId: string;
+  generatedVideoId?: string;
   uploadProgress: number;
   isUploading: boolean;
   uploadedVideoPath: string;
@@ -16,6 +16,8 @@ interface VideoUploadFieldProps {
   onUpload: () => void;
   onCancel: () => void;
   estimatedTime?: string;
+  uploadDisabled?: boolean;
+  isUploaded?: boolean;
 }
 
 export const VideoUploadField = ({
@@ -31,6 +33,8 @@ export const VideoUploadField = ({
   onUpload,
   onCancel,
   estimatedTime,
+  uploadDisabled = false,
+  isUploaded = Boolean(uploadedVideoPath),
 }: VideoUploadFieldProps) => {
   return (
     <div>
@@ -98,7 +102,7 @@ export const VideoUploadField = ({
             <Button
               type="button"
               onClick={onUpload}
-              disabled={isUploading || isPending || !!uploadedVideoPath}
+              disabled={isUploading || isPending || !!uploadedVideoPath || uploadDisabled}
               className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50"
             >
               {(() => {
@@ -110,7 +114,7 @@ export const VideoUploadField = ({
                     </>
                   );
                 }
-                if (uploadedVideoPath) {
+                if (isUploaded) {
                   return (
                     <>
                       <Check className="w-4 h-4 mr-2" />

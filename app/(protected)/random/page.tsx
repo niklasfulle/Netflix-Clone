@@ -22,7 +22,9 @@ export default function RandomPage() {
       if (fn) old.removeEventListener('volumechange', fn);
       try {
         delete old.__onVolumeChange;
-      } catch (e) {}
+      } catch (error) {
+        console.warn('Unable to remove the previous volume handler.', error);
+      }
     }
 
     if (!el) {
@@ -36,22 +38,22 @@ export default function RandomPage() {
       const savedMuted = localStorage.getItem('videoMuted');
 
       if (savedVolume !== null) {
-        const vol = parseFloat(savedVolume);
+        const vol = Number.parseFloat(savedVolume);
         if (!Number.isNaN(vol)) el.volume = Math.min(1, Math.max(0, vol));
       }
       if (savedMuted !== null) {
         el.muted = savedMuted === 'true';
       }
-    } catch (e) {
-      // ignore localStorage errors
+    } catch (error) {
+      console.warn('Unable to restore video volume settings.', error);
     }
 
     const onVolumeChange = () => {
       try {
         localStorage.setItem('videoVolume', String(el.volume));
         localStorage.setItem('videoMuted', String(el.muted));
-      } catch (e) {
-        // ignore
+      } catch (error) {
+        console.warn('Unable to save video volume settings.', error);
       }
     };
 

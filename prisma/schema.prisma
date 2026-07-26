@@ -12,6 +12,12 @@ enum UserRole {
   USER
 }
 
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model User{
   id                    String    @id @unique @default(cuid())
   name                  String
@@ -28,6 +34,9 @@ model User{
   isTwoFactorEnabled    Boolean   @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
   isBlocked             Boolean   @default(false)
+  blockedAt             DateTime?
+  blockedUntil          DateTime?
+  blockedReason         String?
 }
 
 model Account {
@@ -104,9 +113,15 @@ model Movie {
   type         String
   genre        String
   duration     String
+  status       ContentStatus @default(PUBLISHED)
+  publishedAt  DateTime?
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   actors       MovieActor[]
   watchlists   Watchlist[]
+
+  @@index([type, status])
+  @@index([createdAt])
 }
 
 

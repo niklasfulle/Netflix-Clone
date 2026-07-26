@@ -78,7 +78,10 @@ const mockMovies: Movie[] = [
     type: 'movie',
     genre: 'action',
     duration: '120',
+    status: 'PUBLISHED',
+    publishedAt: new Date(),
     createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: '2',
@@ -89,7 +92,10 @@ const mockMovies: Movie[] = [
     type: 'movie',
     genre: 'drama',
     duration: '130',
+    status: 'PUBLISHED',
+    publishedAt: new Date(),
     createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: '3',
@@ -100,7 +106,10 @@ const mockMovies: Movie[] = [
     type: 'movie',
     genre: 'comedy',
     duration: '140',
+    status: 'PUBLISHED',
+    publishedAt: new Date(),
     createdAt: new Date(),
+    updatedAt: new Date(),
   },
 ];
 

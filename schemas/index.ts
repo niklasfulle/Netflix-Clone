@@ -27,25 +27,25 @@ export const NewPasswordSchema = z.object({
   password: z.string().min(6, "Minimum 6 characters requierd"),
 })
 export const SettingsSchema = z.object({
-  name: z.string(),
+  name: z.string().trim().min(2, "Minimum 2 characters required").max(60, "Maximum 60 characters allowed"),
   isTwoFactorEnabled: z.optional(z.boolean()),
-  role: z.enum([UserRole.ADMIN, UserRole.USER]),
+  role: z.optional(z.enum([UserRole.ADMIN, UserRole.USER])),
   /* NOSONAR */
-  email: z.optional(z.string().email()),
-  password: z.optional(z.string().min(6)),
-  newPassword: z.optional(z.string().min(6)),
+  email: z.optional(z.string().email("Enter a valid email address")),
+  password: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
+  newPassword: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
 }).refine((data) => {
   if (data.password && !data.newPassword) {
     return false
   }
   return true
-}, { message: "Password is required!", path: ["password"] })
+}, { message: "New password is required!", path: ["newPassword"] })
   .refine((data) => {
     if (!data.password && data.newPassword) {
       return false
     }
     return true
-  }, { message: "New password is required!", path: ["newPassword"] })
+  }, { message: "Current password is required!", path: ["password"] })
 
 export const ProfilSchema = z.object({
   profilId: z.string().optional(),

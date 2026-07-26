@@ -7,6 +7,7 @@ import { LOCALE_STORAGE_KEY } from '@/lib/i18n/translations';
 const TestContent = () => (
   <div>
     <span>Movies</span>
+    <span>Add New Content</span>
     <input placeholder="Search..." aria-label="Search" />
     <button aria-label="Play Test Actor in random order">Shuffle</button>
   </div>
@@ -46,6 +47,7 @@ describe('LanguageProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Filme')).toBeInTheDocument();
+      expect(screen.getByText('Neuen Inhalt hinzufügen')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Suchen...')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {
@@ -87,6 +89,7 @@ describe('LanguageProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'EN' }));
 
     expect(await screen.findByText('Movies')).toBeInTheDocument();
+    expect(screen.getByText('Add New Content')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('en');
   });

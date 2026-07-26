@@ -1,399 +1,179 @@
-import * as React from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-// SettingsForm is a complex form component with multiple dependencies
-// Static analysis-based tests to verify component structure and configuration
+import { settings } from "@/actions/settings";
 
-describe("SettingsForm Component", () => {
-  const fs = require("node:fs");
-  const path = require("node:path");
+import { SettingsForm } from "../settings-form";
 
-  const getComponentSource = () => {
-    const filePath = path.resolve(__dirname, "../settings-form.tsx");
-    return fs.readFileSync(filePath, "utf8");
-  };
+const mockUpdateSession = jest.fn();
+const mockSuccessToast = jest.fn();
+const mockErrorToast = jest.fn();
 
-  describe("Basic Component Structure", () => {
-    it("should export SettingsForm as named export", () => {
-      const source = getComponentSource();
-      expect(source).toContain("export const SettingsForm");
-    });
+jest.mock("next-auth/react", () => ({
+  useSession: () => ({ update: mockUpdateSession }),
+}));
 
-    it("should be marked as use client", () => {
-      const source = getComponentSource();
-      expect(source).toContain('"use client"');
-    });
+jest.mock("@/actions/settings", () => ({
+  settings: jest.fn(),
+}));
 
-    it("should accept user prop", () => {
-      const source = getComponentSource();
-      expect(source).toContain("{ user }");
-      expect(source).toContain("SettingsFormProps");
-    });
+jest.mock("react-hot-toast", () => ({
+  __esModule: true,
+  default: {
+    success: (...args: unknown[]) => mockSuccessToast(...args),
+    error: (...args: unknown[]) => mockErrorToast(...args),
+  },
+}));
 
-    it("should have SettingsFormProps interface", () => {
-      const source = getComponentSource();
-      expect(source).toContain("interface SettingsFormProps");
-      expect(source).toContain("user: Record<string, any>");
-    });
+jest.mock("@/components/LanguageSwitcher", () => ({
+  __esModule: true,
+  default: () => <div data-testid="language-switcher">DE / EN</div>,
+}));
+
+const mockSettings = settings as jest.MockedFunction<typeof settings>;
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+const passwordAccount = {
+  data: {
+    user: {
+      name: "Jane Doe",
+      email: "jane@example.com",
+      role: "USER" as const,
+      isOAuth: false,
+      isTwoFactorEnabled: false,
+    },
+  },
+};
+
+describe("SettingsForm", () => {
+  beforeAll(() => {
+    global.ResizeObserver = ResizeObserverMock;
   });
 
-  describe("Hooks Usage", () => {
-    it("should use useSession hook", () => {
-      const source = getComponentSource();
-      expect(source).toContain("useSession");
-      expect(source).toContain("from 'next-auth/react'");
-    });
-
-    it("should use useTransition hook", () => {
-      const source = getComponentSource();
-      expect(source).toContain("useTransition");
-    });
-
-    it("should use useForm hook", () => {
-      const source = getComponentSource();
-      expect(source).toContain("useForm");
-      expect(source).toContain("from 'react-hook-form'");
-    });
-
-    it("should use useCurrentProfil hook", () => {
-      const source = getComponentSource();
-      expect(source).toContain("useCurrentProfil");
-    });
-
-    it("should use useRouter hook", () => {
-      const source = getComponentSource();
-      expect(source).toContain("useRouter");
-      expect(source).toContain("from 'next/navigation'");
-    });
-
-    it("should get update function from useSession", () => {
-      const source = getComponentSource();
-      expect(source).toContain("const { update } = useSession()");
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSettings.mockResolvedValue({ success: "Settings updated!" });
+    mockUpdateSession.mockResolvedValue(undefined);
   });
 
-  describe("Form Configuration", () => {
-    it("should use SettingsSchema for validation", () => {
-      const source = getComponentSource();
-      expect(source).toContain("SettingsSchema");
-      expect(source).toContain("from '@/schemas'");
-    });
+  it("renders account, security, and language controls", () => {
+    render(<SettingsForm user={passwordAccount} />);
 
-    it("should use zodResolver", () => {
-      const source = getComponentSource();
-      expect(source).toContain("zodResolver");
-      expect(source).toContain("from '@hookform/resolvers/zod'");
-    });
-
-    it("should configure form with default values", () => {
-      const source = getComponentSource();
-      expect(source).toContain("defaultValues:");
-      expect(source).toContain("name:");
-      expect(source).toContain("email:");
-      expect(source).toContain("password:");
-      expect(source).toContain("newPassword:");
-      expect(source).toContain("role:");
-      expect(source).toContain("isTwoFactorEnabled:");
-    });
+    expect(
+      screen.getByRole("heading", { name: "Personal information" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sign-in & security" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Language & display" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Jane Doe");
+    expect(screen.getByLabelText("Email")).toHaveValue("jane@example.com");
+    expect(screen.getByTestId("language-switcher")).toBeInTheDocument();
+    expect(screen.getByText("Member")).toBeInTheDocument();
   });
 
-  describe("Form Fields", () => {
-    it("should have name field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="name"');
-      expect(source).toContain("<FormLabel>Name</FormLabel>");
-    });
+  it("allows personal information to be edited and saved", async () => {
+    render(<SettingsForm user={passwordAccount} />);
 
-    it("should have email field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="email"');
-      expect(source).toContain("<FormLabel>Email</FormLabel>");
-    });
+    const saveButton = screen.getByRole("button", { name: "Save changes" });
+    expect(saveButton).toBeDisabled();
 
-    it("should have password field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="password"');
-      expect(source).toContain("<FormLabel>Password</FormLabel>");
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Jane Updated" },
     });
+    expect(saveButton).toBeEnabled();
+    expect(screen.getByText("You have unsaved changes.")).toBeInTheDocument();
 
-    it("should have new password field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="newPassword"');
-      expect(source).toContain("<FormLabel>New Password</FormLabel>");
-    });
+    fireEvent.click(saveButton);
 
-    it("should have role field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="role"');
-      expect(source).toContain("<FormLabel>Role</FormLabel>");
-    });
-
-    it("should have two-factor authentication field", () => {
-      const source = getComponentSource();
-      expect(source).toContain('name="isTwoFactorEnabled"');
-      expect(source).toContain("Two Factor Authentication");
-    });
+    await waitFor(() =>
+      expect(mockSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Jane Updated",
+          email: "jane@example.com",
+          role: "USER",
+        }),
+      ),
+    );
+    await waitFor(() => expect(mockUpdateSession).toHaveBeenCalled());
+    expect(mockSuccessToast).toHaveBeenCalledWith("Settings updated!");
   });
 
-  describe("Conditional Rendering", () => {
-    it("should conditionally render email field for non-OAuth users", () => {
-      const source = getComponentSource();
-      expect(source).toContain("user.data?.user.isOAuth === false");
-      expect(source).toMatch(/isOAuth === false[\s\S]*?name="email"/);
-    });
+  it("can reveal and hide both password inputs", () => {
+    render(<SettingsForm user={passwordAccount} />);
 
-    it("should conditionally render password fields for non-OAuth users", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/isOAuth === false[\s\S]*?name="password"/);
-      expect(source).toMatch(/isOAuth === false[\s\S]*?name="newPassword"/);
-    });
+    const currentPassword = screen.getByLabelText("Current password");
+    const newPassword = screen.getByLabelText("New password");
 
-    it("should conditionally render role field for admin users", () => {
-      const source = getComponentSource();
-      expect(source).toContain("user.data?.user.role == UserRole.ADMIN");
-      expect(source).toMatch(/UserRole.ADMIN[\s\S]*?name="role"/);
-    });
+    expect(currentPassword).toHaveAttribute("type", "password");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show current password" }),
+    );
+    expect(currentPassword).toHaveAttribute("type", "text");
+    expect(
+      screen.getByRole("button", { name: "Hide current password" }),
+    ).toBeInTheDocument();
 
-    it("should conditionally render two-factor for non-OAuth users", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/isOAuth === false[\s\S]*?isTwoFactorEnabled/);
-    });
+    expect(newPassword).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Show new password" }));
+    expect(newPassword).toHaveAttribute("type", "text");
   });
 
-  describe("Profile Handling", () => {
-    it("should return null when user is undefined", () => {
-      const source = getComponentSource();
-      expect(source).toContain("if (user == undefined");
-      expect(source).toContain("return null");
-    });
+  it("requires the current password when a new password is entered", async () => {
+    render(<SettingsForm user={passwordAccount} />);
 
-    it("should return null when profile is undefined", () => {
-      const source = getComponentSource();
-      expect(source).toContain("if (user == undefined || profil == undefined)");
-      expect(source).toContain("return null");
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "New-password-123" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    it("should redirect to profiles when profile is empty", () => {
-      const source = getComponentSource();
-      expect(source).toContain("if (isEmpty(profil))");
-      expect(source).toContain('router.push("profiles")');
-    });
-
-    it("should import isEmpty from lodash", () => {
-      const source = getComponentSource();
-      expect(source).toContain("from 'lodash'");
-      expect(source).toContain("isEmpty");
-    });
+    expect(
+      await screen.findByText("Current password is required!"),
+    ).toBeInTheDocument();
+    expect(mockSettings).not.toHaveBeenCalled();
   });
 
-  describe("Form Submission", () => {
-    it("should have onSubmit handler", () => {
-      const source = getComponentSource();
-      expect(source).toContain("const onSubmit =");
-    });
+  it("shows provider-managed security for OAuth accounts", () => {
+    render(
+      <SettingsForm
+        user={{
+          data: {
+            user: {
+              ...passwordAccount.data.user,
+              isOAuth: true,
+            },
+          },
+        }}
+      />,
+    );
 
-    it("should call settings action", () => {
-      const source = getComponentSource();
-      expect(source).toContain("settings(valuse)");
-      expect(source).toContain("from '@/actions/settings'");
-    });
-
-    it("should use startTransition for form submission", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/onSubmit[\s\S]*?startTransition/);
-    });
-
-    it("should handle success response", () => {
-      const source = getComponentSource();
-      expect(source).toContain("if (data?.success)");
-      expect(source).toContain("toast.success(data?.success)");
-    });
-
-    it("should handle error response", () => {
-      const source = getComponentSource();
-      expect(source).toContain("if (data?.error)");
-      expect(source).toContain("toast.error(data?.error)");
-    });
-
-    it("should handle exceptions", () => {
-      const source = getComponentSource();
-      expect(source).toContain('.catch(() => toast.error("Something went wrong!")');
-    });
-
-    it("should update session on success", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/success[\s\S]*?update\(\)/);
-    });
+    expect(screen.getByLabelText("Email")).toHaveAttribute("readonly");
+    expect(screen.getByText("Connected account")).toBeInTheDocument();
+    expect(screen.getByText("Security managed externally")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Two-factor authentication"),
+    ).not.toBeInTheDocument();
   });
 
-  describe("UI Components", () => {
-    it("should use Form component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Form");
-      expect(source).toContain("from '@/components/ui/form'");
-    });
+  it("surfaces server errors without refreshing the session", async () => {
+    mockSettings.mockResolvedValue({ error: "Incorrect password!" });
+    render(<SettingsForm user={passwordAccount} />);
 
-    it("should use FormField component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<FormField");
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Changed name" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    it("should use Input component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Input");
-      expect(source).toContain("from '@/components/ui/input'");
-    });
-
-    it("should use Select component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Select");
-      expect(source).toContain("from '@/components/ui/select'");
-    });
-
-    it("should use Switch component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Switch");
-      expect(source).toContain("from '@/components/ui/switch'");
-    });
-
-    it("should use Button component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Button");
-      expect(source).toContain("from '@/components/ui/button'");
-    });
-  });
-
-  describe("Field Configuration", () => {
-    it("should set name field as readOnly", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/name="name"[\s\S]*?readOnly/);
-    });
-
-    it("should set email field as readOnly", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/name="email"[\s\S]*?readOnly/);
-    });
-
-    it("should set password field type to password", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/name="password"[\s\S]*?type="password"/);
-    });
-
-    it("should set new password field type to password", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/name="newPassword"[\s\S]*?type="password"/);
-    });
-
-    it("should disable fields when pending", () => {
-      const source = getComponentSource();
-      expect(source).toContain("disabled={isPending}");
-    });
-  });
-
-  describe("Role Selection", () => {
-    it("should have Admin role option", () => {
-      const source = getComponentSource();
-      expect(source).toContain('value={UserRole.ADMIN}>Admin');
-    });
-
-    it("should have User role option", () => {
-      const source = getComponentSource();
-      expect(source).toContain('value={UserRole.USER}>User');
-    });
-
-    it("should import UserRole from Prisma", () => {
-      const source = getComponentSource();
-      expect(source).toContain("from '@prisma/client'");
-      expect(source).toContain("UserRole");
-    });
-  });
-
-  describe("Styling", () => {
-    it("should apply styling classes to inputs", () => {
-      const source = getComponentSource();
-      expect(source).toContain("bg-zinc-800");
-      expect(source).toContain("text-white");
-      expect(source).toContain("border-gray-500");
-    });
-
-    it("should apply styling to button", () => {
-      const source = getComponentSource();
-      expect(source).toContain('variant="auth"');
-      expect(source).toContain('size="lg"');
-      expect(source).toContain("max-w-24");
-    });
-
-    it("should have form spacing", () => {
-      const source = getComponentSource();
-      expect(source).toContain("space-y-6");
-      expect(source).toContain("space-y-4");
-    });
-  });
-
-  describe("Two-Factor Authentication", () => {
-    it("should have description for two-factor", () => {
-      const source = getComponentSource();
-      expect(source).toContain("Enable two factor authentication for your account");
-    });
-
-    it("should use Switch for two-factor", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/isTwoFactorEnabled[\s\S]*?<Switch/);
-    });
-
-    it("should bind Switch to field value", () => {
-      const source = getComponentSource();
-      expect(source).toContain("checked={field.value}");
-      expect(source).toContain("onCheckedChange={field.onChange}");
-    });
-  });
-
-  describe("Imports", () => {
-    it("should import toast from react-hot-toast", () => {
-      const source = getComponentSource();
-      expect(source).toContain("from 'react-hot-toast'");
-      expect(source).toContain("import toast");
-    });
-
-    it("should import z from zod", () => {
-      const source = getComponentSource();
-      expect(source).toContain("from 'zod'");
-      expect(source).toContain("import * as z");
-    });
-
-    it("should import zodResolver", () => {
-      const source = getComponentSource();
-      expect(source).toContain("@hookform/resolvers/zod");
-      expect(source).toContain("zodResolver");
-    });
-  });
-
-  describe("Button Configuration", () => {
-    it("should have Save button text", () => {
-      const source = getComponentSource();
-      expect(source).toContain("Save");
-      expect(source).toContain("</Button>");
-    });
-
-    it("should disable button when pending", () => {
-      const source = getComponentSource();
-      expect(source).toMatch(/<Button[\s\S]*?disabled={isPending}/);
-    });
-  });
-
-  describe("Form Layout", () => {
-    it("should center button in container", () => {
-      const source = getComponentSource();
-      expect(source).toContain("flex flex-row justify-center");
-    });
-
-    it("should wrap form in Form component", () => {
-      const source = getComponentSource();
-      expect(source).toContain("<Form {...form}>");
-    });
-
-    it("should use form.handleSubmit for onSubmit", () => {
-      const source = getComponentSource();
-      expect(source).toContain("onSubmit={form.handleSubmit(onSubmit)}");
-    });
+    await waitFor(() =>
+      expect(mockErrorToast).toHaveBeenCalledWith("Incorrect password!"),
+    );
+    expect(mockUpdateSession).not.toHaveBeenCalled();
   });
 });
