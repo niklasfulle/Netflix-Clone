@@ -1502,7 +1502,7 @@
   dependencies:
     "@sinonjs/commons" "^3.0.1"
 
-"@sonar/scan@^4.3.4":
+"@sonar/scan@4.4.0":
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/@sonar/scan/-/scan-4.4.0.tgz#90304a9163c235a6a64cfee16301aa52e082bac7"
   integrity sha512-ZRQERJ1pLNfoyrwudfXSYlDI1CaFY6dnvsbSzLELVcyHZ5HAr95FJHshXaDesEja9QONeF1MlcDtgVWSEU1aRA==
@@ -5889,7 +5889,7 @@ slugify@1.6.9:
   resolved "https://registry.yarnpkg.com/slugify/-/slugify-1.6.9.tgz#610957dea21e56b65e3a153215ef7b265715c8e8"
   integrity sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==
 
-sonarqube-scanner@^4.3.4:
+sonarqube-scanner@4.4.0:
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/sonarqube-scanner/-/sonarqube-scanner-4.4.0.tgz#8939a946092b0841a1b075ef1cc48f8f57b0ad14"
   integrity sha512-j1hXSmkTCrFQbOL2BurcvLXS92uI+SetwLzwed11H0QJkFMam9nLvZM2hgg/QNelO/D902R+jJ09yLc7HhS/Yw==
