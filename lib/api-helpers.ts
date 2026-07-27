@@ -212,10 +212,15 @@ export async function getActorNamesForType(type: 'Movie' | 'Serie') {
  * Get random movie or series
  */
 export async function getRandomMovie(type: 'Movie' | 'Serie') {
+  const where = {
+    type,
+    status: 'PUBLISHED' as const,
+    videoUrl: { not: '' },
+    thumbnailUrl: { not: '' },
+  };
+
   const movieCount = await db.movie.count({
-    where: {
-      type,
-    },
+    where,
   });
 
   if (movieCount === 0) {
@@ -225,9 +230,7 @@ export async function getRandomMovie(type: 'Movie' | 'Serie') {
   const randomIndex = Math.floor(Math.random() * movieCount);
 
   const randomMovies = await db.movie.findMany({
-    where: {
-      type,
-    },
+    where,
     take: 1,
     skip: randomIndex,
   });

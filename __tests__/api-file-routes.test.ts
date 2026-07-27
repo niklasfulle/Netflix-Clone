@@ -33,6 +33,7 @@ jest.mock('node:fs', () => ({
 }));
 
 import fs from 'node:fs';
+import { Readable } from 'node:stream';
 import { currentUser } from '@/lib/auth';
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
@@ -168,8 +169,8 @@ describe('file and remaining API routes', () => {
   it('streams full and ranged videos and billboard previews', async () => {
     mockedDb.movie.findUnique.mockResolvedValue({ id: 'movie1', type: 'Movie', videoUrl: 'video1' });
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.statSync.mockReturnValue({ size: 100 } as any);
-    mockedFs.createReadStream.mockReturnValue(new ReadableStream() as any);
+    mockedFs.statSync.mockReturnValue({ size: 100, isFile: () => true } as any);
+    mockedFs.createReadStream.mockImplementation(() => Readable.from(Buffer.alloc(100)) as any);
 
     const noRange = { headers: new Headers() } as any;
     const range = { headers: new Headers({ range: 'bytes=10-19' }) } as any;

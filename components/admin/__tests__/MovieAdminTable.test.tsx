@@ -34,7 +34,10 @@ describe("MovieAdminTable", () => {
     expect(screen.getByText("Drama")).toBeInTheDocument();
     expect(screen.getByText("Veröffentlicht")).toBeInTheDocument();
     expect(screen.getByText("Ada Actor")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /bearbeiten/i })).toHaveAttribute("href", "/edit_movie/movie-1");
+    expect(screen.getByRole("link", { name: /bearbeiten/i })).toHaveAttribute(
+      "href",
+      "/admin/movies/movie-1/edit",
+    );
   });
 
   it("selects an item and delegates sorting", () => {

@@ -4,6 +4,21 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- German and English can now be switched directly from the desktop and mobile admin navigation
+- Administration pages, filters, dialogs, forms, dynamic counters, statuses, and upload states now use a consistent selected language
+- Content creation and editing now use the administration layout and navigation consistently
+- Actors can be created and selected directly while adding new content
+- Successfully created content now clears all form, actor, video, thumbnail, and file-input state without requiring a page reload
+- Content and dashboard caches are refreshed after creation so newly added entries appear immediately
+- Failed content submissions now preserve the entered form values for correction and retrying
+- Movie type and genre selectors are controlled correctly and no longer retain stale values after a form reset
+- Deployment and database-update handling was hardened for existing movie records
+- User settings and administration management pages received visual and usability refinements
+- Bug fixes and minor improvements based on SonarQube analysis
+- Billboard videos now use complete byte-range streaming, restart reliably when content changes, and fall back to the poster if playback fails
+
+## 1.9.0
+
 - The administration area now uses a responsive management dashboard with a dedicated sidebar and shared admin UI components
 - Dashboard metrics summarize users, content, actors, views, active profiles, blocked accounts, recent errors, top content, and system activity
 - Movie and series management now supports server-side search, filters, sorting, CSV export, content statuses, selection, and bulk publishing or archiving

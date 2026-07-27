@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
 export function AdminPagination({
   page,
   totalPages,
@@ -15,20 +17,23 @@ export function AdminPagination({
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 }>) {
+  const { locale, t } = useLanguage();
+  const numberLocale = locale === "de" ? "de-DE" : "en-US";
+
   return (
     <div className="flex flex-col gap-3 border-t border-zinc-800 px-4 py-4 text-sm text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-      <span>{total.toLocaleString("de-DE")} Einträge</span>
+      <span>{total.toLocaleString(numberLocale)} {t("Einträge")}</span>
       <div className="flex items-center gap-3">
         {onPageSizeChange && (
           <label className="flex items-center gap-2">
-            <span className="sr-only">Einträge pro Seite</span>
+            <span className="sr-only">{t("Einträge pro Seite")}</span>
             <select
               value={pageSize}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
               className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-200"
             >
               {[10, 20, 50].map((size) => (
-                <option key={size} value={size}>{size} / Seite</option>
+                <option key={size} value={size}>{t(`${size} / Seite`)}</option>
               ))}
             </select>
           </label>
@@ -39,16 +44,16 @@ export function AdminPagination({
           disabled={page <= 1}
           className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"
         >
-          Zurück
+          {t("Zurück")}
         </button>
-        <span>Seite {page} von {Math.max(totalPages, 1)}</span>
+        <span>{t(`Seite ${page} von ${Math.max(totalPages, 1)}`)}</span>
         <button
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"
         >
-          Weiter
+          {t("Weiter")}
         </button>
       </div>
     </div>

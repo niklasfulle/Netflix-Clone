@@ -153,6 +153,10 @@ export const useVideoThumbnailUpload = () => {
   };
 
   const resetUploadState = () => {
+    if (videoPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL?.(videoPreviewUrl);
+    }
+
     setVideoFile(null);
     setVideoPreviewUrl("");
     setUploadedVideoPath("");
@@ -161,8 +165,10 @@ export const useVideoThumbnailUpload = () => {
     setThumbnailOptions([]);
     setShowThumbnailSelector(false);
 
-    const fileInput = document.querySelector('input[type="file"][accept="video/*"]') as HTMLInputElement;
-    if (fileInput) fileInput.value = "";
+    for (const inputId of ["video-upload", "thumbnail-upload"]) {
+      const fileInput = document.getElementById(inputId) as HTMLInputElement | null;
+      if (fileInput) fileInput.value = "";
+    }
   };
 
   const cancelUpload = async (onCancel?: () => void) => {

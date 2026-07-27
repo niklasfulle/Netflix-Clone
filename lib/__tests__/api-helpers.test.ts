@@ -109,6 +109,21 @@ describe('API helpers', () => {
     await expect(getRandomMovie('Movie')).resolves.toBeNull();
     await expect(getRandomMovie('Movie')).resolves.toEqual({ id: 'movie1' });
     await expect(getRandomMovie('Serie')).resolves.toBeNull();
+
+    const playableMovieFilter = {
+      type: 'Movie',
+      status: 'PUBLISHED',
+      videoUrl: { not: '' },
+      thumbnailUrl: { not: '' },
+    };
+    expect(mockedDb.movie.count).toHaveBeenNthCalledWith(1, {
+      where: playableMovieFilter,
+    });
+    expect(mockedDb.movie.findMany).toHaveBeenNthCalledWith(1, {
+      where: playableMovieFilter,
+      take: 1,
+      skip: expect.any(Number),
+    });
   });
 
   it('logs contextual errors and serializes dates', async () => {

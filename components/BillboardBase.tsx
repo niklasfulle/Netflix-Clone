@@ -19,27 +19,35 @@ interface BillboardBaseProps {
 
 const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority }) => {
   const [isDesktop, setIsDesktop] = useState(true);
-
-  const checkWindowSize = () => {
-    let windowWidth: number = 0; // Initialize with a default value
-    if (globalThis.window !== undefined) {
-      windowWidth = globalThis.window.innerWidth;
-    }
-    if (windowWidth >= 1024) {
-      setIsDesktop(true);
-    } else {
-      setIsDesktop(false);
-    }
-  };
+  const [videoFailed, setVideoFailed] = useState(false);
 
   useEffect(() => {
+    const checkWindowSize = () => {
+      setIsDesktop(globalThis.window.innerWidth >= 1024);
+    };
+
     checkWindowSize();
-  }, [isDesktop]);
+    globalThis.window.addEventListener('resize', checkWindowSize);
+    return () => globalThis.window.removeEventListener('resize', checkWindowSize);
+  }, []);
+
+  useEffect(() => {
+    setVideoFailed(false);
+  }, [data?.id]);
+
+  const playVideo = (video: HTMLVideoElement) => {
+    const playAttempt = video.play();
+    playAttempt?.catch(() => undefined);
+  };
+
+  const hasPoster = Boolean(data?.thumbnailUrl);
+  const showVideo = !isLoading && isDesktop && Boolean(data?.id) && !videoFailed;
+  const showPoster = !isLoading && hasPoster && (!isDesktop || videoFailed || !data?.id);
 
   return (
-    <div className="relative h-[56.25vw]">
+    <div className="relative h-[56.25vw] w-full overflow-hidden">
       {isLoading && (
-        <div className="flex items-center justify-center w-full h-[56.25vw] bg-zinc-800 aspect-video">
+        <div className="flex h-full w-full items-center justify-center bg-zinc-800">
           <svg
             className="w-10 h-10 text-zinc-500 dark:text-gray-600"
             aria-hidden="true"
@@ -51,27 +59,38 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
           </svg>
         </div>
       )}
-      {!isLoading && isDesktop && (
+      {showVideo && (
         <video
-          className="w-full h-[56.25vw] object-cover brightness-[60%] aspect-video"
+          key={data?.id}
+          className="absolute inset-0 h-full w-full object-cover brightness-[60%]"
           autoPlay
           muted
           loop
+          playsInline
+          preload="metadata"
           poster={data?.thumbnailUrl}
           src={data?.id ? `/api/video/billboard/${data.id}` : undefined}
+          onCanPlay={(event) => playVideo(event.currentTarget)}
+          onError={() => setVideoFailed(true)}
         />
       )}
-      {!isLoading && !isDesktop && (
+      {showPoster && (
         <Image
-          className="w-full h-[60.25vw] object-cover brightness-[60%] aspect-video"
-          src={data?.thumbnailUrl || ''}
+          className="absolute inset-0 h-full w-full object-cover brightness-[60%]"
+          src={data?.thumbnailUrl ?? ''}
           height={1080}
           width={1920}
           alt="Thumbnail"
           priority={priority}
         />
       )}
-      <div className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[60%]">
+      {!isLoading && !showVideo && !showPoster && (
+        <div className="h-full w-full bg-zinc-900" aria-hidden="true" />
+      )}
+      <div
+        className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[60%]"
+        data-testid="billboard-content"
+      >
          <p className="w-full font-bold text-white text-2xl md:text-5xl lg:text-6xl drop-shadow-xl overflow-hidden text-ellipsis line-clamp-2">
           {data?.title}
         </p>

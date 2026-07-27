@@ -26,7 +26,7 @@ const workflow = [
   {
     icon: Users,
     title: "Cast",
-    description: "Assign existing actors from the catalog.",
+    description: "Assign existing actors or create missing entries directly in the form.",
   },
   {
     icon: Upload,

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { mutate as mutateSWR } from "swr";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -11,13 +13,29 @@ import { MovieFormFields } from "@/components/MovieFormFields";
 import { ThumbnailPreview } from "@/components/ThumbnailPreview";
 import { ThumbnailSelector } from "@/components/ThumbnailSelector";
 import { VideoUploadField } from "@/components/VideoUploadField";
+import {
+  InlineActorCreator,
+  type CreatedActor,
+} from "@/components/admin/InlineActorCreator";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useVideoThumbnailUpload } from "@/hooks/useVideoThumbnailUpload";
 import { MovieSchema } from "@/schemas";
 
+const EMPTY_MOVIE_FORM: z.infer<typeof MovieSchema> = {
+  movieName: "",
+  movieDescripton: "",
+  movieActor: [],
+  movieType: "",
+  movieGenre: "",
+  movieDuration: "",
+  movieVideo: "",
+  movieThumbnail: "",
+};
+
 export const AddMovieForm = () => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [estimatedTime, setEstimatedTime] = useState("");
   const uploadStartTimeRef = useRef<number | null>(null);
@@ -42,7 +60,6 @@ export const AddMovieForm = () => {
     selectThumbnail,
     deselectThumbnail,
     resetUploadState,
-    setThumbnailUrl,
   } = useVideoThumbnailUpload();
 
   const [allActors, setAllActors] = useState<{ id: string; name: string }[]>([]);
@@ -92,16 +109,7 @@ export const AddMovieForm = () => {
 
   const form = useForm<z.infer<typeof MovieSchema>>({
     resolver: zodResolver(MovieSchema),
-    defaultValues: {
-      movieName: "",
-      movieDescripton: "",
-      movieActor: [],
-      movieType: "",
-      movieGenre: "",
-      movieDuration: "",
-      movieVideo: "",
-      movieThumbnail: "",
-    },
+    defaultValues: EMPTY_MOVIE_FORM,
   });
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,21 +137,31 @@ export const AddMovieForm = () => {
       return;
     }
 
-    startTransition(() => {
-      addMovie(values, thumbnailUrl).then((data) => {
+    startTransition(async () => {
+      try {
+        const data = await addMovie(values, thumbnailUrl);
+
         if (data && "error" in data && data.error) {
-          form.reset();
           toast.error(data.error);
         } else if (data && "success" in data && data.success) {
-          form.reset();
-          form.setValue("movieActor", []);
-          form.setValue("movieType", "");
-          form.setValue("movieGenre", "");
-          setThumbnailUrl("");
+          form.reset(EMPTY_MOVIE_FORM);
           resetUploadState();
+          setEstimatedTime("");
+
+          await mutateSWR(
+            (key) => typeof key === "string" && (
+              key.startsWith("/api/movies/admin?") ||
+              key === "/api/admin/overview"
+            ),
+            undefined,
+            { revalidate: true },
+          );
+          router.refresh();
           toast.success(data.success);
         }
-      });
+      } catch {
+        toast.error("Content could not be saved. Please try again.");
+      }
     });
   };
 
@@ -151,6 +169,21 @@ export const AddMovieForm = () => {
     label: actor.name,
     value: actor.id,
   }));
+
+  const handleActorCreated = (actor: CreatedActor) => {
+    setAllActors((currentActors) => (
+      [...currentActors.filter((item) => item.id !== actor.id), actor]
+        .sort((left, right) => left.name.localeCompare(right.name, "de"))
+    ));
+
+    const selectedActors = form.getValues("movieActor") || [];
+    form.setValue(
+      "movieActor",
+      Array.from(new Set([...selectedActors, actor.id])),
+      { shouldDirty: true, shouldValidate: true },
+    );
+    toast.success(`${actor.name} wurde angelegt und ausgewählt.`);
+  };
 
   return (
     <Form {...form}>
@@ -162,6 +195,7 @@ export const AddMovieForm = () => {
             actorsLoading={actorsLoading}
             disabled={isPending}
             durationReadOnly
+            actorExtension={<InlineActorCreator onActorCreated={handleActorCreated} />}
           />
 
           <VideoUploadField

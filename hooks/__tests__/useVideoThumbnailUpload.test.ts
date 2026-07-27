@@ -10,6 +10,7 @@ jest.mock('react-hot-toast');
 describe('useVideoThumbnailUpload', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    document.body.replaceChildren();
     // Mock useChunkedUpload
     (useChunkedUpload as jest.Mock).mockReturnValue({
       uploadFile: jest.fn(),
@@ -224,6 +225,42 @@ describe('useVideoThumbnailUpload', () => {
       expect(result.current.thumbnailOptions).toEqual([]);
       expect(result.current.uploadedVideoPath).toBe('');
       expect(result.current.generatedVideoId).toBe('');
+    });
+
+    it('clears both file inputs and releases the previous preview URL', () => {
+      const revokeObjectUrl = jest.fn();
+      Object.defineProperty(URL, 'revokeObjectURL', {
+        configurable: true,
+        value: revokeObjectUrl,
+      });
+
+      const videoInput = document.createElement('input');
+      videoInput.id = 'video-upload';
+      Object.defineProperty(videoInput, 'value', {
+        configurable: true,
+        writable: true,
+        value: 'selected-video',
+      });
+      const thumbnailInput = document.createElement('input');
+      thumbnailInput.id = 'thumbnail-upload';
+      Object.defineProperty(thumbnailInput, 'value', {
+        configurable: true,
+        writable: true,
+        value: 'selected-thumbnail',
+      });
+      document.body.append(videoInput, thumbnailInput);
+
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      act(() => {
+        result.current.setVideoPreviewUrl('blob:preview');
+      });
+      act(() => {
+        result.current.resetUploadState();
+      });
+
+      expect(videoInput.value).toBe('');
+      expect(thumbnailInput.value).toBe('');
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:preview');
     });
   });
 

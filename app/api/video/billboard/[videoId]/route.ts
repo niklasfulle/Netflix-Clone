@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
-import path from "node:path";
-import { db } from "@/lib/db";
+import { Readable } from "node:stream";
 
-const ONE_MINUTE_IN_BYTES = 10 * 1024 * 1024; // Ungefähr 10MB für 1 Minute (abhängig von Bitrate)
+import { db } from "@/lib/db";
+import {
+  getVideoContentType,
+  parseVideoRange,
+  resolveVideoFile,
+} from "@/lib/video-stream";
 
 export async function GET(
   req: NextRequest,
@@ -25,54 +29,57 @@ export async function GET(
     const SERIES_FOLDER = process.env.SERIES_FOLDER || "./series";
     const baseFolder = movie.type === "Serie" ? SERIES_FOLDER : MOVIE_FOLDER;
 
-    const extensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
-    let videoPath = "";
-    // Zuerst ohne Extension prüfen
-    const directPath = path.join(baseFolder, movie.videoUrl);
-    if (fs.existsSync(directPath)) {
-      videoPath = directPath;
-    } else {
-      // Falls nicht gefunden, mit Extension suchen
-      for (const ext of extensions) {
-        const testPath = path.join(baseFolder, `${movie.videoUrl}${ext}`);
-        if (fs.existsSync(testPath)) {
-          videoPath = testPath;
-          break;
-        }
-      }
-    }
-    if (!videoPath || !fs.existsSync(videoPath)) {
+    const videoPath = resolveVideoFile(baseFolder, movie.videoUrl);
+    if (!videoPath) {
       return NextResponse.json({ error: "Video file not found" }, { status: 404 });
     }
 
     const videoSize = fs.statSync(videoPath).size;
-    
-    // Begrenze auf erste Minute (max ONE_MINUTE_IN_BYTES)
-    const maxSize = Math.min(videoSize, ONE_MINUTE_IN_BYTES);
-
-    if (!range) {
-      const head = {
-        "Content-Length": maxSize.toString(),
-        "Content-Type": "video/mp4",
-      };
-      const stream = fs.createReadStream(videoPath, { start: 0, end: maxSize - 1 });
-      return new NextResponse(stream as any, { status: 200, headers: head });
+    if (videoSize === 0) {
+      return NextResponse.json({ error: "Video file is empty" }, { status: 404 });
     }
 
-    const parts = range.replace(/bytes=/, "").split("-");
-    const start = Number.parseInt(parts[0], 10);
-    const end = parts[1] ? Math.min(Number.parseInt(parts[1], 10), maxSize - 1) : maxSize - 1;
-    const chunksize = end - start + 1;
-    const file = fs.createReadStream(videoPath, { start, end });
-
-    const head = {
-      "Content-Range": `bytes ${start}-${end}/${maxSize}`,
+    const contentType = getVideoContentType(videoPath);
+    const commonHeaders = {
       "Accept-Ranges": "bytes",
-      "Content-Length": chunksize.toString(),
-      "Content-Type": "video/mp4",
+      "Cache-Control": "private, max-age=3600",
+      "Content-Type": contentType,
     };
 
-    return new NextResponse(file as any, { status: 206, headers: head });
+    if (!range) {
+      const stream = Readable.toWeb(fs.createReadStream(videoPath));
+      return new NextResponse(stream as ReadableStream, {
+        status: 200,
+        headers: {
+          ...commonHeaders,
+          "Content-Length": videoSize.toString(),
+        },
+      });
+    }
+
+    const parsedRange = parseVideoRange(range, videoSize);
+    if (!parsedRange) {
+      return new NextResponse(null, {
+        status: 416,
+        headers: {
+          ...commonHeaders,
+          "Content-Range": `bytes */${videoSize}`,
+        },
+      });
+    }
+
+    const { start, end } = parsedRange;
+    const chunkSize = end - start + 1;
+    const stream = Readable.toWeb(fs.createReadStream(videoPath, { start, end }));
+
+    return new NextResponse(stream as ReadableStream, {
+      status: 206,
+      headers: {
+        ...commonHeaders,
+        "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+        "Content-Length": chunkSize.toString(),
+      },
+    });
   } catch (error) {
     console.error("Billboard video streaming error:", error);
     return NextResponse.json({ error: "Streaming failed" }, { status: 500 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Upload, X, Check } from "lucide-react";
 
 interface VideoUploadFieldProps {
@@ -36,10 +37,12 @@ export const VideoUploadField = ({
   uploadDisabled = false,
   isUploaded = Boolean(uploadedVideoPath),
 }: VideoUploadFieldProps) => {
+  const { t } = useLanguage();
+
   return (
     <div>
       <label className="text-white block mb-2">
-        Upload Video {isOptional && "(optional)"}
+        {t(isOptional ? "Upload Video (optional)" : "Upload Video")}
       </label>
       <div className="mt-2 space-y-3">
         <div className="relative">
@@ -84,12 +87,14 @@ export const VideoUploadField = ({
                 <>
                   <Upload className="w-10 h-10 text-gray-400 mb-2" />
                   <p className="text-sm text-white">
-                    Click to select {isOptional ? "a new" : "a"} video
+                    {t(isOptional
+                      ? "Click to select a new video"
+                      : "Click to select a video")}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {currentVideoUrl
-                      ? `Current: ${currentVideoUrl}`
-                      : "MP4 file, max. 2GB"}
+                      ? t(`Current: ${currentVideoUrl}`)
+                      : t("MP4 file, max. 2GB")}
                   </p>
                 </>
               )}
@@ -110,7 +115,7 @@ export const VideoUploadField = ({
                   return (
                     <>
                       <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                      Uploading... {uploadProgress}%
+                      {t(`Uploading... ${uploadProgress}%`)}
                     </>
                   );
                 }
@@ -118,14 +123,14 @@ export const VideoUploadField = ({
                   return (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Uploaded
+                      {t("Uploaded")}
                     </>
                   );
                 }
                 return (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Video
+                    {t("Upload Video")}
                   </>
                 );
               })()}
@@ -151,7 +156,7 @@ export const VideoUploadField = ({
             </div>
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>{uploadProgress}%</span>
-              {estimatedTime && <span>~{estimatedTime} left</span>}
+              {estimatedTime && <span>{t(`~${estimatedTime} left`)}</span>}
             </div>
           </div>
         )}

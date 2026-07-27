@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FormLabel } from "@/components/ui/form";
 import { Upload, X } from "lucide-react";
 
@@ -20,13 +21,15 @@ export const ThumbnailPreview = ({
   showDeselect = true,
   useImage = false,
 }: ThumbnailPreviewProps) => {
+  const { t } = useLanguage();
+
   return (
     <>
       {thumbnailUrl && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <FormLabel className="text-white">
-              {useImage ? "Selected Thumbnail" : "Current Thumbnail"}
+              {t(useImage ? "Selected Thumbnail" : "Current Thumbnail")}
             </FormLabel>
             {showDeselect && onDeselect && (
               <Button
@@ -35,20 +38,20 @@ export const ThumbnailPreview = ({
                 className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
               >
                 <X className="w-3 h-3 mr-1" />
-                Deselect
+                {t("Deselect")}
               </Button>
             )}
           </div>
           {useImage ? (
             <img
               src={thumbnailUrl}
-              alt="Selected Thumbnail"
+              alt={t("Selected Thumbnail")}
               className="w-full h-auto rounded border-2 border-green-500"
             />
           ) : (
             <Image
               src={thumbnailUrl}
-              alt="movie thumbnail"
+              alt={t("movie thumbnail")}
               width={1920}
               height={1080}
               className="rounded-xl border-2 border-green-500"
@@ -60,7 +63,7 @@ export const ThumbnailPreview = ({
       {onManualUpload && (
         <div>
           <FormLabel className="text-white block mb-2">
-            Or upload thumbnail manually
+            {t("Or upload thumbnail manually")}
           </FormLabel>
           <div className="relative">
             <input
@@ -77,7 +80,7 @@ export const ThumbnailPreview = ({
               <div className="flex items-center gap-2 text-gray-400">
                 <Upload className="w-5 h-5" />
                 <span className="text-sm">
-                  {useImage ? "Upload Thumbnail" : "Upload new thumbnail"}
+                  {t(useImage ? "Upload Thumbnail" : "Upload new thumbnail")}
                 </span>
               </div>
             </label>

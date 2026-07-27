@@ -1,5 +1,8 @@
 // Mock dependencies FIRST, before any imports
 jest.mock('react-hot-toast');
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn() }),
+}));
 jest.mock('@/hooks/useVideoThumbnailUpload');
 jest.mock('@/actions/add/add-movie', () => ({
   addMovie: jest.fn(),
@@ -150,6 +153,15 @@ describe('AddMovieForm Component', () => {
       render(<AddMovieForm />);
       await waitFor(() => {
         expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+      });
+    });
+
+    it('should offer inline actor creation', async () => {
+      render(<AddMovieForm />);
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Neuen Darsteller anlegen' })
+        ).toBeInTheDocument();
       });
     });
 

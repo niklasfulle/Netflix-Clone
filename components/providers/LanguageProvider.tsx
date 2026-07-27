@@ -39,6 +39,10 @@ const englishSourceAliases: Record<string, string> = {
   'Aktion': 'Action',
   'Alle': 'All',
   'Logs leeren': 'Clear logs',
+  'Serie': 'Series',
+  'PUBLISHED': 'Published',
+  'DRAFT': 'Draft',
+  'ARCHIVED': 'Archived',
 };
 
 const germanSourceAliases: Record<string, string> = {
@@ -50,6 +54,10 @@ const germanSourceAliases: Record<string, string> = {
   'Fehler beim Laden der Logs.': 'Fehler beim Laden der Protokolle.',
   'Details anzeigen': 'Details anzeigen',
   'Logs leeren': 'Protokolle leeren',
+  'Movie': 'Film',
+  'PUBLISHED': 'Veröffentlicht',
+  'DRAFT': 'Entwurf',
+  'ARCHIVED': 'Archiviert',
 };
 
 const defaultContext: LanguageContextValue = {
@@ -67,12 +75,104 @@ function translateDynamicText(text: string, locale: Locale): string {
 
     const randomTitle = /^Random (.+):$/.exec(text);
     if (randomTitle) return `${randomTitle[1]} – zufällige Wiedergabe:`;
+
+    const editContent = /^Edit (.+)$/.exec(text);
+    if (editContent) return `${editContent[1]} bearbeiten`;
+
+    const viewContent = /^View (.+)$/.exec(text);
+    if (viewContent) return `${viewContent[1]} ansehen`;
+
+    const page = /^Page (\d+) of (\d+)$/.exec(text);
+    if (page) return `Seite ${page[1]} von ${page[2]}`;
+
+    const updatedItems = /^(\d+) items were updated\.$/.exec(text);
+    if (updatedItems) return `${updatedItems[1]} Inhalte wurden aktualisiert.`;
+
+    const createdActor = /^(.+) was created and selected\.$/.exec(text);
+    if (createdActor) return `${createdActor[1]} wurde angelegt und ausgewählt.`;
+
+    const newUsers = /^\+(\d+) in 30 days$/.exec(text);
+    if (newUsers) return `+${newUsers[1]} in 30 Tagen`;
+
+    const newContent = /^(\d+) new items?$/.exec(text);
+    if (newContent) {
+      return newContent[1] === '1'
+        ? '1 neuer Inhalt'
+        : `${newContent[1]} neue Inhalte`;
+    }
+
+    if (text === '1 neue Inhalte') return '1 neuer Inhalt';
+
+    const views = /^(\d+) Views$/.exec(text);
+    if (views) return `${views[1]} Aufrufe`;
+
+    const pageSize = /^(\d+) \/ page$/.exec(text);
+    if (pageSize) return `${pageSize[1]} / Seite`;
+
+    const currentValue = /^Current: (.+)$/.exec(text);
+    if (currentValue) return `Aktuell: ${currentValue[1]}`;
+
+    const uploadProgress = /^Uploading\.\.\. (\d+)%$/.exec(text);
+    if (uploadProgress) return `Wird hochgeladen... ${uploadProgress[1]} %`;
+
+    const timeLeft = /^~(.+) left$/.exec(text);
+    if (timeLeft) return `~${timeLeft[1]} verbleibend`;
   } else {
     const randomPlay = /^(.+) in zufälliger Reihenfolge abspielen$/.exec(text);
     if (randomPlay) return `Play ${randomPlay[1]} in random order`;
 
     const randomTitle = /^(.+) – zufällige Wiedergabe:$/.exec(text);
     if (randomTitle) return `Random ${randomTitle[1]}:`;
+
+    const editContent = /^(.+) bearbeiten$/.exec(text);
+    if (editContent) return `Edit ${editContent[1]}`;
+
+    const viewContent = /^(.+) ansehen$/.exec(text);
+    if (viewContent) return `View ${viewContent[1]}`;
+
+    const page = /^Seite (\d+) von (\d+)$/.exec(text);
+    if (page) return `Page ${page[1]} of ${page[2]}`;
+
+    const updatedItems = /^(\d+) Inhalte wurden aktualisiert\.$/.exec(text);
+    if (updatedItems) return `${updatedItems[1]} items were updated.`;
+
+    const createdActor = /^(.+) wurde angelegt und ausgewählt\.$/.exec(text);
+    if (createdActor) return `${createdActor[1]} was created and selected.`;
+
+    const newUsers = /^\+(\d+) in 30 Tagen$/.exec(text);
+    if (newUsers) return `+${newUsers[1]} in 30 days`;
+
+    const newContent = /^(\d+) neue Inhalte$/.exec(text);
+    if (newContent) {
+      return newContent[1] === '1'
+        ? '1 new item'
+        : `${newContent[1]} new items`;
+    }
+
+    if (text === '1 neuer Inhalt' || text === '1 neue Inhalte') {
+      return '1 new item';
+    }
+
+    const views = /^(\d+) Aufrufe$/.exec(text);
+    if (views) return `${views[1]} Views`;
+
+    const pageSize = /^(\d+) \/ Seite$/.exec(text);
+    if (pageSize) return `${pageSize[1]} / page`;
+
+    const currentValue = /^Aktuell: (.+)$/.exec(text);
+    if (currentValue) return `Current: ${currentValue[1]}`;
+
+    const uploadProgress = /^Wird hochgeladen\.\.\. (\d+) %$/.exec(text);
+    if (uploadProgress) return `Uploading... ${uploadProgress[1]}%`;
+
+    const timeLeft = /^~(.+) verbleibend$/.exec(text);
+    if (timeLeft) return `~${timeLeft[1]} left`;
+
+    const accountCount = /^von (\d+) Konten$/.exec(text);
+    if (accountCount) return `of ${accountCount[1]} accounts`;
+
+    const blockedUntil = /^Bis (.+)$/.exec(text);
+    if (blockedUntil) return `Until ${blockedUntil[1]}`;
   }
 
   return text;

@@ -9,6 +9,7 @@ import {
   Clapperboard,
   DatabaseBackup,
   Home,
+  Languages,
   LayoutDashboard,
   Menu,
   PlusCircle,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 import AccountMenu from "@/components/AccountMenu";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 
 const navigation = [
@@ -90,6 +92,13 @@ export default function AdminNav() {
         <NavLinks onNavigate={() => setMobileOpen(false)} />
       </div>
       <div className="border-t border-zinc-800 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2">
+          <span className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+            <Languages className="h-4 w-4" aria-hidden="true" />
+            Sprache
+          </span>
+          <LanguageSwitcher compact />
+        </div>
         <Link
           href="/"
           className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -133,15 +142,18 @@ export default function AdminNav() {
           <Image src="/images/Logo2.png" alt="Netflix" width={40} height={40} className="h-9 w-auto" priority />
           <span className="text-sm font-bold text-white">Admin</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setMobileOpen((open) => !open)}
-          className="rounded-lg border border-zinc-800 p-2 text-zinc-200"
-          aria-label={mobileOpen ? "Navigation schließen" : "Navigation öffnen"}
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher compact />
+          <button
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
+            className="rounded-lg border border-zinc-800 p-2 text-zinc-200"
+            aria-label={mobileOpen ? "Navigation schließen" : "Navigation öffnen"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </header>
 
       {mobileOpen && (

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock next/image before importing component
@@ -193,8 +193,12 @@ describe('BillboardBase', () => {
       waitFor(() => {
         const image = screen.getByTestId('next-image');
         expect(image.className).toMatch(/w-full/);
+        expect(image.className).toMatch(/h-full/);
+        expect(image.className).toMatch(/absolute/);
+        expect(image.className).toMatch(/inset-0/);
         expect(image.className).toMatch(/brightness-\[60%\]/);
         expect(image.className).toMatch(/object-cover/);
+        expect(image.className).not.toMatch(/h-\[60\.25vw\]/);
       });
     });
   });
@@ -400,6 +404,8 @@ describe('BillboardBase', () => {
         expect(video).toHaveAttribute('autoplay');
         expect(video).toHaveAttribute('muted');
         expect(video).toHaveAttribute('loop');
+        expect(video).toHaveAttribute('playsinline');
+        expect(video).toHaveAttribute('preload', 'metadata');
       });
     });
 
@@ -426,6 +432,37 @@ describe('BillboardBase', () => {
       waitFor(() => {
         const video = container.querySelector('video');
         expect(video?.getAttribute('src')).toBe(`/api/video/billboard/${mockData.id}`);
+      });
+    });
+
+    it('should remount the video when the billboard content changes', () => {
+      const { container, rerender } = render(
+        <BillboardBase data={mockData} isLoading={false} />
+      );
+      const firstVideo = container.querySelector('video');
+
+      rerender(
+        <BillboardBase
+          data={{ ...mockData, id: 'movie-2', title: 'Second Movie' }}
+          isLoading={false}
+        />
+      );
+
+      const secondVideo = container.querySelector('video');
+      expect(secondVideo).not.toBe(firstVideo);
+      expect(secondVideo).toHaveAttribute('src', '/api/video/billboard/movie-2');
+    });
+
+    it('should fall back to the poster when video playback fails', async () => {
+      const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
+      const video = container.querySelector('video');
+      expect(video).toBeInTheDocument();
+
+      fireEvent.error(video as HTMLVideoElement);
+
+      await waitFor(() => {
+        expect(container.querySelector('video')).not.toBeInTheDocument();
+        expect(screen.getByTestId('next-image')).toHaveAttribute('src', mockData.thumbnailUrl);
       });
     });
   });
@@ -478,11 +515,12 @@ describe('BillboardBase', () => {
       const mainDiv = container.firstChild as HTMLElement;
       expect(mainDiv?.className).toMatch(/relative/);
       expect(mainDiv?.className).toMatch(/h-\[56.25vw\]/);
+      expect(mainDiv?.className).toMatch(/overflow-hidden/);
     });
 
     it('should have correct content positioning', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
-      const contentDiv = container.querySelector('.absolute');
+      const contentDiv = screen.getByTestId('billboard-content');
       expect(contentDiv?.className).toMatch(/absolute/);
       expect(contentDiv?.className).toMatch(/top-\[50%\]/);
       expect(contentDiv?.className).toMatch(/md:top-\[40%\]/);
@@ -561,14 +599,14 @@ describe('BillboardBase', () => {
   describe('Responsive Design', () => {
     it('should have responsive margin left', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
-      const contentDiv = container.querySelector('.absolute');
+      const contentDiv = screen.getByTestId('billboard-content');
       expect(contentDiv?.className).toMatch(/ml-4/);
       expect(contentDiv?.className).toMatch(/md:ml-16/);
     });
 
     it('should have responsive top position', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
-      const contentDiv = container.querySelector('.absolute');
+      const contentDiv = screen.getByTestId('billboard-content');
       expect(contentDiv?.className).toMatch(/top-\[50%\]/);
       expect(contentDiv?.className).toMatch(/md:top-\[40%\]/);
     });

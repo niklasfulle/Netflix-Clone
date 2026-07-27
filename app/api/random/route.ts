@@ -13,7 +13,12 @@ export async function GET() {
       return Response.json(null, { status: 404 })
     }
 
-    const movieCount = await db.movie.count()
+    const playableContentFilter = {
+      status: 'PUBLISHED' as const,
+      videoUrl: { not: '' },
+      thumbnailUrl: { not: '' },
+    };
+    const movieCount = await db.movie.count({ where: playableContentFilter })
     
     if (movieCount === 0) {
       logBackendAction('api_random_route_no_movies_in_db', { userId: user.id }, 'error');
@@ -23,6 +28,7 @@ export async function GET() {
     const randomIndex = Math.floor(Math.random() * movieCount)
 
     const randomMovies = await db.movie.findMany({
+      where: playableContentFilter,
       take: 1,
       skip: randomIndex,
       select: {

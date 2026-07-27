@@ -6,7 +6,7 @@ import { toast } from "react-hot-toast";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Save, Trash2, TriangleAlert, X } from "lucide-react";
 
 import { deleteMovie } from "@/actions/add/delete-movie";
 import { updateMovie } from "@/actions/add/update-movie";
@@ -21,8 +21,22 @@ import useActorsAll from "@/hooks/useActorsAll";
 import { useVideoThumbnailUpload } from "@/hooks/useVideoThumbnailUpload";
 import { MovieSchema } from "@/schemas";
 
+export interface EditableMovie {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  genre: string;
+  duration: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  actorIds?: string[];
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  updatedAt?: string;
+}
+
 interface EditMovieFormProps {
-  movie: Record<string, any>;
+  movie: EditableMovie;
 }
 
 export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
@@ -112,7 +126,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
       } else if (result.success) {
         toast.success(result.success);
         setTimeout(() => {
-          router.push("/movies");
+          router.push("/admin/movies");
         }, 1000);
       }
     } catch (error) {
@@ -136,6 +150,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
           toast.error(data.error);
         } else if (data && "success" in data && data.success) {
           toast.success(data.success);
+          router.refresh();
         }
       });
     });
@@ -144,7 +159,7 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex flex-col gap-2 mx-4">
+        <div className="flex flex-col gap-4">
           <MovieFormFields
             form={form}
             actorOptions={actorSelectOptions}
@@ -197,6 +212,10 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
             />
           )}
 
+          {!thumbnailUrl && (
+            <ThumbnailPreview thumbnailUrl="" onManualUpload={createDataUri} />
+          )}
+
           <FormField
             control={form.control}
             name="movieVideo"
@@ -210,56 +229,67 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
           />
 
           {showDeleteConfirm && (
-            <div className="p-4 border-2 border-red-500 rounded-lg bg-red-900/20 mt-4">
-              <p className="text-white text-center mb-4">
-                Do you really want to delete this movie? This action cannot be undone!
-              </p>
-              <div className="flex gap-2 px-32">
+            <section
+              className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-5"
+              aria-labelledby="delete-content-title"
+            >
+              <div className="flex items-start gap-3">
+                <span className="rounded-lg bg-red-500/15 p-2 text-red-300">
+                  <TriangleAlert className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 id="delete-content-title" className="font-semibold text-white">
+                    Inhalt endgültig löschen?
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-red-100/70">
+                    Der Film und seine Verknüpfungen werden dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
-                  onClick={handleDelete}
+                  onClick={() => void handleDelete()}
                   disabled={isDeleting}
-                  className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-medium"
+                  className="h-11 bg-red-600 font-semibold text-white hover:bg-red-500 sm:min-w-36"
                 >
-                  {isDeleting ? "Deleting..." : "Yes, delete"}
+                  <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {isDeleting ? "Wird gelöscht..." : "Jetzt löschen"}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={isDeleting}
-                  className="flex-1 h-11 bg-zinc-700 hover:bg-zinc-600 text-white"
+                  className="h-11 border border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800 sm:min-w-32"
                 >
-                  Cancel
+                  <X className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Abbrechen
                 </Button>
               </div>
-            </div>
+            </section>
           )}
 
           {!showDeleteConfirm && (
-            <>
-              <div className="px-32 mt-4">
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  variant="save"
-                  size="lg"
-                  className="w-full"
-                >
-                  Save
-                </Button>
-              </div>
-              <div className="px-32 mt-2">
-                <Button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isPending || isDeleting}
-                  className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-medium"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            </>
+            <div className="mt-4 flex flex-col-reverse gap-3 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <Button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isPending || isDeleting}
+                className="h-11 border border-red-500/30 bg-transparent font-medium text-red-300 hover:bg-red-500/10 hover:text-red-200"
+              >
+                <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Inhalt löschen
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending}
+                size="lg"
+                className="h-11 bg-red-600 font-semibold text-white hover:bg-red-500 sm:min-w-48"
+              >
+                <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+                {isPending ? "Änderungen werden gespeichert..." : "Änderungen speichern"}
+              </Button>
+            </div>
           )}
         </div>
       </form>

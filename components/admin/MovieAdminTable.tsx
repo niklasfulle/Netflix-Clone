@@ -117,7 +117,7 @@ export default function MovieAdminTable({
                     <Link href={`/watch/${item.id}`} aria-label={`${item.title} ansehen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <Eye className="h-4 w-4" />
                     </Link>
-                    <Link href={`/edit_movie/${item.id}`} aria-label={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
+                    <Link href={`/admin/movies/${item.id}/edit`} aria-label={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <FilePenLine className="h-4 w-4" />
                     </Link>
                   </div>

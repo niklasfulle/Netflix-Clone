@@ -10,6 +10,18 @@ const TestContent = () => (
     <span>Add New Content</span>
     <input placeholder="Search..." aria-label="Search" />
     <button aria-label="Play Test Actor in random order">Shuffle</button>
+    <span>Guten Überblick.</span>
+    <span>System-Logs</span>
+    <span>+2 in 30 Tagen</span>
+    <span>1 neue Inhalte</span>
+    <span>3 Views</span>
+    <span>Movie</span>
+    <span>Serie</span>
+    <span>PUBLISHED</span>
+    <span>20 / Seite</span>
+    <span>Current: video.mp4</span>
+    <span>Uploading... 42%</span>
+    <span>~2 minutes left</span>
   </div>
 );
 
@@ -35,6 +47,22 @@ describe('LanguageProvider', () => {
     );
   });
 
+  test('normalizes German admin source text when English is active', async () => {
+    render(
+      <LanguageProvider>
+        <TestContent />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByText('Good overview.')).toBeInTheDocument();
+    expect(screen.getByText('System Logs')).toBeInTheDocument();
+    expect(screen.getByText('+2 in 30 days')).toBeInTheDocument();
+    expect(screen.getByText('1 new item')).toBeInTheDocument();
+    expect(screen.getByText('Movie')).toBeInTheDocument();
+    expect(screen.getByText('Series')).toBeInTheDocument();
+    expect(screen.getByText('Published')).toBeInTheDocument();
+  });
+
   test('switches text and accessible attributes to German', async () => {
     render(
       <LanguageProvider>
@@ -54,6 +82,16 @@ describe('LanguageProvider', () => {
           name: 'Test Actor in zufälliger Reihenfolge abspielen',
         })
       ).toBeInTheDocument();
+      expect(screen.getByText('+2 in 30 Tagen')).toBeInTheDocument();
+      expect(screen.getByText('1 neuer Inhalt')).toBeInTheDocument();
+      expect(screen.getByText('3 Aufrufe')).toBeInTheDocument();
+      expect(screen.getByText('Film')).toBeInTheDocument();
+      expect(screen.getByText('Serien')).toBeInTheDocument();
+      expect(screen.getByText('Veröffentlicht')).toBeInTheDocument();
+      expect(screen.getByText('20 / Seite')).toBeInTheDocument();
+      expect(screen.getByText('Aktuell: video.mp4')).toBeInTheDocument();
+      expect(screen.getByText('Wird hochgeladen... 42 %')).toBeInTheDocument();
+      expect(screen.getByText('~2 minutes verbleibend')).toBeInTheDocument();
     });
     expect(document.documentElement.lang).toBe('de');
     expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('de');
