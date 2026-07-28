@@ -32,13 +32,24 @@ function readLogs(): LogRecord[] {
   }
 }
 
-function stringifyCsvValue(value: unknown) {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "object") return JSON.stringify(value) ?? "";
-  if (typeof value === "string") return value;
-  if (typeof value === "symbol") return value.description ?? "";
-  if (typeof value === "function") return value.name;
-  return value.toString();
+function stringifyCsvValue(value: unknown): string {
+  switch (typeof value) {
+    case "undefined":
+      return "";
+    case "object":
+      return value === null ? "" : JSON.stringify(value) ?? "";
+    case "string":
+      return value;
+    case "number":
+    case "bigint":
+      return value.toString();
+    case "boolean":
+      return value ? "true" : "false";
+    case "symbol":
+      return value.description ?? "";
+    case "function":
+      return value.name;
+  }
 }
 
 function csvCell(value: unknown) {
