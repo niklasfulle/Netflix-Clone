@@ -68,114 +68,71 @@ const defaultContext: LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue>(defaultContext);
 
-function translateDynamicText(text: string, locale: Locale): string {
-  if (locale === 'de') {
-    const randomPlay = /^Play (.+) in random order$/.exec(text);
-    if (randomPlay) return `${randomPlay[1]} in zufälliger Reihenfolge abspielen`;
+type DynamicTranslationRule = readonly [
+  pattern: RegExp,
+  translate: (match: RegExpExecArray) => string,
+];
 
-    const randomTitle = /^Random (.+):$/.exec(text);
-    if (randomTitle) return `${randomTitle[1]} – zufällige Wiedergabe:`;
+const germanDynamicTranslations: readonly DynamicTranslationRule[] = [
+  [/^Play (.+) in random order$/, (match) => `${match[1]} in zufälliger Reihenfolge abspielen`],
+  [/^Random (.+):$/, (match) => `${match[1]} – zufällige Wiedergabe:`],
+  [/^Edit (.+)$/, (match) => `${match[1]} bearbeiten`],
+  [/^View (.+)$/, (match) => `${match[1]} ansehen`],
+  [/^Page (\d+) of (\d+)$/, (match) => `Seite ${match[1]} von ${match[2]}`],
+  [/^(\d+) items were updated\.$/, (match) => `${match[1]} Inhalte wurden aktualisiert.`],
+  [/^(.+) was created and selected\.$/, (match) => `${match[1]} wurde angelegt und ausgewählt.`],
+  [/^\+(\d+) in 30 days$/, (match) => `+${match[1]} in 30 Tagen`],
+  [
+    /^(\d+) new items?$/,
+    (match) => match[1] === '1' ? '1 neuer Inhalt' : `${match[1]} neue Inhalte`,
+  ],
+  [/^1 neue Inhalte$/, () => '1 neuer Inhalt'],
+  [/^(\d+) Views$/, (match) => `${match[1]} Aufrufe`],
+  [/^(\d+) \/ page$/, (match) => `${match[1]} / Seite`],
+  [/^Current: (.+)$/, (match) => `Aktuell: ${match[1]}`],
+  [/^Uploading\.\.\. (\d+)%$/, (match) => `Wird hochgeladen... ${match[1]} %`],
+  [/^~(.+) left$/, (match) => `~${match[1]} verbleibend`],
+];
 
-    const editContent = /^Edit (.+)$/.exec(text);
-    if (editContent) return `${editContent[1]} bearbeiten`;
+const englishDynamicTranslations: readonly DynamicTranslationRule[] = [
+  [/^(.+) in zufälliger Reihenfolge abspielen$/, (match) => `Play ${match[1]} in random order`],
+  [/^(.+) – zufällige Wiedergabe:$/, (match) => `Random ${match[1]}:`],
+  [/^(.+) bearbeiten$/, (match) => `Edit ${match[1]}`],
+  [/^(.+) ansehen$/, (match) => `View ${match[1]}`],
+  [/^Seite (\d+) von (\d+)$/, (match) => `Page ${match[1]} of ${match[2]}`],
+  [/^(\d+) Inhalte wurden aktualisiert\.$/, (match) => `${match[1]} items were updated.`],
+  [/^(.+) wurde angelegt und ausgewählt\.$/, (match) => `${match[1]} was created and selected.`],
+  [/^\+(\d+) in 30 Tagen$/, (match) => `+${match[1]} in 30 days`],
+  [
+    /^(\d+) neue Inhalte$/,
+    (match) => match[1] === '1' ? '1 new item' : `${match[1]} new items`,
+  ],
+  [/^1 (?:neuer Inhalt|neue Inhalte)$/, () => '1 new item'],
+  [/^(\d+) Aufrufe$/, (match) => `${match[1]} Views`],
+  [/^(\d+) \/ Seite$/, (match) => `${match[1]} / page`],
+  [/^Aktuell: (.+)$/, (match) => `Current: ${match[1]}`],
+  [/^Wird hochgeladen\.\.\. (\d+) %$/, (match) => `Uploading... ${match[1]}%`],
+  [/^~(.+) verbleibend$/, (match) => `~${match[1]} left`],
+  [/^von (\d+) Konten$/, (match) => `of ${match[1]} accounts`],
+  [/^Bis (.+)$/, (match) => `Until ${match[1]}`],
+];
 
-    const viewContent = /^View (.+)$/.exec(text);
-    if (viewContent) return `${viewContent[1]} ansehen`;
-
-    const page = /^Page (\d+) of (\d+)$/.exec(text);
-    if (page) return `Seite ${page[1]} von ${page[2]}`;
-
-    const updatedItems = /^(\d+) items were updated\.$/.exec(text);
-    if (updatedItems) return `${updatedItems[1]} Inhalte wurden aktualisiert.`;
-
-    const createdActor = /^(.+) was created and selected\.$/.exec(text);
-    if (createdActor) return `${createdActor[1]} wurde angelegt und ausgewählt.`;
-
-    const newUsers = /^\+(\d+) in 30 days$/.exec(text);
-    if (newUsers) return `+${newUsers[1]} in 30 Tagen`;
-
-    const newContent = /^(\d+) new items?$/.exec(text);
-    if (newContent) {
-      return newContent[1] === '1'
-        ? '1 neuer Inhalt'
-        : `${newContent[1]} neue Inhalte`;
-    }
-
-    if (text === '1 neue Inhalte') return '1 neuer Inhalt';
-
-    const views = /^(\d+) Views$/.exec(text);
-    if (views) return `${views[1]} Aufrufe`;
-
-    const pageSize = /^(\d+) \/ page$/.exec(text);
-    if (pageSize) return `${pageSize[1]} / Seite`;
-
-    const currentValue = /^Current: (.+)$/.exec(text);
-    if (currentValue) return `Aktuell: ${currentValue[1]}`;
-
-    const uploadProgress = /^Uploading\.\.\. (\d+)%$/.exec(text);
-    if (uploadProgress) return `Wird hochgeladen... ${uploadProgress[1]} %`;
-
-    const timeLeft = /^~(.+) left$/.exec(text);
-    if (timeLeft) return `~${timeLeft[1]} verbleibend`;
-  } else {
-    const randomPlay = /^(.+) in zufälliger Reihenfolge abspielen$/.exec(text);
-    if (randomPlay) return `Play ${randomPlay[1]} in random order`;
-
-    const randomTitle = /^(.+) – zufällige Wiedergabe:$/.exec(text);
-    if (randomTitle) return `Random ${randomTitle[1]}:`;
-
-    const editContent = /^(.+) bearbeiten$/.exec(text);
-    if (editContent) return `Edit ${editContent[1]}`;
-
-    const viewContent = /^(.+) ansehen$/.exec(text);
-    if (viewContent) return `View ${viewContent[1]}`;
-
-    const page = /^Seite (\d+) von (\d+)$/.exec(text);
-    if (page) return `Page ${page[1]} of ${page[2]}`;
-
-    const updatedItems = /^(\d+) Inhalte wurden aktualisiert\.$/.exec(text);
-    if (updatedItems) return `${updatedItems[1]} items were updated.`;
-
-    const createdActor = /^(.+) wurde angelegt und ausgewählt\.$/.exec(text);
-    if (createdActor) return `${createdActor[1]} was created and selected.`;
-
-    const newUsers = /^\+(\d+) in 30 Tagen$/.exec(text);
-    if (newUsers) return `+${newUsers[1]} in 30 days`;
-
-    const newContent = /^(\d+) neue Inhalte$/.exec(text);
-    if (newContent) {
-      return newContent[1] === '1'
-        ? '1 new item'
-        : `${newContent[1]} new items`;
-    }
-
-    if (text === '1 neuer Inhalt' || text === '1 neue Inhalte') {
-      return '1 new item';
-    }
-
-    const views = /^(\d+) Aufrufe$/.exec(text);
-    if (views) return `${views[1]} Views`;
-
-    const pageSize = /^(\d+) \/ Seite$/.exec(text);
-    if (pageSize) return `${pageSize[1]} / page`;
-
-    const currentValue = /^Aktuell: (.+)$/.exec(text);
-    if (currentValue) return `Current: ${currentValue[1]}`;
-
-    const uploadProgress = /^Wird hochgeladen\.\.\. (\d+) %$/.exec(text);
-    if (uploadProgress) return `Uploading... ${uploadProgress[1]}%`;
-
-    const timeLeft = /^~(.+) verbleibend$/.exec(text);
-    if (timeLeft) return `~${timeLeft[1]} left`;
-
-    const accountCount = /^von (\d+) Konten$/.exec(text);
-    if (accountCount) return `of ${accountCount[1]} accounts`;
-
-    const blockedUntil = /^Bis (.+)$/.exec(text);
-    if (blockedUntil) return `Until ${blockedUntil[1]}`;
+function applyDynamicTranslations(
+  text: string,
+  rules: readonly DynamicTranslationRule[],
+): string {
+  for (const [pattern, translate] of rules) {
+    const match = pattern.exec(text);
+    if (match) return translate(match);
   }
-
   return text;
+}
+
+function translateDynamicText(text: string, locale: Locale): string {
+  const rules = locale === 'de'
+    ? germanDynamicTranslations
+    : englishDynamicTranslations;
+  return applyDynamicTranslations(text, rules);
 }
 
 function translateValue(value: string, locale: Locale): string {

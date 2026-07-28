@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
 
 const VIDEO_EXTENSIONS = [".mp4", ".mov", ".webm", ".mkv", ".avi"];
 
@@ -88,4 +89,55 @@ export function parseVideoRange(
   }
 
   return { start, end };
+}
+
+export function createVideoStreamResponse(
+  videoPath: string,
+  rangeHeader: string | null,
+): Response {
+  const videoSize = fs.statSync(videoPath).size;
+  if (videoSize === 0) {
+    return Response.json({ error: "Video file is empty" }, { status: 404 });
+  }
+
+  const commonHeaders = {
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, max-age=3600",
+    "Content-Type": getVideoContentType(videoPath),
+  };
+
+  if (!rangeHeader) {
+    const stream = Readable.toWeb(fs.createReadStream(videoPath));
+    return new Response(stream as ReadableStream, {
+      status: 200,
+      headers: {
+        ...commonHeaders,
+        "Content-Length": videoSize.toString(),
+      },
+    });
+  }
+
+  const parsedRange = parseVideoRange(rangeHeader, videoSize);
+  if (!parsedRange) {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        ...commonHeaders,
+        "Content-Range": `bytes */${videoSize}`,
+      },
+    });
+  }
+
+  const { start, end } = parsedRange;
+  const chunkSize = end - start + 1;
+  const stream = Readable.toWeb(fs.createReadStream(videoPath, { start, end }));
+
+  return new Response(stream as ReadableStream, {
+    status: 206,
+    headers: {
+      ...commonHeaders,
+      "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+      "Content-Length": chunkSize.toString(),
+    },
+  });
 }

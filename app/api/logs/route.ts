@@ -34,8 +34,11 @@ function readLogs(): LogRecord[] {
 
 function stringifyCsvValue(value: unknown) {
   if (value === null || value === undefined) return "";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+  if (typeof value === "object") return JSON.stringify(value) ?? "";
+  if (typeof value === "string") return value;
+  if (typeof value === "symbol") return value.description ?? "";
+  if (typeof value === "function") return value.name;
+  return value.toString();
 }
 
 function csvCell(value: unknown) {

@@ -10,6 +10,9 @@ const { auth } = NextAuth({
       if (session.user && token.role) {
         session.user.role = token.role as UserRole
       }
+      if (session.user) {
+        session.user.isBlocked = Boolean(token.isBlocked)
+      }
 
       return session
     },
@@ -29,6 +32,11 @@ export default auth((req) => {
 
   if (isApiAuthRoute) {
     return
+  }
+
+  if (req.auth?.user?.isBlocked) {
+    if (nextUrl.pathname === "/auth/error") return
+    return Response.redirect(new URL("/auth/error?error=AccessDenied", nextUrl))
   }
 
   if (isAuthRoute) {

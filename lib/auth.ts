@@ -2,10 +2,10 @@ import { auth } from '@/auth';
 
 export const currentUser = async () => {
   const session = await auth()
-  return session?.user
+  return session?.user?.isBlocked ? undefined : session?.user
 }
 
 export const currentRole = async () => {
-  const session = await auth()
-  return session?.user?.role
+  const user = await currentUser()
+  return user?.role
 }

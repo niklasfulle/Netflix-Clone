@@ -6,6 +6,7 @@ import authConfig from "./auth.config"
 import { UserRole } from "@prisma/client"
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation"
 import { getAccountByUserId } from "./data/account"
+import { hasActiveUserBlock } from "@/lib/user-access"
 
 export const {
   handlers: { GET, POST },
@@ -27,12 +28,12 @@ export const {
   },
   callbacks: {
     async signIn({ user, account }) {
-
-      if (account?.provider !== "credentials") return true
-
       const existingUser = await getUserById(user.id as string)
 
-      if (!existingUser?.emailVerified) return false
+      if (!existingUser || await hasActiveUserBlock(existingUser)) return false
+      if (account?.provider !== "credentials") return true
+
+      if (!existingUser.emailVerified) return false
 
       if (existingUser.isTwoFactorEnabled) {
         const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id)
@@ -59,6 +60,7 @@ export const {
 
       if (session.user) {
         session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean
+        session.user.isBlocked = Boolean(token.isBlocked)
       }
 
       if (session.user) {
@@ -77,12 +79,14 @@ export const {
       if (!existingUser) return token;
 
       const existingAccount = await getAccountByUserId(existingUser.id)
+      const isBlocked = await hasActiveUserBlock(existingUser)
 
       token.isOAuth = !!existingAccount
       token.name = existingUser.name
       token.email = existingUser.email
       token.role = existingUser.role
       token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled
+      token.isBlocked = isBlocked
 
       return token
     }

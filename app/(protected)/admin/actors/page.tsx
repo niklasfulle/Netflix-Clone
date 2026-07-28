@@ -184,11 +184,14 @@ export default function AdminActorsPage() {
           aria-modal="true"
           aria-label={`Details zu ${detailActor.name}`}
           className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none justify-end border-0 bg-black/70 p-0 text-inherit"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDetailActor(null);
-          }}
         >
-          <aside className="h-full w-full max-w-lg overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-6">
+          <button
+            type="button"
+            aria-label="Hintergrund schließen"
+            onClick={() => setDetailActor(null)}
+            className="absolute inset-0 border-0 bg-transparent p-0"
+          />
+          <aside className="relative z-10 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-6">
             <div className="flex items-start justify-between">
               <div><p className="text-xs uppercase tracking-widest text-red-400">Darsteller</p><h2 className="mt-2 text-2xl font-bold text-white">{detailActor.name}</h2></div>
               <button type="button" onClick={() => setDetailActor(null)} aria-label="Details schließen" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800"><X className="h-5 w-5" /></button>

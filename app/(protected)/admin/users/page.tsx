@@ -156,11 +156,14 @@ export default function AdminUsersPage() {
           aria-modal="true"
           aria-label={`Benutzerdetails ${detailUser.name}`}
           className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none justify-end border-0 bg-black/70 p-0 text-inherit"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDetailUser(null);
-          }}
         >
-          <aside className="h-full w-full max-w-lg overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-6">
+          <button
+            type="button"
+            aria-label="Hintergrund schließen"
+            onClick={() => setDetailUser(null)}
+            className="absolute inset-0 border-0 bg-transparent p-0"
+          />
+          <aside className="relative z-10 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-6">
             <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Benutzerkonto</p><h2 className="mt-2 text-2xl font-bold">{detailUser.name}</h2><p className="text-sm text-zinc-500">{detailUser.email}</p></div><button type="button" onClick={() => setDetailUser(null)} aria-label="Details schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl border border-zinc-800 p-3"><p className="text-zinc-500">Rolle</p><p className="mt-1 font-semibold">{detailUser.role}</p></div>

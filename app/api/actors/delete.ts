@@ -1,9 +1,14 @@
 import { logBackendAction } from '@/lib/logger';
+import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic";
 
 export async function DELETE(request: Request) {
+  if (!(await isCurrentUserAdmin())) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) {

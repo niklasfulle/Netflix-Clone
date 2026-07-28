@@ -4,6 +4,13 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- Movie upload, chunk upload, media deletion, and legacy actor deletion now require administrator access
+- Media paths, upload identifiers, file extensions, chunk counts, and upload sizes are validated server-side
+- Direct video uploads stream to disk instead of buffering files of up to two gigabytes in application memory
+- Blocked accounts are rejected for credentials and OAuth authentication, and expired temporary blocks are cleared automatically
+- Existing sessions propagate the current blocked state and can no longer use protected server helpers while blocked
+- Full player and billboard video routes now share the same traversal-safe file resolution, MIME detection, and standards-compliant byte-range streaming
+- Draft and archived content can no longer be streamed by regular users through a known content ID
 - German and English can now be switched directly from the desktop and mobile admin navigation
 - Administration pages, filters, dialogs, forms, dynamic counters, statuses, and upload states now use a consistent selected language
 - Content creation and editing now use the administration layout and navigation consistently
@@ -15,6 +22,7 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Deployment and database-update handling was hardened for existing movie records
 - User settings and administration management pages received visual and usability refinements
 - Bug fixes and minor improvements based on SonarQube analysis
+- Admin dashboard, catalog, actor, user, analytics, and log workflows now have expanded regression coverage for loading, error, empty, filtering, dialog, export, and mutation states
 - Billboard videos now use complete byte-range streaming, restart reliably when content changes, and fall back to the poster if playback fails
 
 ## 1.9.0

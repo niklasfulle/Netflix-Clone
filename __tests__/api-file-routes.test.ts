@@ -33,7 +33,8 @@ jest.mock('node:fs', () => ({
 }));
 
 import fs from 'node:fs';
-import { Readable } from 'node:stream';
+import path from 'node:path';
+import { Readable, Writable } from 'node:stream';
 import { currentUser } from '@/lib/auth';
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
@@ -60,6 +61,7 @@ const json = (response: Response) => response.json();
 describe('file and remaining API routes', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockedIsAdmin.mockResolvedValue(true);
     mockedHelpers.transformMoviesResponse.mockImplementation((movies: any) => movies);
     mockedHelpers.handleApiError.mockImplementation((error: unknown) =>
       Response.json({ error: String(error) }, { status: 500 }),
@@ -96,6 +98,8 @@ describe('file and remaining API routes', () => {
   });
 
   it('covers legacy actor deletion validation and linked actors', async () => {
+    mockedIsAdmin.mockResolvedValueOnce(false);
+    expect((await deleteActorLegacy(new Request('http://localhost/api/actors?id=actor1', { method: 'DELETE' }))).status).toBe(403);
     expect((await deleteActorLegacy(new Request('http://localhost/api/actors', { method: 'DELETE' }))).status).toBe(400);
     mockedDb.actor.findUnique
       .mockResolvedValueOnce(null)
@@ -133,25 +137,45 @@ describe('file and remaining API routes', () => {
   });
 
   it('validates and stores an uploaded movie file', async () => {
-    const tooLarge = { headers: new Headers({ 'content-length': String(2 * 1024 * 1024 * 1024) }) } as any;
+    mockedIsAdmin.mockResolvedValueOnce(false);
+    expect((await uploadMovie({ headers: new Headers() } as any)).status).toBe(403);
+
+    const tooLarge = { headers: new Headers({ 'content-length': String(3 * 1024 * 1024 * 1024) }) } as any;
     expect((await uploadMovie(tooLarge)).status).toBe(413);
 
-    const file = { name: 'movie.mp4', size: 3, arrayBuffer: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3]).buffer) };
+    const file = {
+      name: 'movie.mp4',
+      size: 3,
+      type: 'video/mp4',
+      stream: jest.fn(() => Readable.toWeb(Readable.from([Buffer.from([1, 2, 3])]))),
+    };
     const request = {
       headers: new Headers(),
       formData: jest.fn().mockResolvedValue({ get: jest.fn(() => file) }),
     } as any;
     mockedFs.existsSync.mockReturnValue(false);
+    mockedFs.createWriteStream.mockReturnValue(new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    }) as any);
     expect(await json(await uploadMovie(request))).toMatchObject({ success: true });
     expect(mockedFs.mkdirSync).toHaveBeenCalled();
-    expect(mockedFs.writeFileSync).toHaveBeenCalled();
+    expect(mockedFs.createWriteStream).toHaveBeenCalled();
+
+    const unsafeFile = { ...file, name: '../outside.mp4' };
+    const unsafeRequest = {
+      headers: new Headers(),
+      formData: jest.fn().mockResolvedValue({ get: jest.fn(() => unsafeFile) }),
+    } as any;
+    expect((await uploadMovie(unsafeRequest)).status).toBe(400);
   });
 
   it('stores a partial upload chunk and handles missing parameters', async () => {
     const formData = (values: Record<string, any>) => ({ get: (key: string) => values[key] ?? null });
     expect((await uploadChunk({ formData: jest.fn().mockResolvedValue(formData({})) } as any)).status).toBe(400);
 
-    const chunk = { arrayBuffer: jest.fn().mockResolvedValue(new Uint8Array([1]).buffer) };
+    const chunk = { size: 1, arrayBuffer: jest.fn().mockResolvedValue(new Uint8Array([1]).buffer) };
     mockedFs.existsSync.mockReturnValue(false);
     const response = await uploadChunk({ formData: jest.fn().mockResolvedValue(formData({
       chunk, chunkIndex: '0', totalChunks: '2', fileName: 'movie.mp4', fileId: 'file1', videoType: 'Movie', generatedId: 'video1',
@@ -161,13 +185,17 @@ describe('file and remaining API routes', () => {
 
   it('deletes existing movie files and reports missing files', async () => {
     const request = (filePath: string) => ({ json: jest.fn().mockResolvedValue({ filePath }) } as any);
+    mockedIsAdmin.mockResolvedValueOnce(false);
+    expect((await deleteMovieFile(request(path.join(process.cwd(), 'movies', 'movie.mp4')))).status).toBe(403);
+
     mockedFs.existsSync.mockReturnValueOnce(true).mockReturnValueOnce(false);
-    expect(await json(await deleteMovieFile(request('movie.mp4')))).toMatchObject({ success: true });
-    expect((await deleteMovieFile(request('missing.mp4'))).status).toBe(404);
+    expect(await json(await deleteMovieFile(request(path.join(process.cwd(), 'movies', 'movie.mp4'))))).toMatchObject({ success: true });
+    expect((await deleteMovieFile(request(path.join(process.cwd(), 'movies', 'missing.mp4')))).status).toBe(404);
+    expect((await deleteMovieFile(request(path.join(process.cwd(), 'outside.mp4')))).status).toBe(400);
   });
 
   it('streams full and ranged videos and billboard previews', async () => {
-    mockedDb.movie.findUnique.mockResolvedValue({ id: 'movie1', type: 'Movie', videoUrl: 'video1' });
+    mockedDb.movie.findUnique.mockResolvedValue({ id: 'movie1', type: 'Movie', status: 'PUBLISHED', videoUrl: 'video1' });
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.statSync.mockReturnValue({ size: 100, isFile: () => true } as any);
     mockedFs.createReadStream.mockImplementation(() => Readable.from(Buffer.alloc(100)) as any);
@@ -178,6 +206,21 @@ describe('file and remaining API routes', () => {
     expect((await streamVideo(range, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(206);
     expect((await streamBillboard(noRange, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(200);
     expect((await streamBillboard(range, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(206);
+  });
+
+  it('does not stream unpublished content to regular users', async () => {
+    mockedDb.movie.findUnique.mockResolvedValue({
+      id: 'draft1',
+      type: 'Movie',
+      status: 'DRAFT',
+      videoUrl: 'draft1',
+    });
+    mockedIsAdmin.mockResolvedValue(false);
+
+    const request = { headers: new Headers() } as any;
+    expect((await streamVideo(request, { params: Promise.resolve({ videoId: 'draft1' }) })).status).toBe(404);
+    expect((await streamBillboard(request, { params: Promise.resolve({ videoId: 'draft1' }) })).status).toBe(404);
+    expect(mockedFs.createReadStream).not.toHaveBeenCalled();
   });
 
   it('paginates backend logs for admins', async () => {
