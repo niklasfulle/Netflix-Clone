@@ -49,3 +49,6 @@ next-env.d.ts
 sonar.ps1
 sonar.sh
 hosts
+.agents
+.sonar
+.swc
