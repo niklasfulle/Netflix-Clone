@@ -9,4 +9,6 @@ services:
     volumes:
       - /movies:/movies
       - /series:/series
+      - /var/lib/netflix-monitor:/monitor:ro
+      - /var/lib/netflix-backup-status:/backup-status
     restart: unless-stopped

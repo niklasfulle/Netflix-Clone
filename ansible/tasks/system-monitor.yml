@@ -1,0 +1,69 @@
+---
+- name: Ensure system monitor directories exist
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - path: /usr/local/lib/netflix-monitor
+      mode: "0755"
+    - path: /var/lib/netflix-monitor
+      mode: "0755"
+    - path: /var/lib/netflix-backup-status
+      mode: "0750"
+
+- name: Install read-only system metrics collector
+  copy:
+    src: "{{ playbook_dir }}/files/netflix_monitor.py"
+    dest: /usr/local/lib/netflix-monitor/collector.py
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install system metrics service
+  template:
+    src: "{{ playbook_dir }}/templates/netflix-monitor.service.j2"
+    dest: /etc/systemd/system/netflix-monitor.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install system metrics timer
+  template:
+    src: "{{ playbook_dir }}/templates/netflix-monitor.timer.j2"
+    dest: /etc/systemd/system/netflix-monitor.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable system metrics collection
+  systemd:
+    name: netflix-monitor.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+- name: Collect initial system metrics
+  systemd:
+    name: netflix-monitor.service
+    state: started
+
+- name: Wait for system metrics snapshot
+  wait_for:
+    path: /var/lib/netflix-monitor/status.json
+    timeout: 30
+
+- name: Read initial system metrics snapshot
+  slurp:
+    src: /var/lib/netflix-monitor/status.json
+  register: initial_system_metrics
+
+- name: Validate initial system metrics snapshot
+  assert:
+    that:
+      - (initial_system_metrics.content | b64decode | from_json).schemaVersion == 1
+      - (initial_system_metrics.content | b64decode | from_json).collectedAt is defined
+      - (initial_system_metrics.content | b64decode | from_json).host.hostname is defined
+    fail_msg: "The system metrics collector did not produce a valid snapshot."

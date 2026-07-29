@@ -30,6 +30,9 @@
         state: directory
         mode: '0755'
 
+    - name: Install read-only LXC system monitoring
+      include_tasks: tasks/system-monitor.yml
+
     - name: Copy docker-compose.yml to remote host
       template:
         src: docker-compose.yml.j2
@@ -95,10 +98,32 @@
         (health_response.json | default({})).get('status') == 'ok' and
         (health_response.json | default({})).get('version') == app_version
 
+    - name: Refresh deployed system metrics
+      systemd:
+        name: netflix-monitor.service
+        state: started
+
+    - name: Read deployed system metrics
+      slurp:
+        src: /var/lib/netflix-monitor/status.json
+      register: deployed_system_metrics_file
+
+    - name: Set deployed system metrics
+      set_fact:
+        deployed_system_metrics: "{{ deployed_system_metrics_file.content | b64decode | from_json }}"
+
+    - name: Verify deployed container in system metrics
+      assert:
+        that:
+          - deployed_system_metrics.docker.container is not none
+          - deployed_system_metrics.docker.container.status == 'running'
+          - deployed_system_metrics.docker.container.image == docker_registry ~ '/' ~ image_name ~ ':' ~ app_version
+        fail_msg: "System monitoring did not detect the newly deployed container."
+
     - name: Remove dangling Docker layers after successful start
       command: docker image prune --force
       changed_when: false
 
     - name: Display completion message
       debug:
-        msg: "Netflix Clone version {{ app_version }} is deployed and healthy"
+        msg: "Netflix Clone version {{ app_version }} is deployed, healthy, and visible in system monitoring"

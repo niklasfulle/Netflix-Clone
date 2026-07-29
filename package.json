@@ -1,6 +1,6 @@
 {
   "name": "netflix",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,8 +9,7 @@
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --coverageReporters=lcov",
-    "sonar": "sonar-scanner"
+    "test:coverage": "jest --coverage --coverageReporters=lcov"
   },
   "resolutions": {
     "brace-expansion": "file:vendor/brace-expansion-compat",
@@ -90,5 +89,6 @@
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "3",
     "typescript": "^5.9.3"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

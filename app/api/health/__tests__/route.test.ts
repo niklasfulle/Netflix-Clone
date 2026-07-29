@@ -28,7 +28,7 @@ describe("health endpoint", () => {
     expect(body).toMatchObject({
       status: "ok",
       service: "netflix-clone",
-      version: "1.9.2",
+      version: "1.9.3",
       checks: {
         application: "ok",
         database: "ok",

@@ -2,6 +2,7 @@
 
 jest.mock("@/lib/admin-auth", () => ({ isCurrentUserAdmin: jest.fn() }));
 jest.mock("@/lib/logger", () => ({ logBackendAction: jest.fn() }));
+jest.mock("@/lib/backup-status", () => ({ recordBackupStatus: jest.fn() }));
 jest.mock("@/lib/admin-backup", () => ({
   BackupValidationError: class BackupValidationError extends Error {},
   MAX_BACKUP_FILE_SIZE: 100 * 1024 * 1024,
@@ -22,6 +23,7 @@ import {
   restoreDatabaseBackup,
 } from "@/lib/admin-backup";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { recordBackupStatus } from "@/lib/backup-status";
 import { POST, PUT } from "../route";
 
 const mockedIsAdmin = isCurrentUserAdmin as jest.MockedFunction<typeof isCurrentUserAdmin>;
@@ -30,6 +32,9 @@ const mockedCount = countBackupRecords as jest.MockedFunction<typeof countBackup
 const mockedEncrypt = encryptDatabaseBackup as jest.MockedFunction<typeof encryptDatabaseBackup>;
 const mockedDecrypt = decryptDatabaseBackup as jest.MockedFunction<typeof decryptDatabaseBackup>;
 const mockedRestore = restoreDatabaseBackup as jest.MockedFunction<typeof restoreDatabaseBackup>;
+const mockedRecordBackupStatus = recordBackupStatus as jest.MockedFunction<
+  typeof recordBackupStatus
+>;
 
 const storedBackup = {
   format: "netflix-clone-database-backup",
@@ -64,6 +69,11 @@ describe("admin backup API", () => {
     expect(response.headers.get("Content-Disposition")).toContain(".nfbak");
     expect(response.headers.get("X-Backup-Records")).toBe("42");
     expect(mockedEncrypt).toHaveBeenCalledWith(storedBackup, "secure-backup-password");
+    expect(mockedRecordBackupStatus).toHaveBeenCalledWith({
+      createdAt: storedBackup.createdAt,
+      sizeBytes: 3,
+      records: 42,
+    });
   });
 
   it("validates the password before reading the database", async () => {

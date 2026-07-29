@@ -10,6 +10,7 @@ import {
   RESTORE_CONFIRMATION,
 } from "@/lib/admin-backup";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { recordBackupStatus } from "@/lib/backup-status";
 import { logBackendAction } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -43,10 +44,27 @@ export async function POST(request: Request) {
     const backup = await collectDatabaseBackup();
     const archive = encryptDatabaseBackup(backup, passphrase);
     const records = countBackupRecords(backup);
+    try {
+      await recordBackupStatus({
+        createdAt: backup.createdAt,
+        sizeBytes: archive.byteLength,
+        records,
+      });
+    } catch {
+      logBackendAction(
+        "admin_backup_status_write_failed",
+        { createdAt: backup.createdAt },
+        "warn",
+      );
+    }
     const responseBody = new ArrayBuffer(archive.byteLength);
     new Uint8Array(responseBody).set(archive);
 
-    logBackendAction("admin_backup_created", { records, createdAt: backup.createdAt }, "info");
+    logBackendAction(
+      "admin_backup_created",
+      { records, bytes: archive.byteLength, createdAt: backup.createdAt },
+      "info",
+    );
     return new Response(responseBody, {
       status: 200,
       headers: {

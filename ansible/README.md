@@ -74,9 +74,11 @@ ansible-playbook update.yml -v
 3. Docker-Hub- und CloudFront-DNS werden mit Wiederholungsversuchen geprüft
 4. Das neue Docker-Image wird mit Wiederholungsversuchen vollständig geladen und verifiziert
 5. Erst danach wird der alte Container gestoppt und entfernt
-6. Der Container wird mit der neuen Version gestartet und geprüft
-7. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
-8. Volumes (`/movies` und `/series`) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
+6. Ein eingeschränkter systemd-Agent erfasst LXC-, Speicher- und Docker-Metriken
+7. Der Container wird mit der neuen Version gestartet und über `/api/health` geprüft
+8. Ansible bestätigt, dass der Monitoring-Agent den neuen Container und Image-Tag erkennt
+9. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
+10. Volumes (`/movies`, `/series`, Monitoring- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
 
 ## Dateien
 
@@ -85,6 +87,9 @@ ansible-playbook update.yml -v
 - `update.yml` - Einfaches Playbook (verwendet Shell-Befehle)
 - `update-netflix-clone.yml` - Erweitertes Playbook (benötigt community.docker)
 - `docker-compose.yml.j2` - Template für docker-compose.yml
+- `files/netflix_monitor.py` - Read-only LXC- und Docker-Metriksammler
+- `tasks/system-monitor.yml` - Installation und Validierung des Monitoring-Agenten
+- `templates/netflix-monitor.*.j2` - systemd-Service und Timer
 
 ## Troubleshooting
 

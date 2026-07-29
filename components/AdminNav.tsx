@@ -14,6 +14,7 @@ import {
   Menu,
   PlusCircle,
   ScrollText,
+  ServerCog,
   Users,
   UserRoundSearch,
   X,
@@ -30,6 +31,7 @@ const navigation = [
   { label: "Darsteller", href: "/admin/actors", icon: UserRoundSearch },
   { label: "Benutzer", href: "/admin/users", icon: Users },
   { label: "Analytics", href: "/admin/statistics", icon: BarChart3 },
+  { label: "System", href: "/admin/system", icon: ServerCog },
   { label: "Backups", href: "/admin/backups", icon: DatabaseBackup },
   { label: "System-Logs", href: "/admin/logs", icon: ScrollText },
 ];

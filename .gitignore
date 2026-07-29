@@ -46,10 +46,12 @@ next-env.d.ts
 
 .scannerwork
 
-sonar.ps1
-sonar.sh
 hosts
 .agents
 .sonar
 .swc
 .codex*
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/

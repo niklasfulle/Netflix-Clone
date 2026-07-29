@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh Netflix Clone system metrics
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=30s
+AccuracySec=5s
+Persistent=true
+Unit=netflix-monitor.service
+
+[Install]
+WantedBy=timers.target

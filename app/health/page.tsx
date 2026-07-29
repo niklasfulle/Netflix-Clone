@@ -41,7 +41,10 @@ export default async function HealthPage() {
   );
 }
 
-function StatusCard({ label, value }: { label: string; value: "ok" | "error" }) {
+function StatusCard({
+  label,
+  value,
+}: Readonly<{ label: string; value: "ok" | "error" }>) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
       <dt className="text-sm text-zinc-400">{label}</dt>
@@ -56,7 +59,7 @@ function StatusCard({ label, value }: { label: string; value: "ok" | "error" }) 
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
       <dt className="text-sm text-zinc-400">{label}</dt>

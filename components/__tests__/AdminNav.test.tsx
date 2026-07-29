@@ -20,6 +20,7 @@ it("marks the active admin area and exposes all destinations", () => {
   expect(screen.getAllByRole("link", { name: /Benutzer/i })[0]).toHaveAttribute("aria-current", "page");
   expect(screen.getAllByRole("link", { name: /New Content/i })[0]).toHaveAttribute("href", "/admin/movies/new");
   expect(screen.getAllByRole("link", { name: /Analytics/i }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("link", { name: /System/i })[0]).toHaveAttribute("href", "/admin/system");
   expect(screen.getAllByRole("link", { name: /Backups/i })[0]).toHaveAttribute("href", "/admin/backups");
   expect(screen.getAllByRole("link", { name: /System-Logs/i }).length).toBeGreaterThan(0);
   expect(screen.getAllByRole("group", { name: "Language" })).toHaveLength(2);

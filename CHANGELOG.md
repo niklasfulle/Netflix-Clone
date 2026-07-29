@@ -4,6 +4,14 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- A new administrator-only System Overview provides live LXC, Docker, database, storage, and backup health
+- A hardened read-only host collector records CPU, memory, uptime, filesystem, and container metrics without exposing the Docker socket to the web application
+- Capacity thresholds classify the deployment as healthy, warning, or critical and provide actionable alerts
+- Database backup creation now records non-sensitive recovery metadata for backup age, size, and record-count monitoring
+- Docker and Ansible verify application health, expected version, and visibility of the newly deployed container before reporting a successful deployment
+
+## 1.9.2
+
 - Movie upload, chunk upload, media deletion, and legacy actor deletion now require administrator access
 - Media paths, upload identifiers, file extensions, chunk counts, and upload sizes are validated server-side
 - Direct video uploads stream to disk instead of buffering files of up to two gigabytes in application memory
