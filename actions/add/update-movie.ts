@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { MovieSchema } from '@/schemas';
 import { UserRole } from '@prisma/client';
 import { logBackendAction } from '@/lib/logger';
+import { isGenreAllowed } from '@/lib/genres';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -145,6 +146,13 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
     return { error: "Invalid fields!" };
   }
 
+  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration } = validatedField.data
+
+  if (!isGenreAllowed(movieGenre)) {
+    logBackendAction('updateMovie_genre_not_allowed', { userId: user.id, movieId, movieGenre }, 'warn');
+    return { error: "Genre is not allowed!" };
+  }
+
   const movie = await db.movie.findUnique({
     where: { id: movieId }
   });
@@ -152,8 +160,6 @@ export const updateMovie = async (movieId: string, values: z.infer<typeof MovieS
   if (!movie) {
     return { error: "Movie not found!" }
   }
-
-  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration } = validatedField.data
 
   const moveResult = await handleVideoTypeChange(movie, movieType, values);
   if (moveResult.error) {

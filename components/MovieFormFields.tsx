@@ -6,6 +6,7 @@ import type * as z from "zod";
 
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useGenreOptions } from "@/components/providers/GenreProvider";
 import {
   FormControl,
   FormField,
@@ -24,7 +25,6 @@ import {
 import { MovieSchema } from "@/schemas";
 
 const TYPE_OPTIONS = process.env.NEXT_PUBLIC_TYPE?.split(",") || ["Movie", "Serie"];
-const GENRE_OPTIONS = process.env.NEXT_PUBLIC_GENRE?.split(",") || ["Action", "Comedy", "Drama"];
 
 type MovieFormValues = z.infer<typeof MovieSchema>;
 
@@ -48,6 +48,7 @@ export const MovieFormFields = ({
   actorExtension,
 }: MovieFormFieldsProps) => {
   const { t } = useLanguage();
+  const genreOptions = useGenreOptions();
 
   return (
     <>
@@ -116,7 +117,11 @@ export const MovieFormFields = ({
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-white">{t("Type")}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
+            <Select
+              disabled={disabled}
+              onValueChange={field.onChange}
+              value={field.value}
+            >
               <FormControl>
                 <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
                   <SelectValue placeholder={t(selectPlaceholder)} />
@@ -140,20 +145,29 @@ export const MovieFormFields = ({
         render={({ field }) => (
           <FormItem>
             <FormLabel className="text-white">{t("Genre")}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
+            <Select
+              disabled={disabled || genreOptions.length === 0}
+              onValueChange={field.onChange}
+              value={field.value}
+            >
               <FormControl>
                 <SelectTrigger className="text-white bg-zinc-800 h-10 border-gray-500">
                   <SelectValue placeholder={t(selectPlaceholder)} />
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="bg-zinc-800 text-white border-gray-500">
-                {GENRE_OPTIONS.map((genre) => (
+                {genreOptions.map((genre) => (
                   <SelectItem key={genre} value={genre} className="hover:bg-zinc-700">
                     {t(genre)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {genreOptions.length === 0 && (
+              <p className="text-xs text-amber-300">
+                NEXT_PUBLIC_GENRE is not configured.
+              </p>
+            )}
             <FormMessage />
           </FormItem>
         )}

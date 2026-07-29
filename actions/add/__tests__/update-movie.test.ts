@@ -7,6 +7,10 @@ jest.mock('@/lib/auth', () => ({
   currentRole: jest.fn(),
 }));
 
+jest.mock('@/lib/genres', () => ({
+  isGenreAllowed: jest.fn(() => true),
+}));
+
 jest.mock('@/lib/db', () => ({
   db: {
     movie: {
@@ -46,6 +50,7 @@ import { logBackendAction } from '@/lib/logger';
 import { UserRole } from '@prisma/client';
 import fs from 'node:fs';
 import path from 'node:path';
+import { isGenreAllowed } from '@/lib/genres';
 
 const mockCurrentUser = currentUser as jest.Mock;
 const mockCurrentRole = currentRole as jest.Mock;
@@ -75,6 +80,7 @@ const mockValues = {
 describe('updateMovie action - Movie Update with Authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (isGenreAllowed as jest.Mock).mockReturnValue(true);
     mockCurrentUser.mockResolvedValue({ id: 'user-1', email: 'admin@example.com' });
     mockCurrentRole.mockResolvedValue(UserRole.ADMIN);
     (db.movie.findUnique as jest.Mock).mockResolvedValue(mockMovie);
@@ -157,6 +163,16 @@ describe('updateMovie action - Movie Update with Authorization', () => {
   });
 
   describe('Input Validation', () => {
+    it('rejects a genre outside the production allowlist before reading the movie', async () => {
+      (isGenreAllowed as jest.Mock).mockReturnValue(false);
+
+      const result = await updateMovie('movie-1', mockValues, 'thumbnail.jpg');
+
+      expect(result).toEqual({ error: 'Genre is not allowed!' });
+      expect(db.movie.findUnique).not.toHaveBeenCalled();
+      expect(db.movie.update).not.toHaveBeenCalled();
+    });
+
     it('✅ should accept valid input', async () => {
       const result = await updateMovie('movie-1', mockValues, 'thumbnail.jpg');
       expect('error' in result && result.error).toBeDefined();

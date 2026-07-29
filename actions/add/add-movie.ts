@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { MovieSchema } from '@/schemas';
 import { UserRole } from '@prisma/client';
 import { logBackendAction } from '@/lib/logger';
+import { isGenreAllowed } from '@/lib/genres';
 
 export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl: string) => {
   const user = await currentUser();
@@ -40,6 +41,11 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
   }
 
   const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data;
+
+  if (!isGenreAllowed(movieGenre)) {
+    logBackendAction('addMovie_genre_not_allowed', { userId: user.id, movieGenre }, 'warn');
+    return { error: "Genre is not allowed!" };
+  }
 
   // Create the movie
   const createdMovie = await db.movie.create({

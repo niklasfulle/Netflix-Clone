@@ -103,6 +103,7 @@ Minimale Konfiguration:
 POSTGRESQL_URL=postgresql://USER:PASSWORD@DATABASE_HOST:5432/Netflix
 AUTH_SECRET=REPLACE_WITH_A_RANDOM_SECRET
 AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_GENRE=Action,Comedy,Drama
 ```
 
 Je nach aktivierter Anmeldung und Mail-Konfiguration werden weitere Provider- oder
@@ -141,6 +142,7 @@ Danach ist die Anwendung unter
 | `POSTGRESQL_URL` | Verbindung zur PostgreSQL-Datenbank | erforderlich |
 | `AUTH_SECRET` | Signiert und schützt Authentifizierungsdaten | erforderlich |
 | `AUTH_URL` | Öffentliche Basisadresse der Anwendung | erforderlich |
+| `NEXT_PUBLIC_GENRE` | Kommagetrennte Allowlist der in Add/Edit auswählbaren Genres | in Produktion erforderlich |
 | `SYSTEM_MONITOR_PATH` | Pfad zum JSON-Snapshot des Host-Agenten | `/monitor/status.json` |
 | `APP_VERSION` | Image-Tag für Docker Compose | `latest` |
 | `NETFLIX_DEPLOY_PASSWORD` | Optionales SSH-Passwort für `deploy.ps1` | nicht gesetzt |
@@ -150,6 +152,11 @@ In Produktion liest Docker Compose die Anwendungsvariablen aus:
 ```text
 /root/netflix-secrets/app.env
 ```
+
+`NEXT_PUBLIC_GENRE` wird zur Laufzeit aus dieser Datei gelesen. Leerzeichen
+werden entfernt und doppelte Einträge zusammengeführt. Ist die Variable in
+Produktion leer oder nicht gesetzt, bleibt die Genre-Auswahl deaktiviert und
+Add-/Update-Anfragen werden serverseitig abgelehnt.
 
 Empfohlene Berechtigungen auf dem Zielsystem:
 
