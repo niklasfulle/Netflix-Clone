@@ -100,12 +100,20 @@
       delay: 5
       until: container_status.stdout | trim | length > 0
 
-    - name: Wait for application port
-      wait_for:
-        host: 127.0.0.1
-        port: 3000
-        delay: 2
-        timeout: 90
+    - name: Wait for healthy application version
+      uri:
+        url: http://127.0.0.1:3000/api/health
+        method: GET
+        return_content: yes
+        status_code: 200
+      register: health_response
+      changed_when: false
+      retries: 18
+      delay: 5
+      until: >
+        (health_response.status | default(0)) == 200 and
+        (health_response.json | default({})).get('status') == 'ok' and
+        (health_response.json | default({})).get('version') == app_version
 
     - name: Remove dangling Docker layers after successful start
       command: docker image prune --force
@@ -113,4 +121,4 @@
 
     - name: Display completion message
       debug:
-        msg: "Netflix Clone successfully updated to version {{ app_version }}"
+        msg: "Netflix Clone version {{ app_version }} is deployed and healthy"
