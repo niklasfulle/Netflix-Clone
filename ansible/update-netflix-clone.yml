@@ -6,6 +6,8 @@
     docker_compose_path: "/root/netflix-clone"
     docker_registry: "salkin263"
     image_name: "netflix-clone"
+    docker_pull_retries: 5
+    docker_pull_delay: 15
   
   tasks:
     - name: Read version from local package.json
@@ -35,40 +37,59 @@
         mode: '0644'
       register: compose_file
 
-    - name: Stop and remove existing container
-      community.docker.docker_compose:
-        project_src: "{{ docker_compose_path }}"
-        state: absent
-      ignore_errors: yes
-
-    - name: Remove old Netflix Clone images and dangling layers
+    - name: Wait for Docker registry DNS
       shell: |
-        old_image_ids=$(docker image ls --quiet "{{ docker_registry }}/{{ image_name }}" | sort -u)
-        if [ -n "$old_image_ids" ]; then
-          docker image rm --force $old_image_ids
-        fi
-        docker image prune --force
+        getent ahosts registry-1.docker.io >/dev/null
+        getent ahosts production.cloudfront.docker.com >/dev/null
       args:
         executable: /bin/bash
+      register: docker_registry_dns
+      changed_when: false
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: docker_registry_dns.rc == 0
 
     - name: Pull new Docker image
       community.docker.docker_image:
         name: "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
         source: pull
         force_source: yes
+      register: docker_image_pull
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: docker_image_pull is succeeded
+
+    - name: Verify new Docker image
+      command:
+        argv:
+          - docker
+          - image
+          - inspect
+          - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+      changed_when: false
+
+    - name: Stop and remove existing container after successful image pull
+      community.docker.docker_compose:
+        project_src: "{{ docker_compose_path }}"
+        state: absent
+      ignore_errors: yes
 
     - name: Start container with new version
       community.docker.docker_compose:
         project_src: "{{ docker_compose_path }}"
         state: present
-        pull: yes
+        pull: no
 
     - name: Wait for container to be healthy
       wait_for:
-        host: localhost
+        host: 127.0.0.1
         port: 3000
         delay: 5
-        timeout: 60
+        timeout: 90
+
+    - name: Remove dangling Docker layers after successful start
+      command: docker image prune --force
+      changed_when: false
 
     - name: Display completion message
       debug:

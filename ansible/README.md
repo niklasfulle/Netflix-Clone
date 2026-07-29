@@ -71,10 +71,12 @@ ansible-playbook update.yml -v
 
 1. Version wird aus `package.json` gelesen
 2. `docker-compose.yml` wird auf dem LXC Container aktualisiert
-3. Alter Container wird gestoppt und entfernt
-4. Neues Docker-Image wird gepullt
-5. Container wird mit neuer Version gestartet
-6. Volumes (`/movies` und `//series`) bleiben erhalten
+3. Docker-Hub- und CloudFront-DNS werden mit Wiederholungsversuchen geprüft
+4. Das neue Docker-Image wird mit Wiederholungsversuchen vollständig geladen und verifiziert
+5. Erst danach wird der alte Container gestoppt und entfernt
+6. Der Container wird mit der neuen Version gestartet und geprüft
+7. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
+8. Volumes (`/movies` und `/series`) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
 
 ## Dateien
 
@@ -99,6 +101,17 @@ Stelle sicher, dass Docker auf dem LXC Container installiert ist:
 ```bash
 ssh root@<LXC_IP> "docker --version"
 ```
+
+### Docker-Pull schlägt mit DNS-Timeout fehl
+
+Prüfe die Namensauflösung direkt auf dem LXC-Host:
+
+```bash
+ssh root@<LXC_IP> "getent ahosts registry-1.docker.io"
+ssh root@<LXC_IP> "getent ahosts production.cloudfront.docker.com"
+```
+
+Wenn die Abfragen über den eingetragenen DNS-Server fehlschlagen, korrigiere die DNS-Konfiguration des LXC-Hosts beziehungsweise des Routers. Das Playbook wiederholt DNS-Prüfung und Image-Pull automatisch. Der laufende Container wird dabei erst nach einem vollständig erfolgreichen Pull gestoppt.
 
 ### Community Docker Collection fehlt
 

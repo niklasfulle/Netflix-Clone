@@ -6,6 +6,8 @@
     docker_compose_path: "/root/netflix-clone"
     docker_registry: "salkin263"
     image_name: "netflix-clone"
+    docker_pull_retries: 5
+    docker_pull_delay: 15
   
   tasks:
     - name: Read version from local package.json
@@ -34,7 +36,39 @@
         dest: "{{ docker_compose_path }}/docker-compose.yml"
         mode: '0644'
 
-    - name: Stop existing container
+    - name: Wait for Docker registry DNS
+      shell: |
+        getent ahosts registry-1.docker.io >/dev/null
+        getent ahosts production.cloudfront.docker.com >/dev/null
+      args:
+        executable: /bin/bash
+      register: docker_registry_dns
+      changed_when: false
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: docker_registry_dns.rc == 0
+
+    - name: Pull new Docker image
+      command:
+        argv:
+          - docker
+          - pull
+          - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+      register: docker_image_pull
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: docker_image_pull.rc == 0
+
+    - name: Verify new Docker image
+      command:
+        argv:
+          - docker
+          - image
+          - inspect
+          - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+      changed_when: false
+
+    - name: Stop existing container after successful image pull
       shell: |
         cd {{ docker_compose_path }}
         docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
@@ -43,41 +77,39 @@
       args:
         executable: /bin/bash
 
-    - name: Remove old Netflix Clone images and dangling layers
-      shell: |
-        old_image_ids=$(docker image ls --quiet "{{ docker_registry }}/{{ image_name }}" | sort -u)
-        if [ -n "$old_image_ids" ]; then
-          docker image rm --force $old_image_ids
-        fi
-        docker image prune --force
-      args:
-        executable: /bin/bash
-
-    - name: Pull new Docker image
-      shell: |
-        docker pull {{ docker_registry }}/{{ image_name }}:{{ app_version }}
-      args:
-        executable: /bin/bash
-
     - name: Start container with new version
       shell: |
         cd {{ docker_compose_path }}
-        docker compose up -d 2>/dev/null || docker-compose up -d 2>/dev/null
+        docker compose up -d --no-build 2>/dev/null || docker-compose up -d --no-build 2>/dev/null
       args:
         executable: /bin/bash
 
-    - name: Wait for container to start
-      pause:
-        seconds: 10
-
     - name: Check if container is running
-      shell: docker ps | grep netflix-clone
+      command:
+        argv:
+          - docker
+          - ps
+          - --filter
+          - "name=^/netflix-clone$"
+          - --filter
+          - "status=running"
+          - --quiet
       register: container_status
-      ignore_errors: yes
+      changed_when: false
+      retries: 12
+      delay: 5
+      until: container_status.stdout | trim | length > 0
 
-    - name: Display container status
-      debug:
-        msg: "{{ container_status.stdout }}"
+    - name: Wait for application port
+      wait_for:
+        host: 127.0.0.1
+        port: 3000
+        delay: 2
+        timeout: 90
+
+    - name: Remove dangling Docker layers after successful start
+      command: docker image prune --force
+      changed_when: false
 
     - name: Display completion message
       debug:
