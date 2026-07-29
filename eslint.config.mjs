@@ -7,6 +7,7 @@ const eslintConfig = [
       ".next/**",
       "coverage/**",
       "node_modules/**",
+      "vendor/**",
       "**/__tests__/**",
       "**/*.test.*",
       "jest.config.js",

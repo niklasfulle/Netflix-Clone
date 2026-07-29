@@ -1,7 +1,7 @@
 FROM node:22
 WORKDIR /netflix-clone
-COPY package*.json .
-RUN npm install --legacy-peer-deps
+COPY package.json yarn.lock ./
+RUN corepack enable && yarn install --frozen-lockfile
 COPY . .
 COPY .env_production .env
 EXPOSE 3000
