@@ -23,8 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MovieSchema } from "@/schemas";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const TYPE_OPTIONS = process.env.NEXT_PUBLIC_TYPE?.split(",") || ["Movie", "Serie"];
+
+function getTypeLabel(type: string, translate: (key: TranslationKey) => string) {
+  if (type === "Movie") return translate("Movie");
+  if (type === "Serie") return translate("Series");
+  return type;
+}
 
 type MovieFormValues = z.infer<typeof MovieSchema>;
 
@@ -34,7 +41,7 @@ interface MovieFormFieldsProps {
   actorsLoading: boolean;
   disabled: boolean;
   durationReadOnly?: boolean;
-  selectPlaceholder?: string;
+  selectPlaceholder?: TranslationKey;
   actorExtension?: ReactNode;
 }
 
@@ -130,7 +137,7 @@ export const MovieFormFields = ({
               <SelectContent className="bg-zinc-800 text-white border-gray-500">
                 {TYPE_OPTIONS.map((type) => (
                   <SelectItem key={type} value={type} className="hover:bg-zinc-700">
-                    {t(type)}
+                    {getTypeLabel(type, t)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -158,7 +165,7 @@ export const MovieFormFields = ({
               <SelectContent className="bg-zinc-800 text-white border-gray-500">
                 {genreOptions.map((genre) => (
                   <SelectItem key={genre} value={genre} className="hover:bg-zinc-700">
-                    {t(genre)}
+                    {genre}
                   </SelectItem>
                 ))}
               </SelectContent>

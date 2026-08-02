@@ -4,6 +4,12 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/db', () => ({
   db: {
+    $transaction: jest.fn(async (callback) => callback({
+      profil: {
+        updateMany: jest.fn(),
+        update: jest.fn(),
+      },
+    })),
     profil: {
       updateMany: jest.fn(),
       update: jest.fn(),
@@ -39,12 +45,10 @@ describe('use profil action - Authentifizierung & Validierung', () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
     mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
 
-    // Empty string wird AKZEPTIERT von Zod (bug), daher geht es weiter
     const result = await use({ profilId: '' });
 
-    // Die Logik akzeptiert '', daher wird es erfolgreich
-    expect(result.success).toBeDefined();
-    expect(db.profil.updateMany).toHaveBeenCalled();
+    expect(result).toEqual({ error: 'Invalid fields!' });
+    expect(db.profil.updateMany).not.toHaveBeenCalled();
   });
 
   it('❌ sollte Fehler zurückgeben wenn profilId null ist', async () => {
@@ -61,20 +65,26 @@ describe('use profil action - Authentifizierung & Validierung', () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
     mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
 
-    (db.profil.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
-    (db.profil.update as jest.Mock).mockResolvedValue({
-      id: 'profil1',
-      inUse: true,
-    });
+    (db.profil.findFirst as jest.Mock).mockResolvedValue({ id: 'profil1' });
 
     const result = await use({ profilId: 'profil1' });
 
     expect(result.success).toBeDefined();
-    expect(db.profil.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: 'user1' },
-      })
-    );
-    expect(db.profil.update).toHaveBeenCalled();
+    expect(db.profil.findFirst).toHaveBeenCalledWith({
+      where: { id: 'profil1', userId: 'user1' },
+      select: { id: true },
+    });
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('❌ aktiviert kein Profil eines anderen Benutzers', async () => {
+    const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
+    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    (db.profil.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const result = await use({ profilId: 'foreign-profile' });
+
+    expect(result).toEqual({ error: 'Profile not found!' });
+    expect(db.$transaction).not.toHaveBeenCalled();
   });
 });

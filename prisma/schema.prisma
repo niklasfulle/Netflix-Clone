@@ -31,6 +31,9 @@ model User{
   accounts              Account[]
   profil                Profil[]
   watchlists            Watchlist[]
+  playlists             Playlist[]
+  movieWatchTimes       MovieWatchTime[]
+  movieViews            MovieView[]
   isTwoFactorEnabled    Boolean   @default(false)
   twoFactorConfirmation TwoFactorConfirmation?
   isBlocked             Boolean   @default(false)
@@ -102,6 +105,9 @@ model Profil {
   favoriteIds    String[]
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   watchlists     Watchlist[]
+  playlists      Playlist[]
+  movieWatchTimes MovieWatchTime[]
+  movieViews     MovieView[]
 }
 
 model Movie {
@@ -119,6 +125,9 @@ model Movie {
   updatedAt    DateTime  @default(now()) @updatedAt
   actors       MovieActor[]
   watchlists   Watchlist[]
+  playlistEntries PlaylistEntry[]
+  watchTimes   MovieWatchTime[]
+  views        MovieView[]
 
   @@index([type, status])
   @@index([createdAt])
@@ -151,6 +160,13 @@ model MovieWatchTime {
   profilId     String
   movieId      String
   time         Int
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil       Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie        Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profilId, movieId])
+  @@index([profilId, movieId])
+  @@index([movieId])
 }
 
 model MovieView {
@@ -159,6 +175,12 @@ model MovieView {
   profilId     String
   movieId      String
   createdAt      DateTime  @default(now())
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil       Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie        Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([userId, profilId, createdAt])
+  @@index([movieId, createdAt])
 }
 
 model Playlist {
@@ -168,6 +190,10 @@ model Playlist {
   title             String
   PlaylistEntrys    PlaylistEntry[]
   createdAt      DateTime  @default(now())
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil            Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+
+  @@index([userId, profilId])
 }
 
 model PlaylistEntry {
@@ -176,7 +202,12 @@ model PlaylistEntry {
   playlist     Playlist     @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   order        Int
   movieId      String
+  movie        Movie        @relation(fields: [movieId], references: [id], onDelete: Cascade)
   createdAt      DateTime  @default(now())
+
+  @@unique([playlistId, movieId])
+  @@index([playlistId, order])
+  @@index([movieId])
 }
 
 model Watchlist {

@@ -10,7 +10,7 @@ import {
   compactPlaylistMovies,
   shuffleMovies,
 } from '@/lib/random-playlist';
-import { Movie } from '@prisma/client';
+import type { CatalogCardDto } from '@/lib/catalog';
 import {
   DEBUG_QUERY,
   isDebugEnabled,
@@ -19,7 +19,7 @@ import {
 
 interface FilterRowBaseProps {
   title: string;
-  movies: Movie[];
+  movies: CatalogCardDto[];
   isLoading: boolean;
 }
 
@@ -117,7 +117,7 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
   };
 
   return (
-    <div className="h-auto px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12">
+    <div className="h-auto min-h-[204px] px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12 [content-visibility:auto] [contain-intrinsic-size:auto_240px]">
       <div className="relative z-30 flex items-center gap-3 -mb-8">
         <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
           {title}
@@ -139,18 +139,22 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
       {!isEmpty(movies) && (
         <div className="relative h-auto group">
           {canScrollLeft && (
-            <FaChevronLeft
-              size={30}
-              className="hidden text-white absolute top-0 bottom-0 left-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 md:block"
+            <button
+              type="button"
+              data-testid="chevron-left"
+              aria-label={`Scroll ${title} left`}
+              className="absolute bottom-0 left-2 top-0 z-20 m-auto hidden h-11 w-11 rounded-full text-white opacity-0 transition hover:scale-125 group-hover:opacity-100 focus-visible:opacity-100 md:block"
               onClick={() => handleClick("left")}
-            />
+            >
+              <FaChevronLeft className="mx-auto h-8 w-8" aria-hidden="true" />
+            </button>
           )}
           <div
             ref={rowRef}
             onScroll={updateScrollState}
             className="flex items-center h-44 space-x-0.5 overflow-x-auto overscroll-x-contain touch-pan-x snap-x snap-mandatory md:space-x-2.5 md:overflow-x-hidden md:snap-none scrollbar-hide"
           >
-            {movies.map((movie: Movie) => (
+            {movies.map((movie) => (
               <div key={movie.id} className="shrink-0 snap-start">
                 <Thumbnail
                   data={movie}
@@ -160,11 +164,15 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
             ))}
           </div>
           {canScrollRight && (
-            <FaChevronRight
-              size={30}
-              className="hidden text-white absolute top-0 bottom-0 right-2 z-20 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 md:block"
+            <button
+              type="button"
+              data-testid="chevron-right"
+              aria-label={`Scroll ${title} right`}
+              className="absolute bottom-0 right-2 top-0 z-20 m-auto hidden h-11 w-11 rounded-full text-white opacity-0 transition hover:scale-125 group-hover:opacity-100 focus-visible:opacity-100 md:block"
               onClick={() => handleClick("right")}
-            />
+            >
+              <FaChevronRight className="mx-auto h-8 w-8" aria-hidden="true" />
+            </button>
           )}
         </div>
       )}

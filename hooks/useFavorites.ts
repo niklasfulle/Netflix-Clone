@@ -1,9 +1,10 @@
 import useSWR from 'swr';
 
 import fetcher from '@/lib/fetcher';
+import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 
-const useFavorites = (id?: string) => {
-  const { data, error, isLoading, mutate } = useSWR('/api/favorites', fetcher, {
+const useFavorites = () => {
+  const { data, error, isLoading, mutate } = useSWR<CatalogItemDto[]>('/api/favorites', fetcher, {
     revalidateIfStale: true,
     revalidateOnFocus: true,
     revalidateOnReconnect: true,

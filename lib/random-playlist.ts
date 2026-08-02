@@ -12,23 +12,24 @@ export interface RandomPlaylist {
 }
 
 export function compactPlaylistMovies(
-  movies: Movie[]
+  movies: Array<{ id?: string; title?: string; thumbnailUrl?: string }>
 ): RandomPlaylistMovie[] {
-  return movies.map(({ id, title, thumbnailUrl }) => {
+  return movies.flatMap(({ id, title, thumbnailUrl }) => {
+    if (!id || !title) return [];
     const canStoreThumbnail =
-      Boolean(thumbnailUrl) &&
+      typeof thumbnailUrl === 'string' &&
       thumbnailUrl.length <= 2048 &&
       !/^(?:data|blob):/i.test(thumbnailUrl);
 
-    return {
+    return [{
       id,
       title,
-      ...(canStoreThumbnail ? { thumbnailUrl } : {}),
-    };
+    ...(canStoreThumbnail ? { thumbnailUrl } : {}),
+    }];
   });
 }
 
-export function shuffleMovies(movies: Movie[]): Movie[] {
+export function shuffleMovies<T>(movies: T[]): T[] {
   const shuffled = [...movies];
 
   for (let index = shuffled.length - 1; index > 0; index--) {

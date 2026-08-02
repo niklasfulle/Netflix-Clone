@@ -20,15 +20,21 @@ export const remove = async (values: z.infer<typeof ProfilIdSchema>) => {
     logBackendAction('profilRemove_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
-  logBackendAction('profilRemove_success', { userId: user.id, profilId: validatedField.data.profilId }, 'info');
-
   const { profilId } = validatedField.data
 
-  await db.profil.delete({
+  const result = await db.profil.deleteMany({
     where: {
-      id: profilId
+      id: profilId,
+      userId: user.id,
     }
   })
+
+  if (result.count === 0) {
+    logBackendAction('profilRemove_not_found', { userId: user.id, profilId }, 'warn');
+    return { error: "Profile not found!" }
+  }
+
+  logBackendAction('profilRemove_success', { userId: user.id, profilId }, 'info');
 
   return { success: "Profil removed!" }
 }

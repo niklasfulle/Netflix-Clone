@@ -2,9 +2,10 @@ import { isEmpty } from 'lodash';
 import React from 'react';
 
 import MovieCard from '@/components/MovieCard';
+import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 
 interface SearchListProps {
-  data: Record<string, any>[];
+  data: CatalogItemDto[];
   title: string;
   isLoading: boolean;
   searchItem: string;

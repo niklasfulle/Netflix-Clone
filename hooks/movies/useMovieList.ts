@@ -1,17 +1,4 @@
-import useSWR from 'swr';
+import { LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
 
-import fetcher from '@/lib/fetcher';
-
-const useMovieList = () => {
-  const { data, error, isLoading } = useSWR('/api/movies', fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+const useMovieList = () => useCatalogQuery('movies', { kind: 'list' }, LIVE_CATALOG_OPTIONS);
 export default useMovieList;

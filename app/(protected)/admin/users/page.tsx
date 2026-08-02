@@ -1,13 +1,14 @@
 "use client";
 
 import { Download, Eye, Lock, Search, Shield, ShieldCheck, Unlock, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 type Profile = { id: string; name: string; image?: string; inUse: boolean; createdAt: string };
 type ManagedUser = {
@@ -47,6 +48,13 @@ export default function AdminUsersPage() {
   const [reason, setReason] = useState("");
   const [blockedUntil, setBlockedUntil] = useState("");
   const [message, setMessage] = useState("");
+  const detailDialogRef = useRef<HTMLDialogElement>(null);
+  const blockDialogRef = useRef<HTMLDialogElement>(null);
+  const closeDetails = useCallback(() => setDetailUser(null), []);
+  const closeBlockDialog = useCallback(() => setBlockUser(null), []);
+
+  useDialogFocus(Boolean(detailUser), detailDialogRef, closeDetails);
+  useDialogFocus(Boolean(blockUser), blockDialogRef, closeBlockDialog);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -111,10 +119,10 @@ export default function AdminUsersPage() {
       <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
         <div className="grid gap-3 border-b border-zinc-800 p-4 lg:grid-cols-[minmax(260px,1fr)_repeat(4,minmax(130px,auto))]">
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" /><span className="sr-only">Benutzer suchen</span><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Name oder E-Mail suchen …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" /></label>
-          <select value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Rollen</option><option value="ADMIN">Admins</option><option value="USER">Benutzer</option></select>
-          <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Status</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select>
-          <select value={twoFactor} onChange={(event) => { setTwoFactor(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">2FA beliebig</option><option value="enabled">2FA aktiv</option><option value="disabled">2FA inaktiv</option></select>
-          <select value={`${sort}:${direction}`} onChange={(event) => { const [key, dir] = event.target.value.split(":"); setSort(key); setDirection(dir as "asc" | "desc"); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="createdAt:desc">Neueste zuerst</option><option value="createdAt:asc">Älteste zuerst</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option></select>
+          <select aria-label="Nach Rolle filtern" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Rollen</option><option value="ADMIN">Admins</option><option value="USER">Benutzer</option></select>
+          <select aria-label="Nach Kontostatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Status</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select>
+          <select aria-label="Nach Zwei-Faktor-Status filtern" value={twoFactor} onChange={(event) => { setTwoFactor(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">2FA beliebig</option><option value="enabled">2FA aktiv</option><option value="disabled">2FA inaktiv</option></select>
+          <select aria-label="Benutzer sortieren" value={`${sort}:${direction}`} onChange={(event) => { const [key, dir] = event.target.value.split(":"); setSort(key); setDirection(dir as "asc" | "desc"); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="createdAt:desc">Neueste zuerst</option><option value="createdAt:asc">Älteste zuerst</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option></select>
         </div>
         {message && <output className={`block border-b border-zinc-800 px-4 py-3 text-sm ${message.includes("wurde") ? "text-emerald-400" : "text-red-400"}`}>{message}</output>}
         {error && <p role="alert" className="p-5 text-red-400">{error.message}</p>}
@@ -152,6 +160,7 @@ export default function AdminUsersPage() {
 
       {detailUser && (
         <dialog
+          ref={detailDialogRef}
           open
           aria-modal="true"
           aria-label={`Benutzerdetails ${detailUser.name}`}
@@ -178,7 +187,7 @@ export default function AdminUsersPage() {
       )}
 
       {blockUser && (
-        <dialog open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Benutzer sperren">
+        <dialog ref={blockDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Benutzer sperren">
           <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Konto sperren</p><h2 className="mt-2 text-xl font-bold">{blockUser.name}</h2></div><button type="button" onClick={() => setBlockUser(null)} aria-label="Dialog schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             <label className="mt-5 block text-sm text-zinc-300">Sperrgrund<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-red-500" placeholder="Grund für die Sperre …" /></label>

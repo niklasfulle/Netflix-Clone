@@ -64,6 +64,10 @@ it("renders catalog filters and server results", () => {
   render(<AdminMoviesPage />);
   expect(screen.getByRole("heading", { name: "Inhalte" })).toBeInTheDocument();
   expect(screen.getByPlaceholderText(/Titel oder Beschreibung/i)).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Inhaltstyp filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Veröffentlichungsstatus filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Genre filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Nach Darsteller filtern" })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: "Drama" })).toBeInTheDocument();
   expect(screen.getByText("Table items: 1")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /New Content/i })).toHaveAttribute("href", "/admin/movies/new");
@@ -185,9 +189,10 @@ it("renders loading, error and empty catalog states", () => {
 it("validates catalog API responses", async () => {
   render(<AdminMoviesPage />);
   const fetchCatalog = mockedUseSWR.mock.calls[0][1];
+  const jsonHeaders = new Headers({ "content-type": "application/json" });
   globalThis.fetch = jest.fn()
-    .mockResolvedValueOnce({ ok: true, json: async () => catalogData } as Response)
-    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Nicht erlaubt" }) } as Response);
+    .mockResolvedValueOnce({ ok: true, status: 200, headers: jsonHeaders, json: async () => catalogData } as Response)
+    .mockResolvedValueOnce({ ok: false, status: 403, headers: jsonHeaders, json: async () => ({ error: "Nicht erlaubt" }) } as Response);
 
   await expect(fetchCatalog("/api/movies/admin")).resolves.toEqual(catalogData);
   await expect(fetchCatalog("/api/movies/admin")).rejects.toThrow("Nicht erlaubt");

@@ -4,6 +4,11 @@ jest.mock('@/lib/auth', () => ({ currentUser: jest.fn() }));
 jest.mock('@/lib/admin-auth', () => ({ isCurrentUserAdmin: jest.fn() }));
 jest.mock('@/lib/logger', () => ({ logBackendAction: jest.fn() }));
 jest.mock('@/lib/api-helpers', () => ({
+  ApiError: class ApiError extends Error {
+    constructor(public readonly code: string, message: string) {
+      super(message);
+    }
+  },
   getUserAndProfile: jest.fn(),
   transformMoviesResponse: jest.fn((movies: unknown[]) => movies),
   handleApiError: jest.fn((error: unknown) => Response.json({ error: String(error) }, { status: 500 })),
@@ -18,21 +23,40 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 jest.mock('node:fs', () => ({
-  __esModule: true,
-  default: {
-    createReadStream: jest.fn(),
-    createWriteStream: jest.fn(),
-    existsSync: jest.fn(),
-    mkdirSync: jest.fn(),
-    readFileSync: jest.fn(),
-    readdirSync: jest.fn(),
-    statSync: jest.fn(),
-    unlinkSync: jest.fn(),
-    writeFileSync: jest.fn(),
-  },
+  ...(() => {
+    const createReadStream = jest.fn();
+    const promises = {
+      access: jest.fn(),
+      appendFile: jest.fn(),
+      mkdir: jest.fn(),
+      readdir: jest.fn(),
+      rename: jest.fn(),
+      rm: jest.fn(),
+      stat: jest.fn(),
+      writeFile: jest.fn(),
+    };
+    const synchronous = {
+      createReadStream,
+      createWriteStream: jest.fn(),
+      existsSync: jest.fn(),
+      mkdirSync: jest.fn(),
+      readFileSync: jest.fn(),
+      readdirSync: jest.fn(),
+      statSync: jest.fn(),
+      unlinkSync: jest.fn(),
+      writeFileSync: jest.fn(),
+    };
+    return {
+      __esModule: true,
+      ...synchronous,
+      createReadStream,
+      promises,
+      default: synchronous,
+    };
+  })(),
 }));
 
-import fs from 'node:fs';
+import fs, { promises as fsPromises } from 'node:fs';
 import path from 'node:path';
 import { Readable, Writable } from 'node:stream';
 import { currentUser } from '@/lib/auth';
@@ -52,6 +76,7 @@ import { GET as getLogs } from '@/app/api/logs/route';
 import { POST as clearLogs } from '@/app/api/logs/clear/route';
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
+const mockedFsPromises = fsPromises as jest.Mocked<typeof fsPromises>;
 const mockedDb = db as any;
 const mockedCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 const mockedIsAdmin = isCurrentUserAdmin as jest.MockedFunction<typeof isCurrentUserAdmin>;
@@ -61,11 +86,26 @@ const json = (response: Response) => response.json();
 describe('file and remaining API routes', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockedFsPromises.mkdir.mockResolvedValue(undefined);
+    mockedFsPromises.readdir.mockResolvedValue([]);
+    mockedFsPromises.rm.mockResolvedValue(undefined);
+    mockedFsPromises.writeFile.mockResolvedValue(undefined);
     mockedIsAdmin.mockResolvedValue(true);
     mockedHelpers.transformMoviesResponse.mockImplementation((movies: any) => movies);
-    mockedHelpers.handleApiError.mockImplementation((error: unknown) =>
-      Response.json({ error: String(error) }, { status: 500 }),
-    );
+    mockedHelpers.handleApiError.mockImplementation((error: unknown) => {
+      const code = (error as { code?: string }).code;
+      const statuses: Record<string, number> = {
+        VALIDATION_ERROR: 400,
+        UNAUTHENTICATED: 401,
+        FORBIDDEN: 403,
+        NOT_FOUND: 404,
+        CONFLICT: 409,
+      };
+      return Response.json(
+        { error: { code: code ?? 'INTERNAL_ERROR', message: String((error as Error).message) } },
+        { status: statuses[code ?? ''] ?? 500 },
+      );
+    });
   });
 
   it('covers actor authorization, pagination, creation, and deletion', async () => {
@@ -228,8 +268,10 @@ describe('file and remaining API routes', () => {
     const request = new Request('http://localhost/api/logs?page=1&pageSize=2') as any;
     expect((await getLogs(request)).status).toBe(403);
 
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue('{"message":"new"}\nplain log line\n{"message":"old"}' as any);
+    mockedFsPromises.readdir.mockResolvedValue(['backend.log'] as any);
+    mockedFs.createReadStream.mockReturnValue(
+      Readable.from('{"message":"new"}\nplain log line\n{"message":"old"}') as any,
+    );
     expect(await json(await getLogs(request))).toMatchObject({
       logs: [{ message: 'old' }, { raw: 'plain log line' }],
       total: 3,
@@ -244,7 +286,7 @@ describe('file and remaining API routes', () => {
     expect((await clearLogs()).status).toBe(403);
 
     expect(await json(await clearLogs())).toEqual({ success: true });
-    expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(1);
-    expect(mockedFs.unlinkSync).not.toHaveBeenCalled();
+    expect(mockedFsPromises.writeFile).toHaveBeenCalledTimes(1);
+    expect(mockedFsPromises.rm).not.toHaveBeenCalled();
   });
 });

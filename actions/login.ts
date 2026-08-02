@@ -12,6 +12,20 @@ import { sendTwoFactorEmail, sendVerificationEmail } from '@/lib/mail';
 import { generateTwoFactorToken, generateVerificationToken } from '@/lib/tokens';
 import { DEFAULT_LOGIN_REDIRECT } from '@/routes';
 import { LoginSchema } from '@/schemas';
+import { consumeAuthAttempt } from '@/lib/auth-throttle';
+
+const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
+
+const enforceThrottle = async (scope: 'login' | 'verification-resend' | 'two-factor', account: string) => {
+  const result = await consumeAuthAttempt(scope, account);
+  if (result.allowed) return null;
+  logBackendAction('auth_rate_limited', {
+    scope,
+    keyHash: result.keyHash,
+    retryAfterSeconds: result.retryAfterSeconds,
+  }, 'warn');
+  return { error: RATE_LIMIT_MESSAGE };
+};
 
 const handleUnverifiedEmail = async (email: string) => {
   const verificationToken = await generateVerificationToken(email)
@@ -70,6 +84,11 @@ const handleTwoFactor = async (code: string | undefined, email: string, userId: 
   return await sendTwoFactorCode(email)
 }
 
+const enforceTwoFactorThrottle = async (code: string | undefined, email: string) => {
+  if (!code) return null;
+  return enforceThrottle('two-factor', email);
+}
+
 const handleAuthError = (error: unknown, email: string) => {
   if (error instanceof AuthError) {
     if (error.type == "CredentialsSignin") {
@@ -87,24 +106,33 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   const validatedField = LoginSchema.safeParse(values);
 
   if (!validatedField.success) {
-    logBackendAction('login_invalid_fields', { values }, 'error');
+    logBackendAction('login_invalid_fields', {
+      invalidFields: validatedField.error.issues.map((issue) => issue.path.join('.')),
+    }, 'error');
     return { error: "Invalid fields!" }
   }
 
   const { email, password, code } = validatedField.data
 
+  const loginLimit = await enforceThrottle('login', email);
+  if (loginLimit) return loginLimit;
+
   const existingUser = await getUserByEmail(email)
 
   if (!existingUser?.email || !existingUser.hashedPassword) {
-    logBackendAction('login_email_not_exist', { email }, 'error');
-    return { error: "Email does not exist!" }
+    logBackendAction('login_invalid_credentials', { email }, 'error');
+    return { error: "Invalid credentials!" }
   }
 
   if (!existingUser.emailVerified) {
+    const resendLimit = await enforceThrottle('verification-resend', email);
+    if (resendLimit) return resendLimit;
     return await handleUnverifiedEmail(email)
   }
 
   if (existingUser.isTwoFactorEnabled && existingUser.email) {
+    const twoFactorLimit = await enforceTwoFactorThrottle(code, email);
+    if (twoFactorLimit) return twoFactorLimit;
     const twoFactorResult = await handleTwoFactor(code, existingUser.email, existingUser.id)
     if (twoFactorResult) {
       return twoFactorResult

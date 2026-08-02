@@ -1,19 +1,4 @@
-import useSWR from 'swr';
+import { CatalogItemDto, LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
 
-import fetcher from '@/lib/fetcher';
-
-const useBillboradSeries = () => {
-  const { data, error, isLoading } = useSWR("/api/random/series", fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  })
-
-  return {
-    data,
-    error,
-    isLoading,
-  }
-}
-
-export default useBillboradSeries
+const useBillboradSeries = () => useCatalogQuery<CatalogItemDto | null>('series', { kind: 'billboard' }, LIVE_CATALOG_OPTIONS);
+export default useBillboradSeries;

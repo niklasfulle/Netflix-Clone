@@ -132,7 +132,7 @@ describe('newVerification action - Token Verification & Email Confirmation', () 
       await newVerification('invalid-token');
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'newVerification_token_not_exist',
-        { token: 'invalid-token' },
+        {},
         'error'
       );
     });
@@ -162,7 +162,7 @@ describe('newVerification action - Token Verification & Email Confirmation', () 
       await newVerification('expired-token');
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'newVerification_token_expired',
-        { token: 'expired-token' },
+        {},
         'error'
       );
     });
@@ -296,17 +296,17 @@ describe('newVerification action - Token Verification & Email Confirmation', () 
   });
 
   describe('Logging', () => {
-    it('✅ should log with token value when token not found', async () => {
+    it('✅ should never log the token value when token not found', async () => {
       mockGetVerificationTokenByToken.mockResolvedValue(null);
       await newVerification('some-token');
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'newVerification_token_not_exist',
-        { token: 'some-token' },
+        {},
         'error'
       );
     });
 
-    it('✅ should log with token value when token expired', async () => {
+    it('✅ should never log the token value when token expired', async () => {
       mockGetVerificationTokenByToken.mockResolvedValue({
         ...mockToken,
         expires: new Date(Date.now() - 1000),
@@ -315,7 +315,7 @@ describe('newVerification action - Token Verification & Email Confirmation', () 
       await newVerification('expired-token');
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'newVerification_token_expired',
-        { token: 'expired-token' },
+        {},
         'error'
       );
     });

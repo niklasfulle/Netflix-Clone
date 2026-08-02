@@ -1,17 +1,5 @@
-import useSWR from 'swr';
+import { LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
+import type { CatalogCardDto } from '@/lib/catalog';
 
-import fetcher from '@/lib/fetcher';
-
-const useNewSeriesList = () => {
-  const { data, error, isLoading } = useSWR('/api/series/newSeries', fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+const useNewSeriesList = () => useCatalogQuery<CatalogCardDto[]>('series', { kind: 'new' }, LIVE_CATALOG_OPTIONS);
 export default useNewSeriesList;

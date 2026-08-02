@@ -92,7 +92,7 @@ describe('Thumbnail', () => {
 
     it('should not display image when isLoading is true', () => {
       render(<Thumbnail data={defaultMockData} isLoading={true} />);
-      const image = screen.queryByAltText('Thumbnail');
+      const image = screen.queryByAltText('Test Movie thumbnail');
       expect(image).not.toBeInTheDocument();
     });
   });
@@ -100,26 +100,26 @@ describe('Thumbnail', () => {
   describe('Image Rendering', () => {
     it('should display image when isLoading is false', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toBeInTheDocument();
     });
 
     it('should use correct thumbnail URL', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail') as HTMLImageElement;
+      const image = screen.getByAltText('Test Movie thumbnail') as HTMLImageElement;
       expect(image).toHaveAttribute('src', defaultMockData.thumbnailUrl);
     });
 
     it('should have image with width and height attributes', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveAttribute('width', '500');
       expect(image).toHaveAttribute('height', '500');
     });
 
     it('should have correct image classes', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveClass('w-full');
       expect(image).toHaveClass('transition');
       expect(image).toHaveClass('cursor-pointer');
@@ -349,7 +349,7 @@ describe('Thumbnail', () => {
           isLoading={false}
         />
       );
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toBeInTheDocument();
     });
 
@@ -361,7 +361,7 @@ describe('Thumbnail', () => {
         watchTime: undefined,
       };
       render(<Thumbnail data={minimalData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Content thumbnail');
       expect(image).toBeInTheDocument();
     });
   });
@@ -378,7 +378,7 @@ describe('Thumbnail', () => {
       loadingDiv = container.querySelector('[class*="bg-zinc-800"]');
       expect(loadingDiv).not.toBeInTheDocument();
 
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toBeInTheDocument();
     });
 
@@ -431,19 +431,19 @@ describe('Thumbnail', () => {
   describe('CSS Classes and Styling', () => {
     it('should have image with max width class', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveClass('max-w-64');
     });
 
     it('should have image with aspect-video class', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveClass('aspect-video');
     });
 
     it('should have shadow-xl on image', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveClass('shadow-xl');
     });
 
@@ -461,10 +461,19 @@ describe('Thumbnail', () => {
   });
 
   describe('Accessibility', () => {
+    it('uses the movie title to distinguish the details control', () => {
+      render(<Thumbnail data={defaultMockData} isLoading={false} />);
+
+      expect(
+        screen.getByRole('button', { name: 'Show details for Test Movie' })
+      ).toBeInTheDocument();
+      expect(screen.getByAltText('Test Movie thumbnail')).toBeInTheDocument();
+    });
+
     it('should have alt text on image', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Thumbnail');
-      expect(image).toHaveAttribute('alt', 'Thumbnail');
+      const image = screen.getByAltText('Test Movie thumbnail');
+      expect(image).toHaveAttribute('alt', 'Test Movie thumbnail');
     });
 
     it('should be clickable button', () => {

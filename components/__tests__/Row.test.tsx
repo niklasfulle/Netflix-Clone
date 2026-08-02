@@ -11,22 +11,8 @@ jest.mock('@/components/Thumbnail', () => {
 
 // Mock react-icons
 jest.mock('react-icons/fa', () => ({
-  FaChevronLeft: ({ onClick, className }: any) => (
-    <button
-      data-testid="chevron-left"
-      onClick={onClick}
-      className={className}
-      aria-label="Scroll left"
-    />
-  ),
-  FaChevronRight: ({ onClick, className }: any) => (
-    <button
-      data-testid="chevron-right"
-      onClick={onClick}
-      className={className}
-      aria-label="Scroll right"
-    />
-  ),
+  FaChevronLeft: (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />,
+  FaChevronRight: (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />,
 }));
 
 // Mock scrollTo for JSDOM
@@ -372,8 +358,8 @@ describe('Row Component', () => {
     it('should have aria-label on chevron buttons', () => {
       render(<Row data={mockData} title="Test" isLoading={false} />);
       
-      const leftChevron = screen.getByLabelText('Scroll left');
-      const rightChevron = screen.getByLabelText('Scroll right');
+      const leftChevron = screen.getByLabelText('Scroll Test left');
+      const rightChevron = screen.getByLabelText('Scroll Test right');
       
       expect(leftChevron).toBeInTheDocument();
       expect(rightChevron).toBeInTheDocument();

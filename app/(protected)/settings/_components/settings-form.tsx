@@ -24,6 +24,7 @@ import * as z from "zod";
 
 import { settings } from "@/actions/settings";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -37,20 +38,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { SettingsSchema } from "@/schemas";
-
-interface SettingsAccount {
-  name?: string | null;
-  email?: string | null;
-  role?: UserRole;
-  isOAuth?: boolean;
-  isTwoFactorEnabled?: boolean;
-}
+import type { SessionDto } from "@/lib/api-types";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 interface SettingsFormProps {
   user: {
-    data?: {
-      user?: SettingsAccount;
-    };
+    data?: SessionDto;
   };
 }
 
@@ -59,7 +52,7 @@ const panelClassName =
 const inputClassName =
   "h-12 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-red-500/60 focus-visible:ring-red-500/20";
 
-const getPasswordStrength = (password: string) => {
+const getPasswordStrength = (password: string): { score: number; label: TranslationKey; color: string } => {
   if (!password) {
     return { score: 0, label: "Enter a new password", color: "bg-zinc-700" };
   }
@@ -83,6 +76,7 @@ const getPasswordStrength = (password: string) => {
 };
 
 export const SettingsForm = ({ user }: SettingsFormProps) => {
+  const { t } = useLanguage();
   const account = user.data?.user;
   const { update } = useSession();
   const [isPending, startTransition] = useTransition();
@@ -132,7 +126,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
             });
           }
         })
-        .catch(() => toast.error("Something went wrong!"));
+        .catch(() => toast.error(t("Something went wrong!")));
     });
   };
 
@@ -146,14 +140,14 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                 <UserRound className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">Personal information</h2>
+                <h2 className="text-xl font-semibold">{t("Personal information")}</h2>
                 <p className="mt-1 text-sm leading-6 text-zinc-500">
-                  Keep your account details current and recognizable.
+                  {t("Keep your account details current and recognizable.")}
                 </p>
               </div>
             </div>
             <span className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-zinc-400">
-              {account.role === UserRole.ADMIN ? "Administrator" : "Member"}
+              {account.role === UserRole.ADMIN ? t("Administrator") : t("Member")}
             </span>
           </div>
 
@@ -165,7 +159,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2 text-zinc-200">
                     <UserRound className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                    Name
+                    {t("Name")}
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -177,7 +171,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                     />
                   </FormControl>
                   <FormDescription className="text-xs text-zinc-600">
-                    This name is used for your account.
+                    {t("This name is used for your account.")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -191,7 +185,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2 text-zinc-200">
                     <Mail className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                    Email
+                    {t("Email")}
                   </FormLabel>
                   <FormControl>
                     <Input
@@ -208,8 +202,8 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                   </FormControl>
                   <FormDescription className="text-xs text-zinc-600">
                     {isOAuth
-                      ? "Managed by your connected sign-in provider."
-                      : "A new address must be confirmed by email."}
+                      ? t("Managed by your connected sign-in provider.")
+                      : t("A new address must be confirmed by email.")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -223,12 +217,12 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
             </div>
             <div>
               <p className="text-sm font-medium text-zinc-200">
-                {isOAuth ? "Connected account" : "Email and password account"}
+                {isOAuth ? t("Connected account") : t("Email and password account")}
               </p>
               <p className="mt-0.5 text-xs text-zinc-600">
                 {isOAuth
-                  ? "Password and email changes are handled by your provider."
-                  : "You can manage all sign-in options directly here."}
+                  ? t("Password and email changes are handled by your provider.")
+                  : t("You can manage all sign-in options directly here.")}
               </p>
             </div>
           </div>
@@ -240,9 +234,9 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
               <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold">Sign-in & security</h2>
+              <h2 className="text-xl font-semibold">{t("Sign-in & security")}</h2>
               <p className="mt-1 text-sm leading-6 text-zinc-500">
-                Protect your account with a strong password and a second factor.
+                {t("Protect your account with a strong password and a second factor.")}
               </p>
             </div>
           </div>
@@ -251,10 +245,9 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
             <div className="flex gap-4 rounded-2xl border border-sky-500/15 bg-sky-500/[0.06] p-5">
               <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-sky-400" aria-hidden="true" />
               <div>
-                <p className="font-medium text-sky-100">Security managed externally</p>
+                <p className="font-medium text-sky-100">{t("Security managed externally")}</p>
                 <p className="mt-1 text-sm leading-6 text-sky-200/60">
-                  Change your password and two-factor settings with your connected
-                  sign-in provider.
+                  {t("Change your password and two-factor settings with your connected sign-in provider.")}
                 </p>
               </div>
             </div>
@@ -268,7 +261,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                     <FormItem>
                       <FormLabel className="flex items-center gap-2 text-zinc-200">
                         <KeyRound className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                        Current password
+                        {t("Current password")}
                       </FormLabel>
                       <div className="relative">
                         <FormControl>
@@ -276,7 +269,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                             {...field}
                             disabled={isPending}
                             type={showCurrentPassword ? "text" : "password"}
-                            placeholder="Enter current password"
+                            placeholder={t("Enter current password")}
                             autoComplete="current-password"
                             className={`${inputClassName} pr-12`}
                           />
@@ -287,8 +280,8 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                           className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-zinc-500 transition hover:text-white"
                           aria-label={
                             showCurrentPassword
-                              ? "Hide current password"
-                              : "Show current password"
+                              ? t("Hide current password")
+                              : t("Show current password")
                           }
                         >
                           {showCurrentPassword ? (
@@ -310,7 +303,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                     <FormItem>
                       <FormLabel className="flex items-center gap-2 text-zinc-200">
                         <LockKeyhole className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                        New password
+                        {t("New password")}
                       </FormLabel>
                       <div className="relative">
                         <FormControl>
@@ -318,7 +311,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                             {...field}
                             disabled={isPending}
                             type={showNewPassword ? "text" : "password"}
-                            placeholder="At least 6 characters"
+                            placeholder={t("At least 6 characters")}
                             autoComplete="new-password"
                             className={`${inputClassName} pr-12`}
                           />
@@ -328,7 +321,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                           onClick={() => setShowNewPassword((visible) => !visible)}
                           className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-zinc-500 transition hover:text-white"
                           aria-label={
-                            showNewPassword ? "Hide new password" : "Show new password"
+                            showNewPassword ? t("Hide new password") : t("Show new password")
                           }
                         >
                           {showNewPassword ? (
@@ -346,9 +339,9 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
 
               <div aria-live="polite">
                 <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="text-zinc-600">Password strength</span>
+                  <span className="text-zinc-600">{t("Password strength")}</span>
                   <span className="font-medium text-zinc-400">
-                    {passwordStrength.label}
+                    {t(passwordStrength.label)}
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
@@ -376,10 +369,10 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                       </div>
                       <div className="space-y-1">
                         <FormLabel className="text-sm font-medium text-zinc-200">
-                          Two-factor authentication
+                          {t("Two-factor authentication")}
                         </FormLabel>
                         <FormDescription className="max-w-lg text-xs leading-5 text-zinc-600">
-                          Require an additional email code when signing in.
+                          {t("Require an additional email code when signing in.")}
                         </FormDescription>
                       </div>
                     </div>
@@ -388,7 +381,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                         disabled={isPending}
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        aria-label="Two-factor authentication"
+                        aria-label={t("Two-factor authentication")}
                       />
                     </FormControl>
                   </FormItem>
@@ -404,18 +397,18 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
               <Languages className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold">Language & display</h2>
+              <h2 className="text-xl font-semibold">{t("Language & display")}</h2>
               <p className="mt-1 text-sm leading-6 text-zinc-500">
-                Choose the language used throughout Netflix.
+                {t("Choose the language used throughout Netflix.")}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-4 rounded-2xl border border-white/[0.07] bg-black/20 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-200">Interface language</p>
+              <p className="text-sm font-medium text-zinc-200">{t("Interface language")}</p>
               <p className="mt-1 text-xs leading-5 text-zinc-600">
-                Your selection is saved automatically on this device.
+                {t("Your selection is saved automatically on this device.")}
               </p>
             </div>
             <LanguageSwitcher />
@@ -425,8 +418,8 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
         <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-2xl border border-white/10 bg-[#16161c]/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-zinc-500" aria-live="polite">
             {form.formState.isDirty
-              ? "You have unsaved changes."
-              : "All account changes are saved."}
+              ? t("You have unsaved changes.")
+              : t("All account changes are saved.")}
           </p>
           <div className="flex gap-3">
             <Button
@@ -437,7 +430,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
               className="h-11 flex-1 gap-2 rounded-xl border-white/10 bg-transparent text-zinc-300 hover:bg-white/[0.06] hover:text-white sm:flex-none"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Reset
+              {t("Reset")}
             </Button>
             <Button
               type="submit"
@@ -449,7 +442,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
               ) : (
                 <Save className="h-4 w-4" aria-hidden="true" />
               )}
-              {isPending ? "Saving..." : "Save changes"}
+              {isPending ? t("Saving...") : t("Save changes")}
             </Button>
           </div>
         </div>

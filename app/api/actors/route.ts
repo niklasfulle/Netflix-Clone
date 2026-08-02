@@ -1,8 +1,23 @@
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { ApiError, handleApiError } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
+
+async function runAdminRoute(
+  logContext: string,
+  operation: () => Promise<Response>,
+): Promise<Response> {
+  try {
+    if (!(await isCurrentUserAdmin())) {
+      throw new ApiError('FORBIDDEN', 'Administrator access required.');
+    }
+    return await operation();
+  } catch (error) {
+    return handleApiError(error, logContext);
+  }
+}
 
 function parsePage(value: string | null, fallback: number, max: number) {
   const parsed = Number.parseInt(value || "", 10);
@@ -10,9 +25,8 @@ function parsePage(value: string | null, fallback: number, max: number) {
 }
 
 export async function GET(request: Request = new Request("http://localhost/api/actors")) {
-  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
-
-  const { searchParams } = new URL(request.url);
+  return runAdminRoute('api_actors_list', async () => {
+    const { searchParams } = new URL(request.url);
   const page = parsePage(searchParams.get("page"), 1, 100_000);
   const pageSize = parsePage(searchParams.get("pageSize"), 20, 100);
   const search = searchParams.get("search")?.trim() || "";
@@ -60,56 +74,60 @@ export async function GET(request: Request = new Request("http://localhost/api/a
   });
   const total = sorted.length;
 
-  return Response.json({
-    actors: sorted.slice((page - 1) * pageSize, page * pageSize),
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
+    return Response.json({
+      actors: sorted.slice((page - 1) * pageSize, page * pageSize),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    });
   });
 }
 
 export async function POST(request: Request) {
-  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const rawName = (await request.json()).name;
-  const name = typeof rawName === "string" ? rawName.trim() : "";
-  if (!name) return Response.json({ error: "Name ist erforderlich." }, { status: 400 });
+  return runAdminRoute('api_actors_create', async () => {
+    const rawName = (await request.json()).name;
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    if (!name) throw new ApiError('VALIDATION_ERROR', 'Actor name is required.');
 
-  const exists = await db.actor.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
-  if (exists) return Response.json({ error: "Dieser Darsteller existiert bereits." }, { status: 409 });
+    const exists = await db.actor.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+    if (exists) throw new ApiError('CONFLICT', 'This actor already exists.');
 
-  const actor = await db.actor.create({ data: { name } });
-  logBackendAction("actor_created", { actorId: actor.id }, "info");
-  return Response.json(actor, { status: 201 });
+    const actor = await db.actor.create({ data: { name } });
+    logBackendAction("actor_created", { actorId: actor.id }, "info");
+    return Response.json(actor, { status: 201 });
+  });
 }
 
 export async function PATCH(request: Request) {
-  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { id, name: rawName } = await request.json();
-  const name = typeof rawName === "string" ? rawName.trim() : "";
-  if (!id || !name) return Response.json({ error: "ID und Name sind erforderlich." }, { status: 400 });
+  return runAdminRoute('api_actors_update', async () => {
+    const { id, name: rawName } = await request.json();
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    if (!id || !name) throw new ApiError('VALIDATION_ERROR', 'Actor ID and name are required.');
 
-  const duplicate = await db.actor.findFirst({
-    where: { id: { not: id }, name: { equals: name, mode: "insensitive" } },
+    const duplicate = await db.actor.findFirst({
+      where: { id: { not: id }, name: { equals: name, mode: "insensitive" } },
+    });
+    if (duplicate) throw new ApiError('CONFLICT', 'Another actor already uses this name.');
+
+    const actor = await db.actor.update({ where: { id }, data: { name } });
+    logBackendAction("actor_renamed", { actorId: id }, "info");
+    return Response.json(actor);
   });
-  if (duplicate) return Response.json({ error: "Ein anderer Darsteller verwendet diesen Namen bereits." }, { status: 409 });
-
-  const actor = await db.actor.update({ where: { id }, data: { name } });
-  logBackendAction("actor_renamed", { actorId: id }, "info");
-  return Response.json(actor);
 }
 
 export async function DELETE(request: Request) {
-  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const id = new URL(request.url).searchParams.get("id");
-  if (!id) return Response.json({ error: "ID ist erforderlich." }, { status: 400 });
+  return runAdminRoute('api_actors_delete', async () => {
+    const id = new URL(request.url).searchParams.get("id");
+    if (!id) throw new ApiError('VALIDATION_ERROR', 'Actor ID is required.');
 
-  const actor = await db.actor.findUnique({ where: { id }, include: { movies: true } });
-  if (!actor) return Response.json({ error: "Darsteller wurde nicht gefunden." }, { status: 404 });
-  if (actor.movies.length > 0) {
-    return Response.json({ error: "Verknüpfte Darsteller können nicht gelöscht werden. Führe sie zuerst zusammen oder entferne die Zuordnungen." }, { status: 409 });
-  }
-  await db.actor.delete({ where: { id } });
-  logBackendAction("actor_deleted", { actorId: id }, "info");
-  return Response.json({ success: true });
+    const actor = await db.actor.findUnique({ where: { id }, include: { movies: true } });
+    if (!actor) throw new ApiError('NOT_FOUND', 'Actor not found.');
+    if (actor.movies.length > 0) {
+      throw new ApiError('CONFLICT', 'Linked actors must be merged or unlinked before deletion.');
+    }
+    await db.actor.delete({ where: { id } });
+    logBackendAction("actor_deleted", { actorId: id }, "info");
+    return Response.json({ success: true });
+  });
 }

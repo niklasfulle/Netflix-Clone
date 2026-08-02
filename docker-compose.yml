@@ -6,9 +6,27 @@ services:
       - /root/netflix-secrets/app.env
     ports:
       - "3000:3000"
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 200
+    cpus: 2.0
+    mem_limit: 1g
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+      - /netflix-clone/.next/cache:size=256m,uid=10001,gid=10001
     volumes:
       - /movies:/movies
       - /series:/series
       - /var/lib/netflix-monitor:/monitor:ro
       - /var/lib/netflix-backup-status:/backup-status
+      - /var/lib/netflix-logs:/netflix-clone/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped

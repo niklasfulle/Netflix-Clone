@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import getUser from "@/hooks/useUser";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 import SettingsPage from "../page";
 
@@ -85,6 +86,20 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Signed in with profile Jane.")).toBeInTheDocument();
     expect(screen.getByTestId("settings-form")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
+  });
+
+  it("renders the settings shell in German at render time", () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <SettingsPage />
+      </LanguageProvider>,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Dein Konto, deine Einstellungen." }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Zurück zu Netflix" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Einstellungsbereiche" })).toBeInTheDocument();
   });
 
   it("shows a responsive skeleton while account data is loading", () => {

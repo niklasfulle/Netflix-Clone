@@ -3,9 +3,10 @@ import React from 'react';
 
 import PlaylistAddCard from './PlaylistAddCard';
 import PlaylistCard from './PlaylistCard';
+import type { PlaylistDto } from '@/lib/api-types';
 
 interface PlaylistListProps {
-  data: Record<string, any>[];
+  data?: PlaylistDto[];
   title: string;
   isLoading: boolean;
   openModalCreate: any;
@@ -13,7 +14,7 @@ interface PlaylistListProps {
 }
 
 const PlaylistsList: React.FC<PlaylistListProps> = ({
-  data,
+  data = [],
   title,
   isLoading,
   openModalCreate,

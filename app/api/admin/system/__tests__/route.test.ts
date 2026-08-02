@@ -36,7 +36,7 @@ describe("admin system API", () => {
     mockedIsAdmin.mockResolvedValue(true);
     mockedGetOverview.mockResolvedValue({
       status: "healthy",
-      version: "1.9.3",
+      version: "1.10.0",
       checkedAt: "2026-07-29T12:00:00.000Z",
       agent: {
         status: "ok",
@@ -60,7 +60,7 @@ describe("admin system API", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.json()).toMatchObject({
       status: "healthy",
-      version: "1.9.3",
+      version: "1.10.0",
       database: { status: "ok" },
     });
   });

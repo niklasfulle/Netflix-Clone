@@ -1,13 +1,12 @@
 "use client";
-import axios from "axios";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 import Footer from "@/components/Footer";
 import InfoModal from "@/components/InfoModal";
 import MovieList from "@/components/MovieList";
 import Navbar from "@/components/Navbar";
+import { useActorPagination } from "@/hooks/catalog/useActorPagination";
 import usePlaylists from "@/hooks/playlists/usePlaylists";
 import useNewSeriesList from "@/hooks/series/useNewSeriesList";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
@@ -24,45 +23,7 @@ export default function SeriesPage() {
   const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
 
-  const [actorsCount, setActorsCount] = useState(0);
-  const [start, setStart] = useState(0);
-  const [limit, setLimit] = useState(3);
-  const [actors, setActors] = useState([]);
-
-  const fetchActorsCount = useMemo(
-    () => async () => {
-      try {
-        const response = await axios.get("/api/series/getActorsCount"); 
-        setActorsCount(response.data);
-      } catch (error) {
-        console.error("Error fetching Actors Count:", error);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    fetchActorsCount();
-  }, [fetchActorsCount]);
-
-  const fetchActors = useMemo(
-    () => async () => {
-      try {
-        const response = await axios.get(
-          `/api/series/getActors/${start}_${limit}`
-        ); // Replace with your API endpoint
-
-        setActors(actors.concat(response.data));
-      } catch (error) {
-        console.error("Error fetching Series:", error);
-      }
-    },
-    [start]
-  );
-
-  useEffect(() => {
-    fetchActors();
-  }, [fetchActors]);
+  const { actors, hasMore, loadMore } = useActorPagination("series");
 
   const router = useRouter();
 
@@ -73,11 +34,6 @@ export default function SeriesPage() {
   if (isEmpty(profil)) {
     router.push("profiles");
   }
-
-  const loadMore = () => {
-    setStart(start + limit);
-    setLimit(5);
-  };
 
   return (
     <>
@@ -90,13 +46,13 @@ export default function SeriesPage() {
           data={newSeries}
           isLoading={isLoadingNewSeries}
         />
-        {actors.map((actor: string) => (
-          <FilterRowSeries key={actor} title={actor} />
+        {actors.map((actor: string, index: number) => (
+          <FilterRowSeries key={actor} title={actor} deferLoading={index > 0} />
         ))}
-        {start < actorsCount && (
+        {hasMore && (
           <div className="flex flex-row items-center justify-center w-full h-8 pt-12 pb-28">
             <button
-              onClick={() => loadMore()}
+              onClick={loadMore}
               type="button"
               className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md cursor-pointer hover:bg-red-700 max-w-32"
             >
@@ -104,7 +60,7 @@ export default function SeriesPage() {
             </button>
           </div>
         )}
-        {start >= actorsCount && (
+        {!hasMore && (
           <div className="flex flex-row items-center justify-center w-full h-8 pb-20"></div>
         )}
       </div>

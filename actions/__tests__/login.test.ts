@@ -125,7 +125,7 @@ describe('login action - Authentication & Email Verification', () => {
       email: 'nonexistent@example.com',
       password: 'password123',
     });
-    expect(result).toEqual({ error: 'Email does not exist!' });
+    expect(result).toEqual({ error: 'Invalid credentials!' });
   });
 
   it('❌ should return error when user has no hashed password', async () => {
@@ -137,7 +137,7 @@ describe('login action - Authentication & Email Verification', () => {
       email: 'test@example.com',
       password: 'password123',
     });
-    expect(result).toEqual({ error: 'Email does not exist!' });
+    expect(result).toEqual({ error: 'Invalid credentials!' });
   });
 
   it('✅ should send verification email for unverified user', async () => {
@@ -344,7 +344,7 @@ describe('login action - Authentication & Email Verification', () => {
       password: 'password123',
     });
     expect(mockLogBackendAction).toHaveBeenCalledWith(
-      'login_email_not_exist',
+      'login_invalid_credentials',
       { email: 'test@example.com' },
       'error'
     );

@@ -37,7 +37,7 @@ export const VideoUploadField = ({
   uploadDisabled = false,
   isUploaded = Boolean(uploadedVideoPath),
 }: VideoUploadFieldProps) => {
-  const { t } = useLanguage();
+  const { t, message } = useLanguage();
 
   return (
     <div>
@@ -93,7 +93,7 @@ export const VideoUploadField = ({
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {currentVideoUrl
-                      ? t(`Current: ${currentVideoUrl}`)
+                      ? message("currentFile", { file: currentVideoUrl })
                       : t("MP4 file, max. 2GB")}
                   </p>
                 </>
@@ -115,7 +115,7 @@ export const VideoUploadField = ({
                   return (
                     <>
                       <Upload className="w-4 h-4 mr-2 animate-pulse" />
-                      {t(`Uploading... ${uploadProgress}%`)}
+                      {message("uploadProgress", { percent: uploadProgress })}
                     </>
                   );
                 }
@@ -156,7 +156,7 @@ export const VideoUploadField = ({
             </div>
             <div className="flex justify-between text-xs text-gray-400 mt-1">
               <span>{uploadProgress}%</span>
-              {estimatedTime && <span>{t(`~${estimatedTime} left`)}</span>}
+              {estimatedTime && <span>{message("timeLeft", { time: estimatedTime })}</span>}
             </div>
           </div>
         )}

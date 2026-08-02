@@ -1,82 +1,53 @@
 import { NextRequest } from 'next/server';
 
-import { currentUser } from '@/lib/auth';
+import { ApiError, getUserAndProfile, handleApiError } from '@/lib/api-helpers';
 import { db } from '@/lib/db';
+import { findOwnedPlaylist } from '@/lib/ownership';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
 type Params = {
-  playlistId: string
-}
+  playlistId: string;
+};
 
-export async function GET(request: NextRequest, context: { params: Promise<Params> }): Promise<Response> {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<Params> },
+): Promise<Response> {
   try {
-    const { playlistId } = await context.params
+    const { playlistId } = await context.params;
+    if (!playlistId) throw new ApiError('VALIDATION_ERROR', 'Playlist ID is required.');
 
-    if (!playlistId) {
-      return Response.json(null, { status: 404 })
-    }
+    const auth = await getUserAndProfile('api_playlist_detail');
+    if (auth.error) return auth.error;
 
-    const user = await currentUser()
-
-    if (!user) {
-      return Response.json(null, { status: 404 })
-    }
-
-    const profil = await db.profil.findFirst({
-      where: {
-        userId: user.id,
-        inUse: true
-      }
-    })
-
-    if (!profil) {
-      return Response.json(null, { status: 404 })
-    }
-
-    const playlist = await db.playlist.findUnique({
-      where: { id: playlistId }
+    const ownedPlaylist = await findOwnedPlaylist({
+      playlistId,
+      userId: auth.user.id,
+      profileId: auth.profil.id,
     });
+    if (!ownedPlaylist) throw new ApiError('NOT_FOUND', 'Playlist not found.');
 
-    if (!playlist) {
-      return Response.json(null, { status: 404 })
-    }
+    const [playlist, entries] = await Promise.all([
+      db.playlist.findUnique({ where: { id: ownedPlaylist.id } }),
+      db.playlistEntry.findMany({
+        where: { playlistId: ownedPlaylist.id },
+        orderBy: { order: 'asc' },
+      }),
+    ]);
+    if (!playlist) throw new ApiError('NOT_FOUND', 'Playlist not found.');
 
+    const movieIds = entries.map((entry) => entry.movieId);
+    const movies = movieIds.length === 0
+      ? []
+      : await db.movie.findMany({ where: { id: { in: movieIds } } });
+    const moviesById = new Map(movies.map((movie) => [movie.id, movie]));
 
-    let playlistsWithEntries: any = []
-    const playlistsEntries = await db.playlistEntry.findMany({
-      where: {
-        playlistId: playlist.id
-      },
-      orderBy: {
-        order: 'asc',
-      },
-    })
-
-    const movies: any = []
-    for (let i = 0; i < playlistsEntries.length; i++) {
-      const movie = await db.movie.findUnique({
-        where: {
-          id: playlistsEntries[i].movieId
-        }
-      })
-
-      movies[i] = movie
-    }
-
-    const playlistWithEntries: {
-      id: string;
-      userId: string;
-      profilId: string
-      title: string;
-
-      movies: any
-    } = { ...playlist, movies: movies };
-
-    playlistsWithEntries = playlistWithEntries
-    return Response.json(playlistsWithEntries, { status: 200 })
+    return Response.json({
+      ...playlist,
+      movies: movieIds.map((movieId) => moviesById.get(movieId) ?? null),
+    });
   } catch (error) {
-    console.log(error)
-    return Response.json(null, { status: 200 })
+    return handleApiError(error, 'api_playlist_detail');
   }
 }

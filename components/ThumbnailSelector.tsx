@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { FormLabel } from "@/components/ui/form";
 import { RefreshCw } from "lucide-react";
@@ -44,9 +45,12 @@ export const ThumbnailSelector = ({
             className="w-full h-auto p-0 border-2 border-transparent hover:border-red-600 rounded transition-all focus:outline-none focus:ring-2 focus:ring-red-600"
             aria-label={`Select thumbnail ${index + 1}`}
           >
-            <img
+            <Image
               src={thumb}
               alt={`Thumbnail ${index + 1}`}
+              width={480}
+              height={270}
+              unoptimized
               className="w-full h-auto rounded"
               draggable={false}
             />

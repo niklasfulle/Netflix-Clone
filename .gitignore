@@ -8,6 +8,7 @@
 
 # testing
 /coverage
+/output/playwright/
 
 # next.js
 /.next/
@@ -55,3 +56,4 @@ hosts
 __pycache__/
 *.py[cod]
 .pytest_cache/
+IMPLEMENTATION_CHECKPOINT.md

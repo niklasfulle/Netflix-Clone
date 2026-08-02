@@ -55,6 +55,17 @@ it("closes structured log details", () => {
   expect(screen.queryByRole("dialog", { name: "Log-Details" })).not.toBeInTheDocument();
 });
 
+it("closes structured log details with Escape and restores focus", () => {
+  render(<AdminLogsPage />);
+  const trigger = screen.getByRole("button", { name: "Anzeigen" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(screen.queryByRole("dialog", { name: "Log-Details" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
 it("copies log JSON and resets the copied state", async () => {
   jest.useFakeTimers();
   const writeText = jest.fn().mockResolvedValue(undefined);
@@ -110,6 +121,10 @@ it("reports a failed clear operation and supports cancellation", async () => {
 it("updates filters, level chips and auto-refresh options", () => {
   jest.useFakeTimers();
   render(<AdminLogsPage />);
+
+  expect(screen.getByRole("combobox", { name: "Nach Log-Level filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Nach Aktion filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Nach Benutzer-ID filtern" })).toBeInTheDocument();
 
   fireEvent.change(screen.getByPlaceholderText(/Volltextsuche/i), { target: { value: "  upload  " } });
   fireEvent.click(screen.getByRole("button", { name: /ERROR · 0/i }));

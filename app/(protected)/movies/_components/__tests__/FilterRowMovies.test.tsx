@@ -61,6 +61,23 @@ describe("FilterRowMovies", () => {
     jest.clearAllMocks();
   });
 
+  it("does not request an offscreen actor row before it approaches the viewport", () => {
+    const originalObserver = global.IntersectionObserver;
+    global.IntersectionObserver = jest.fn(() => ({
+      observe: jest.fn(),
+      disconnect: jest.fn(),
+    })) as unknown as typeof IntersectionObserver;
+    (useMoviesByActor as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    });
+
+    render(<FilterRowMovies title="Deferred Actor" deferLoading />);
+
+    expect(useMoviesByActor).toHaveBeenLastCalledWith("");
+    global.IntersectionObserver = originalObserver;
+  });
+
   describe("Rendering", () => {
     it("renders FilterRowBase component", () => {
       (useMoviesByActor as jest.Mock).mockReturnValue({

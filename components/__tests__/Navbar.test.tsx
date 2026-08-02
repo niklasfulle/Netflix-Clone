@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent} from '@testing-library/react';
 import Navbar from '../Navbar';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
@@ -30,7 +31,12 @@ jest.mock('react-icons/fa', () => ({
 // Mock child components
 jest.mock('@/components/AccountMenu', () => {
   return function MockAccountMenu({ visible }: any) {
-    return visible ? <div data-testid="account-menu">Account Menu</div> : null;
+    return visible ? (
+      <div data-testid="account-menu">
+        Account Menu
+        <button type="button">Sign out</button>
+      </div>
+    ) : null;
   };
 });
 
@@ -164,6 +170,19 @@ describe('Navbar Component', () => {
   });
 
   describe('Navigation Items (Desktop)', () => {
+    test('renders navigation labels in the selected language', () => {
+      render(
+        <LanguageProvider initialLocale="de">
+          <Navbar />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByText('Startseite')).toBeInTheDocument();
+      expect(screen.getByText('Filme')).toBeInTheDocument();
+      expect(screen.getByText('Meine Liste')).toBeInTheDocument();
+      expect(screen.getByText('Durchsuchen')).toBeInTheDocument();
+    });
+
     test('should render all navbar items on desktop', () => {
       render(<Navbar />);
       expect(screen.getByTestId('navbar-item-home')).toBeTruthy();
@@ -331,6 +350,16 @@ describe('Navbar Component', () => {
       
       fireEvent.click(accountButton!);
       expect(screen.queryByTestId('account-menu')).not.toBeInTheDocument();
+    });
+
+    test('should render the account menu outside its trigger button', () => {
+      render(<Navbar />);
+      const accountButton = screen.getByTestId('image-Profile').closest('button');
+
+      fireEvent.click(accountButton!);
+
+      expect(accountButton?.querySelector('button')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
     });
 
     test('should rotate account menu chevron when open', () => {

@@ -44,7 +44,7 @@ export default function MoviesPage() {
         ) : (
           <SearchList
             title="Search Result for:"
-            data={results}
+            data={results ?? []}
             isLoading={isLoadingSearch}
             searchItem={params.searchItem}
           />

@@ -96,9 +96,10 @@ describe('LoginForm Component', () => {
       expect(source).toContain("from '@hookform/resolvers/zod'");
     });
 
-    it('should configure useForm with LoginSchema', () => {
+    it('should configure useForm with the localized login schema', () => {
       const source = getComponentSource();
-      expect(source).toContain('resolver: zodResolver(LoginSchema)');
+      expect(source).toContain('resolver: zodResolver(localizedLoginSchema)');
+      expect(source).toContain('createLoginSchema');
     });
 
     it('should infer types from LoginSchema', () => {
@@ -148,12 +149,12 @@ describe('LoginForm Component', () => {
 
     it('should set CardWrapper header label', () => {
       const source = getComponentSource();
-      expect(source).toContain('headerLabel="Welcome back"');
+      expect(source).toContain("headerLabel={t('Welcome back')}");
     });
 
     it('should set CardWrapper back button label', () => {
       const source = getComponentSource();
-      expect(source).toContain("backButtonLabel=\"Don't have an account?\"");
+      expect(source).toContain('backButtonLabel={t("Don\'t have an account?")}');
     });
 
     it('should set CardWrapper back button href to /auth/register', () => {
@@ -201,6 +202,12 @@ describe('LoginForm Component', () => {
     it('should have password input with password type', () => {
       const source = getComponentSource();
       expect(source).toMatch(/type="password"/);
+    });
+
+    it('should provide browser autocomplete hints for credentials', () => {
+      const source = getComponentSource();
+      expect(source).toContain('autoComplete="email"');
+      expect(source).toContain('autoComplete="current-password"');
     });
 
     it('should set email placeholder', () => {
@@ -355,17 +362,17 @@ describe('LoginForm Component', () => {
 
     it('should show Login text in normal mode', () => {
       const source = getComponentSource();
-      expect(source).toContain('"Login"');
+      expect(source).toContain("t('Login')");
     });
 
     it('should show Confirm text in 2FA mode', () => {
       const source = getComponentSource();
-      expect(source).toContain('"Confirm"');
+      expect(source).toContain("t('Confirm')");
     });
 
     it('should conditionally change button text', () => {
       const source = getComponentSource();
-      expect(source).toContain('showTwoFactor ? "Confirm" : "Login"');
+      expect(source).toContain("showTwoFactor ? t('Confirm') : t('Login')");
     });
   });
 

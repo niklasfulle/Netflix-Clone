@@ -16,40 +16,40 @@ const Watch = () => {
   const router = useRouter();
   const { data: playlist } = usePlaylist(playlistId);
   const [currentMovie, setCurrentMovie] = useState<number>(0);
+  const movies = React.useMemo(() => playlist?.movies ?? [], [playlist]);
 
   async function setMovieWatchTime() {
     const video = document.getElementById("videoElement") as HTMLVideoElement;
-    const movieId = playlist?.movies[currentMovie]?.id;
+    const movieId = movies[currentMovie]?.id;
     if (movieId && video) {
       updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
     }
   }
 
   const updateMovie = (dir: number) => {
-    if (!playlist?.movies) return;
     const newIndex = currentMovie + dir;
-    if (newIndex >= 0 && newIndex < playlist.movies.length) {
+    if (newIndex >= 0 && newIndex < movies.length) {
       setMovieWatchTime();
       setCurrentMovie(newIndex);
     }
   };
 
   React.useEffect(() => {
-    const movieId = playlist?.movies?.[currentMovie]?.id;
+    const movieId = movies[currentMovie]?.id;
     if (movieId) {
       lastSavedSecondRef.current = -1;
       addMovieView({ movieId });
       addToWatchlist({ movieId });
     }
-  }, [currentMovie, playlist]);
+  }, [currentMovie, movies]);
 
   const handleVideoEnded = () => {
     setMovieWatchTime();
     updateMovie(1);
   };
 
-  const hasMultiple = playlist?.movies?.length > 1;
-  const current = playlist?.movies?.[currentMovie];
+  const hasMultiple = movies.length > 1;
+  const current = movies[currentMovie];
 
   return (
     <div className="w-screen h-screen bg-black relative">
@@ -87,7 +87,7 @@ const Watch = () => {
           />
         </button>
       )}
-      {hasMultiple && currentMovie > 0 && currentMovie < playlist.movies.length - 1 && (
+      {hasMultiple && currentMovie > 0 && currentMovie < movies.length - 1 && (
         <>
           <button
             className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
@@ -117,7 +117,7 @@ const Watch = () => {
           </button>
         </>
       )}
-      {hasMultiple && currentMovie === playlist.movies.length - 1 && (
+      {hasMultiple && currentMovie === movies.length - 1 && (
         <button
           onClick={() => updateMovie(-1)}
           className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"

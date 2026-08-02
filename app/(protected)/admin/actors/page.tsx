@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import { Edit3, Eye, GitMerge, Plus, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 type ActorContent = { id: string; title: string; type: string; status: string; thumbnailUrl: string };
 type Actor = {
@@ -53,6 +54,15 @@ export default function AdminActorsPage() {
   const [targetId, setTargetId] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const detailDialogRef = useRef<HTMLDialogElement>(null);
+  const editorDialogRef = useRef<HTMLDialogElement>(null);
+  const detailTriggerRef = useRef<HTMLElement | null>(null);
+  const editorTriggerRef = useRef<HTMLElement | null>(null);
+  const closeDetails = useCallback(() => setDetailActor(null), []);
+  const closeEditor = useCallback(() => setDialog(null), []);
+
+  useDialogFocus(Boolean(detailActor), detailDialogRef, closeDetails, undefined, detailTriggerRef);
+  useDialogFocus(Boolean(dialog), editorDialogRef, closeEditor, undefined, editorTriggerRef);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -65,11 +75,17 @@ export default function AdminActorsPage() {
   const { data, error, isLoading, mutate } = useSWR(`/api/actors?${params}`, fetcher, { keepPreviousData: true });
 
   const openDialog = (type: ActorDialogType, actor?: Actor) => {
+    editorTriggerRef.current = document.activeElement as HTMLElement | null;
     setDialog(type);
     setSelectedActor(actor || null);
     setName(actor?.name || "");
     setTargetId("");
     setErrorMessage("");
+  };
+
+  const openDetails = (actor: Actor) => {
+    detailTriggerRef.current = document.activeElement as HTMLElement | null;
+    setDetailActor(actor);
   };
 
   const submitActor = async (event: React.SyntheticEvent<HTMLFormElement>) => {
@@ -131,10 +147,10 @@ export default function AdminActorsPage() {
             <span className="sr-only">Darsteller suchen</span>
             <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Darsteller suchen …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" />
           </label>
-          <select value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+          <select aria-label="Darsteller sortieren" value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
             <option value="name">Nach Name</option><option value="views">Nach Views</option><option value="movieCount">Nach Filmen</option><option value="seriesCount">Nach Serien</option>
           </select>
-          <select value={direction} onChange={(event) => setDirection(event.target.value as "asc" | "desc")} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+          <select aria-label="Sortierreihenfolge" value={direction} onChange={(event) => setDirection(event.target.value as "asc" | "desc")} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
             <option value="asc">Aufsteigend</option><option value="desc">Absteigend</option>
           </select>
           <label className="flex h-10 items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300">
@@ -162,7 +178,7 @@ export default function AdminActorsPage() {
                       <td className="px-3 py-4 text-zinc-300">{actor.views.toLocaleString("de-DE")}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-1">
-                          <button type="button" onClick={() => setDetailActor(actor)} aria-label={`${actor.name} anzeigen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Eye className="h-4 w-4" /></button>
+                          <button type="button" onClick={() => openDetails(actor)} aria-label={`${actor.name} anzeigen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Eye className="h-4 w-4" /></button>
                           <button type="button" onClick={() => openDialog("edit", actor)} aria-label={`${actor.name} umbenennen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Edit3 className="h-4 w-4" /></button>
                           <button type="button" onClick={() => openDialog("merge", actor)} aria-label={`${actor.name} zusammenführen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><GitMerge className="h-4 w-4" /></button>
                           <button type="button" onClick={() => deleteActor(actor)} disabled={actor.movieCount + actor.seriesCount > 0} aria-label={`${actor.name} löschen`} className="rounded-lg p-2 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-25"><Trash2 className="h-4 w-4" /></button>
@@ -180,6 +196,7 @@ export default function AdminActorsPage() {
 
       {detailActor && (
         <dialog
+          ref={detailDialogRef}
           open
           aria-modal="true"
           aria-label={`Details zu ${detailActor.name}`}
@@ -216,13 +233,13 @@ export default function AdminActorsPage() {
       )}
 
       {dialog && (
-        <dialog open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label={dialogTitle}>
+        <dialog ref={editorDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label={dialogTitle}>
           <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
             <div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{dialogTitle}</h2><button type="button" onClick={() => setDialog(null)} aria-label="Dialog schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             {dialog === "merge" ? (
               <div className="mt-5">
                 <p className="text-sm text-zinc-400">Alle Zuordnungen von <strong className="text-white">{selectedActor?.name}</strong> werden auf den gewählten Darsteller übertragen. Der Quell-Eintrag wird danach gelöscht.</p>
-                <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-4 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white">
+                <select aria-label="Zieldarsteller auswählen" value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-4 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-sm text-white">
                   <option value="">Ziel auswählen …</option>
                   {data?.actors.filter((actor: Actor) => actor.id !== selectedActor?.id).map((actor: Actor) => <option key={actor.id} value={actor.id}>{actor.name}</option>)}
                 </select>

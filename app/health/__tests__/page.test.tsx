@@ -20,7 +20,7 @@ describe("health page", () => {
     mockedGetHealthStatus.mockResolvedValue({
       status: "ok",
       service: "netflix-clone",
-      version: "1.9.3",
+      version: "1.10.0",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",
@@ -35,14 +35,14 @@ describe("health page", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("All systems operational")).toBeInTheDocument();
     expect(screen.getAllByText("Operational")).toHaveLength(2);
-    expect(screen.getByText("1.9.3")).toBeInTheDocument();
+    expect(screen.getByText("1.10.0")).toBeInTheDocument();
   });
 
   it("renders failed health checks", async () => {
     mockedGetHealthStatus.mockResolvedValue({
       status: "error",
       service: "netflix-clone",
-      version: "1.9.3",
+      version: "1.10.0",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",

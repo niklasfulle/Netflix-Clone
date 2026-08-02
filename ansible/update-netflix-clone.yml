@@ -30,8 +30,54 @@
         state: directory
         mode: '0755'
 
+    - name: Ensure non-root runtime directories are writable
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: '10001'
+        group: '10001'
+        mode: '0750'
+      loop:
+        - /movies
+        - /series
+        - /var/lib/netflix-backup-status
+        - /var/lib/netflix-logs
+
+    - name: Ensure deployment backup and diagnostics directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0700'
+      loop:
+        - /root/netflix-database-backups
+        - /root/netflix-deploy-failures
+
     - name: Install read-only LXC system monitoring
       include_tasks: tasks/system-monitor.yml
+
+    - name: Check for an existing compose definition
+      stat:
+        path: "{{ docker_compose_path }}/docker-compose.yml"
+      register: previous_compose
+
+    - name: Preserve the previous compose definition for rollback
+      copy:
+        src: "{{ docker_compose_path }}/docker-compose.yml"
+        dest: "{{ docker_compose_path }}/docker-compose.previous.yml"
+        remote_src: true
+        mode: '0600'
+      when: previous_compose.stat.exists
+
+    - name: Record the previously running image
+      command:
+        argv:
+          - docker
+          - inspect
+          - --format={{ '{{' }}.Config.Image{{ '}}' }}
+          - netflix-clone
+      register: previous_container_image
+      changed_when: false
+      failed_when: false
 
     - name: Copy docker-compose.yml to remote host
       template:
@@ -71,54 +117,147 @@
           - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
       changed_when: false
 
-    - name: Stop and remove existing container after successful image pull
-      community.docker.docker_compose:
-        project_src: "{{ docker_compose_path }}"
-        state: absent
-      ignore_errors: yes
+    - name: Deploy, migrate, and verify with automatic rollback
+      block:
+        - name: Back up the PostgreSQL database before migration
+          shell: >-
+            docker run --rm --env-file /root/netflix-secrets/app.env postgres:16-alpine
+            sh -c 'pg_dump -Fc "$POSTGRESQL_URL"'
+            > /root/netflix-database-backups/pre-{{ app_version }}.dump
+          args:
+            executable: /bin/bash
+          no_log: true
 
-    - name: Start container with new version
-      community.docker.docker_compose:
-        project_src: "{{ docker_compose_path }}"
-        state: present
-        pull: no
+        - name: Verify the pre-migration database backup
+          shell: >-
+            test -s /root/netflix-database-backups/pre-{{ app_version }}.dump &&
+            docker run --rm -v /root/netflix-database-backups:/backups:ro postgres:16-alpine
+            pg_restore --list /backups/pre-{{ app_version }}.dump >/dev/null
+          args:
+            executable: /bin/bash
+          changed_when: false
 
-    - name: Wait for healthy application version
-      uri:
-        url: http://127.0.0.1:3000/api/health
-        method: GET
-        return_content: yes
-        status_code: 200
-      register: health_response
-      changed_when: false
-      retries: 18
-      delay: 5
-      until: >
-        (health_response.status | default(0)) == 200 and
-        (health_response.json | default({})).get('status') == 'ok' and
-        (health_response.json | default({})).get('version') == app_version
+        - name: Apply versioned Prisma migrations
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - deploy
 
-    - name: Refresh deployed system metrics
-      systemd:
-        name: netflix-monitor.service
-        state: started
+        - name: Verify the deployed Prisma migration state
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - status
+          changed_when: false
 
-    - name: Read deployed system metrics
-      slurp:
-        src: /var/lib/netflix-monitor/status.json
-      register: deployed_system_metrics_file
+        - name: Stop and remove the existing container
+          community.docker.docker_compose:
+            project_src: "{{ docker_compose_path }}"
+            state: absent
 
-    - name: Set deployed system metrics
-      set_fact:
-        deployed_system_metrics: "{{ deployed_system_metrics_file.content | b64decode | from_json }}"
+        - name: Start container with new version
+          community.docker.docker_compose:
+            project_src: "{{ docker_compose_path }}"
+            state: present
+            pull: no
 
-    - name: Verify deployed container in system metrics
-      assert:
-        that:
-          - deployed_system_metrics.docker.container is not none
-          - deployed_system_metrics.docker.container.status == 'running'
-          - deployed_system_metrics.docker.container.image == docker_registry ~ '/' ~ image_name ~ ':' ~ app_version
-        fail_msg: "System monitoring did not detect the newly deployed container."
+        - name: Wait for healthy application version
+          uri:
+            url: http://127.0.0.1:3000/api/health
+            method: GET
+            return_content: yes
+            status_code: 200
+          register: health_response
+          changed_when: false
+          retries: 18
+          delay: 5
+          until: >
+            (health_response.status | default(0)) == 200 and
+            (health_response.json | default({})).get('status') == 'ok' and
+            (health_response.json | default({})).get('version') == app_version
+
+        - name: Refresh deployed system metrics
+          systemd:
+            name: netflix-monitor.service
+            state: started
+
+        - name: Read deployed system metrics
+          slurp:
+            src: /var/lib/netflix-monitor/status.json
+          register: deployed_system_metrics_file
+
+        - name: Set deployed system metrics
+          set_fact:
+            deployed_system_metrics: "{{ deployed_system_metrics_file.content | b64decode | from_json }}"
+
+        - name: Verify deployed container in system metrics
+          assert:
+            that:
+              - deployed_system_metrics.docker.container is not none
+              - deployed_system_metrics.docker.container.status == 'running'
+              - deployed_system_metrics.docker.container.image == docker_registry ~ '/' ~ image_name ~ ':' ~ app_version
+            fail_msg: "System monitoring did not detect the newly deployed container."
+      rescue:
+        - name: Preserve failed-container diagnostics
+          shell: >-
+            docker inspect netflix-clone > /root/netflix-deploy-failures/{{ app_version }}-inspect.json 2>&1 || true;
+            docker logs netflix-clone > /root/netflix-deploy-failures/{{ app_version }}-container.log 2>&1 || true
+          args:
+            executable: /bin/bash
+          changed_when: true
+
+        - name: Stop the failed deployment
+          shell: docker compose down || docker-compose down || true
+          args:
+            chdir: "{{ docker_compose_path }}"
+            executable: /bin/bash
+
+        - name: Restore the previous compose definition
+          copy:
+            src: "{{ docker_compose_path }}/docker-compose.previous.yml"
+            dest: "{{ docker_compose_path }}/docker-compose.yml"
+            remote_src: true
+            mode: '0644'
+          when: previous_compose.stat.exists
+
+        - name: Restart the previous working image
+          shell: docker compose up -d --no-build || docker-compose up -d --no-build
+          args:
+            chdir: "{{ docker_compose_path }}"
+            executable: /bin/bash
+          when: previous_compose.stat.exists and previous_container_image.rc == 0
+
+        - name: Verify rollback health
+          uri:
+            url: http://127.0.0.1:3000/api/health
+            method: GET
+            status_code: 200
+          register: rollback_health
+          retries: 18
+          delay: 5
+          until: (rollback_health.status | default(0)) == 200
+          when: previous_compose.stat.exists and previous_container_image.rc == 0
+
+        - name: Stop deployment after rollback
+          fail:
+            msg: >-
+              Deployment of {{ app_version }} failed. Previous image
+              {{ previous_container_image.stdout | default('unknown') }} was restored;
+              diagnostics are in /root/netflix-deploy-failures.
 
     - name: Remove dangling Docker layers after successful start
       command: docker image prune --force

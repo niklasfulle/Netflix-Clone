@@ -3,9 +3,10 @@ export type Locale = 'en' | 'de';
 export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
-export const germanTranslations: Record<string, string> = {
+export const germanTranslations = {
   'Home': 'Startseite',
   'Movies': 'Filme',
+  'Movie': 'Film',
   'Series': 'Serien',
   'Movies/Series': 'Filme/Serien',
   'My List': 'Meine Liste',
@@ -40,6 +41,7 @@ export const germanTranslations: Record<string, string> = {
   'Profile': 'Profil',
   'Profiles': 'Profile',
   'Settings': 'Einstellungen',
+  'Settings sections': 'Einstellungsbereiche',
   'Back to Netflix': 'Zurück zu Netflix',
   'Account settings': 'Kontoeinstellungen',
   'Your account, your preferences.': 'Dein Konto, deine Einstellungen.',
@@ -47,6 +49,8 @@ export const germanTranslations: Record<string, string> = {
   'Account': 'Konto',
   'Preferences': 'Einstellungen',
   'Account active': 'Konto aktiv',
+  'Netflix member': 'Netflix-Mitglied',
+  'Signed in with profile': 'Angemeldet mit Profil',
   'Personal information': 'Persönliche Daten',
   'Keep your account details current and recognizable.': 'Halte deine Kontodaten aktuell und eindeutig.',
   'Administrator': 'Administrator',
@@ -63,6 +67,7 @@ export const germanTranslations: Record<string, string> = {
   'Security managed externally': 'Sicherheit wird extern verwaltet',
   'Change your password and two-factor settings with your connected sign-in provider.': 'Ändere Passwort und Zwei-Faktor-Einstellungen bei deinem verbundenen Anmeldeanbieter.',
   'Current password': 'Aktuelles Passwort',
+  'New password': 'Neues Passwort',
   'Enter current password': 'Aktuelles Passwort eingeben',
   'Show current password': 'Aktuelles Passwort anzeigen',
   'Hide current password': 'Aktuelles Passwort ausblenden',
@@ -224,8 +229,12 @@ export const germanTranslations: Record<string, string> = {
   'No options': 'Keine Optionen',
   'Email': 'E-Mail',
   'Password': 'Passwort',
+  'Email is required.': 'E-Mail ist erforderlich.',
+  'Password is required.': 'Passwort ist erforderlich.',
+  'A six-digit code is required.': 'Ein sechsstelliger Code ist erforderlich.',
   'New Password': 'Neues Passwort',
   'Confirm': 'Bestätigen',
+  'Login': 'Anmelden',
   'Role': 'Rolle',
   'Select a role': 'Rolle auswählen',
   'Two Factor Authentication': 'Zwei-Faktor-Authentifizierung',
@@ -319,6 +328,8 @@ export const germanTranslations: Record<string, string> = {
   'Random page added': 'Zufallsseite hinzugefügt',
   'First release of the Netflix app': 'Erste Version der Netflix-App',
   'Content': 'Inhalte',
+  'Analytics': 'Analysen',
+  'System': 'System',
   'System Logs': 'System-Logs',
   'Management': 'Verwaltung',
   'Back to Platform': 'Zur Plattform',
@@ -561,4 +572,52 @@ export const germanTranslations: Record<string, string> = {
   'Manual refresh': 'Manuelle Aktualisierung',
   'Refresh every 10 seconds': 'Aktualisierung alle 10 Sekunden',
   'Content could not be saved. Please try again.': 'Der Inhalt konnte nicht gespeichert werden. Bitte versuche es erneut.',
+} as const;
+
+export type TranslationKey = keyof typeof germanTranslations;
+
+export type MessageKey =
+  | 'pageOf'
+  | 'itemsUpdated'
+  | 'createdAndSelected'
+  | 'currentFile'
+  | 'uploadProgress'
+  | 'timeLeft'
+  | 'entriesPerPage'
+  | 'playRandom';
+
+export type MessageParams = {
+  pageOf: { page: number; total: number };
+  itemsUpdated: { count: number };
+  createdAndSelected: { name: string };
+  currentFile: { file: string };
+  uploadProgress: { percent: number };
+  timeLeft: { time: string };
+  entriesPerPage: { count: number };
+  playRandom: { name: string };
+};
+
+export const messages: {
+  [L in Locale]: { [K in MessageKey]: (params: MessageParams[K]) => string };
+} = {
+  en: {
+    pageOf: ({ page, total }) => `Page ${page} of ${total}`,
+    itemsUpdated: ({ count }) => `${count} ${count === 1 ? 'item was' : 'items were'} updated.`,
+    createdAndSelected: ({ name }) => `${name} was created and selected.`,
+    currentFile: ({ file }) => `Current: ${file}`,
+    uploadProgress: ({ percent }) => `Uploading... ${percent}%`,
+    timeLeft: ({ time }) => `~${time} left`,
+    entriesPerPage: ({ count }) => `${count} / page`,
+    playRandom: ({ name }) => `Play ${name} in random order`,
+  },
+  de: {
+    pageOf: ({ page, total }) => `Seite ${page} von ${total}`,
+    itemsUpdated: ({ count }) => `${count} ${count === 1 ? 'Inhalt wurde' : 'Inhalte wurden'} aktualisiert.`,
+    createdAndSelected: ({ name }) => `${name} wurde angelegt und ausgewählt.`,
+    currentFile: ({ file }) => `Aktuell: ${file}`,
+    uploadProgress: ({ percent }) => `Wird hochgeladen... ${percent} %`,
+    timeLeft: ({ time }) => `~${time} verbleibend`,
+    entriesPerPage: ({ count }) => `${count} / Seite`,
+    playRandom: ({ name }) => `${name} in zufälliger Reihenfolge abspielen`,
+  },
 };

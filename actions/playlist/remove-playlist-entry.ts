@@ -5,11 +5,12 @@ import * as z from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { PlaylistSelectSchema } from '@/schemas';
+import { findOwnedPlaylist } from '@/lib/ownership';
 
 export const removePlaylistEntry = async (values: z.infer<typeof PlaylistSelectSchema>) => {
   const user = await currentUser()
 
-  if (!user) {
+  if (!user?.id) {
     logBackendAction('removePlaylistEntry_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
@@ -35,9 +36,20 @@ export const removePlaylistEntry = async (values: z.infer<typeof PlaylistSelectS
 
   const { playlistId, movieId } = validatedField.data
 
+  const ownedPlaylist = await findOwnedPlaylist({
+    playlistId,
+    userId: user.id,
+    profileId: profil.id,
+  });
+
+  if (!ownedPlaylist) {
+    logBackendAction('removePlaylistEntry_not_found', { userId: user.id, playlistId }, 'warn');
+    return { error: "Playlist not found!" }
+  }
+
   await db.playlistEntry.deleteMany({
     where: {
-      playlistId: playlistId,
+      playlistId: ownedPlaylist.id,
       movieId: movieId
     }
   })

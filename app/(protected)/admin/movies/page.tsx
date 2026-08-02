@@ -8,12 +8,14 @@ import useSWR from "swr";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import MovieAdminTable, { type AdminMovie } from "@/components/admin/MovieAdminTable";
+import fetcher from "@/lib/fetcher";
 
-const fetcher = (url: string) => fetch(url).then(async (response) => {
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Inhalte konnten nicht geladen werden.");
-  return data;
-});
+type AdminMoviesResponse = {
+  movies: AdminMovie[];
+  filters?: { genres?: string[] };
+  totalPages: number;
+  total: number;
+};
 
 export default function AdminMoviesPage() {
   const [searchInput, setSearchInput] = useState("");
@@ -49,7 +51,11 @@ export default function AdminMoviesPage() {
     direction,
   }).toString(), [page, pageSize, search, type, status, genre, actor, sort, direction]);
 
-  const { data, error, isLoading, mutate } = useSWR(`/api/movies/admin?${params}`, fetcher, { keepPreviousData: true });
+  const { data, error, isLoading, mutate } = useSWR<AdminMoviesResponse>(
+    `/api/movies/admin?${params}`,
+    fetcher,
+    { keepPreviousData: true },
+  );
 
   const handleSort = (key: string) => {
     if (sort === key) setDirection((current) => current === "asc" ? "desc" : "asc");
@@ -117,17 +123,17 @@ export default function AdminMoviesPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
               <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Titel oder Beschreibung suchen …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" />
             </label>
-            <select value={type} onChange={(event) => { setType(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Inhaltstyp filtern" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Typen</option><option value="Movie">Filme</option><option value="Serie">Serien</option>
             </select>
-            <select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Veröffentlichungsstatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Status</option><option value="PUBLISHED">Veröffentlicht</option><option value="DRAFT">Entwürfe</option><option value="ARCHIVED">Archiviert</option>
             </select>
-            <select value={genre} onChange={(event) => { setGenre(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Genre filtern" value={genre} onChange={(event) => { setGenre(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Genres</option>
-              {data?.filters?.genres?.map((item: string) => <option key={item} value={item}>{item}</option>)}
+              {data?.filters?.genres?.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-            <input value={actor} onChange={(event) => { setActor(event.target.value); setPage(1); }} placeholder="Darsteller …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500" />
+            <input aria-label="Nach Darsteller filtern" value={actor} onChange={(event) => { setActor(event.target.value); setPage(1); }} placeholder="Darsteller …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500" />
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <button type="button" onClick={resetFilters} className="text-xs font-medium text-zinc-500 hover:text-white">Filter zurücksetzen</button>

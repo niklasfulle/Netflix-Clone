@@ -1,7 +1,7 @@
 "use client";
 import { useTransition, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
-import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import * as z from 'zod';
 
@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/select';
 import { PlaylistSelectSchema } from '@/schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { PlaylistDto } from '@/lib/api-types';
 
 interface PlaylistSelectProps {
-  playlists: any[];
+  playlists: PlaylistDto[];
   movieId: string;
 }
 
@@ -37,6 +38,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
       movieId: movieId,
     },
   });
+  const selectedPlaylistId = useWatch({ control: form.control, name: 'playlistId' });
 
   const onSubmit = async (values: z.infer<typeof PlaylistSelectSchema>) => {
     if (selectValue === "__new__") {
@@ -102,9 +104,12 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {localPlaylists.map((playlist) => (
+                        {localPlaylists.filter(
+                          (playlist): playlist is PlaylistDto & { id: string } =>
+                            typeof playlist.id === 'string',
+                        ).map((playlist) => (
                           <SelectItem key={playlist.id} value={playlist.id}>
-                            {playlist.title}
+                            {playlist.title ?? playlist.name ?? 'Untitled playlist'}
                           </SelectItem>
                         ))}
                         <SelectItem key="__new__" value="__new__">Neue Playlist</SelectItem>
@@ -127,7 +132,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
               )}
             </div>
             <Button
-              disabled={isPending || (selectValue !== "__new__" && !form.watch('playlistId')) || (selectValue === "__new__" && !newPlaylistName.trim())}
+              disabled={isPending || (selectValue !== "__new__" && !selectedPlaylistId) || (selectValue === "__new__" && !newPlaylistName.trim())}
               variant="auth"
               size="lg"
               className="min-w-[170px] h-10 font-semibold text-base bg-red-700 hover:bg-red-800 transition-colors"

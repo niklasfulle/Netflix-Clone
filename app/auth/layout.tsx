@@ -13,9 +13,10 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
               <Image
                 src="/images/Logo.png"
                 alt="Logo"
-                className="h-12"
-                width={100}
-                height={100}
+                className="h-12 w-auto"
+                width={256}
+                height={78}
+                priority
               />
             </Link>
           </nav>

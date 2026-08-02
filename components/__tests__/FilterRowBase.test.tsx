@@ -20,16 +20,8 @@ jest.mock('react-hot-toast', () => ({
 
 // Mock react-icons
 jest.mock('react-icons/fa', () => ({
-  FaChevronLeft: ({ onClick, ...props }: any) => (
-    <button data-testid="chevron-left" onClick={onClick} {...props}>
-      Left
-    </button>
-  ),
-  FaChevronRight: ({ onClick, ...props }: any) => (
-    <button data-testid="chevron-right" onClick={onClick} {...props}>
-      Right
-    </button>
-  ),
+  FaChevronLeft: (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />,
+  FaChevronRight: (props: React.SVGProps<SVGSVGElement>) => <svg {...props} />,
   FaRandom: (props: any) => <svg data-testid="shuffle-icon" {...props} />,
 }));
 
@@ -621,6 +613,7 @@ describe('FilterRowBase', () => {
       );
       const mainDiv = container.firstChild as HTMLElement;
       expect(mainDiv.className).toMatch(/h-auto/);
+      expect(mainDiv.className).toMatch(/min-h-\[204px\]/);
     });
 
     test('should have correct height for scroll container', () => {

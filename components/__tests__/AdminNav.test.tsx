@@ -1,14 +1,27 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import AdminNav from "../AdminNav";
 
 let mockPathname = "/admin/users";
 
 jest.mock("next/navigation", () => ({ usePathname: () => mockPathname }));
-jest.mock("next/image", () => (props: any) => <img {...props} alt={props.alt || ""} />);
-jest.mock("next/link", () => ({ children, href, ...props }: any) => <a href={href} {...props}>{children}</a>);
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: ({ priority: _priority, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img {...props} alt={props.alt ?? ""} />
+  ),
+}));
+jest.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}));
 jest.mock("@/hooks/useCurrentProfil", () => () => ({ data: { name: "Admin", image: "placeholder.png" } }));
-jest.mock("@/components/AccountMenu", () => ({ visible }: any) => visible ? <div>Account options</div> : null);
+jest.mock("@/components/AccountMenu", () => ({ visible }: { visible: boolean }) => (
+  visible ? <div>Account options</div> : null
+));
 
 beforeEach(() => {
   localStorage.clear();
@@ -17,30 +30,39 @@ beforeEach(() => {
 
 it("marks the active admin area and exposes all destinations", () => {
   render(<AdminNav />);
-  expect(screen.getAllByRole("link", { name: /Benutzer/i })[0]).toHaveAttribute("aria-current", "page");
-  expect(screen.getAllByRole("link", { name: /New Content/i })[0]).toHaveAttribute("href", "/admin/movies/new");
-  expect(screen.getAllByRole("link", { name: /Analytics/i }).length).toBeGreaterThan(0);
-  expect(screen.getAllByRole("link", { name: /System/i })[0]).toHaveAttribute("href", "/admin/system");
-  expect(screen.getAllByRole("link", { name: /Backups/i })[0]).toHaveAttribute("href", "/admin/backups");
-  expect(screen.getAllByRole("link", { name: /System-Logs/i }).length).toBeGreaterThan(0);
+
+  expect(screen.getAllByRole("link", { name: "Users" })[0]).toHaveAttribute("aria-current", "page");
+  expect(screen.getAllByRole("link", { name: "New Content" })[0]).toHaveAttribute("href", "/admin/movies/new");
+  expect(screen.getAllByRole("link", { name: "Analytics" }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("link", { name: "System" })[0]).toHaveAttribute("href", "/admin/system");
+  expect(screen.getAllByRole("link", { name: "Backups" })[0]).toHaveAttribute("href", "/admin/backups");
+  expect(screen.getAllByRole("link", { name: "System Logs" }).length).toBeGreaterThan(0);
   expect(screen.getAllByRole("group", { name: "Language" })).toHaveLength(2);
-  expect(screen.getAllByRole("button", { name: "DE" })).toHaveLength(2);
-  expect(screen.getAllByRole("button", { name: "EN" })).toHaveLength(2);
 });
 
 it("marks only the create destination active on the new content page", () => {
   mockPathname = "/admin/movies/new";
   render(<AdminNav />);
 
-  expect(screen.getAllByRole("link", { name: /New Content/i })[0]).toHaveAttribute("aria-current", "page");
-  expect(screen.getAllByRole("link", { name: "Inhalte" })[0]).not.toHaveAttribute("aria-current");
+  expect(screen.getAllByRole("link", { name: "New Content" })[0]).toHaveAttribute("aria-current", "page");
+  expect(screen.getAllByRole("link", { name: "Content" })[0]).not.toHaveAttribute("aria-current");
 });
 
-it("opens the mobile navigation", () => {
-  mockPathname = "/admin/users";
+it("provides an accessible mobile dialog that closes with Escape and restores focus", () => {
   render(<AdminNav />);
-  fireEvent.click(screen.getByRole("button", { name: "Navigation öffnen" }));
-  expect(screen.getByRole("button", { name: "Navigation schließen" })).toHaveAttribute("aria-expanded", "true");
+  const openButton = screen.getByRole("button", { name: "Open navigation" });
+
+  openButton.focus();
+  fireEvent.click(openButton);
+
+  const dialog = screen.getByRole("dialog", { name: "Admin Area" });
+  expect(dialog).toHaveAttribute("aria-modal", "true");
+  expect(within(dialog).getByRole("button", { name: "Close navigation" })).toHaveFocus();
+
+  fireEvent.keyDown(dialog, { key: "Escape" });
+
+  expect(screen.queryByRole("dialog", { name: "Admin Area" })).not.toBeInTheDocument();
+  expect(openButton).toHaveFocus();
 });
 
 it("switches the complete admin navigation between German and English", async () => {

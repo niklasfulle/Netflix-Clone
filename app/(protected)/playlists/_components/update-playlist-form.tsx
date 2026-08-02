@@ -15,17 +15,22 @@ import { PlaylistSchema } from '@/schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import PlaylistEntryCard from './PlaylistEntryCard';
+import type { PlaylistDto } from '@/lib/api-types';
+import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 
 interface PlaylistCardProps {
-  playlist: Record<string, any>;
+  playlist?: PlaylistDto;
 }
+
+const hasMovieId = (movie: CatalogItemDto): movie is CatalogItemDto & { id: string } =>
+  typeof movie.id === 'string';
 
 export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   const [isPending, startTransition] = useTransition();
-  const [movies, setMovies] = useState<any>([]);
+  const [movies, setMovies] = useState<CatalogItemDto[]>([]);
   const [movieRemoved, setMovieRemoved] = useState<boolean>(false);
   const [movieMoved, setMovieMoved] = useState<boolean>(false);
-  const [moviesToRemove, setMoviesToRemove] = useState<any>([]);
+  const [moviesToRemove, setMoviesToRemove] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof PlaylistSchema>>({
     resolver: zodResolver(PlaylistSchema),
@@ -36,8 +41,9 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   });
 
   const onSubmit = (values: z.infer<typeof PlaylistSchema>) => {
+    const orderedMovies = movies.filter(hasMovieId);
     startTransition(() => {
-      updatePlaylist(values, moviesToRemove, movies).then((data) => {
+      updatePlaylist(values, moviesToRemove, orderedMovies).then((data) => {
         if (data?.error) {
           form.reset();
           toast.error(data?.error);
@@ -54,9 +60,9 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   const onMove = (dir: string, index: number) => {
     if (!movieRemoved && !movieMoved) {
       if (dir == "up") {
-        onMoveUp(index, playlist.movies);
+        onMoveUp(index, playlist?.movies ?? []);
       } else if (dir == "down") {
-        onMoveDown(index, playlist.movies);
+        onMoveDown(index, playlist?.movies ?? []);
       }
       setMovieMoved(true);
     } else if (dir == "up") {
@@ -66,7 +72,7 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
     }
   };
 
-  const onMoveUp = (index: number, movies: any[]) => {
+  const onMoveUp = (index: number, movies: CatalogItemDto[]) => {
     if (index == 0) {
       setMovies([...swapElements(movies, 0, movies.length - 1)]);
     } else {
@@ -74,7 +80,7 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
     }
   };
 
-  const onMoveDown = (index: number, movies: any[]) => {
+  const onMoveDown = (index: number, movies: CatalogItemDto[]) => {
     if (index == movies.length - 1) {
       setMovies([...swapElements(movies, movies.length - 1, 0)]);
     } else {
@@ -83,10 +89,10 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   };
 
   const onClickDelete = (movieId: string) => {
-    if (!movieRemoved && !movieMoved && playlist.movies.length >= 1) {
-      setMovies(playlist.movies.filter((movie: any) => movie.id != movieId));
+    if (!movieRemoved && !movieMoved && (playlist?.movies?.length ?? 0) >= 1) {
+      setMovies((playlist?.movies ?? []).filter((movie) => movie.id !== movieId));
     } else if (movieRemoved || movieMoved) {
-      setMovies(movies.filter((movie: any) => movie.id != movieId));
+      setMovies(movies.filter((movie) => movie.id !== movieId));
     }
 
     setMovieRemoved(!movieRemoved);
@@ -98,7 +104,7 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
   }
 
   if (form.getValues("playlistName") == undefined) {
-    form.setValue("playlistName", playlist?.title);
+    form.setValue("playlistName", playlist.title ?? playlist.name ?? "");
     form.setValue("playlistId", playlist?.id);
   }
 
@@ -131,18 +137,18 @@ export const UpdatePlaylistForm = ({ playlist }: PlaylistCardProps) => {
               {!movieRemoved &&
                 !movieMoved &&
                 movies.length == 0 &&
-                playlist.movies?.map((movie: any, index: number) => (
+                playlist.movies?.filter(hasMovieId).map((movie, index: number) => (
                   <PlaylistEntryCard
                     key={movie.id}
                     index={index}
-                    size={playlist.movies.length}
+                    size={playlist.movies?.length ?? 0}
                     movie={movie}
                     onMove={onMove}
                     onClickDelete={onClickDelete}
                   />
                 ))}
               {movies.length != 0 &&
-                movies.map((movie: any, index: number) => (
+                movies.filter(hasMovieId).map((movie, index: number) => (
                   <PlaylistEntryCard
                     key={movie.id}
                     index={index}

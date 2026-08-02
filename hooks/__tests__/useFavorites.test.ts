@@ -106,7 +106,7 @@ describe('useFavorites', () => {
     );
   });
 
-  it('should accept optional id parameter', () => {
+  it('should initialize without an id parameter', () => {
     (useSWR as jest.Mock).mockReturnValue({
       data: undefined,
       error: undefined,
@@ -114,7 +114,7 @@ describe('useFavorites', () => {
       mutate: jest.fn(),
     });
 
-    renderHook(() => useFavorites('user-123'));
+    renderHook(() => useFavorites());
 
     expect(useSWR).toHaveBeenCalled();
   });

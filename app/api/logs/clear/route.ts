@@ -1,8 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
 import { NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { backendLogStore } from "@/lib/log-store";
 
 const CONFIRMATION = "LOGS LÖSCHEN";
 
@@ -17,12 +16,9 @@ export async function POST(request?: Request) {
   }
 
   try {
-    const logsDirectory = path.join(process.cwd(), "logs");
-    const logFile = path.join(logsDirectory, "backend.log");
-    fs.mkdirSync(logsDirectory, { recursive: true });
-    fs.writeFileSync(logFile, "", "utf8");
+    await backendLogStore.clear();
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: `Logs konnten nicht geleert werden: ${String(error)}` }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Logs could not be cleared." }, { status: 500 });
   }
 }

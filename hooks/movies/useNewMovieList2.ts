@@ -1,17 +1,7 @@
-import useSWR from 'swr';
+import { LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
+import type { CatalogCardDto } from '@/lib/catalog';
 
-import fetcher from '@/lib/fetcher';
-
-const useNewMovieList2 = () => {
-  const { data, error, isLoading } = useSWR('/api/movies/newMovies', fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+// Keep this export name for existing consumers while the shared catalog query
+// makes the compatibility endpoint explicit.
+const useNewMovieList2 = () => useCatalogQuery<CatalogCardDto[]>('movies', { kind: 'compatibilityNew' }, LIVE_CATALOG_OPTIONS);
 export default useNewMovieList2;

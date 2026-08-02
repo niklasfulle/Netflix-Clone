@@ -6,12 +6,12 @@ const LanguageSwitcher = ({
   compact = false,
   className = "",
 }: Readonly<{ compact?: boolean; className?: string }>) => {
-  const { locale, setLocale } = useLanguage();
+  const { locale, setLocale, t } = useLanguage();
 
   return (
     <fieldset
       className={`flex overflow-hidden rounded-lg border border-zinc-700 bg-zinc-950 text-xs font-semibold text-white shadow-lg ${className}`}
-      aria-label="Language"
+      aria-label={t("Language")}
     >
       <button
         type="button"

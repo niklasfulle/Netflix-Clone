@@ -24,6 +24,7 @@ import {
 } from "@/lib/admin-backup";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { recordBackupStatus } from "@/lib/backup-status";
+import type { DatabaseBackup } from "@/lib/admin-backup";
 import { POST, PUT } from "../route";
 
 const mockedIsAdmin = isCurrentUserAdmin as jest.MockedFunction<typeof isCurrentUserAdmin>;
@@ -41,7 +42,7 @@ const storedBackup = {
   version: 1,
   createdAt: "2026-07-26T12:00:00.000Z",
   data: { users: [{ id: "admin", role: "ADMIN" }] },
-} as never;
+} as unknown as DatabaseBackup;
 
 describe("admin backup API", () => {
   beforeEach(() => {

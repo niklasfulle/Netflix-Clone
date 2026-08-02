@@ -9,6 +9,14 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Capacity thresholds classify the deployment as healthy, warning, or critical and provide actionable alerts
 - Database backup creation now records non-sensitive recovery metadata for backup age, size, and record-count monitoring
 - Docker and Ansible verify application health, expected version, and visibility of the newly deployed container before reporting a successful deployment
+- Catalog APIs now return compact card data without embedded video or thumbnail payloads
+- Catalog thumbnails are served through a cacheable image resource that works with Next.js image optimization
+- Actor rows are capped and loaded only as they approach the viewport, reducing initial database work and transferred data
+- Mobile catalog performance is protected by an automated payload budget and a throttled browser scenario
+- Login validation, administration navigation, and account controls received localization and accessibility improvements
+- Invalid nested account-menu controls no longer cause React hydration errors
+- Complex administration and catalog workflows have expanded regression and browser coverage
+- SonarQube analysis, deployment documentation, and release tooling were hardened for repeatable local and production checks
 
 ## 1.9.2
 

@@ -5,12 +5,12 @@ import '@testing-library/jest-dom';
 // Mock icons first before importing component
 jest.mock('react-icons/fa', () => ({
   FaCheck: ({ className, size }: any) => (
-    <svg data-testid="check-icon" data-className={className} data-size={size}>
+    <svg data-testid="check-icon" className={className} data-size={size}>
       Check
     </svg>
   ),
   FaPlus: ({ className, size }: any) => (
-    <svg data-testid="plus-icon" data-className={className} data-size={size}>
+    <svg data-testid="plus-icon" className={className} data-size={size}>
       Plus
     </svg>
   ),
@@ -137,7 +137,7 @@ describe('FavoriteButton', () => {
     it('should render icon with text-white class', () => {
       render(<FavoriteButton movieId="movie-1" />);
       const icon = screen.getByTestId('plus-icon');
-      expect(icon.getAttribute('data-className')).toMatch(/text-white/);
+      expect(icon).toHaveClass('text-white');
     });
 
     it('should render icon with size 20', () => {
@@ -198,9 +198,9 @@ describe('FavoriteButton', () => {
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
-    it('should call useFavorites with correct movieId', () => {
+    it('should load the shared favorites cache', () => {
       render(<FavoriteButton movieId="movie-abc" />);
-      expect(mockUseFavorites).toHaveBeenCalledWith('movie-abc');
+      expect(mockUseFavorites).toHaveBeenCalledWith();
     });
 
     it('should call useCurrentProfil', () => {
@@ -684,9 +684,9 @@ describe('FavoriteButton', () => {
       expect(mockUseCurrentProfil).toHaveBeenCalled();
     });
 
-    it('should use useFavorites hook with movieId', () => {
+    it('should use the shared favorites hook', () => {
       render(<FavoriteButton movieId="movie-1" />);
-      expect(mockUseFavorites).toHaveBeenCalledWith('movie-1');
+      expect(mockUseFavorites).toHaveBeenCalledWith();
     });
 
     it('should import add action', async () => {

@@ -14,13 +14,13 @@ import Input from '@/components/Input';
 import ProfilModal from '@/components/ProfilModal';
 import getProfils from '@/hooks/getProfils';
 import useProfilModal from '@/hooks/useProfilModal';
-import { Profil } from '@prisma/client';
+import type { ProfileDto } from '@/lib/api-types';
 
 const ProfilesPage = () => {
   const router = useRouter();
   const profiles = getProfils().data;
   const [profileState, setProfileState] = useState<string>("profiles");
-  const [profileStateEdit, setProfileStateEdit] = useState<Profil | null>(null);
+  const [profileStateEdit, setProfileStateEdit] = useState<ProfileDto | null>(null);
   const [profilImg, setProfilImg] = useState<string>("Frog.png");
   const [profilName, setProfilName] = useState<string>("");
   const { isOpen, openModal, closeModal } = useProfilModal();
@@ -107,7 +107,7 @@ const ProfilesPage = () => {
                 Who is watching?
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
-                {profiles.map((profil: Profil) => (
+                {profiles?.map((profil) => (
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <button
@@ -119,7 +119,7 @@ const ProfilesPage = () => {
                         className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
                       >
                         <Image
-                          src={`/images/profil/${profil.image}`}
+                          src={`/images/profil/${profil.image ?? 'placeholder.png'}`}
                           alt="Profile"
                           width={320}
                           height={320}
@@ -133,8 +133,8 @@ const ProfilesPage = () => {
                           onClick={() => {
                             setProfileStateEdit(profil);
                             setProfileState("edit");
-                            setProfilName(profil.name);
-                            setProfilImg(profil.image as string);
+                            setProfilName(profil.name ?? "");
+                            setProfilImg(profil.image ?? "placeholder.png");
                           }}
                           className="z-10 mt-4 text-white transition-all ease-in cursor-pointer hover:text-neutral-500"
                           size={20}

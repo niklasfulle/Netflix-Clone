@@ -152,7 +152,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const wrapper = container.querySelector('div');
+      const wrapper = container.querySelector('dialog');
       expect(wrapper?.className).toContain('fixed');
     });
 
@@ -160,7 +160,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const wrapper = container.querySelector('div');
+      const wrapper = container.querySelector('dialog');
       expect(wrapper?.className).toContain('bg-black');
       expect(wrapper?.className).toContain('bg-opacity-80');
     });
@@ -169,7 +169,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const wrapper = container.querySelector('div');
+      const wrapper = container.querySelector('dialog');
       expect(wrapper?.className).toContain('flex');
       expect(wrapper?.className).toContain('items-center');
       expect(wrapper?.className).toContain('justify-center');
@@ -179,7 +179,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const wrapper = container.querySelector('div');
+      const wrapper = container.querySelector('dialog');
       expect(wrapper?.className).toContain('z-50');
     });
   });
@@ -396,7 +396,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const closeButton = container.querySelector('button');
+      const closeButton = container.querySelector('button[aria-label="Close details"]');
       expect(closeButton?.className).toContain('rounded-full');
       expect(closeButton?.className).toContain('cursor-pointer');
     });
@@ -486,7 +486,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const modal = container.querySelector('[class*="border"]');
+      const modal = container.querySelector('dialog > div');
       expect(modal?.className).toContain('border-zinc-800');
     });
 
@@ -494,7 +494,7 @@ describe('InfoModal', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
       );
-      const content = container.querySelector('[class*="max-w"]');
+      const content = container.querySelector('dialog > div');
       expect(content?.className).toContain('max-w-3xl');
     });
   });

@@ -132,7 +132,7 @@ describe("Watch Playlist Page Component", () => {
 
     it("should get movieId from current playlist item", () => {
       const source = getComponentSource();
-      expect(source).toContain("const movieId = playlist?.movies[currentMovie]?.id");
+      expect(source).toContain("const movieId = movies[currentMovie]?.id");
     });
 
     it("should call updateWatchTime with movieId and rounded time", () => {
@@ -152,9 +152,9 @@ describe("Watch Playlist Page Component", () => {
       expect(source).toContain("const updateMovie = (dir: number) =>");
     });
 
-    it("should check if playlist movies exist", () => {
+    it("should normalize missing playlist movies", () => {
       const source = getComponentSource();
-      expect(source).toContain("if (!playlist?.movies) return");
+      expect(source).toContain("playlist?.movies ?? []");
     });
 
     it("should calculate new index", () => {
@@ -164,7 +164,7 @@ describe("Watch Playlist Page Component", () => {
 
     it("should validate new index is within bounds", () => {
       const source = getComponentSource();
-      expect(source).toContain("if (newIndex >= 0 && newIndex < playlist.movies.length)");
+      expect(source).toContain("if (newIndex >= 0 && newIndex < movies.length)");
     });
 
     it("should call setCurrentMovie with newIndex", () => {
@@ -193,7 +193,7 @@ describe("Watch Playlist Page Component", () => {
   describe("useEffect for Movie Actions", () => {
     it("should get movieId from current playlist item", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/React\.useEffect[\s\S]*?const movieId = playlist\?\.movies\?\.\[currentMovie\]\?\.id/);
+      expect(source).toMatch(/React\.useEffect[\s\S]*?const movieId = movies\[currentMovie\]\?\.id/);
     });
 
     it("should call addMovieView when movieId changes", () => {
@@ -211,21 +211,21 @@ describe("Watch Playlist Page Component", () => {
       expect(source).toMatch(/React\.useEffect[\s\S]*?if \(movieId\)/);
     });
 
-    it("should depend on currentMovie and playlist", () => {
+    it("should depend on currentMovie and normalized movies", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/React\.useEffect[\s\S]*?\[currentMovie, playlist\]/);
+      expect(source).toMatch(/React\.useEffect[\s\S]*?\[currentMovie, movies\]/);
     });
   });
 
   describe("Helper Variables", () => {
     it("should define hasMultiple variable", () => {
       const source = getComponentSource();
-      expect(source).toContain("const hasMultiple = playlist?.movies?.length > 1");
+      expect(source).toContain("const hasMultiple = movies.length > 1");
     });
 
     it("should define current variable", () => {
       const source = getComponentSource();
-      expect(source).toContain("const current = playlist?.movies?.[currentMovie]");
+      expect(source).toContain("const current = movies[currentMovie]");
     });
   });
 
@@ -291,44 +291,44 @@ describe("Watch Playlist Page Component", () => {
   describe("Navigation Buttons - Middle Movies", () => {
     it("should render both buttons when in middle of playlist", () => {
       const source = getComponentSource();
-      expect(source).toContain("currentMovie > 0 && currentMovie < playlist.movies.length - 1");
+      expect(source).toContain("currentMovie > 0 && currentMovie < movies.length - 1");
     });
 
     it("should render previous button in middle", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie > 0 && currentMovie < playlist\.movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(-1\)\}/);
+      expect(source).toMatch(/currentMovie > 0 && currentMovie < movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(-1\)\}/);
     });
 
     it("should render next button in middle", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie > 0 && currentMovie < playlist\.movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(1\)\}/);
+      expect(source).toMatch(/currentMovie > 0 && currentMovie < movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(1\)\}/);
     });
 
     it("should position previous button on left", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie > 0 && currentMovie < playlist\.movies\.length - 1[\s\S]*?-left-1/);
+      expect(source).toMatch(/currentMovie > 0 && currentMovie < movies\.length - 1[\s\S]*?-left-1/);
     });
   });
 
   describe("Previous Button - Last Movie", () => {
     it("should render previous button when on last movie", () => {
       const source = getComponentSource();
-      expect(source).toContain("currentMovie === playlist.movies.length - 1");
+      expect(source).toContain("currentMovie === movies.length - 1");
     });
 
     it("should call updateMovie(-1) on previous button click", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie === playlist\.movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(-1\)\}/);
+      expect(source).toMatch(/currentMovie === movies\.length - 1[\s\S]*?onClick=\{\(\) => updateMovie\(-1\)\}/);
     });
 
     it("should render FaArrowLeft in previous button", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie === playlist\.movies\.length - 1[\s\S]*?<FaArrowLeft/);
+      expect(source).toMatch(/currentMovie === movies\.length - 1[\s\S]*?<FaArrowLeft/);
     });
 
     it("should position previous button on left", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie === playlist\.movies\.length - 1[\s\S]*?-left-1/);
+      expect(source).toMatch(/currentMovie === movies\.length - 1[\s\S]*?-left-1/);
     });
   });
 
@@ -567,7 +567,7 @@ describe("Watch Playlist Page Component", () => {
 
     it("should check playlist length for button visibility", () => {
       const source = getComponentSource();
-      expect(source).toContain("playlist.movies.length - 1");
+      expect(source).toContain("movies.length - 1");
     });
 
     it("should conditionally render video based on current.id", () => {
@@ -646,7 +646,7 @@ describe("Watch Playlist Page Component", () => {
 
     it("should wrap both left and right buttons in fragment", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/currentMovie > 0 && currentMovie < playlist\.movies\.length - 1[\s\S]*?<>/);
+      expect(source).toMatch(/currentMovie > 0 && currentMovie < movies\.length - 1[\s\S]*?<>/);
     });
   });
 
@@ -714,12 +714,12 @@ describe("Watch Playlist Page Component", () => {
 
     it("should check upper bound of index", () => {
       const source = getComponentSource();
-      expect(source).toContain("newIndex < playlist.movies.length");
+      expect(source).toContain("newIndex < movies.length");
     });
 
-    it("should return early if no playlist movies", () => {
+    it("should normalize missing playlist movies to an empty array", () => {
       const source = getComponentSource();
-      expect(source).toContain("if (!playlist?.movies) return");
+      expect(source).toContain("playlist?.movies ?? []");
     });
   });
 

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { settings } from "@/actions/settings";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 import { SettingsForm } from "../settings-form";
 
@@ -76,6 +77,18 @@ describe("SettingsForm", () => {
     expect(screen.getByLabelText("Email")).toHaveValue("jane@example.com");
     expect(screen.getByTestId("language-switcher")).toBeInTheDocument();
     expect(screen.getByText("Member")).toBeInTheDocument();
+  });
+
+  it("renders account controls in German at render time", () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <SettingsForm user={passwordAccount} />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Persönliche Daten" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Anmeldung & Sicherheit" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Änderungen speichern" })).toBeInTheDocument();
   });
 
   it("allows personal information to be edited and saved", async () => {

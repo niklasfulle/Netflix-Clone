@@ -1,36 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
-
-const LOG_FILE_PATH = path.join(process.cwd(), "logs", "backend.log");
-
-type LogRecord = {
-  timestamp?: string;
-  action?: string;
-  userId?: string;
-  level?: string;
-  raw?: string;
-  [key: string]: unknown;
-};
-
-function readLogs(): LogRecord[] {
-  if (!fs.existsSync(LOG_FILE_PATH)) return [];
-  try {
-    const content = fs.readFileSync(LOG_FILE_PATH, "utf8").trim();
-    if (!content) return [];
-    return content.split("\n").map((line) => {
-      try {
-        return JSON.parse(line) as LogRecord;
-      } catch {
-        return { level: "unknown", raw: line };
-      }
-    }).reverse();
-  } catch {
-    return [];
-  }
-}
+import { backendLogStore } from "@/lib/log-store";
 
 function stringifyCsvValue(value: unknown): string {
   switch (typeof value) {
@@ -68,29 +39,31 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
   const userId = searchParams.get("userId")?.trim().toLocaleLowerCase("de") || "";
   const from = searchParams.get("from") ? new Date(searchParams.get("from") as string) : null;
   const to = searchParams.get("to") ? new Date(`${searchParams.get("to")}T23:59:59.999`) : null;
-
-  const allLogs = readLogs();
-  const counts = allLogs.reduce((result, log) => {
-    const key = log.level === "warning" ? "warn" : log.level || "unknown";
-    result[key] = (result[key] || 0) + 1;
-    return result;
-  }, {} as Record<string, number>);
-  const logs = allLogs.filter((log) => {
-    const normalizedLevel = log.level === "warning" ? "warn" : log.level;
-    const timestamp = log.timestamp ? new Date(log.timestamp) : null;
-    if (level !== "all" && normalizedLevel !== level) return false;
-    if (action && !String(log.action || "").toLocaleLowerCase("de").includes(action)) return false;
-    if (userId && !String(log.userId || "").toLocaleLowerCase("de").includes(userId)) return false;
-    if (search && !JSON.stringify(log).toLocaleLowerCase("de").includes(search)) return false;
-    if (from && timestamp && timestamp < from) return false;
-    if (to && timestamp && timestamp > to) return false;
-    return true;
-  });
+  const query = { page, pageSize, level, search, action, userId, from, to };
 
   if (searchParams.get("format") === "csv") {
-    const header = ["timestamp", "level", "action", "userId", "details"].map(csvCell).join(";");
-    const rows = logs.map((log) => [log.timestamp, log.level, log.action, log.userId, JSON.stringify(log)].map(csvCell).join(";"));
-    return new NextResponse([header, ...rows].join("\n"), {
+    const encoder = new TextEncoder();
+    const iterator = backendLogStore.iterate(query);
+    let headerSent = false;
+    const stream = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (!headerSent) {
+          controller.enqueue(encoder.encode(`${["timestamp", "level", "action", "userId", "details"].map(csvCell).join(";")}\n`));
+          headerSent = true;
+        }
+        const next = await iterator.next();
+        if (next.done) {
+          controller.close();
+          return;
+        }
+        const log = next.value;
+        controller.enqueue(encoder.encode(`${[log.timestamp, log.level, log.action, log.userId, JSON.stringify(log)].map(csvCell).join(";")}\n`));
+      },
+      async cancel() {
+        await iterator.return(undefined);
+      },
+    });
+    return new NextResponse(stream, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": 'attachment; filename="system-logs.csv"',
@@ -98,12 +71,14 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
     });
   }
 
+  const result = await backendLogStore.query(query);
+
   return NextResponse.json({
-    logs: logs.slice((page - 1) * pageSize, page * pageSize),
-    total: logs.length,
+    logs: result.logs,
+    total: result.total,
     page,
     pageSize,
-    totalPages: Math.ceil(logs.length / pageSize),
-    counts,
+    totalPages: Math.ceil(result.total / pageSize),
+    counts: result.counts,
   });
 }

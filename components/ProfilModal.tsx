@@ -19,13 +19,19 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
   setProfilImg,
 }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
-  const [imgIndex, setImgIndex] = useState(1);
+  const [imgIndex, setImgIndex] = useState(0);
   const { data: profilImgs } = useProfilImgsApi();
   const [displayImg, setDisplayImg] = useState(ProfilImg);
 
   useEffect(() => {
     setIsVisible(!!visible);
   }, [visible]);
+
+  useEffect(() => {
+    setDisplayImg(ProfilImg);
+    const selectedIndex = profilImgs?.findIndex((image) => image.url === ProfilImg) ?? -1;
+      setImgIndex(Math.max(selectedIndex, 0));
+  }, [ProfilImg, profilImgs]);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
@@ -35,15 +41,10 @@ const ProfilModal: React.FC<ProfilModalProps> = ({
   }, [onClose]);
 
   const rotateProfilImgs = () => {
-    if (profilImgs != undefined) {
-      if (imgIndex + 1 < profilImgs.length) {
-        setImgIndex(imgIndex + 1);
-      } else {
-        setImgIndex(0);
-      }
-    }
-
-    setDisplayImg(profilImgs[imgIndex].url);
+    if (!profilImgs?.length) return;
+    const nextIndex = (imgIndex + 1) % profilImgs.length;
+    setImgIndex(nextIndex);
+    setDisplayImg(profilImgs[nextIndex].url);
   };
 
   const saveProfilImg = (displayImg: string) => {

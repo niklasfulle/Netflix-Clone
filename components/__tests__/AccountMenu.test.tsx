@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import AccountMenu from '../AccountMenu';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 jest.mock('next-auth/react', () => ({
   signOut: jest.fn(),
@@ -157,6 +158,17 @@ describe('AccountMenu', () => {
   });
 
   describe('Non-Admin User Menu', () => {
+    it('renders account actions in the selected language', () => {
+      render(
+        <LanguageProvider initialLocale="de">
+          <AccountMenu visible={true} />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByText('Einstellungen')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Von Netflix abmelden' })).toBeInTheDocument();
+    });
+
     it('should not render admin section for non-admin users', () => {
       render(<AccountMenu visible={true} />);
       expect(screen.queryByText('Admin')).not.toBeInTheDocument();
@@ -239,19 +251,9 @@ describe('AccountMenu', () => {
       expect(mockSignOut).toHaveBeenCalled();
     });
 
-    it('should call signOut on Enter key press', () => {
+    it('should expose sign out as a native button for keyboard activation', () => {
       render(<AccountMenu visible={true} />);
-      const signOutButton = screen.getByText('Sign out of Netflix');
-      fireEvent.keyDown(signOutButton, { key: 'Enter', code: 'Enter' });
-      expect(mockSignOut).toHaveBeenCalled();
-    });
-
-    it('should call signOut on Space key press', () => {
-      mockSignOut.mockClear();
-      render(<AccountMenu visible={true} />);
-      const signOutButton = screen.getByText('Sign out of Netflix');
-      fireEvent.keyDown(signOutButton, { key: ' ', code: 'Space' });
-      expect(mockSignOut).toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Sign out of Netflix' })).toHaveAttribute('type', 'button');
     });
 
     it('should not call signOut on other key press', () => {
@@ -580,7 +582,7 @@ describe('AccountMenu', () => {
 
     it('should display settings before sign out', () => {
       const { container } = render(<AccountMenu visible={true} />);
-      const elements = Array.from(container.querySelectorAll('a, [role="button"]'));
+      const elements = Array.from(container.querySelectorAll('a, button'));
       const settingsIndex = elements.findIndex(el =>
         el.textContent?.includes('Settings')
       );

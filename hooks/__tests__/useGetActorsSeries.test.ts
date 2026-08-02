@@ -18,11 +18,11 @@ describe('useGetActors (series)', () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useGetActors(10));
+    const { result } = renderHook(() => useGetActors(5, 10));
 
     expect(result.current.data).toEqual(mockActors);
     expect(useSWR).toHaveBeenCalledWith(
-      '/api/series/getActors/10',
+      '/api/series/getActors/5_10',
       expect.any(Function),
       expect.any(Object)
     );
@@ -35,7 +35,7 @@ describe('useGetActors (series)', () => {
       isLoading: false,
     });
 
-    renderHook(() => useGetActors(0));
+    renderHook(() => useGetActors(0, 0));
 
     expect(useSWR).toHaveBeenCalledWith(null, expect.any(Function), expect.any(Object));
   });
@@ -49,7 +49,7 @@ describe('useGetActors (series)', () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useGetActors(5));
+    const { result } = renderHook(() => useGetActors(0, 5));
 
     expect(result.current.error).toEqual(mockError);
   });
@@ -61,7 +61,7 @@ describe('useGetActors (series)', () => {
       isLoading: true,
     });
 
-    const { result } = renderHook(() => useGetActors(10));
+    const { result } = renderHook(() => useGetActors(0, 10));
 
     expect(result.current.isLoading).toBe(true);
   });
@@ -73,7 +73,7 @@ describe('useGetActors (series)', () => {
       isLoading: false,
     });
 
-    renderHook(() => useGetActors(10));
+    renderHook(() => useGetActors(0, 10));
 
     const options = (useSWR as jest.Mock).mock.calls[0][2];
     expect(options.revalidateIfStale).toBe(false);

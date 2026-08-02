@@ -43,9 +43,12 @@ export const ThumbnailPreview = ({
             )}
           </div>
           {useImage ? (
-            <img
+            <Image
               src={thumbnailUrl}
               alt={t("Selected Thumbnail")}
+              width={1920}
+              height={1080}
+              unoptimized={thumbnailUrl.startsWith("blob:") || thumbnailUrl.startsWith("data:")}
               className="w-full h-auto rounded border-2 border-green-500"
             />
           ) : (

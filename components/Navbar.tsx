@@ -7,6 +7,7 @@ import AccountMenu from '@/components/AccountMenu';
 import MobileMenu from '@/components/MobileMenu';
 import NavbarItem from '@/components/NavbarItem';
 import SearchItem from '@/components/SearchItem';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 
 const TOP_OFFSET = 66;
@@ -16,6 +17,7 @@ const Navbar = () => {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showBackground, setShowBackground] = useState(false);
   const { data: profil } = useCurrentProfil();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,7 +45,7 @@ const Navbar = () => {
 
   let profilImg = "placeholder.png";
   if (profil != undefined) {
-    profilImg = profil.image;
+    profilImg = profil.image ?? "placeholder.png";
   }
   return (
     <nav className="fixed z-40 w-full bg-black bg-opacity-30">
@@ -69,19 +71,19 @@ const Navbar = () => {
           priority
         />
         <div className="flex-row hidden ml-8 gap-7 lg:flex">
-          <NavbarItem label="Home" href="/" />
-          <NavbarItem label="Movies" href="/movies" />
-          <NavbarItem label="Series" href="/series" />
-          <NavbarItem label="My List" href="/mylist" />
-          <NavbarItem label="Playlists" href="/playlists" />
-          <NavbarItem label="Watchlist" href="/watchlist" />
-          <NavbarItem label="Random" href="/random" />
+          <NavbarItem label={t('Home')} href="/" />
+          <NavbarItem label={t('Movies')} href="/movies" />
+          <NavbarItem label={t('Series')} href="/series" />
+          <NavbarItem label={t('My List')} href="/mylist" />
+          <NavbarItem label={t('Playlists')} href="/playlists" />
+          <NavbarItem label={t('Watchlist')} href="/watchlist" />
+          <NavbarItem label={t('Random')} href="/random" />
         </div>
         <button
           onClick={toggleMobileMenu}
           className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
         >
-          <p className="text-base text-white">Browse</p>
+          <p className="text-base text-white">{t('Browse')}</p>
           <FaChevronDown
             className={`text-white transition mr-4 ${
               showMobileMenu ? "rotate-180" : "rotate-0"
@@ -91,25 +93,31 @@ const Navbar = () => {
         </button>
         <div className="flex flex-row items-center ml-auto gap-7">
           <SearchItem />
-          <button
-            onClick={toggleAccountMenu}
-            className="relative flex flex-row items-center gap-2 cursor-pointer"
-          >
-            <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
-              <Image
-                src={`/images/profil/${profilImg}`}
-                alt="Profile"
-                width={320}
-                height={320}
+          <div className="relative flex flex-row items-center">
+            <button
+              type="button"
+              aria-label={t('Account')}
+              aria-expanded={showAccountMenu}
+              aria-controls="account-menu"
+              onClick={toggleAccountMenu}
+              className="flex flex-row items-center gap-2 cursor-pointer"
+            >
+              <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
+                <Image
+                  src={`/images/profil/${profilImg}`}
+                  alt="Profile"
+                  width={320}
+                  height={320}
+                />
+              </div>
+              <FaChevronDown
+                className={`text-white transition ${
+                  showAccountMenu ? "rotate-180" : "rotate-0"
+                }`}
               />
-            </div>
-            <FaChevronDown
-              className={`text-white transition ${
-                showAccountMenu ? "rotate-180" : "rotate-0"
-              }`}
-            />
+            </button>
             <AccountMenu visible={showAccountMenu} />
-          </button>
+          </div>
         </div>
       </div>
     </nav>

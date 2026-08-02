@@ -20,19 +20,25 @@ export const update = async (values: z.infer<typeof ProfilSchema>) => {
     logBackendAction('profilUpdate_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
-  logBackendAction('profilUpdate_success', { userId: user.id, profilId: validatedField.data.profilId }, 'info');
-
   const { profilId, profilName, profilImg } = validatedField.data
 
-  await db.profil.update({
+  const result = await db.profil.updateMany({
     where: {
-      id: profilId
+      id: profilId,
+      userId: user.id,
     },
     data: {
       name: profilName,
       image: profilImg
     }
   })
+
+  if (result.count === 0) {
+    logBackendAction('profilUpdate_not_found', { userId: user.id, profilId }, 'warn');
+    return { error: "Profile not found!" }
+  }
+
+  logBackendAction('profilUpdate_success', { userId: user.id, profilId }, 'info');
 
   return { success: "Profil updated!" }
 }

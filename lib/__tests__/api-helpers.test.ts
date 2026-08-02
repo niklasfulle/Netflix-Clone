@@ -21,6 +21,7 @@ import {
   getMoviesWithWatchTime,
   getRandomMovie,
   getUserAndProfile,
+  ApiError,
   handleApiError,
   serializeMovie,
   transformMoviesResponse,
@@ -41,9 +42,13 @@ describe('API helpers', () => {
     });
   });
 
-  it('returns 404 responses for missing users and profiles', async () => {
+  it('returns authentication and not-found responses for missing users and profiles', async () => {
     mockedCurrentUser.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'user1' } as any);
-    expect((await getUserAndProfile('route')).error?.status).toBe(404);
+    const missingUser = (await getUserAndProfile('route')).error;
+    expect(missingUser?.status).toBe(401);
+    await expect(missingUser?.json()).resolves.toEqual({
+      error: { code: 'UNAUTHENTICATED', message: 'Authentication required.' },
+    });
     mockedDb.profil.findFirst.mockResolvedValue(null);
     expect((await getUserAndProfile('route')).error?.status).toBe(404);
     expect(logBackendAction).toHaveBeenCalledTimes(2);
@@ -64,14 +69,26 @@ describe('API helpers', () => {
 
   it('transforms media actors and optional watch time', () => {
     const result = transformMoviesResponse([
-      { id: 'movie1', title: 'One', actors: [{ actor: { name: 'A' } }, { actor: { name: 'B' } }] },
+      {
+        id: 'movie1',
+        title: 'One',
+        videoUrl: 'data:video/mp4;base64,heavy-playback-data',
+        thumbnailUrl: 'data:image/jpeg;base64,heavy-thumbnail-data',
+        actors: [{ actor: { name: 'A' } }, { actor: { name: 'B' } }],
+      },
       { id: 'movie2', title: 'Two', actors: [] },
     ], [{ movieId: 'movie1', time: 12 }]);
 
     expect(result).toEqual([
-      expect.objectContaining({ id: 'movie1', actor: 'A, B', watchTime: 12 }),
+      expect.objectContaining({
+        id: 'movie1',
+        actor: 'A, B',
+        thumbnailUrl: '/api/catalog/thumbnails/movie1',
+        watchTime: 12,
+      }),
       expect.objectContaining({ id: 'movie2', actor: '', watchTime: undefined }),
     ]);
+    expect(result[0]).not.toHaveProperty('videoUrl');
   });
 
   it('loads and transforms media by actor', async () => {
@@ -83,6 +100,10 @@ describe('API helpers', () => {
     expect(await getMoviesByActor('Movie', 'Actor', 'user1', 'profile1')).toEqual([
       expect.objectContaining({ id: 'movie1', actor: 'Actor' }),
     ]);
+    expect(mockedDb.movie.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      take: 12,
+      select: expect.not.objectContaining({ videoUrl: true }),
+    }));
   });
 
   it('loads paginated actor names for movies and series', async () => {
@@ -126,10 +147,30 @@ describe('API helpers', () => {
     });
   });
 
-  it('logs contextual errors and serializes dates', async () => {
+  it.each([
+    ['VALIDATION_ERROR', 400],
+    ['UNAUTHENTICATED', 401],
+    ['FORBIDDEN', 403],
+    ['NOT_FOUND', 404],
+    ['CONFLICT', 409],
+  ] as const)('maps %s API errors to status %i', async (code, status) => {
+    const response = handleApiError(new ApiError(code, 'Safe message'), 'route');
+    expect(response.status).toBe(status);
+    await expect(response.json()).resolves.toEqual({ error: { code, message: 'Safe message' } });
+  });
+
+  it('hides internal exception details and serializes dates', async () => {
     const error = new Error('failed');
-    expect((await handleApiError(error, 'route')).status).toBe(200);
-    expect(logBackendAction).toHaveBeenCalledWith('route_error', { error: String(error) }, 'error');
+    const response = handleApiError(error, 'route');
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' },
+    });
+    expect(logBackendAction).toHaveBeenCalledWith(
+      'route_error',
+      { errorName: 'Error', code: 'INTERNAL_ERROR' },
+      'error',
+    );
     expect(serializeMovie({ id: 'movie1', createdAt: new Date('2024-01-01') })).toEqual({
       id: 'movie1', createdAt: '2024-01-01T00:00:00.000Z',
     });

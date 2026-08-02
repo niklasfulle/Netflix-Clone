@@ -3,7 +3,7 @@ jest.mock('@/lib/auth', () => ({ currentUser: jest.fn() }));
 jest.mock('@/lib/db', () => ({
   db: {
     profil: { findFirst: jest.fn() },
-    playlist: { delete: jest.fn() },
+    playlist: { findFirst: jest.fn(), delete: jest.fn() },
   },
 }));
 
@@ -42,6 +42,7 @@ describe('remove playlist action', () => {
   it('deletes the selected playlist', async () => {
     mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
     (db.profil.findFirst as jest.Mock).mockResolvedValue({ id: 'profile1' });
+    (db.playlist.findFirst as jest.Mock).mockResolvedValue({ id: 'playlist1' });
     (db.playlist.delete as jest.Mock).mockResolvedValue({ id: 'playlist1' });
 
     await expect(removePlaylist('playlist1')).resolves.toEqual({ success: 'Playlist removed!' });
@@ -51,5 +52,20 @@ describe('remove playlist action', () => {
       { userId: 'user1', playlistId: 'playlist1' },
       'info',
     );
+  });
+
+  it('does not delete a playlist owned by another profile', async () => {
+    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    (db.profil.findFirst as jest.Mock).mockResolvedValue({ id: 'profile1' });
+    (db.playlist.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(removePlaylist('foreign-playlist')).resolves.toEqual({
+      error: 'Playlist not found!',
+    });
+    expect(db.playlist.findFirst).toHaveBeenCalledWith({
+      where: { id: 'foreign-playlist', userId: 'user1', profilId: 'profile1' },
+      select: { id: true },
+    });
+    expect(db.playlist.delete).not.toHaveBeenCalled();
   });
 });

@@ -15,9 +15,12 @@ const deleteVideoFile = (videoUrl: string, type: string) => {
   const extensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
   
   for (const ext of extensions) {
-    const filePath = path.join(baseFolder, `${videoUrl}${ext}`);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const filePath = path.join(
+      /*turbopackIgnore: true*/ baseFolder,
+      `${videoUrl}${ext}`,
+    );
+    if (fs.existsSync(/* turbopackIgnore: true */ filePath)) {
+      fs.unlinkSync(/* turbopackIgnore: true */ filePath);
       break;
     }
   }

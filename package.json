@@ -1,15 +1,16 @@
 {
   "name": "netflix",
-  "version": "1.9.3",
+  "version": "1.10.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --coverageReporters=lcov"
+    "test:coverage": "jest --coverage --coverageReporters=lcov",
+    "test:e2e": "playwright test"
   },
   "resolutions": {
     "brace-expansion": "file:vendor/brace-expansion-compat",
@@ -71,6 +72,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@playwright/test": "1.54.0",
     "@sonar/scan": "5.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",

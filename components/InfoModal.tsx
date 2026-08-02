@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 
 import FavoriteButton from "@/components/FavoriteButton";
@@ -15,17 +15,19 @@ import EditMovieButton from "./EditMovieButton";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserRole } from "@prisma/client";
 import { useRouter } from "next/navigation";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
+import type { PlaylistDto } from "@/lib/api-types";
 
 interface InfoModalProps {
   visible?: boolean;
-  onClose: any;
-  playlists: any[];
+  onClose: () => void;
+  playlists?: PlaylistDto[];
 }
 
 const InfoModal: React.FC<InfoModalProps> = ({
   visible,
   onClose,
-  playlists,
+  playlists = [],
 }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
   const [isDesktop, setIsDesktop] = useState(true);
@@ -34,6 +36,8 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const { data: views } = useMovieViews(movieId);
   const user = useCurrentUser();
   const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -49,7 +53,9 @@ const InfoModal: React.FC<InfoModalProps> = ({
 
   useEffect(() => {
     checkWindowSize();
-  }, [isDesktop]);
+    globalThis.addEventListener('resize', checkWindowSize);
+    return () => globalThis.removeEventListener('resize', checkWindowSize);
+  }, []);
 
   useEffect(() => {
     setIsVisible(!!visible);
@@ -61,6 +67,8 @@ const InfoModal: React.FC<InfoModalProps> = ({
       onClose();
     }, 300);
   }, [onClose]);
+
+  useDialogFocus(Boolean(visible), dialogRef, handleClose, closeButtonRef);
 
   const linkToSearch = (actor: string) => {
     setIsVisible(false);
@@ -75,10 +83,25 @@ const InfoModal: React.FC<InfoModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 px-1 sm:px-0 sm:mt-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80">
-      <div className="relative w-full max-w-3xl mx-auto overflow-hidden rounded-2xl shadow-2xl border border-zinc-800">
+    <dialog
+      ref={dialogRef}
+      open
+      aria-modal="true"
+      aria-labelledby="info-modal-title"
+      className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none border-0 px-1 sm:px-0 sm:mt-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto transition duration-300 bg-black bg-opacity-80"
+    >
+      <button
+        type="button"
+        aria-label="Close details backdrop"
+        className="absolute inset-0 h-full w-full cursor-default bg-transparent"
+        onMouseDown={handleClose}
+      />
+      <div
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-3xl mx-auto overflow-hidden rounded-2xl shadow-2xl border border-zinc-800 focus:outline-none"
+      >
         <div
-          className={`$${
+          className={`${
             isVisible ? "scale-100" : "scale-0"
           } transform duration-300 relative flex-auto bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 drop-shadow-2xl`}
         >
@@ -93,7 +116,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 src={movie?.id ? `/api/video/billboard/${movie.id}` : undefined}
               ></video>
             )}
-            {!isDesktop && (
+            {!isDesktop && movie?.thumbnailUrl && (
               <Image
                 className="w-full brightness-[60%] object-cover h-[60%] md:h-[75%] rounded-t-2xl"
                 src={movie?.thumbnailUrl}
@@ -103,13 +126,16 @@ const InfoModal: React.FC<InfoModalProps> = ({
               />
             )}
             <button
+              ref={closeButtonRef}
+              type="button"
               onClick={handleClose}
-              className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70 border border-zinc-700 hover:bg-zinc-800 transition"
+              aria-label="Close details"
+              className="absolute flex items-center justify-center w-10 h-10 bg-black rounded-full cursor-pointer top-3 right-3 bg-opacity-70 border border-zinc-700 hover:bg-zinc-800 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500"
             >
               <AiOutlineClose className="text-white" size={20} />
             </button>
             <div className="absolute bottom-[24%] md:bottom-[10%] left-10">
-              <p className="h-full mb-8 text-4xl font-extrabold text-white md:text-5xl drop-shadow-lg">
+              <p id="info-modal-title" className="h-full mb-8 text-4xl font-extrabold text-white md:text-5xl drop-shadow-lg">
                 {movie?.title}
               </p>
               <div className="flex flex-row gap-4 items-center mt-2">
@@ -118,7 +144,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
                     <PlayButton movieId={movie?.id} />
                     <RestartButton movieId={movie?.id} />
                     <FavoriteButton movieId={movie?.id} />
-                    {user.role == UserRole.ADMIN && (
+                    {user?.role === UserRole.ADMIN && (
                       <EditMovieButton movieId={movie?.id} />
                     )}
                   </>
@@ -142,20 +168,27 @@ const InfoModal: React.FC<InfoModalProps> = ({
               <span className="text-base text-zinc-400">{movie?.genre}</span>
               {Array.isArray(movie?.actors) && movie.actors.length > 0 && (
                 <>
-                  {movie.actors.map((actor: any, idx: number) => {  
+                  {movie.actors.map((actor: unknown) => {
                     let actorName = '';
                     let key = '';
                     if (typeof actor === 'string') {
                       actorName = actor;
                       key = actor;
-                    } else if (actor?.name && actor?.id) {
-                      actorName = actor.name;
-                      key = actor.id;
-                    } else if (actor?.actor?.name && actor?.actor?.id) {
-                      actorName = actor.actor.name;
-                      key = actor.actor.id;
                     } else {
-                      return null;
+                      const actorRecord = actor as {
+                        id?: string;
+                        name?: string;
+                        actor?: { id?: string; name?: string };
+                      };
+                      if (actorRecord?.name && actorRecord.id) {
+                        actorName = actorRecord.name;
+                        key = actorRecord.id;
+                      } else if (actorRecord?.actor?.name && actorRecord.actor.id) {
+                        actorName = actorRecord.actor.name;
+                        key = actorRecord.actor.id;
+                      } else {
+                        return null;
+                      }
                     }
                     const handleKeyDown = (e: React.KeyboardEvent<HTMLAnchorElement>) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -191,7 +224,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 export default InfoModal;

@@ -24,7 +24,7 @@ jest.mock('@/lib/db', () => ({
     movie: { count: jest.fn(), findMany: jest.fn(), findUnique: jest.fn() },
     movieView: { count: jest.fn(), findMany: jest.fn(), groupBy: jest.fn() },
     movieWatchTime: { findMany: jest.fn() },
-    playlist: { findMany: jest.fn(), findUnique: jest.fn() },
+    playlist: { findFirst: jest.fn(), findMany: jest.fn(), findUnique: jest.fn() },
     playlistEntry: { findMany: jest.fn() },
     profil: { count: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
     profilImg: { findMany: jest.fn() },
@@ -254,12 +254,12 @@ describe('API route coverage', () => {
 
   it('returns watchlist movies for the active profile', async () => {
     mockedCurrentUser.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'user1' } as any);
-    expect((await getWatchlist(undefined as any)).status).toBe(401);
+    expect((await getWatchlist()).status).toBe(401);
 
     mockedDb.profil.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'profile1' });
-    expect(await json(await getWatchlist(undefined as any))).toEqual([]);
+    expect(await json(await getWatchlist())).toEqual([]);
     mockedDb.watchlist.findMany.mockResolvedValue([{ movie: { id: 'movie1' } }]);
-    expect(await json(await getWatchlist(undefined as any))).toEqual([{ id: 'movie1' }]);
+    expect(await json(await getWatchlist())).toEqual([{ id: 'movie1' }]);
   });
 
   it('returns actor statistics to admins', async () => {
@@ -277,28 +277,35 @@ describe('API route coverage', () => {
   });
 
   it('returns newly added movies and series with actors and watch time', async () => {
-    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
-    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
-    mockedDb.movie.findMany.mockResolvedValue([{
-      id: 'movie1', title: 'Title', actors: [{ actor: { id: 'actor1', name: 'Actor' } }],
-    }]);
-    mockedDb.movieWatchTime.findMany.mockResolvedValue([{ movieId: 'movie1', time: 30 }]);
+    mockedHelpers.getUserAndProfile.mockResolvedValue({
+      user: { id: 'user1' }, profil: { id: 'profile1' }, error: null,
+    } as any);
+    mockedHelpers.getMoviesWithWatchTime.mockResolvedValue({
+      movies: [{
+        id: 'movie1', title: 'Title', actors: [{ actor: { id: 'actor1', name: 'Actor' } }],
+      }],
+      watchTime: [{ movieId: 'movie1', time: 30 }],
+    } as any);
+    mockedHelpers.transformMoviesResponse.mockReturnValue([{
+      id: 'movie1', title: 'Title', actors: ['Actor'], watchTime: 30,
+    }] as any);
 
     expect(await json(await getNewMovies())).toEqual([
       expect.objectContaining({ id: 'movie1', actors: ['Actor'], watchTime: 30 }),
     ]);
     expect(await json(await getNewMedia())).toEqual([
-      expect.objectContaining({ id: 'movie1', actors: [{ id: 'actor1', name: 'Actor' }], watchTime: 30 }),
+      expect.objectContaining({ id: 'movie1', actors: ['Actor'], watchTime: 30 }),
     ]);
     expect(await json(await getNewSeries())).toEqual([
       expect.objectContaining({ id: 'movie1', actors: ['Actor'], watchTime: 30 }),
     ]);
   });
 
-  it('returns null from new-media routes without authentication or a profile', async () => {
-    mockedCurrentUser.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'user1' } as any);
+  it('returns the authentication or profile error from new-media routes', async () => {
+    mockedHelpers.getUserAndProfile.mockResolvedValue({
+      error: new Response(null, { status: 404 }),
+    } as any);
     expect((await getNewMovies()).status).toBe(404);
-    mockedDb.profil.findFirst.mockResolvedValue(null);
     expect((await getNewMedia()).status).toBe(404);
     expect((await getNewSeries()).status).toBe(404);
   });
@@ -310,7 +317,7 @@ describe('API route coverage', () => {
     mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1' }]);
     mockedDb.movieView.groupBy.mockResolvedValue([{ movieId: 'movie1', _count: { movieId: 9 } }]);
 
-    expect(await json(await getAllMovies(new Request('http://localhost/api/movies/all')))).toEqual({
+    expect(await json(await getAllMovies())).toEqual({
       movies: [{ id: 'movie1', views: 9 }], total: 1,
     });
     expect(await json(await getAllSeries())).toEqual([{ id: 'movie1', views: 9 }]);
@@ -375,6 +382,12 @@ describe('API route coverage', () => {
     expect(await json(await getPlaylists())).toEqual([
       expect.objectContaining({ id: 'playlist1', movies: [{ id: 'movie1' }] }),
     ]);
+
+    mockedHelpers.getUserAndProfile.mockResolvedValue({
+      user: { id: 'user1' }, profil: { id: 'profile1' }, error: null,
+    } as any);
+    mockedDb.playlist.findFirst.mockResolvedValue({ id: 'playlist1' });
+    mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1' }]);
     expect(await json(await getPlaylist(undefined as any, {
       params: Promise.resolve({ playlistId: 'playlist1' }),
     }))).toEqual(expect.objectContaining({ id: 'playlist1', movies: [{ id: 'movie1' }] }));

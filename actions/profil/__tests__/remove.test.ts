@@ -5,7 +5,7 @@ jest.mock('@/lib/auth', () => ({
 jest.mock('@/lib/db', () => ({
   db: {
     profil: {
-      delete: jest.fn(),
+      deleteMany: jest.fn(),
     },
   },
 }));
@@ -30,18 +30,17 @@ describe('remove profil action - Authentifizierung & Validierung', () => {
     const result = await remove({ profilId: 'profil1' });
 
     expect(result).toEqual({ error: 'Unauthorized!' });
-    expect(db.profil.delete).not.toHaveBeenCalled();
+    expect(db.profil.deleteMany).not.toHaveBeenCalled();
   });
 
   it('❌ sollte Fehler zurückgeben wenn profilId ungültig ist', async () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
     mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
 
-    // Empty string wird AKZEPTIERT (Zod min(1) schlägt fehl, aber Test zeigt dass es funktioniert)
     const result = await remove({ profilId: '' });
 
-    expect(result.success).toBeDefined();
-    expect(db.profil.delete).toHaveBeenCalled();
+    expect(result).toEqual({ error: 'Invalid fields!' });
+    expect(db.profil.deleteMany).not.toHaveBeenCalled();
   });
 
   it('❌ sollte Fehler zurückgeben wenn profilId null ist', async () => {
@@ -51,23 +50,34 @@ describe('remove profil action - Authentifizierung & Validierung', () => {
     const result = await remove({ profilId: null as any });
 
     expect(result).toEqual({ error: 'Invalid fields!' });
-    expect(db.profil.delete).not.toHaveBeenCalled();
+    expect(db.profil.deleteMany).not.toHaveBeenCalled();
   });
 
-  it('✅ sollte erfolgreich Profil löschen', async () => {
+  it('❌ löscht kein Profil eines anderen Benutzers', async () => {
+    const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
+    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    (db.profil.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+    const result = await remove({ profilId: 'foreign-profile' });
+
+    expect(result).toEqual({ error: 'Profile not found!' });
+    expect(db.profil.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'foreign-profile', userId: 'user1' },
+    });
+  });
+
+  it('✅ sollte erfolgreich das eigene Profil löschen', async () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
     mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
 
-    (db.profil.delete as jest.Mock).mockResolvedValue({
-      id: 'profil1',
-    });
+    (db.profil.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
 
     const result = await remove({ profilId: 'profil1' });
 
     expect(result).toEqual({ success: 'Profil removed!' });
-    expect(db.profil.delete).toHaveBeenCalledWith(
+    expect(db.profil.deleteMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'profil1' },
+        where: { id: 'profil1', userId: 'user1' },
       })
     );
   });

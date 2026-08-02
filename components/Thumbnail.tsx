@@ -1,9 +1,10 @@
 import Image from 'next/image';
 
 import useInfoModal from '@/hooks/useInfoModal';
+import type { CatalogCardDto } from '@/lib/catalog';
 
 interface ThumbnailProps {
-  data: Record<string, any>;
+  data: CatalogCardDto;
   isLoading: boolean;
 }
 
@@ -24,12 +25,14 @@ function calculateBarWidth(duration: string, watchTime: number): number {
 const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
   const { openModal } = useInfoModal();
   const barWidth: string =
-    calculateBarWidth(data?.duration, data?.watchTime) + "%";
+    calculateBarWidth(data.duration ?? "0", data.watchTime ?? 0) + "%";
 
   return (
     <button
+      type="button"
       className="relative h-28 min-w-[180px] cursor-pointer transition duration-200 ease-out md:h-36 md:min-w-[260px] md:hover:scale-105"
-      onClick={() => openModal(data?.id)}
+      onClick={() => data.id && openModal(data.id)}
+      aria-label={`Show details for ${data.title ?? 'content'}`}
     >
       <div className="relative">
         {isLoading && (
@@ -48,8 +51,8 @@ const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
         {!isLoading && (
           <Image
             className="w-full transition shadow-xl cursor-pointer object-cover duration max-w-64 aspect-video rounded-t-md"
-            src={data.thumbnailUrl}
-            alt="Thumbnail"
+            src={data.thumbnailUrl ?? '/images/Logo2.png'}
+            alt={`${data.title ?? 'Content'} thumbnail`}
             width={500}
             height={500}
           />

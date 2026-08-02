@@ -8,6 +8,7 @@ import { useEffect } from "react";
 
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import getUser from "@/hooks/useUser";
 
@@ -24,6 +25,7 @@ const SettingsSkeleton = () => (
 );
 
 export default function SettingsPage() {
+  const { t } = useLanguage();
   const user = getUser();
   const {
     data: profile,
@@ -57,20 +59,19 @@ export default function SettingsPage() {
             className="mb-7 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Back to Netflix
+            {t("Back to Netflix")}
           </Link>
 
           <header className="mb-10 max-w-3xl">
             <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-red-400">
               <Settings2 className="h-4 w-4" aria-hidden="true" />
-              Account settings
+              {t("Account settings")}
             </div>
             <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl">
-              Your account, your preferences.
+              {t("Your account, your preferences.")}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg">
-              Manage your personal information, sign-in security, and language
-              in one place.
+              {t("Manage your personal information, sign-in security, and language in one place.")}
             </p>
           </header>
 
@@ -88,7 +89,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold">
-                        {account.name || "Netflix member"}
+                        {account.name || t("Netflix member")}
                       </p>
                       <p className="truncate text-xs text-zinc-500">
                         {account.email}
@@ -96,27 +97,27 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <nav className="mt-4 space-y-1" aria-label="Settings sections">
+                  <nav className="mt-4 space-y-1" aria-label={t("Settings sections")}>
                     <a
                       href="#account"
                       className="flex min-h-11 items-center gap-3 rounded-xl bg-white/[0.07] px-3 text-sm font-medium text-white"
                     >
                       <UserRound className="h-4 w-4 text-red-400" aria-hidden="true" />
-                      Account
+                      {t("Account")}
                     </a>
                     <a
                       href="#security"
                       className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.05] hover:text-white"
                     >
                       <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                      Security
+                      {t("Security")}
                     </a>
                     <a
                       href="#preferences"
                       className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.05] hover:text-white"
                     >
                       <Settings2 className="h-4 w-4" aria-hidden="true" />
-                      Preferences
+                      {t("Preferences")}
                     </a>
                   </nav>
                 </div>
@@ -128,10 +129,10 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-emerald-100">
-                        Account active
+                        {t("Account active")}
                       </p>
                       <p className="mt-1 text-xs leading-5 text-emerald-200/60">
-                        Signed in with profile {profile.profilName || "Netflix"}.
+                        {t("Signed in with profile")} {profile.profilName || "Netflix"}.
                       </p>
                     </div>
                   </div>

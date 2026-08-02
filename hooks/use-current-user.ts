@@ -2,6 +2,6 @@ import getUser from './useUser';
 
 export const useCurrentUser = () => {
 "use client";
-  return getUser().data?.user
+  return getUser().data?.user;
 }
 

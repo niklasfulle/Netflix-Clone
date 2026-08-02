@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
+import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 
-async function fetchWatchlist() {
+async function fetchWatchlist(): Promise<CatalogItemDto[]> {
   const res = await fetch('/api/watchlist');
   if (!res.ok) throw new Error('Fehler beim Laden');
-  return res.json();
+  return res.json() as Promise<CatalogItemDto[]>;
 }
 
 export function useWatchlist() {
-  const [watchlist, setWatchlist] = useState<any[]>([]);
+  const [watchlist, setWatchlist] = useState<CatalogItemDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +19,7 @@ export function useWatchlist() {
         setWatchlist(data);
         setError(null);
       })
-      .catch(err => {
+      .catch(() => {
         setError('Error while loading the watchlist');
         setWatchlist([]);
       })

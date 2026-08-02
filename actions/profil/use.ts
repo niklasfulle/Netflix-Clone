@@ -5,11 +5,12 @@ import * as z from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { ProfilIdSchema } from '@/schemas';
+import { findOwnedProfile } from '@/lib/ownership';
 
 export const use = async (values: z.infer<typeof ProfilIdSchema>) => {
   const user = await currentUser()
 
-  if (!user) {
+  if (!user?.id) {
     logBackendAction('profilUse_unauthorized', {}, 'error');
     return { error: "Unauthorized!" }
   }
@@ -20,28 +21,27 @@ export const use = async (values: z.infer<typeof ProfilIdSchema>) => {
     logBackendAction('profilUse_invalid_fields', { userId: user.id, values }, 'error');
     return { error: "Invalid fields!" }
   }
-  logBackendAction('profilUse_success', { userId: user.id, profilId: validatedField.data.profilId }, 'info');
-
   const { profilId } = validatedField.data
 
-  await db.profil.updateMany({
-    where: {
-      userId: user.id
-    },
-    data: {
-      inUse: false
-    }
-  })
+  const ownedProfile = await findOwnedProfile(profilId, user.id);
 
-  await db.profil.update({
-    where: {
-      userId: user.id,
-      id: profilId
-    },
-    data: {
-      inUse: true
-    }
-  })
+  if (!ownedProfile) {
+    logBackendAction('profilUse_not_found', { userId: user.id, profilId }, 'warn');
+    return { error: "Profile not found!" }
+  }
+
+  await db.$transaction(async (transaction) => {
+    await transaction.profil.updateMany({
+      where: { userId: user.id },
+      data: { inUse: false },
+    });
+    await transaction.profil.update({
+      where: { id: ownedProfile.id },
+      data: { inUse: true },
+    });
+  });
+
+  logBackendAction('profilUse_success', { userId: user.id, profilId }, 'info');
 
   return { success: "Profil use!" }
 }

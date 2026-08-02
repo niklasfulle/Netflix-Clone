@@ -11,7 +11,7 @@ interface FavoriteButtonProps {
 }
 
 const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
-  const { mutate: mutateFavorites } = useFavorites(movieId);
+  const { mutate: mutateFavorites } = useFavorites();
   const { data: currentProfil, mutate } = useCurrentProfil();
 
   const isFavorite = useMemo(() => {
@@ -22,8 +22,9 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
 
   const toggleFavorites = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!currentProfil) return;
     
-    const currentFavoriteIds = currentProfil?.favoriteIds || [];
+    const currentFavoriteIds = currentProfil.favoriteIds || [];
     let updatedFavoriteIds;
 
     if (isFavorite) {

@@ -3,7 +3,7 @@
 Eine selbst gehostete Streaming-Anwendung für Filme und Serien mit Benutzerprofilen,
 Wiedergabefortschritt und einem umfangreichen Administrationsbereich.
 
-Aktuelle Version: **1.9.3**
+Aktuelle Version: **1.10.0**
 
 ## Funktionsumfang
 
@@ -250,8 +250,8 @@ das finale Image.
 
 ```powershell
 docker build -t netflix-clone .
-docker tag netflix-clone salkin263/netflix-clone:1.9.3
-docker push salkin263/netflix-clone:1.9.3
+docker tag netflix-clone salkin263/netflix-clone:1.10.0
+docker push salkin263/netflix-clone:1.10.0
 ```
 
 Alternativ übernimmt `docker-build.ps1` Version, Tag und Push automatisch aus
@@ -276,7 +276,7 @@ Sie erwartet die externe Env-Datei und folgende Host-Verzeichnisse:
 Start mit einem konkreten Image-Tag:
 
 ```bash
-APP_VERSION=1.9.3 docker compose up -d
+APP_VERSION=1.10.0 docker compose up -d
 ```
 
 Beim Containerstart führt das Image `prisma db push` aus und startet anschließend

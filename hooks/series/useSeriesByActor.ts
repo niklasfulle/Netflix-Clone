@@ -1,17 +1,5 @@
-import useSWR from 'swr';
+import { LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
+import type { CatalogCardDto } from '@/lib/catalog';
 
-import fetcher from '@/lib/fetcher';
-
-const useSeriesByActor = (actor: string) => {
-  const { data, error, isLoading } = useSWR(actor ? `/api/series/seriesByActor/${encodeURIComponent(actor)}` : null, fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+const useSeriesByActor = (actor: string) => useCatalogQuery<CatalogCardDto[]>('series', { kind: 'actor', actor }, LIVE_CATALOG_OPTIONS);
 export default useSeriesByActor;

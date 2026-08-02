@@ -10,6 +10,14 @@ export const publicRoutes = [
   "/health",
 ]
 
+const publicRoutePrefixes = [
+  "/api/catalog/thumbnails/",
+]
+
+export const isPublicRoute = (pathname: string) =>
+  publicRoutes.includes(pathname) ||
+  publicRoutePrefixes.some((prefix) => pathname.startsWith(prefix))
+
 /**
  * An array of routes that are used for authentication
  * These routes will redirect logged in user to /settings

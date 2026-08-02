@@ -8,14 +8,14 @@ export const newVerification = async (token: string) => {
   const existingToken = await getVerificationTokenByToken(token)
 
   if (!existingToken) {
-    logBackendAction('newVerification_token_not_exist', { token }, 'error');
+    logBackendAction('newVerification_token_not_exist', {}, 'error');
     return { error: "Token does not exist!" }
   }
 
   const hasExpired = new Date(existingToken.expires) < new Date()
 
   if (hasExpired) {
-    logBackendAction('newVerification_token_expired', { token }, 'error');
+    logBackendAction('newVerification_token_expired', {}, 'error');
     return { error: "Token has expired!" }
   }
 
@@ -25,8 +25,6 @@ export const newVerification = async (token: string) => {
     logBackendAction('newVerification_email_not_exist', { email: existingToken.email }, 'error');
     return { error: "Email dows not exist!" }
   }
-  logBackendAction('newVerification_success', { email: existingToken.email }, 'info');
-
   await db.user.update({
     where: {
       id: existingUser.id
@@ -40,6 +38,8 @@ export const newVerification = async (token: string) => {
   await db.verificationToken.delete({
     where: { id: existingToken.id }
   })
+
+  logBackendAction('newVerification_success', { email: existingToken.email }, 'info');
 
   return { succes: "Email verified!" }
 }

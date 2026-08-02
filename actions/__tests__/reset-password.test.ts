@@ -115,7 +115,7 @@ describe('reset action - Password Reset Request', () => {
       await reset({ email: 'invalid-email' });
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'resetPassword_invalid_email',
-        { values: { email: 'invalid-email' } },
+        { invalidFields: [] },
         'error'
       );
     });
@@ -171,7 +171,7 @@ describe('reset action - Password Reset Request', () => {
       mockGetUserByEmail.mockResolvedValue(null);
 
       const result = await reset(validEmail);
-      expect(result).toEqual({ error: 'Email does not exist!' });
+      expect(result).toEqual({ success: 'Reset email sent!' });
     });
 
     it('❌ should log error when user not found', async () => {
@@ -179,9 +179,9 @@ describe('reset action - Password Reset Request', () => {
 
       await reset(validEmail);
       expect(mockLogBackendAction).toHaveBeenCalledWith(
-        'resetPassword_email_not_exist',
+        'resetPassword_request_accepted',
         { email: 'test@example.com' },
-        'error'
+        'info'
       );
     });
 
@@ -269,7 +269,7 @@ describe('reset action - Password Reset Request', () => {
 
       expect(mockLogBackendAction).toHaveBeenCalledWith(
         'resetPassword_invalid_email',
-        { values: { email: 'test@invalid.com' } },
+        { invalidFields: [] },
         'error'
       );
     });
@@ -280,9 +280,9 @@ describe('reset action - Password Reset Request', () => {
       await reset(validEmail);
 
       expect(mockLogBackendAction).toHaveBeenCalledWith(
-        'resetPassword_email_not_exist',
+        'resetPassword_request_accepted',
         { email: 'test@example.com' },
-        'error'
+        'info'
       );
     });
 
@@ -307,13 +307,13 @@ describe('reset action - Password Reset Request', () => {
       expect(call[2]).toBe('error');
     });
 
-    it('✅ should use error level for user not found', async () => {
+    it('✅ should use info level for an accepted unknown-user request', async () => {
       mockGetUserByEmail.mockResolvedValue(null);
 
       await reset(validEmail);
 
       const call = (mockLogBackendAction as jest.Mock).mock.calls[0];
-      expect(call[2]).toBe('error');
+      expect(call[2]).toBe('info');
     });
 
     it('✅ should use info level for success', async () => {
@@ -339,7 +339,7 @@ describe('reset action - Password Reset Request', () => {
       mockGetUserByEmail.mockResolvedValue(null);
 
       const result = await reset(validEmail);
-      expect(result).toEqual({ error: 'Email does not exist!' });
+      expect(result).toEqual({ success: 'Reset email sent!' });
     });
 
     it('✅ should return success object', async () => {
@@ -361,11 +361,11 @@ describe('reset action - Password Reset Request', () => {
       expect(result).not.toHaveProperty('success');
     });
 
-    it('❌ should not return success on user not found', async () => {
+    it('✅ should return the same success for an unknown user', async () => {
       mockGetUserByEmail.mockResolvedValue(null);
 
       const result = await reset(validEmail);
-      expect(result).not.toHaveProperty('success');
+      expect(result).toEqual({ success: 'Reset email sent!' });
     });
   });
 
@@ -510,8 +510,7 @@ describe('reset action - Password Reset Request', () => {
 
       const result = await reset(validEmail);
 
-      expect(result).toEqual({ error: 'Email does not exist!' });
-      expect(result).not.toHaveProperty('success');
+      expect(result).toEqual({ success: 'Reset email sent!' });
     });
 
     it('✅ should continue to token generation if user exists', async () => {

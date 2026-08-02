@@ -1,18 +1,4 @@
-import useSWR from 'swr';
+import { STATIC_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
 
-import fetcher from '@/lib/fetcher';
-
-const useGetActorsCount = () => {
-  const { data, error, isLoading } = useSWR('/api/movies/getActorsCount', fetcher, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-  });
-
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+const useGetActorsCount = () => useCatalogQuery<number>('movies', { kind: 'actorCount' }, STATIC_CATALOG_OPTIONS);
 export default useGetActorsCount;

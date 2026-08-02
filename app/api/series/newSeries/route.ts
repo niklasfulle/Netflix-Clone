@@ -1,64 +1,26 @@
-import { currentUser } from '@/lib/auth';
-import { db } from '@/lib/db';
+import {
+  getMoviesWithWatchTime,
+  getUserAndProfile,
+  handleApiError,
+  transformMoviesResponse,
+} from '@/lib/api-helpers';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   try {
-    const user = await currentUser()
+    const { user, profil, error } = await getUserAndProfile('api_series_newSeries');
+    if (error) return error;
 
-    if (!user) {
-      return Response.json(null, { status: 404 })
-    }
+    const { movies, watchTime } = await getMoviesWithWatchTime(
+      'Serie',
+      user.id,
+      profil.id,
+      { take: 4, orderBy: { createdAt: 'desc' }, reverse: false },
+    );
 
-    const profil = await db.profil.findFirst({
-      where: {
-        userId: user.id,
-        inUse: true
-      }
-    })
-
-    if (!profil) {
-      return Response.json(null, { status: 404 })
-    }
-
-    const series = await db.movie.findMany({
-      where: {
-        type: "Serie"
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 4,
-      include: {
-        actors: {
-          include: {
-            actor: true,
-          },
-        },
-      },
-    })
-
-    const watchTime = await db.movieWatchTime.findMany({
-      where: {
-        userId: user.id,
-        profilId: profil.id,
-      }
-    })
-
-    // Baue ein neues Array mit actors: string[]
-    const responseSeries = series.map((serie) => {
-      const actorNames = serie.actors?.map((a: any) => a.actor.name) || [];
-      const time = watchTime.find((t) => t.movieId === serie.id);
-      return {
-        ...serie,
-        actors: actorNames,
-        ...(time ? { watchTime: time.time } : {}),
-      };
-    });
-    return Response.json(responseSeries, { status: 200 })
+    return Response.json(transformMoviesResponse(movies, watchTime));
   } catch (error) {
-    console.log(error)
-    return Response.json(null, { status: 200 })
+    return handleApiError(error, 'api_series_newSeries');
   }
 }

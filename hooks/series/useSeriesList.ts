@@ -1,17 +1,4 @@
-import useSWR from 'swr';
+import { LIVE_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
 
-import fetcher from '@/lib/fetcher';
-
-const useSeriesList = () => {
-  const { data, error, isLoading } = useSWR('/api/series', fetcher, {
-    revalidateIfStale: true,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
-  });
-  return {
-    data,
-    error,
-    isLoading
-  }
-};
+const useSeriesList = () => useCatalogQuery('series', { kind: 'list' }, LIVE_CATALOG_OPTIONS);
 export default useSeriesList;

@@ -40,6 +40,19 @@ it("opens the create dialog", () => {
   expect(screen.getByRole("dialog", { name: "Darsteller hinzufügen" })).toBeInTheDocument();
 });
 
+it("restores focus after closing the create dialog with Escape", () => {
+  render(<AdminActorsPage />);
+  const trigger = screen.getByRole("button", { name: /Darsteller hinzufügen/i });
+  trigger.focus();
+  fireEvent.click(trigger);
+
+  expect(screen.getByRole("dialog", { name: "Darsteller hinzufügen" })).toBeInTheDocument();
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(screen.queryByRole("dialog", { name: "Darsteller hinzufügen" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
 it("closes actor details from the button and backdrop", () => {
   render(<AdminActorsPage />);
   fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
@@ -49,6 +62,19 @@ it("closes actor details from the button and backdrop", () => {
   fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
   fireEvent.click(screen.getByRole("button", { name: "Hintergrund schließen" }));
   expect(screen.queryByRole("dialog", { name: /Details zu Ada Actor/i })).not.toBeInTheDocument();
+});
+
+it("closes actor details with Escape and restores focus", () => {
+  render(<AdminActorsPage />);
+  const trigger = screen.getByRole("button", { name: /Ada Actor anzeigen/i });
+  trigger.focus();
+  fireEvent.click(trigger);
+
+  expect(screen.getByRole("dialog", { name: /Details zu Ada Actor/i })).toBeInTheDocument();
+  fireEvent.keyDown(document, { key: "Escape" });
+
+  expect(screen.queryByRole("dialog", { name: /Details zu Ada Actor/i })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
 });
 
 it("shows assigned content in actor details", () => {
@@ -183,6 +209,8 @@ it("reports a failed actor deletion", async () => {
 it("updates actor search and sorting parameters", () => {
   jest.useFakeTimers();
   render(<AdminActorsPage />);
+  expect(screen.getByRole("combobox", { name: "Darsteller sortieren" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Sortierreihenfolge" })).toBeInTheDocument();
   fireEvent.change(screen.getByPlaceholderText(/Darsteller suchen/i), { target: { value: "  Ada  " } });
   fireEvent.change(screen.getByDisplayValue("Nach Name"), { target: { value: "views" } });
   fireEvent.change(screen.getByDisplayValue("Aufsteigend"), { target: { value: "desc" } });

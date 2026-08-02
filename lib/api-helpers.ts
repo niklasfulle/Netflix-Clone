@@ -1,22 +1,79 @@
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logBackendAction } from '@/lib/logger';
+import { Movie, MovieWatchTime, Prisma, Profil } from '@prisma/client';
+import {
+  CATALOG_ACTOR_ROW_LIMIT,
+  catalogThumbnailUrl,
+  type CatalogCardDto,
+} from '@/lib/catalog';
+
+export type ApiErrorCode =
+  | 'VALIDATION_ERROR'
+  | 'UNAUTHENTICATED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'INTERNAL_ERROR';
+
+const API_ERROR_STATUS: Record<ApiErrorCode, number> = {
+  VALIDATION_ERROR: 400,
+  UNAUTHENTICATED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  INTERNAL_ERROR: 500,
+};
+
+export class ApiError extends Error {
+  constructor(public readonly code: ApiErrorCode, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function apiErrorResponse(code: ApiErrorCode, message: string): Response {
+  return Response.json({ error: { code, message } }, { status: API_ERROR_STATUS[code] });
+}
+
+type TransformableMovie = Pick<Movie, 'id' | 'title'> &
+  Partial<Omit<Movie, 'id' | 'title'>> & {
+    actors: Array<{ actor: { name: string } }>;
+  };
+type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof currentUser>>> & { id: string };
+
+export const CATALOG_CARD_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  type: true,
+  genre: true,
+  duration: true,
+  createdAt: true,
+  actors: {
+    select: {
+      actor: {
+        select: { name: true },
+      },
+    },
+  },
+} satisfies Prisma.MovieSelect;
 
 /**
  * Get current authenticated user and their active profile
  * @returns Object with user and profile, or error response
  */
 export async function getUserAndProfile(logContext?: string): Promise<
-  | { user: any; profil: any; error?: never }
+  | { user: AuthenticatedUser; profil: Profil; error?: never }
   | { user?: never; profil?: never; error: Response }
 > {
   const user = await currentUser();
 
-  if (!user) {
+  if (!user?.id) {
     if (logContext) {
       logBackendAction(`${logContext}_no_user`, {}, 'error');
     }
-    return { error: Response.json(null, { status: 404 }) };
+    return { error: apiErrorResponse('UNAUTHENTICATED', 'Authentication required.') };
   }
 
   const profil = await db.profil.findFirst({
@@ -30,10 +87,10 @@ export async function getUserAndProfile(logContext?: string): Promise<
     if (logContext) {
       logBackendAction(`${logContext}_no_profil`, { userId: user.id }, 'error');
     }
-    return { error: Response.json(null, { status: 404 }) };
+    return { error: apiErrorResponse('NOT_FOUND', 'Active profile not found.') };
   }
 
-  return { user, profil };
+  return { user: user as AuthenticatedUser, profil };
 }
 
 /**
@@ -49,8 +106,8 @@ export async function getMoviesWithWatchTime(
   profilId: string,
   options: {
     take?: number;
-    orderBy?: any;
-    where?: any;
+    orderBy?: Prisma.MovieOrderByWithRelationInput | Prisma.MovieOrderByWithRelationInput[];
+    where?: Prisma.MovieWhereInput;
     reverse?: boolean;
   } = {}
 ) {
@@ -63,13 +120,7 @@ export async function getMoviesWithWatchTime(
     },
     take,
     orderBy,
-    include: {
-      actors: {
-        include: {
-          actor: true,
-        },
-      },
-    },
+    select: CATALOG_CARD_SELECT,
   });
 
   if (reverse) {
@@ -80,6 +131,7 @@ export async function getMoviesWithWatchTime(
     where: {
       userId,
       profilId,
+      movieId: { in: movies.map((movie) => movie.id) },
     },
   });
 
@@ -90,18 +142,17 @@ export async function getMoviesWithWatchTime(
  * Transform movies array to response format with actor names and watch time
  */
 export function transformMoviesResponse(
-  movies: any[],
-  watchTime: any[]
-) {
+  movies: TransformableMovie[],
+  watchTime: Pick<MovieWatchTime, 'movieId' | 'time'>[]
+): CatalogCardDto[] {
   return movies.map((movie) => {
-    const actorNames = movie.actors.map((ma: any) => ma.actor.name).join(', ');
+    const actorNames = movie.actors.map((movieActor) => movieActor.actor.name).join(', ');
     const timeObj = watchTime.find((t) => t.movieId === movie.id);
     return {
       id: movie.id,
       title: movie.title,
       description: movie.description,
-      videoUrl: movie.videoUrl,
-      thumbnailUrl: movie.thumbnailUrl,
+      thumbnailUrl: catalogThumbnailUrl(movie.id),
       type: movie.type,
       genre: movie.genre,
       actor: actorNames,
@@ -126,6 +177,7 @@ export async function getMoviesByActor(
     userId,
     profilId,
     {
+      take: CATALOG_ACTOR_ROW_LIMIT,
       where: {
         actors: {
           some: {
@@ -198,9 +250,9 @@ export async function getActorNamesForType(type: 'Movie' | 'Serie') {
 
   const actors = new Set<string>();
   movies.forEach((movie) => {
-    movie.actors.forEach((ma: any) => {
-      if (ma.actor?.name) {
-        actors.add(ma.actor.name);
+    movie.actors.forEach((movieActor) => {
+      if (movieActor.actor?.name) {
+        actors.add(movieActor.actor.name);
       }
     });
   });
@@ -242,19 +294,26 @@ export async function getRandomMovie(type: 'Movie' | 'Serie') {
  * Handle API errors with logging and response
  */
 export function handleApiError(error: unknown, logContext?: string) {
+  const apiError = error instanceof ApiError
+    ? error
+    : new ApiError('INTERNAL_ERROR', 'An unexpected error occurred.');
   if (logContext) {
-    logBackendAction(`${logContext}_error`, { error: String(error) }, 'error');
+    logBackendAction(`${logContext}_error`, {
+      errorName: error instanceof Error ? error.name : typeof error,
+      code: apiError.code,
+    }, 'error');
   }
-  console.log(error);
-  return Response.json(null, { status: 200 });
+  return apiErrorResponse(apiError.code, apiError.message);
 }
 
 /**
  * Serialize movie object for JSON response
  */
-export function serializeMovie(movie: any) {
+export function serializeMovie<T extends { createdAt?: Date | string | null }>(movie: T) {
   return {
     ...movie,
-    createdAt: movie.createdAt?.toISOString?.() ?? movie.createdAt,
+    createdAt: movie.createdAt instanceof Date
+      ? movie.createdAt.toISOString()
+      : movie.createdAt,
   };
 }

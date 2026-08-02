@@ -1,12 +1,27 @@
 import { UserRole } from "@prisma/client"
 import * as z from "zod"
 
-export const LoginSchema = z.object({
-  /* NOSONAR */
-  email: z.string().email("Email is requierd"),
-  password: z.string().min(1, "Password is requierd"),
-  code: z.optional(z.string().min(6, "6 digets requierd"))
-})
+export interface LoginValidationMessages {
+  emailRequired: string;
+  passwordRequired: string;
+  codeRequired: string;
+}
+
+const defaultLoginValidationMessages: LoginValidationMessages = {
+  emailRequired: "Email is required.",
+  passwordRequired: "Password is required.",
+  codeRequired: "A six-digit code is required.",
+};
+
+export const createLoginSchema = (
+  messages: LoginValidationMessages = defaultLoginValidationMessages,
+) => z.object({
+  email: z.string().email(messages.emailRequired),
+  password: z.string().min(1, messages.passwordRequired),
+  code: z.optional(z.string().min(6, messages.codeRequired)),
+});
+
+export const LoginSchema = createLoginSchema();
 export const RegisterSchema = z.object({
   /* NOSONAR */
   email: z.string().email("Email is requierd"),
@@ -48,13 +63,13 @@ export const SettingsSchema = z.object({
   }, { message: "Current password is required!", path: ["password"] })
 
 export const ProfilSchema = z.object({
-  profilId: z.string().optional(),
+  profilId: z.string().trim().min(1).optional(),
   profilName: z.string().min(1, 'Name must be set'),
   profilImg: z.string().min(1, 'Img must be set'),
 });
 
 export const ProfilIdSchema = z.object({
-  profilId: z.string()
+  profilId: z.string().trim().min(1)
 })
 
 export const FavoriteIdSchema = z.object({
@@ -79,15 +94,15 @@ export const MovieSchema = z.object({
 })
 
 export const PlaylistSchema = z.object({
-  playlistId: z.string().optional(),
+  playlistId: z.string().trim().min(1).optional(),
   playlistName: z.string().min(1, 'Name must be set'),
 })
 
 export const PlaylistSelectSchema = z.object({
-  playlistId: z.string(),
-  movieId: z.string(),
+  playlistId: z.string().trim().min(1),
+  movieId: z.string().trim().min(1),
 })
 
 export const PlaylistRemoveSchema = z.object({
-  playlistId: z.string(),
+  playlistId: z.string().trim().min(1),
 })

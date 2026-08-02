@@ -29,6 +29,12 @@ describe("RootLayout (layout.tsx)", () => {
       expect(metadata.title).toBe("Netflix - Home");
     });
 
+    it("should provide a search description", () => {
+      expect(metadata.description).toBe(
+        "Browse and stream movies and series from your personal media library."
+      );
+    });
+
     it("should have icon metadata set", () => {
       expect(metadata.icons).toBeDefined();
       expect(
@@ -60,8 +66,8 @@ describe("RootLayout (layout.tsx)", () => {
       expect(source).toContain("SessionProvider");
     });
 
-    it("should have html with lang en", () => {
-      expect(source).toContain('lang="en"');
+    it("should have html with the server-selected locale", () => {
+      expect(source).toContain("lang={locale}");
     });
 
     it("should have body element", () => {
@@ -134,16 +140,17 @@ describe("RootLayout (layout.tsx)", () => {
   });
 
   describe("Component Hierarchy", () => {
-    it("SessionProvider should be root", () => {
+    it("html should be the root element", () => {
       expect(source).toContain("<SessionProvider");
       expect(source).toContain("<html");
       expect(source).toContain("<body");
+      expect(source.indexOf("<html")).toBeLessThan(source.indexOf("<SessionProvider"));
     });
 
-    it("html should be child of SessionProvider", () => {
+    it("SessionProvider should be inside body", () => {
       const sessionIndex = source.indexOf("<SessionProvider");
-      const htmlIndex = source.indexOf("<html");
-      expect(htmlIndex).toBeGreaterThan(sessionIndex);
+      const bodyIndex = source.indexOf("<body");
+      expect(sessionIndex).toBeGreaterThan(bodyIndex);
     });
 
     it("body should be child of html", () => {
@@ -197,7 +204,7 @@ describe("RootLayout (layout.tsx)", () => {
     });
 
     it("should support internationalization", () => {
-      expect(source).toContain('lang="en"');
+      expect(source).toContain("lang={locale}");
     });
   });
 });

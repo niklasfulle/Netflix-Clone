@@ -16,6 +16,7 @@ jest.mock('@/hooks/playlists/usePlaylists', () => ({
 }));
 
 jest.mock('react-hook-form', () => ({
+  useWatch: jest.fn(() => ''),
   useForm: jest.fn(() => ({
     control: {},
     handleSubmit: (callback: any) => jest.fn(),

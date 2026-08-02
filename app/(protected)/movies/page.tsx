@@ -1,13 +1,12 @@
 "use client";
-import axios from "axios";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 import Footer from "@/components/Footer";
 import InfoModal from "@/components/InfoModal";
 import MovieList from "@/components/MovieList";
 import Navbar from "@/components/Navbar";
+import { useActorPagination } from "@/hooks/catalog/useActorPagination";
 import useNewMovieList2 from "@/hooks/movies/useNewMovieList2";
 import usePlaylists from "@/hooks/playlists/usePlaylists";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
@@ -24,44 +23,7 @@ const MoviesPage = () => {
   const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
 
-  const [actorsCount, setActorsCount] = useState(0);
-  const [start, setStart] = useState(0);
-  const [limit, setLimit] = useState(3);
-  const [actors, setActors] = useState([]);
-
-  const fetchActorsCount = useMemo(
-    () => async () => {
-      try {
-        const response = await axios.get("/api/movies/getActorsCount");
-        setActorsCount(response.data);
-      } catch (error) {
-        console.error("Error fetching Movies:", error);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    fetchActorsCount();
-  }, [fetchActorsCount]);
-
-  const fetchActors = useMemo(
-    () => async () => {
-      try {
-        const response = await axios.get(
-          `/api/movies/getActors/${start}_${limit}`
-        );
-        setActors(actors.concat(response.data));
-      } catch (error) {
-        console.error("Error fetching product list:", error);
-      }
-    },
-    [start]
-  );
-
-  useEffect(() => {
-    fetchActors();
-  }, [fetchActors]);
+  const { actors, hasMore, loadMore } = useActorPagination("movies");
 
   const router = useRouter();
 
@@ -72,11 +34,6 @@ const MoviesPage = () => {
   if (isEmpty(profil)) {
     router.push("profiles");
   }
-
-  const loadMore = () => {
-    setStart(start + limit);
-    setLimit(5);
-  };
 
   return (
     <>
@@ -89,13 +46,13 @@ const MoviesPage = () => {
           data={newMovies}
           isLoading={isLoadingNewMovieList2}
         />
-        {actors.map((actor: string) => (
-          <FilterRowMovies key={actor} title={actor} />
+        {actors.map((actor: string, index: number) => (
+          <FilterRowMovies key={actor} title={actor} deferLoading={index > 0} />
         ))}
-        {start < actorsCount && (
+        {hasMore && (
           <div className="flex flex-row items-center justify-center w-full h-8 pt-12 pb-28">
             <button
-              onClick={() => loadMore()}
+              onClick={loadMore}
               type="button"
               className="w-full py-3 mt-10 font-bold text-white transition bg-red-600 rounded-md cursor-pointer hover:bg-red-700 max-w-32"
             >
@@ -103,7 +60,7 @@ const MoviesPage = () => {
             </button>
           </div>
         )}
-        {start >= actorsCount && (
+        {!hasMore && (
           <div className="flex flex-row items-center justify-center w-full h-8 pb-20"></div>
         )}
       </div>

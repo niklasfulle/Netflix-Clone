@@ -3,16 +3,10 @@ import React, { useEffect, useState } from 'react';
 
 import BillboardInfoButton from '@/components/BillboardInfoButton';
 import BillboardPlayButton from '@/components/BillboardPlayButton';
-
-interface BillboardData {
-  id: string;
-  title: string;
-  description: string;
-  thumbnailUrl: string;
-}
+import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 
 interface BillboardBaseProps {
-  data?: BillboardData;
+  data?: CatalogItemDto | null;
   isLoading: boolean;
   priority?: boolean;
 }
@@ -96,8 +90,8 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
         </p>
         {data?.description != "test" && (
           <p className="text-white text-[8px] text-lg mt-3 md:mt-8 w-[90%] md:w-[80%] lg:w-[90%] drop-shadow-xl overflow-hidden text-ellipsis line-clamp-3 max-h-20">
-            {data?.description.substring(0, 250)}
-            {(data?.description.length ?? 0) >= 140 && "..."}
+            {data?.description?.substring(0, 250)}
+            {(data?.description?.length ?? 0) >= 140 && "..."}
           </p>
         )}
         <div className="flex flex-row items-center gap-3 mt-3 md:mt-4 z-10">

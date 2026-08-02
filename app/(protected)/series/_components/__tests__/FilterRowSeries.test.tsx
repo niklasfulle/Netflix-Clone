@@ -54,6 +54,19 @@ describe("FilterRowSeries", () => {
     } as any);
   });
 
+  it("does not request an offscreen actor row before it approaches the viewport", () => {
+    const originalObserver = global.IntersectionObserver;
+    global.IntersectionObserver = jest.fn(() => ({
+      observe: jest.fn(),
+      disconnect: jest.fn(),
+    })) as unknown as typeof IntersectionObserver;
+
+    render(<FilterRowSeries title="Deferred Actor" deferLoading />);
+
+    expect(mockUseSeriesByActor).toHaveBeenLastCalledWith("");
+    global.IntersectionObserver = originalObserver;
+  });
+
   describe("Basic Rendering", () => {
     it("renders without crashing", () => {
       render(<FilterRowSeries title="Drama" />);

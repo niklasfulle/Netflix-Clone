@@ -429,6 +429,15 @@ describe('MovieList Component', () => {
   });
 
   describe('Loading State', () => {
+    test('should reserve space while the initial list is loading', () => {
+      const { container } = render(
+        <MovieList data={[]} title={mockTitle} isLoading={true} />
+      );
+
+      expect(screen.getByLabelText(`${mockTitle} is loading`)).toBeInTheDocument();
+      expect(container.firstChild).toHaveClass('min-h-[235px]');
+    });
+
     test('should render with isLoading true', () => {
       render(
         <MovieList data={mockMovieData} title={mockTitle} isLoading={true} />

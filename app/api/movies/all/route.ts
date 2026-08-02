@@ -5,7 +5,7 @@ import { isCurrentUserAdmin } from '@/lib/admin-auth';
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET() {
   if (!(await isCurrentUserAdmin())) {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }

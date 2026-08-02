@@ -34,6 +34,10 @@ it("renders security filters and user status", () => {
   expect(screen.getByRole("heading", { name: "Benutzer" })).toBeInTheDocument();
   expect(screen.getByText("test@example.com")).toBeInTheDocument();
   expect(screen.getByText("2FA beliebig")).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Rolle filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Kontostatus filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Nach Zwei-Faktor-Status filtern" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Benutzer sortieren" })).toBeInTheDocument();
 });
 
 it("opens user details and block dialog", () => {

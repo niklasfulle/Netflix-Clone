@@ -87,7 +87,7 @@ describe('register action - Authentifizierung & Validierung', () => {
       confirm: 'password123',
     } as any);
 
-    expect(result).toEqual({ error: 'Email already in use!' });
+    expect(result).toEqual({ success: 'Confirmation email sent!' });
     expect(db.user.create).not.toHaveBeenCalled();
   });
 

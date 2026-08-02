@@ -11,8 +11,12 @@ const SAFE_UPLOAD_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 
 export function getMediaFolders() {
   return {
-    movieFolder: path.resolve(process.env.MOVIE_FOLDER || "./movies"),
-    seriesFolder: path.resolve(process.env.SERIES_FOLDER || "./series"),
+    movieFolder: path.resolve(
+      /*turbopackIgnore: true*/ process.env.MOVIE_FOLDER || "./movies",
+    ),
+    seriesFolder: path.resolve(
+      /*turbopackIgnore: true*/ process.env.SERIES_FOLDER || "./series",
+    ),
   };
 }
 

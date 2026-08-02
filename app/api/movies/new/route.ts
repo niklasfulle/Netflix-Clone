@@ -1,66 +1,33 @@
 import { logBackendAction } from '@/lib/logger';
-import { currentUser } from '@/lib/auth';
-import { db } from '@/lib/db';
+import {
+  getMoviesWithWatchTime,
+  getUserAndProfile,
+  handleApiError,
+  transformMoviesResponse,
+} from '@/lib/api-helpers';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   try {
-    const user = await currentUser()
+    const { user, profil, error } = await getUserAndProfile('api_movies_new');
+    if (error) return error;
 
-    if (!user) {
-      logBackendAction('api_movies_new_no_user', {}, 'error');
-      return Response.json(null, { status: 404 })
-    }
+    const { movies, watchTime } = await getMoviesWithWatchTime(
+      'Movie',
+      user.id,
+      profil.id,
+      { take: 4, orderBy: { createdAt: 'desc' }, reverse: false },
+    );
+    const responseMovies = transformMoviesResponse(movies, watchTime);
 
-    const profil = await db.profil.findFirst({
-      where: {
-        userId: user.id,
-        inUse: true
-      }
-    })
-
-    if (!profil) {
-      logBackendAction('api_movies_new_no_profil', { userId: user.id }, 'error');
-      return Response.json(null, { status: 404 })
-    }
-
-    const movies = await db.movie.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 4,
-      include: {
-        actors: {
-          include: {
-            actor: true,
-          },
-        },
-      },
-    })
-
-    const watchTime = await db.movieWatchTime.findMany({
-      where: {
-        userId: user.id,
-        profilId: profil.id,
-      }
-    })
-
-    // Baue ein neues Array mit actors: {id, name}[]
-    const responseMovies = movies.map((movie) => {
-      const actorObjs = movie.actors?.map((a: any) => ({ id: a.actor.id, name: a.actor.name })) || [];
-      const time = watchTime.find((t) => t.movieId === movie.id);
-      return {
-        ...movie,
-        actors: actorObjs,
-        ...(time ? { watchTime: time.time } : {}),
-      };
-    });
-    logBackendAction('api_movies_new_success', { userId: user.id, profilId: profil.id, count: responseMovies.length }, 'info');
-    return Response.json(responseMovies, { status: 200 })
+    logBackendAction('api_movies_new_success', {
+      userId: user.id,
+      profilId: profil.id,
+      count: responseMovies.length,
+    }, 'info');
+    return Response.json(responseMovies);
   } catch (error) {
-    logBackendAction('api_movies_new_error', { error: String(error) }, 'error');
-    console.log(error)
-    return Response.json(null, { status: 200 })
+    return handleApiError(error, 'api_movies_new');
   }
 }

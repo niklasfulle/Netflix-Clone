@@ -1,11 +1,12 @@
 "use client";
 
 import { Check, Clipboard, Download, RefreshCw, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { useDialogFocus } from "@/hooks/useDialogFocus";
 
 type LogEntry = {
   timestamp?: string;
@@ -44,6 +45,13 @@ export default function AdminLogsPage() {
   const [confirmation, setConfirmation] = useState("");
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState("");
+  const detailDialogRef = useRef<HTMLDialogElement>(null);
+  const clearDialogRef = useRef<HTMLDialogElement>(null);
+  const closeDetails = useCallback(() => setDetail(null), []);
+  const closeClearDialog = useCallback(() => setClearOpen(false), []);
+
+  useDialogFocus(Boolean(detail), detailDialogRef, closeDetails);
+  useDialogFocus(clearOpen, clearDialogRef, closeClearDialog);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -102,9 +110,9 @@ export default function AdminLogsPage() {
       <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
         <div className="grid gap-3 border-b border-zinc-800 p-4 xl:grid-cols-[minmax(240px,1fr)_150px_180px_180px_160px_160px]">
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" /><span className="sr-only">Logs durchsuchen</span><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Volltextsuche …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" /></label>
-          <select value={level} onChange={(event) => { setLevel(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Level</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option></select>
-          <input value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
-          <input value={userId} onChange={(event) => { setUserId(event.target.value); setPage(1); }} placeholder="Benutzer-ID …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
+          <select aria-label="Nach Log-Level filtern" value={level} onChange={(event) => { setLevel(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Level</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option></select>
+          <input aria-label="Nach Aktion filtern" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
+          <input aria-label="Nach Benutzer-ID filtern" value={userId} onChange={(event) => { setUserId(event.target.value); setPage(1); }} placeholder="Benutzer-ID …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
           <input type="date" aria-label="Von Datum" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
           <input type="date" aria-label="Bis Datum" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
         </div>
@@ -140,7 +148,7 @@ export default function AdminLogsPage() {
       </section>
 
       {detail && (
-        <dialog open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Log-Details">
+        <dialog ref={detailDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Log-Details">
           <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Log-Eintrag</p><h2 className="mt-2 text-xl font-bold text-white">{detail.action || "Details"}</h2></div><button type="button" onClick={() => setDetail(null)} aria-label="Details schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             <pre className="mt-5 max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-4 text-xs leading-6 text-zinc-300">{JSON.stringify(detail, null, 2)}</pre>
@@ -150,7 +158,7 @@ export default function AdminLogsPage() {
       )}
 
       {clearOpen && (
-        <dialog open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Logs endgültig leeren">
+        <dialog ref={clearDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Logs endgültig leeren">
           <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-zinc-950 p-6">
             <h2 className="text-xl font-bold text-white">Logs endgültig leeren?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Diese Aktion kann nicht rückgängig gemacht werden. Es wird ausschließlich die Backend-Logdatei geleert.</p>
             <label className="mt-5 block text-sm text-zinc-300">Gib <strong className="text-white">LOGS LÖSCHEN</strong> ein<input autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-white outline-none focus:border-red-500" /></label>

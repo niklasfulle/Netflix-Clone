@@ -1,21 +1,12 @@
 import { useState } from 'react';
-import useSWR from 'swr';
 
-import fetcher from '@/lib/fetcher';
+import { STATIC_CATALOG_OPTIONS, useCatalogQuery } from '@/hooks/catalog/useCatalogQuery';
 
 const useSeriesList = () => {
-  const [uniqueKey] = useState(() => `/api/series/random?count=20&t=${Date.now()}`);
-  
-  const { data, error, isLoading } = useSWR(uniqueKey, fetcher, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
+  const [nonce] = useState(Date.now);
+  return useCatalogQuery('series', { kind: 'random', count: 20, nonce }, {
+    ...STATIC_CATALOG_OPTIONS,
     dedupingInterval: 0,
   });
-  return {
-    data,
-    error,
-    isLoading
-  }
 };
 export default useSeriesList;

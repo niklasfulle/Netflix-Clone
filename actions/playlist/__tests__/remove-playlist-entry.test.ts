@@ -7,6 +7,9 @@ jest.mock('@/lib/db', () => ({
     profil: {
       findFirst: jest.fn(),
     },
+    playlist: {
+      findFirst: jest.fn(),
+    },
     playlistEntry: {
       deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
@@ -67,9 +70,8 @@ describe('remove playlist entry action - Authentifizierung & Validierung', () =>
       movieId: 'movie1',
     });
 
-    // PlaylistSelectSchema akzeptiert z.string() ohne min(1)
-    expect(result.success).toBeDefined();
-    expect(db.playlistEntry.deleteMany).toHaveBeenCalled();
+    expect(result).toEqual({ error: 'Invalid fields!' });
+    expect(db.playlistEntry.deleteMany).not.toHaveBeenCalled();
   });
 
   it('✅ sollte erfolgreich Eintrag aus Playlist entfernen', async () => {
@@ -79,6 +81,7 @@ describe('remove playlist entry action - Authentifizierung & Validierung', () =>
       id: 'profil1',
       inUse: true,
     });
+    (db.playlist.findFirst as jest.Mock).mockResolvedValue({ id: 'pl1' });
     (db.playlistEntry.deleteMany as jest.Mock).mockResolvedValue({ count: 1 });
 
     const result = await removePlaylistEntry({
@@ -93,6 +96,18 @@ describe('remove playlist entry action - Authentifizierung & Validierung', () =>
         movieId: 'movie1',
       },
     });
+  });
+
+  it('❌ entfernt keinen Eintrag aus einer fremden Playlist', async () => {
+    const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
+    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    (db.profil.findFirst as jest.Mock).mockResolvedValue({ id: 'profil1' });
+    (db.playlist.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const result = await removePlaylistEntry({ playlistId: 'foreign', movieId: 'movie1' });
+
+    expect(result).toEqual({ error: 'Playlist not found!' });
+    expect(db.playlistEntry.deleteMany).not.toHaveBeenCalled();
   });
 
   it('✅ sollte DB-Aufrufe verhindern wenn nicht authentifiziert', async () => {

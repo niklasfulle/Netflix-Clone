@@ -1,12 +1,13 @@
 "use client";
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 import { login } from '@/actions/login';
 import { CardWrapper } from '@/components/auth/card-wrapper';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import { FormError } from '@/components/form-error';
 import { FormSuccess } from '@/components/form-success';
 import { Button } from '@/components/ui/button';
@@ -14,10 +15,11 @@ import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { LoginSchema } from '@/schemas';
+import { createLoginSchema, LoginSchema } from '@/schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 export const LoginForm = () => {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const urlError =
     searchParams.get("error") === "OAuthAccountNotLinked"
@@ -27,8 +29,13 @@ export const LoginForm = () => {
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const localizedLoginSchema = useMemo(() => createLoginSchema({
+    emailRequired: t('Email is required.'),
+    passwordRequired: t('Password is required.'),
+    codeRequired: t('A six-digit code is required.'),
+  }), [t]);
   const form = useForm<z.infer<typeof LoginSchema>>({
-    resolver: zodResolver(LoginSchema),
+    resolver: zodResolver(localizedLoginSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -62,8 +69,8 @@ export const LoginForm = () => {
 
   return (
     <CardWrapper
-      headerLabel="Welcome back"
-      backButtonLabel="Don't have an account?"
+      headerLabel={t('Welcome back')}
+      backButtonLabel={t("Don't have an account?")}
       backButtonHref="/auth/register"
     >
       <Form {...form}>
@@ -75,7 +82,7 @@ export const LoginForm = () => {
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">2FA Code</FormLabel>
+                    <FormLabel className="text-white">{t('2FA Code')}</FormLabel>
                     <FormControl>
                       <Input
                         className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
@@ -97,7 +104,7 @@ export const LoginForm = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Email</FormLabel>
+                      <FormLabel className="text-white">{t('Email')}</FormLabel>
                       <FormControl>
                         <Input
                           className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
@@ -105,6 +112,7 @@ export const LoginForm = () => {
                           disabled={isPending}
                           placeholder="john.doe@example.com"
                           type="email"
+                          autoComplete="email"
                         />
                       </FormControl>
                       <FormMessage />
@@ -116,7 +124,7 @@ export const LoginForm = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-white">Password</FormLabel>
+                      <FormLabel className="text-white">{t('Password')}</FormLabel>
                       <FormControl>
                         <Input
                           className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
@@ -124,6 +132,7 @@ export const LoginForm = () => {
                           disabled={isPending}
                           placeholder="******"
                           type="password"
+                          autoComplete="current-password"
                         />
                       </FormControl>
                       <FormMessage />
@@ -133,7 +142,7 @@ export const LoginForm = () => {
                         asChild
                         className="px-0 font-normal"
                       >
-                        <Link href="/auth/reset">Forgot password?</Link>
+                        <Link href="/auth/reset">{t('Forgot password?')}</Link>
                       </Button>
                     </FormItem>
                   )}
@@ -144,7 +153,7 @@ export const LoginForm = () => {
           <FormError message={error ?? urlError} />
           <FormSuccess message={success} />
           <Button type="submit" disabled={isPending} variant="auth" size="lg">
-            {showTwoFactor ? "Confirm" : "Login"}
+            {showTwoFactor ? t('Confirm') : t('Login')}
           </Button>
         </form>
       </Form>
