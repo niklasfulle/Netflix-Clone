@@ -46,7 +46,7 @@ cd ansible
 ansible-playbook update.yml
 ```
 
-Oder mit dem erweiterten Playbook (benötigt community.docker Collection):
+Oder mit dem erweiterten Playbook:
 
 ```bash
 cd ansible
@@ -85,7 +85,7 @@ ansible-playbook update.yml -v
 - `ansible.cfg` - Ansible-Konfiguration
 - `hosts` - Inventory mit LXC Container-Adressen
 - `update.yml` - Einfaches Playbook (verwendet Shell-Befehle)
-- `update-netflix-clone.yml` - Erweitertes Playbook (benötigt community.docker)
+- `update-netflix-clone.yml` - Erweitertes Playbook mit Migration, Health-Prüfung und Rollback
 - `docker-compose.yml.j2` - Template für docker-compose.yml
 - `files/netflix_monitor.py` - Read-only LXC- und Docker-Metriksammler
 - `tasks/system-monitor.yml` - Installation und Validierung des Monitoring-Agenten
@@ -118,11 +118,6 @@ ssh root@<LXC_IP> "getent ahosts production.cloudfront.docker.com"
 
 Wenn die Abfragen über den eingetragenen DNS-Server fehlschlagen, korrigiere die DNS-Konfiguration des LXC-Hosts beziehungsweise des Routers. Das Playbook wiederholt DNS-Prüfung und Image-Pull automatisch. Der laufende Container wird dabei erst nach einem vollständig erfolgreichen Pull gestoppt.
 
-### Community Docker Collection fehlt
+### Docker meldet `Not supported URL scheme http+docker`
 
-Falls du `update-netflix-clone.yml` verwenden möchtest:
-```bash
-ansible-galaxy collection install community.docker
-```
-
-Oder nutze das einfachere `update.yml` Playbook.
+Das erweiterte Playbook verwendet bewusst die Docker-CLI statt der Python-Docker-SDK-Module. Dadurch ist es unabhängig von inkompatiblen Kombinationen aus `requests`, Docker SDK und `community.docker`.

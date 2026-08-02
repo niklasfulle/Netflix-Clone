@@ -99,14 +99,16 @@
       until: docker_registry_dns.rc == 0
 
     - name: Pull new Docker image
-      community.docker.docker_image:
-        name: "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
-        source: pull
-        force_source: yes
+      command:
+        argv:
+          - docker
+          - pull
+          - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
       register: docker_image_pull
+      changed_when: "'Image is up to date' not in docker_image_pull.stdout"
       retries: "{{ docker_pull_retries }}"
       delay: "{{ docker_pull_delay }}"
-      until: docker_image_pull is succeeded
+      until: docker_image_pull.rc == 0
 
     - name: Verify new Docker image
       command:
@@ -165,15 +167,26 @@
           changed_when: false
 
         - name: Stop and remove the existing container
-          community.docker.docker_compose:
-            project_src: "{{ docker_compose_path }}"
-            state: absent
+          command:
+            argv:
+              - docker
+              - compose
+              - -f
+              - "{{ docker_compose_path }}/docker-compose.yml"
+              - down
 
         - name: Start container with new version
-          community.docker.docker_compose:
-            project_src: "{{ docker_compose_path }}"
-            state: present
-            pull: no
+          command:
+            argv:
+              - docker
+              - compose
+              - -f
+              - "{{ docker_compose_path }}/docker-compose.yml"
+              - up
+              - -d
+              - --no-build
+              - --pull
+              - never
 
         - name: Wait for healthy application version
           uri:

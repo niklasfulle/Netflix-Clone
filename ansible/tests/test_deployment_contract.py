@@ -11,6 +11,10 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertNotIn("prisma db push", dockerfile)
         self.assertIn('CMD ["./node_modules/.bin/next", "start"]', dockerfile)
         self.assertIn("USER 10001:10001", dockerfile)
+        self.assertIn(
+            "--from=builder /netflix-clone/node_modules/.prisma ./node_modules/.prisma",
+            dockerfile,
+        )
 
     def test_deployment_backs_up_and_migrates_before_start(self):
         playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")
@@ -45,6 +49,14 @@ class DeploymentContractTests(unittest.TestCase):
             'max-size: "10m"',
         ):
             self.assertIn(setting, compose)
+
+    def test_deployment_uses_docker_cli_instead_of_python_docker_sdk(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")
+        self.assertNotIn("community.docker.", playbook)
+        self.assertIn("- pull\n          - \"{{ docker_registry }}/{{ image_name }}:{{ app_version }}\"", playbook)
+        self.assertIn("- compose\n              - -f", playbook)
+        self.assertIn("- down", playbook)
+        self.assertIn("- up", playbook)
 
 
 if __name__ == "__main__":

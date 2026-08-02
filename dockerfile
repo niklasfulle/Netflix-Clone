@@ -45,6 +45,7 @@ RUN groupadd --gid 10001 netflix \
     && useradd --uid 10001 --gid netflix --no-create-home --shell /usr/sbin/nologin netflix
 
 COPY --chown=10001:10001 --from=production-dependencies /netflix-clone/node_modules ./node_modules
+COPY --chown=10001:10001 --from=builder /netflix-clone/node_modules/.prisma ./node_modules/.prisma
 COPY --chown=10001:10001 --from=builder /netflix-clone/.next ./.next
 COPY --chown=10001:10001 --from=builder /netflix-clone/public ./public
 COPY --chown=10001:10001 --from=builder /netflix-clone/prisma ./prisma
