@@ -9,12 +9,14 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/db', () => ({
   db: {
+    $transaction: jest.fn(async (operations) => Promise.all(operations)),
     movie: {
       findUnique: jest.fn(),
       delete: jest.fn(),
     },
     movieActor: {
       findMany: jest.fn(),
+      deleteMany: jest.fn(),
       count: jest.fn(),
     },
     actor: {
@@ -71,6 +73,7 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
     (db.movie.findUnique as jest.Mock).mockResolvedValue(mockMovie as any);
     (db.movie.delete as jest.Mock).mockResolvedValue(mockMovie as any);
     (db.movieActor.findMany as jest.Mock).mockResolvedValue([]);
+    (db.movieActor.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
     (db.movieActor.count as jest.Mock).mockResolvedValue(0);
     (fs.existsSync as jest.Mock).mockReturnValue(false);
   });
@@ -260,6 +263,17 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
   });
 
   describe('Database Movie Deletion', () => {
+    it('✅ removes actor relations before deleting the movie', async () => {
+      await deleteMovie('movie-1');
+
+      expect(db.movieActor.deleteMany).toHaveBeenCalledWith({
+        where: { movieId: 'movie-1' },
+      });
+      const relationDelete = (db.movieActor.deleteMany as jest.Mock).mock.invocationCallOrder[0];
+      const movieDelete = (db.movie.delete as jest.Mock).mock.invocationCallOrder[0];
+      expect(relationDelete).toBeLessThan(movieDelete);
+    });
+
     it('✅ should delete movie from database', async () => {
       await deleteMovie('movie-1');
 
@@ -362,7 +376,7 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
       expect(db.actor.delete).toHaveBeenCalledTimes(2);
     });
 
-    it('✅ should cleanup after movie deletion', async () => {
+    it('✅ should capture actor relations before movie deletion', async () => {
       (db.movieActor.findMany as jest.Mock).mockResolvedValue([]);
 
       await deleteMovie('movie-1');
@@ -370,7 +384,7 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
       const movieDeleteCall = (db.movie.delete as jest.Mock).mock.invocationCallOrder[0];
       const actorFindCall = (db.movieActor.findMany as jest.Mock).mock.invocationCallOrder[0];
 
-      expect(movieDeleteCall).toBeLessThan(actorFindCall);
+      expect(actorFindCall).toBeLessThan(movieDeleteCall);
     });
   });
 

@@ -6,8 +6,37 @@
     docker_compose_path: "/root/netflix-clone"
     docker_registry: "salkin263"
     image_name: "netflix-clone"
+    postgres_backup_image: "postgres:18-alpine"
     docker_pull_retries: 5
     docker_pull_delay: 15
+    legacy_pre_integrity_migrations:
+      - '20251224195918_actor_entity'
+      - '20251224222337_'
+      - '20260726120000_admin_management_upgrade'
+    failed_legacy_baseline_migration: '20251224222337_'
+    legacy_relational_integrity_diff:
+      - '[*] Changed the `MovieView` table'
+      - '[+] Added index on columns (userId, profilId, createdAt)'
+      - '[+] Added index on columns (movieId, createdAt)'
+      - '[+] Added foreign key on columns (userId)'
+      - '[+] Added foreign key on columns (profilId)'
+      - '[+] Added foreign key on columns (movieId)'
+      - '[*] Changed the `MovieWatchTime` table'
+      - '[+] Added index on columns (profilId, movieId)'
+      - '[+] Added index on columns (movieId)'
+      - '[+] Added unique index on columns (userId, profilId, movieId)'
+      - '[+] Added foreign key on columns (userId)'
+      - '[+] Added foreign key on columns (profilId)'
+      - '[+] Added foreign key on columns (movieId)'
+      - '[*] Changed the `Playlist` table'
+      - '[+] Added index on columns (userId, profilId)'
+      - '[+] Added foreign key on columns (userId)'
+      - '[+] Added foreign key on columns (profilId)'
+      - '[*] Changed the `PlaylistEntry` table'
+      - '[+] Added index on columns (playlistId, order)'
+      - '[+] Added index on columns (movieId)'
+      - '[+] Added unique index on columns (playlistId, movieId)'
+      - '[+] Added foreign key on columns (movieId)'
   
   tasks:
     - name: Read version from local package.json
@@ -42,6 +71,22 @@
         - /series
         - /var/lib/netflix-backup-status
         - /var/lib/netflix-logs
+      tags:
+        - runtime_permissions
+
+    - name: Ensure chunk upload directories are writable
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: '10001'
+        group: '10001'
+        mode: '0750'
+        recurse: true
+      loop:
+        - /movies/temp
+        - /series/temp
+      tags:
+        - runtime_permissions
 
     - name: Ensure deployment backup and diagnostics directories exist
       file:
@@ -51,6 +96,18 @@
       loop:
         - /root/netflix-database-backups
         - /root/netflix-deploy-failures
+
+    - name: Ensure deployment helper directory exists
+      file:
+        path: /usr/local/lib/netflix-deploy
+        state: directory
+        mode: '0755'
+
+    - name: Install PostgreSQL backup helper
+      copy:
+        src: files/backup-postgres.sh
+        dest: /usr/local/lib/netflix-deploy/backup-postgres.sh
+        mode: '0755'
 
     - name: Install read-only LXC system monitoring
       include_tasks: tasks/system-monitor.yml
@@ -122,22 +179,195 @@
     - name: Deploy, migrate, and verify with automatic rollback
       block:
         - name: Back up the PostgreSQL database before migration
-          shell: >-
-            docker run --rm --env-file /root/netflix-secrets/app.env postgres:16-alpine
-            sh -c 'pg_dump -Fc "$POSTGRESQL_URL"'
-            > /root/netflix-database-backups/pre-{{ app_version }}.dump
-          args:
-            executable: /bin/bash
-          no_log: true
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - --env
+              - BACKUP_PATH=/backups/pre-{{ app_version }}.dump
+              - --volume
+              - /root/netflix-database-backups:/backups
+              - --volume
+              - /usr/local/lib/netflix-deploy/backup-postgres.sh:/usr/local/bin/backup-postgres:ro
+              - "{{ postgres_backup_image }}"
+              - /usr/local/bin/backup-postgres
 
         - name: Verify the pre-migration database backup
           shell: >-
             test -s /root/netflix-database-backups/pre-{{ app_version }}.dump &&
-            docker run --rm -v /root/netflix-database-backups:/backups:ro postgres:16-alpine
+            docker run --rm -v /root/netflix-database-backups:/backups:ro {{ postgres_backup_image }}
             pg_restore --list /backups/pre-{{ app_version }}.dump >/dev/null
           args:
             executable: /bin/bash
           changed_when: false
+
+        - name: Check Prisma migration history table
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - --volume
+              - /usr/local/lib/netflix-deploy/backup-postgres.sh:/usr/local/bin/postgres-deploy:ro
+              - "{{ postgres_backup_image }}"
+              - /usr/local/bin/postgres-deploy
+              - migration-table-status
+          register: prisma_migration_table_status
+          changed_when: false
+          failed_when: >-
+            prisma_migration_table_status.rc != 0 or
+            (prisma_migration_table_status.stdout | trim) not in ['missing', 'present']
+
+        - name: Check known failed legacy baseline migration
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - --volume
+              - /usr/local/lib/netflix-deploy/backup-postgres.sh:/usr/local/bin/postgres-deploy:ro
+              - "{{ postgres_backup_image }}"
+              - /usr/local/bin/postgres-deploy
+              - failed-migration-status
+              - "{{ failed_legacy_baseline_migration }}"
+          register: failed_legacy_migration_status
+          changed_when: false
+          failed_when: >-
+            failed_legacy_migration_status.rc != 0 or
+            (failed_legacy_migration_status.stdout | trim) not in
+            ['clear', 'failed-schema-present', 'failed-schema-missing']
+          when: prisma_migration_table_status.stdout | trim == 'present'
+
+        - name: Recover failed legacy baseline migration as rolled back
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - resolve
+              - --rolled-back
+              - "{{ failed_legacy_baseline_migration }}"
+          when:
+            - prisma_migration_table_status.stdout | trim == 'present'
+            - failed_legacy_migration_status.stdout | trim in ['failed-schema-present', 'failed-schema-missing']
+
+        - name: Record recovered legacy migration as applied
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - resolve
+              - --applied
+              - "{{ failed_legacy_baseline_migration }}"
+          when:
+            - prisma_migration_table_status.stdout | trim == 'present'
+            - failed_legacy_migration_status.stdout | trim == 'failed-schema-present'
+
+        - name: Verify legacy database schema before baselining
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - diff
+              - --from-schema-datasource
+              - prisma/schema.prisma
+              - --to-schema-datamodel
+              - prisma/schema.prisma
+              - --exit-code
+          register: legacy_schema_diff
+          changed_when: false
+          failed_when: legacy_schema_diff.rc not in [0, 2]
+          when: prisma_migration_table_status.stdout | trim == 'missing'
+
+        - name: Validate recognized legacy schema state
+          assert:
+            that:
+              - >-
+                legacy_schema_diff.rc == 0 or
+                (legacy_schema_diff.stdout_lines | map('trim') |
+                reject('equalto', '') | list) == legacy_relational_integrity_diff
+            fail_msg: >-
+              The legacy database differs from both supported baseline states.
+              No migration history was changed.
+          when: prisma_migration_table_status.stdout | trim == 'missing'
+
+        - name: Discover versioned migrations for legacy baseline
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --entrypoint
+              - find
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - prisma/migrations
+              - -mindepth
+              - '2'
+              - -maxdepth
+              - '2'
+              - -type
+              - f
+              - -name
+              - migration.sql
+              - -printf
+              - '%h\n'
+          register: legacy_migration_directories
+          changed_when: false
+          when: prisma_migration_table_status.stdout | trim == 'missing'
+
+        - name: Verify legacy baseline contains migrations
+          assert:
+            that:
+              - legacy_migration_directories.stdout_lines | length > 0
+            fail_msg: "No versioned Prisma migrations were found for the legacy baseline."
+          when: prisma_migration_table_status.stdout | trim == 'missing'
+
+        - name: Record existing migrations as baseline
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - migrate
+              - resolve
+              - --applied
+              - "{{ item | basename }}"
+          loop: "{{ legacy_migration_directories.stdout_lines | sort }}"
+          loop_control:
+            label: "{{ item | basename }}"
+          when:
+            - prisma_migration_table_status.stdout | trim == 'missing'
+            - >-
+              legacy_schema_diff.rc == 0 or
+              (item | basename) in legacy_pre_integrity_migrations
 
         - name: Apply versioned Prisma migrations
           command:

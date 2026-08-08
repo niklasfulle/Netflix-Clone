@@ -54,6 +54,12 @@ export function createRateLimiter({
 
   return {
     consume,
+    refund: (key: string) => {
+      const entry = entries.get(key);
+      if (!entry) return;
+      if (entry.count <= 1) entries.delete(key);
+      else entry.count -= 1;
+    },
     reset: (key: string) => entries.delete(key),
     clear: () => entries.clear(),
     size: () => entries.size,

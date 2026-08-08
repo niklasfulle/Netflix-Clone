@@ -26,6 +26,14 @@ BACKUP_STATUS_PATH = Path(
     )
 )
 CONTAINER_NAME = os.environ.get("NETFLIX_CONTAINER_NAME", "netflix-clone")
+CONTAINER_LOG_PATH = Path(
+    os.environ.get("NETFLIX_CONTAINER_LOG_OUTPUT", "/var/lib/netflix-logs/container.log")
+)
+CONTAINER_LOG_TAIL = max(
+    100,
+    min(int(os.environ.get("NETFLIX_CONTAINER_LOG_TAIL", "2000")), 10000),
+)
+CONTAINER_LOG_MAX_BYTES = 2 * 1024 * 1024
 FILESYSTEMS = (
     ("root", Path("/")),
     ("movies", Path("/movies")),
@@ -291,8 +299,60 @@ def write_snapshot(snapshot: dict[str, Any]) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
+def write_container_logs(
+    contents: str,
+    max_bytes: int = CONTAINER_LOG_MAX_BYTES,
+) -> None:
+    CONTAINER_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    encoded = contents.encode("utf-8", errors="replace")
+    bounded = encoded[-max_bytes:].decode("utf-8", errors="replace")
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=CONTAINER_LOG_PATH.parent,
+        prefix=".container-",
+        suffix=".log",
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(bounded)
+        os.chmod(temporary_path, 0o640)
+        try:
+            os.chown(temporary_path, 10001, 10001)
+        except (AttributeError, PermissionError):
+            pass
+        os.replace(temporary_path, CONTAINER_LOG_PATH)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def collect_container_logs() -> bool:
+    try:
+        result = subprocess.run(
+            [
+                "docker",
+                "logs",
+                "--timestamps",
+                "--tail",
+                str(CONTAINER_LOG_TAIL),
+                CONTAINER_NAME,
+            ],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=8,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if result.returncode != 0:
+        return False
+    write_container_logs(result.stdout)
+    return True
+
+
 def main() -> None:
     write_snapshot(collect_snapshot())
+    collect_container_logs()
 
 
 if __name__ == "__main__":

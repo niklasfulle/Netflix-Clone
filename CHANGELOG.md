@@ -4,8 +4,19 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- Movie deletion now removes actor relations transactionally, cleans up orphaned actors, and reliably replaces the deleted edit route in browser history
+- Production deployment now includes the generated Prisma runtime, uses Docker CLI transport, and supports safe migration baselining and recovery for existing databases
+- PostgreSQL backups use a matching PostgreSQL 18 client, validate dumps before publication, and preserve credential-redacted diagnostics on failure
+- Runtime media permissions and health checks now verify writable movie and series storage without exposing host paths
+- Billboard playback checks media availability before requesting video and falls back silently to the poster when media files are unavailable
+- Docker and Next.js multiline exceptions are grouped into complete logical entries in the administration log viewer
+- Authentication throttling and the complete desktop/mobile Playwright journeys received additional regression coverage
+
+## 1.10.0
+
 - A new administrator-only System Overview provides live LXC, Docker, database, storage, and backup health
 - A hardened read-only host collector records CPU, memory, uptime, filesystem, and container metrics without exposing the Docker socket to the web application
+- Administrators can inspect, filter, auto-refresh, and export recent Docker container logs alongside structured application logs without exposing the Docker socket
 - Capacity thresholds classify the deployment as healthy, warning, or critical and provide actionable alerts
 - Database backup creation now records non-sensitive recovery metadata for backup age, size, and record-count monitoring
 - Docker and Ansible verify application health, expected version, and visibility of the newly deployed container before reporting a successful deployment
@@ -15,6 +26,7 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Mobile catalog performance is protected by an automated payload budget and a throttled browser scenario
 - Login validation, administration navigation, and account controls received localization and accessibility improvements
 - Invalid nested account-menu controls no longer cause React hydration errors
+- Profile selection and editing now expose localized semantic controls with keyboard focus and browser coverage
 - Complex administration and catalog workflows have expanded regression and browser coverage
 - SonarQube analysis, deployment documentation, and release tooling were hardened for repeatable local and production checks
 

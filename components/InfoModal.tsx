@@ -17,6 +17,7 @@ import { UserRole } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import type { PlaylistDto } from "@/lib/api-types";
+import { useBillboardVideoAvailability } from "@/hooks/useBillboardVideoAvailability";
 
 interface InfoModalProps {
   visible?: boolean;
@@ -38,6 +39,10 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const videoAvailable = useBillboardVideoAvailability(
+    movie?.id,
+    Boolean(visible && isDesktop),
+  );
 
   const checkWindowSize = () => {
     let windowWidth: number = 0; // Initialize with a default value
@@ -106,7 +111,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
           } transform duration-300 relative flex-auto bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 drop-shadow-2xl`}
         >
           <div className="relative h-96">
-            {isDesktop && (
+            {isDesktop && videoAvailable && (
               <video
                 className="w-full brightness-[60%] object-cover aspect-video h-full rounded-t-2xl"
                 autoPlay
@@ -116,7 +121,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
                 src={movie?.id ? `/api/video/billboard/${movie.id}` : undefined}
               ></video>
             )}
-            {!isDesktop && movie?.thumbnailUrl && (
+            {(!isDesktop || !videoAvailable) && movie?.thumbnailUrl && (
               <Image
                 className="w-full brightness-[60%] object-cover h-[60%] md:h-[75%] rounded-t-2xl"
                 src={movie?.thumbnailUrl}

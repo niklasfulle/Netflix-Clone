@@ -42,6 +42,10 @@ describe('BillboardBase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'true' },
+    });
     // Mock window.innerWidth
     Object.defineProperty(globalThis.window, 'innerWidth', {
       writable: true,
@@ -65,10 +69,9 @@ describe('BillboardBase', () => {
       expect(mainDiv?.className).toMatch(/h-\[56.25vw\]/);
     });
 
-    it('should render video on desktop when not loading', () => {
+    it('should render video on desktop when not loading', async () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
-      const video = container.querySelector('video');
-      expect(video).toBeInTheDocument();
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
     });
 
     it('should render image on mobile when not loading', async () => {
@@ -134,9 +137,8 @@ describe('BillboardBase', () => {
 
     it('should not display buttons when loading', () => {
       render(<BillboardBase data={mockData} isLoading={true} />);
-      // Buttons are still rendered, but loading spinner is displayed
-      expect(screen.queryByTestId('play-button')).toBeInTheDocument();
-      expect(screen.queryByTestId('info-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('play-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('info-button')).not.toBeInTheDocument();
     });
   });
 
@@ -317,19 +319,16 @@ describe('BillboardBase', () => {
       expect(infoButton.textContent).toBe(mockData.id);
     });
 
-    it('should pass empty string when movieId is undefined', () => {
+    it('should not render actions when movieId is undefined', () => {
       render(<BillboardBase data={undefined} isLoading={false} />);
-      const playButton = screen.getByTestId('play-button');
-      const infoButton = screen.getByTestId('info-button');
-      expect(playButton.textContent).toBe('');
-      expect(infoButton.textContent).toBe('');
+      expect(screen.queryByTestId('play-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('info-button')).not.toBeInTheDocument();
     });
 
     it('should not render buttons when loading', () => {
       render(<BillboardBase data={mockData} isLoading={true} />);
-      // Buttons are still rendered, but loading spinner is displayed
-      expect(screen.queryByTestId('play-button')).toBeInTheDocument();
-      expect(screen.queryByTestId('info-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('play-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('info-button')).not.toBeInTheDocument();
     });
 
     it('should have buttons in flex row container', () => {
@@ -435,10 +434,11 @@ describe('BillboardBase', () => {
       });
     });
 
-    it('should remount the video when the billboard content changes', () => {
+    it('should remount the video when the billboard content changes', async () => {
       const { container, rerender } = render(
         <BillboardBase data={mockData} isLoading={false} />
       );
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
       const firstVideo = container.querySelector('video');
 
       rerender(
@@ -448,6 +448,7 @@ describe('BillboardBase', () => {
         />
       );
 
+      await waitFor(() => expect(container.querySelector('video')).not.toBe(firstVideo));
       const secondVideo = container.querySelector('video');
       expect(secondVideo).not.toBe(firstVideo);
       expect(secondVideo).toHaveAttribute('src', '/api/video/billboard/movie-2');
@@ -455,8 +456,8 @@ describe('BillboardBase', () => {
 
     it('should fall back to the poster when video playback fails', async () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
       const video = container.querySelector('video');
-      expect(video).toBeInTheDocument();
 
       fireEvent.error(video as HTMLVideoElement);
 
@@ -464,6 +465,23 @@ describe('BillboardBase', () => {
         expect(container.querySelector('video')).not.toBeInTheDocument();
         expect(screen.getByTestId('next-image')).toHaveAttribute('src', mockData.thumbnailUrl);
       });
+    });
+
+    it('uses the poster without requesting video media when the file is unavailable', async () => {
+      (globalThis.fetch as jest.Mock).mockResolvedValueOnce(
+        { ok: true, headers: { get: () => 'false' } },
+      );
+
+      const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('next-image')).toHaveAttribute('src', mockData.thumbnailUrl);
+      });
+      expect(container.querySelector('video')).not.toBeInTheDocument();
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `/api/video/billboard/${mockData.id}`,
+        expect.objectContaining({ method: 'HEAD' }),
+      );
     });
   });
 

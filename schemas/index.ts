@@ -16,15 +16,14 @@ const defaultLoginValidationMessages: LoginValidationMessages = {
 export const createLoginSchema = (
   messages: LoginValidationMessages = defaultLoginValidationMessages,
 ) => z.object({
-  email: z.string().email(messages.emailRequired),
+  email: z.email(messages.emailRequired),
   password: z.string().min(1, messages.passwordRequired),
   code: z.optional(z.string().min(6, messages.codeRequired)),
 });
 
 export const LoginSchema = createLoginSchema();
 export const RegisterSchema = z.object({
-  /* NOSONAR */
-  email: z.string().email("Email is requierd"),
+  email: z.email("Email is requierd"),
   password: z.string().min(6, "Minimum 6 characters requierd"),
   confirm: z.string().min(6, "Minimum 6 characters requierd"),
   name: z.string().min(1, "Name is requierd")
@@ -34,8 +33,7 @@ export const RegisterSchema = z.object({
 });
 
 export const ResetPasswordSchema = z.object({
-  /* NOSONAR */
-  email: z.string().email("Email is requierd"),
+  email: z.email("Email is requierd"),
 })
 
 export const NewPasswordSchema = z.object({
@@ -45,8 +43,7 @@ export const SettingsSchema = z.object({
   name: z.string().trim().min(2, "Minimum 2 characters required").max(60, "Maximum 60 characters allowed"),
   isTwoFactorEnabled: z.optional(z.boolean()),
   role: z.optional(z.enum([UserRole.ADMIN, UserRole.USER])),
-  /* NOSONAR */
-  email: z.optional(z.string().email("Enter a valid email address")),
+  email: z.optional(z.email("Enter a valid email address")),
   password: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
   newPassword: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
 }).refine((data) => {

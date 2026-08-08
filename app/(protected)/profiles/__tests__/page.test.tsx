@@ -91,6 +91,7 @@ import { save } from "@/actions/profil/save";
 import { update } from "@/actions/profil/update";
 import { remove } from "@/actions/profil/remove";
 import { use as useProfil } from "@/actions/profil/use";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const mockGetProfils = getProfils as jest.MockedFunction<typeof getProfils>;
 const mockUseProfilModal = useProfilModal as jest.MockedFunction<typeof useProfilModal>;
@@ -1255,6 +1256,54 @@ describe("ProfilesPage", () => {
           expect(mockPush).toHaveBeenCalledWith("/");
         });
       }
+    });
+  });
+
+  describe("Accessible profile controls", () => {
+    it("exposes unique accessible names for profile selection and editing", () => {
+      render(<ProfilesPage />);
+
+      expect(screen.getByRole("button", { name: "Select profile User 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Select profile User 2" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit profile User 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Edit profile User 2" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Add Profile" })).toBeInTheDocument();
+    });
+
+    it("provides named semantic buttons throughout the profile editor", () => {
+      render(<ProfilesPage />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Edit profile User 1" }));
+
+      expect(screen.getByRole("button", { name: "Back to profiles" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Choose profile image" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save profile" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete profile" })).toBeInTheDocument();
+    });
+
+    it("localizes accessible profile control names", () => {
+      render(
+        <LanguageProvider initialLocale="de">
+          <ProfilesPage />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByRole("button", { name: "Profil auswählen User 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Profil bearbeiten User 1" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Profil hinzufügen" })).toBeInTheDocument();
+    });
+
+    it("activates profile selection from a focused semantic button", async () => {
+      render(<ProfilesPage />);
+      const profileButton = screen.getByRole("button", { name: "Select profile User 1" });
+
+      profileButton.focus();
+      expect(profileButton).toHaveFocus();
+      profileButton.click();
+
+      await waitFor(() => {
+        expect(mockUseProfil).toHaveBeenCalledWith({ profilId: "profile-1" });
+      });
     });
   });
 });

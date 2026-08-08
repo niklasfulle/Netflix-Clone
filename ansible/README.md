@@ -121,3 +121,13 @@ Wenn die Abfragen über den eingetragenen DNS-Server fehlschlagen, korrigiere di
 ### Docker meldet `Not supported URL scheme http+docker`
 
 Das erweiterte Playbook verwendet bewusst die Docker-CLI statt der Python-Docker-SDK-Module. Dadurch ist es unabhängig von inkompatiblen Kombinationen aus `requests`, Docker SDK und `community.docker`.
+
+### Chunk-Upload meldet `EACCES` für `/movies/temp`
+
+Repariere ausschließlich die Laufzeitverzeichnisse, ohne Image, Migration oder Container anzufassen:
+
+```bash
+ansible-playbook -i hosts update-netflix-clone.yml --tags runtime_permissions
+```
+
+Der Task setzt `/movies`, `/series` und die beiden `temp`-Verzeichnisse auf UID/GID `10001`. Vorhandene temporäre Chunk-Dateien werden rekursiv korrigiert; die großen Medienverzeichnisse selbst werden nicht rekursiv verändert.

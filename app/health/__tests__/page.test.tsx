@@ -20,11 +20,12 @@ describe("health page", () => {
     mockedGetHealthStatus.mockResolvedValue({
       status: "ok",
       service: "netflix-clone",
-      version: "1.10.0",
+      version: "1.10.1",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",
         database: "ok",
+        storage: "ok",
       },
     });
 
@@ -34,19 +35,20 @@ describe("health page", () => {
       screen.getByRole("heading", { name: "System Health" }),
     ).toBeInTheDocument();
     expect(screen.getByText("All systems operational")).toBeInTheDocument();
-    expect(screen.getAllByText("Operational")).toHaveLength(2);
-    expect(screen.getByText("1.10.0")).toBeInTheDocument();
+    expect(screen.getAllByText("Operational")).toHaveLength(3);
+    expect(screen.getByText("1.10.1")).toBeInTheDocument();
   });
 
   it("renders failed health checks", async () => {
     mockedGetHealthStatus.mockResolvedValue({
       status: "error",
       service: "netflix-clone",
-      version: "1.10.0",
+      version: "1.10.1",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",
         database: "error",
+        storage: "ok",
       },
     });
 

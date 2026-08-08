@@ -17,6 +17,19 @@ jest.mock('@/lib/logger', () => ({
   logBackendAction: jest.fn(),
 }));
 
+jest.mock('next/dist/client/components/redirect-error', () => ({
+  isRedirectError: jest.fn().mockReturnValue(false),
+}));
+
+jest.mock('@/lib/auth-throttle', () => ({
+  consumeAuthAttempt: jest.fn().mockResolvedValue({
+    allowed: true,
+    retryAfterSeconds: 0,
+    keyHash: 'test',
+  }),
+  releaseAuthAttempt: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/lib/mail', () => ({
   sendTwoFactorEmail: jest.fn(),
   sendVerificationEmail: jest.fn(),
@@ -60,6 +73,8 @@ import { db } from '@/lib/db';
 import { getTwoFactorConfirmationByUserId } from '@/data/two-factor-confirmation';
 import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
 import { getUserByEmail } from '@/data/user';
+import { releaseAuthAttempt } from '@/lib/auth-throttle';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 describe('login action - Authentication & Email Verification', () => {
   const mockSignIn = signIn as jest.MockedFunction<typeof signIn>;
@@ -71,6 +86,8 @@ describe('login action - Authentication & Email Verification', () => {
   const mockGetTwoFactorConfirmationByUserId = getTwoFactorConfirmationByUserId as jest.MockedFunction<typeof getTwoFactorConfirmationByUserId>;
   const mockGetTwoFactorTokenByEmail = getTwoFactorTokenByEmail as jest.MockedFunction<typeof getTwoFactorTokenByEmail>;
   const mockGetUserByEmail = getUserByEmail as jest.MockedFunction<typeof getUserByEmail>;
+  const mockReleaseAuthAttempt = releaseAuthAttempt as jest.MockedFunction<typeof releaseAuthAttempt>;
+  const mockIsRedirectError = isRedirectError as jest.MockedFunction<typeof isRedirectError>;
 
   const mockUser = {
     id: 'user-1',
@@ -84,6 +101,7 @@ describe('login action - Authentication & Email Verification', () => {
     jest.clearAllMocks();
     mockGetUserByEmail.mockResolvedValue(mockUser as any);
     mockSignIn.mockResolvedValue(undefined);
+    mockIsRedirectError.mockReturnValue(false);
   });
 
   it('✅ should successfully login with valid credentials', async () => {
@@ -101,6 +119,28 @@ describe('login action - Authentication & Email Verification', () => {
       password: 'password123',
     });
     expect(mockSignIn).toHaveBeenCalledWith('credentials', expect.any(Object));
+  });
+
+  it('✅ clears login throttling after successful authentication', async () => {
+    await login({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+
+    expect(mockReleaseAuthAttempt).toHaveBeenCalledWith('login', 'test@example.com');
+  });
+
+  it('✅ clears login throttling before forwarding a successful auth redirect', async () => {
+    const redirectError = new Error('NEXT_REDIRECT');
+    mockSignIn.mockRejectedValue(redirectError);
+    mockIsRedirectError.mockReturnValue(true);
+
+    await expect(login({
+      email: 'test@example.com',
+      password: 'password123',
+    })).rejects.toBe(redirectError);
+
+    expect(mockReleaseAuthAttempt).toHaveBeenCalledWith('login', 'test@example.com');
   });
 
   it('❌ should return error for invalid email format', async () => {

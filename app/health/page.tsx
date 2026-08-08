@@ -30,6 +30,7 @@ export default async function HealthPage() {
         <dl className="mt-8 grid gap-4 sm:grid-cols-2">
           <StatusCard label="Application" value={health.checks.application} />
           <StatusCard label="Database" value={health.checks.database} />
+          <StatusCard label="Media storage" value={health.checks.storage} />
           <InfoCard label="Version" value={health.version} />
           <InfoCard
             label="Last checked"

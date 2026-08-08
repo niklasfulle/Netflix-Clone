@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // Mock auth modules first to prevent ESM import errors
 jest.mock("@/lib/auth", () => ({
@@ -21,7 +21,7 @@ jest.mock("next/navigation");
 jest.mock("react-hot-toast");
 
 jest.mock("@/components/ui/form", () => ({
-  Form: ({ children, ...props }: any) => <form data-testid="form" {...props}>{children}</form>,
+  Form: ({ children }: any) => <>{children}</>,
   FormField: ({ name, children, render }: any) => {
     // Return a wrapper that includes the rendered field content
     const mockField = { name, value: "", onChange: jest.fn(), onBlur: jest.fn() };
@@ -66,14 +66,20 @@ jest.mock("@/components/ui/multi-select", () => {
   };
 });
 
-jest.mock("@/components/ThumbnailSelector", () => {
-  return function MockThumbnailSelector() {
-    return <div data-testid="thumbnail-selector">Thumbnail Selector</div>;
-  };
-});
+jest.mock("@/components/ThumbnailSelector", () => ({
+  ThumbnailSelector: () => <div data-testid="thumbnail-selector">Thumbnail Selector</div>,
+}));
 
-jest.mock("@/components/ThumbnailPreview", () => {
-  return function MockThumbnailPreview({ onManualUpload }: any) {
+jest.mock("@/components/MovieFormFields", () => ({
+  MovieFormFields: () => <div data-testid="movie-form-fields" />,
+}));
+
+jest.mock("@/components/VideoUploadField", () => ({
+  VideoUploadField: () => <div data-testid="video-upload-field" />,
+}));
+
+jest.mock("@/components/ThumbnailPreview", () => ({
+  ThumbnailPreview: ({ onManualUpload }: any) => {
     return (
       <div data-testid="thumbnail-preview">
         <button onClick={() => onManualUpload?.()}>
@@ -83,11 +89,13 @@ jest.mock("@/components/ThumbnailPreview", () => {
         Preview
       </div>
     );
-  };
-});
+  },
+}));
 
 jest.mock("lucide-react", () => ({
   Trash2: () => <span data-testid="trash-icon">Trash</span>,
+  Save: () => <span>Save</span>,
+  TriangleAlert: () => <span>Warning</span>,
   Upload: () => <span>Upload</span>,
   X: () => <span>X</span>,
   Check: () => <span>Check</span>,
@@ -150,6 +158,12 @@ const mockVideoThumbnail = {
   setThumbnailUrl: jest.fn(),
 };
 
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  refresh: jest.fn(),
+};
+
 describe("EditMovieForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -161,9 +175,7 @@ describe("EditMovieForm", () => {
 
     (useVideoThumbnailUpload as jest.Mock).mockReturnValue(mockVideoThumbnail);
 
-    (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-    });
+    (useRouter as jest.Mock).mockReturnValue(mockRouter);
 
     (toast.success as jest.Mock).mockImplementation(() => {});
     (toast.error as jest.Mock).mockImplementation(() => {});
@@ -311,6 +323,21 @@ describe("EditMovieForm", () => {
   });
 
   describe("Delete Functionality", () => {
+    it("replaces the edit route after confirmed deletion", async () => {
+      const navigateAfterDelete = jest.fn();
+      render(<EditMovieForm movie={mockMovie} navigateAfterDelete={navigateAfterDelete} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Inhalt löschen$/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Jetzt löschen$/ }));
+
+      await waitFor(() => {
+        expect(deleteMovieModule.deleteMovie).toHaveBeenCalledWith(mockMovie.id);
+      });
+      expect(navigateAfterDelete).toHaveBeenCalledWith("/admin/movies");
+      expect(mockRouter.push).not.toHaveBeenCalled();
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+    });
+
     it("deleteMovie is callable", async () => {
       await deleteMovieModule.deleteMovie("movie-1");
       expect(deleteMovieModule.deleteMovie).toHaveBeenCalledWith("movie-1");

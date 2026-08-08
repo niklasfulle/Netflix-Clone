@@ -22,6 +22,14 @@
     group: root
     mode: "0755"
 
+- name: Ensure collected container logs are readable by the application
+  file:
+    path: /var/lib/netflix-logs
+    state: directory
+    owner: '10001'
+    group: '10001'
+    mode: '0750'
+
 - name: Install system metrics service
   template:
     src: "{{ playbook_dir }}/templates/netflix-monitor.service.j2"

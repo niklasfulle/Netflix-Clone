@@ -74,6 +74,7 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
   const result = await backendLogStore.query(query);
 
   return NextResponse.json({
+    source: "application",
     logs: result.logs,
     total: result.total,
     page,

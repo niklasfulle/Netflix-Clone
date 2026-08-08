@@ -12,12 +12,14 @@ import { use as useProfil } from '@/actions/profil/use';
 import Footer from '@/components/Footer';
 import Input from '@/components/Input';
 import ProfilModal from '@/components/ProfilModal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import getProfils from '@/hooks/getProfils';
 import useProfilModal from '@/hooks/useProfilModal';
 import type { ProfileDto } from '@/lib/api-types';
 
 const ProfilesPage = () => {
   const router = useRouter();
+  const { t } = useLanguage();
   const profiles = getProfils().data;
   const [profileState, setProfileState] = useState<string>("profiles");
   const [profileStateEdit, setProfileStateEdit] = useState<ProfileDto | null>(null);
@@ -101,26 +103,28 @@ const ProfilesPage = () => {
       />
       <div className="flex items-center justify-center h-svh -mt-20 mb-11">
         <div className="flex flex-col">
-          {size != 0 && profileState == "profiles" && (
+          {size !== 0 && profileState === "profiles" && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
-                Who is watching?
+                {t('Who is watching?')}
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
                 {profiles?.map((profil) => (
                   <div key={profil.id}>
                     <div className="flex-row mx-auto group w-44">
                       <button
+                        type="button"
+                        aria-label={`${t('Select profile')} ${profil.name ?? ''}`.trim()}
                         onClick={() => {
                           if (profil) {
                             profileUse(profil.id);
                           }
                         }}
-                        className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white"
+                        className="relative flex items-center justify-center overflow-hidden border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white focus-visible:border-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                       >
                         <Image
                           src={`/images/profil/${profil.image ?? 'placeholder.png'}`}
-                          alt="Profile"
+                          alt={profil.name ?? t('Profile')}
                           width={320}
                           height={320}
                         />
@@ -129,26 +133,31 @@ const ProfilesPage = () => {
                         <div className="mt-4 text-2xl text-center text-gray-400 group-hover:text-white">
                           {profil.name}
                         </div>
-                        <FaPen
+                        <button
+                          type="button"
+                          aria-label={`${t('Edit profile')} ${profil.name ?? ''}`.trim()}
                           onClick={() => {
                             setProfileStateEdit(profil);
                             setProfileState("edit");
                             setProfilName(profil.name ?? "");
                             setProfilImg(profil.image ?? "placeholder.png");
                           }}
-                          className="z-10 mt-4 text-white transition-all ease-in cursor-pointer hover:text-neutral-500"
-                          size={20}
-                        />
+                          className="z-10 mt-4 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        >
+                          <FaPen className="cursor-pointer" aria-hidden="true" size={20} />
+                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
                 {size < 4 && (
                   <button
+                    type="button"
+                    aria-label={t('Add Profile')}
                     onClick={() => {
                       setProfileState("add");
                     }}
-                    className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300"
+                    className="flex items-center justify-center w-12 h-12 -mt-12 transition delay-200 border-2 border-white rounded-full cursor-pointer hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                   >
                     <FaPlus className="text-white" size={25} />
                   </button>
@@ -156,17 +165,19 @@ const ProfilesPage = () => {
               </div>
             </>
           )}
-          {size == 0 && profileState == "profiles" && (
+          {size === 0 && profileState === "profiles" && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
-                Who is watching?
+                {t('Who is watching?')}
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
                 <button
+                  type="button"
+                  aria-label={t('Add Profile')}
                   onClick={() => {
                     setProfileState("add");
                   }}
-                  className="flex items-center justify-center w-12 h-12 -mt-12 transition-all ease-in delay-200 border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition-all ease-in delay-200 border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                 >
                   <FaPlus
                     className="text-white hover:text-neutral-300"
@@ -177,18 +188,20 @@ const ProfilesPage = () => {
               </div>
             </>
           )}
-          {profileState == "add" && (
+          {profileState === "add" && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
-                Add Profile
+                {t('Add Profile')}
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
                 <button
+                  type="button"
+                  aria-label={t('Back to profiles')}
                   onClick={() => {
                     setProfileState("profiles");
                     setProfilName("");
                   }}
-                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                 >
                   <FaArrowLeft
                     className="text-white transition-all ease-in hover:text-neutral-300"
@@ -199,12 +212,14 @@ const ProfilesPage = () => {
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
                       <button
-                        className="relative"
+                        type="button"
+                        aria-label={t('Choose profile image')}
+                        className="relative focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                         onClick={() => openModal("")}
                       >
                         <Image
                           src={`/images/profil/${profilImg}`}
-                          alt="Profil"
+                          alt=""
                           width={320}
                           height={320}
                         />
@@ -230,31 +245,36 @@ const ProfilesPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 -mt-12 transition rounded-full cursor-pointer ">
+                <button
+                  type="button"
+                  aria-label={t('Save profile')}
+                  onClick={() => saveProfil(profilName)}
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition rounded-full cursor-pointer hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
+                >
                   <FaRegSave
-                    onClick={() => {
-                      saveProfil(profilName);
-                    }}
                     className="text-white transition-all ease-in hover:text-neutral-300"
+                    aria-hidden="true"
                     size={35}
                   />
-                </div>
+                </button>
               </div>
             </>
           )}
-          {profileState == "edit" && profileStateEdit != null && (
+          {profileState === "edit" && profileStateEdit !== null && (
             <>
               <h1 className="text-3xl text-center text-white md:text-6xl">
-                Add Profile
+                {t('Add Profile')}
               </h1>
               <div className="flex items-center justify-center gap-8 mt-10">
                 <button
+                  type="button"
+                  aria-label={t('Back to profiles')}
                   onClick={() => {
                     setProfileState("profiles");
                     setProfilName("");
                     setProfilImg("Frog.png");
                   }}
-                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300"
+                  className="flex items-center justify-center w-12 h-12 -mt-12 transition border-2 border-white rounded-full cursor-pointer group hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                 >
                   <FaArrowLeft
                     className="text-white transition-all ease-in hover:text-neutral-300"
@@ -265,12 +285,14 @@ const ProfilesPage = () => {
                   <div className="flex-row mx-auto text-white transition-all ease-in group w-44 hover:text-neutral-400">
                     <div className="flex items-center justify-center overflow-hidden transition-all ease-in border-2 border-transparent rounded-md w-44 h-44 group-hover:cursor-pointer group-hover:border-white">
                       <button
-                        className="relative"
+                        type="button"
+                        aria-label={t('Choose profile image')}
+                        className="relative focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
                         onClick={() => openModal("")}
                       >
                         <Image
                           src={`/images/profil/${profilImg}`}
-                          alt="Profil"
+                          alt=""
                           width={320}
                           height={320}
                         />
@@ -296,25 +318,31 @@ const ProfilesPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-8 -mt-16 transition rounded-full cursor-pointer ">
-                  <FaRegSave
+                <div className="flex flex-col items-center justify-center gap-8 -mt-16 transition rounded-full">
+                  <button
+                    type="button"
+                    aria-label={t('Save profile')}
                     onClick={() => {
                       if (profileStateEdit) {
                         updateProfil(profileStateEdit.id, profilName);
                       }
                     }}
-                    className="text-white transition-all ease-in hover:text-neutral-300"
-                    size={35}
-                  />
-                  <FaRegTrashAlt
+                    className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full text-white transition-colors hover:bg-white/10 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
+                  >
+                    <FaRegSave className="cursor-pointer text-white" aria-hidden="true" size={35} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t('Delete profile')}
                     onClick={() => {
                       if (profileStateEdit) {
                         removeProfil(profileStateEdit?.id);
                       }
                     }}
-                    className="text-red-600 transition-all ease-in hover:text-red-500"
-                    size={35}
-                  />
+                    className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-600/10 hover:text-red-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/70"
+                  >
+                    <FaRegTrashAlt className="cursor-pointer text-red-600" aria-hidden="true" size={35} />
+                  </button>
                 </div>
               </div>
             </>

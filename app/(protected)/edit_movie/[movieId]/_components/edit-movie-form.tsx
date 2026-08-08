@@ -37,9 +37,15 @@ export interface EditableMovie {
 
 interface EditMovieFormProps {
   movie: EditableMovie;
+  navigateAfterDelete?: (path: string) => void;
 }
 
-export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
+const replaceBrowserLocation = (path: string) => window.location.replace(path);
+
+export const EditMovieForm = ({
+  movie,
+  navigateAfterDelete = replaceBrowserLocation,
+}: EditMovieFormProps) => {
   const router = useRouter();
   const { actors: actorOptionsRaw, isLoading: actorsLoading } = useActorsAll();
   let actorSelectOptions: { label: string; value: string }[] = [];
@@ -123,11 +129,11 @@ export const EditMovieForm = ({ movie }: EditMovieFormProps) => {
 
       if (result.error) {
         toast.error(result.error);
-      } else if (result.success) {
-        toast.success(result.success);
-        setTimeout(() => {
-          router.push("/admin/movies");
-        }, 1000);
+        return;
+      }
+
+      if (result.success) {
+        navigateAfterDelete("/admin/movies");
       }
     } catch (error) {
       console.error("Error deleting movie:", error);

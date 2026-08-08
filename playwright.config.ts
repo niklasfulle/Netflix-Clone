@@ -17,12 +17,30 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   use: {
-    ...devices['Desktop Chrome'],
     baseURL,
-    channel: 'chrome',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
+  projects: [
+    {
+      name: 'auth-setup',
+      fullyParallel: false,
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    },
+    {
+      name: 'desktop',
+      dependencies: ['auth-setup'],
+      testIgnore: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    },
+    {
+      name: 'mobile',
+      dependencies: ['auth-setup'],
+      testIgnore: /auth\.setup\.ts/,
+      use: { ...devices['Pixel 7'], channel: 'chrome' },
+    },
+  ],
   webServer: useExternalServer
     ? undefined
     : {

@@ -8,6 +8,7 @@ movies
 series
 .scannerwork
 .sonar
+**/.sonar
 .swc
 .vscode
 .idea

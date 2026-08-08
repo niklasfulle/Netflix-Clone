@@ -4,8 +4,8 @@ import PlayButton from '../PlayButton';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }: any) => (
-    <a href={href} data-testid="play-link">
+  return ({ children, href, ...props }: any) => (
+    <a href={href} data-testid="play-link" {...props}>
       {children}
     </a>
   );
@@ -284,6 +284,11 @@ describe('PlayButton Component', () => {
   });
 
   describe('Accessibility', () => {
+    test('should expose an accessible name when responsive text is hidden', () => {
+      render(<PlayButton movieId={mockMovieId} />);
+      expect(screen.getByRole('link', { name: 'Play content' })).toBeTruthy();
+    });
+
     test('should have semantic link element', () => {
       render(<PlayButton movieId={mockMovieId} />);
       const link = screen.getByTestId('play-link');

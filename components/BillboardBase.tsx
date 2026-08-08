@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import BillboardInfoButton from '@/components/BillboardInfoButton';
 import BillboardPlayButton from '@/components/BillboardPlayButton';
 import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
+import { useBillboardVideoAvailability } from '@/hooks/useBillboardVideoAvailability';
 
 interface BillboardBaseProps {
   data?: CatalogItemDto | null;
@@ -29,14 +30,19 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
     setVideoFailed(false);
   }, [data?.id]);
 
+  const videoAvailable = useBillboardVideoAvailability(
+    data?.id,
+    !isLoading && isDesktop,
+  );
+
   const playVideo = (video: HTMLVideoElement) => {
     const playAttempt = video.play();
     playAttempt?.catch(() => undefined);
   };
 
   const hasPoster = Boolean(data?.thumbnailUrl);
-  const showVideo = !isLoading && isDesktop && Boolean(data?.id) && !videoFailed;
-  const showPoster = !isLoading && hasPoster && (!isDesktop || videoFailed || !data?.id);
+  const showVideo = !isLoading && isDesktop && videoAvailable && !videoFailed;
+  const showPoster = !isLoading && hasPoster && (!showVideo || videoFailed);
 
   return (
     <div className="relative h-[56.25vw] w-full overflow-hidden">
@@ -94,10 +100,12 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
             {(data?.description?.length ?? 0) >= 140 && "..."}
           </p>
         )}
-        <div className="flex flex-row items-center gap-3 mt-3 md:mt-4 z-10">
-          <BillboardPlayButton movieId={data?.id || ''} />
-          <BillboardInfoButton movieId={data?.id || ''} />
-        </div>
+        {!isLoading && data?.id && (
+          <div className="flex flex-row items-center gap-3 mt-3 md:mt-4 z-10">
+            <BillboardPlayButton movieId={data.id} />
+            <BillboardInfoButton movieId={data.id} />
+          </div>
+        )}
       </div>
     </div>
   );

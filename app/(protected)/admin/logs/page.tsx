@@ -13,8 +13,12 @@ type LogEntry = {
   action?: string;
   userId?: string;
   level?: string;
+  message?: string;
+  source?: string;
   [key: string]: unknown;
 };
+
+type LogSource = "application" | "container";
 
 const fetcher = (url: string) => fetch(url).then(async (response) => {
   const data = await response.json();
@@ -29,7 +33,48 @@ const levelStyles: Record<string, string> = {
   error: "bg-red-500/10 text-red-300 ring-red-500/20",
 };
 
+const sourceDetails = {
+  application: {
+    endpoint: "/api/logs",
+    filterGrid: "xl:grid-cols-[minmax(240px,1fr)_150px_180px_180px_160px_160px]",
+    thirdHeader: "Aktion",
+    fourthHeader: "Benutzer-ID",
+    detailWidth: "max-w-[220px]",
+    canClear: true,
+  },
+  container: {
+    endpoint: "/api/admin/container-logs",
+    filterGrid: "xl:grid-cols-[minmax(320px,1fr)_150px_160px_160px]",
+    thirdHeader: "Quelle",
+    fourthHeader: "Nachricht",
+    detailWidth: "max-w-[560px]",
+    canClear: false,
+  },
+} as const;
+
+function levelLabel(level?: string) {
+  if (level === "warning") return "WARN";
+  return (level || "UNKNOWN").toUpperCase();
+}
+
+function filterLevelLabel(level: string) {
+  return level === "warn" ? "WARN" : level.toUpperCase();
+}
+
+function messageStyle(message: string) {
+  return message.includes("wurden") ? "text-emerald-400" : "text-red-400";
+}
+
+function logSourceValue(source: LogSource, log: LogEntry) {
+  return source === "container" ? "netflix-clone" : (log.action || "–");
+}
+
+function logDetailValue(source: LogSource, log: LogEntry) {
+  return source === "container" ? (log.message || "–") : (log.userId || "–");
+}
+
 export default function AdminLogsPage() {
+  const [source, setSource] = useState<LogSource>("application");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState("all");
@@ -61,7 +106,10 @@ export default function AdminLogsPage() {
   const params = useMemo(() => new URLSearchParams({
     page: String(page), pageSize: String(pageSize), search, level, action, userId, from, to,
   }).toString(), [page, pageSize, search, level, action, userId, from, to]);
-  const { data, error, isLoading, mutate, isValidating } = useSWR(`/api/logs?${params}`, fetcher, { refreshInterval: autoRefresh ? 10_000 : 0, keepPreviousData: true });
+  const sourceDetail = sourceDetails[source];
+  const logEndpoint = sourceDetail.endpoint;
+  const { data, error, isLoading, mutate, isValidating } = useSWR(`${logEndpoint}?${params}`, fetcher, { refreshInterval: autoRefresh ? 10_000 : 0, keepPreviousData: true });
+  const visibleData = data?.source === source ? data : undefined;
 
   const clearLogs = async () => {
     const response = await fetch("/api/logs/clear", {
@@ -85,6 +133,10 @@ export default function AdminLogsPage() {
     setSearchInput(""); setSearch(""); setLevel("all"); setAction(""); setUserId(""); setFrom(""); setTo(""); setPage(1);
   };
 
+  const selectSource = (nextSource: LogSource) => {
+    setSource(nextSource); setPage(1); setDetail(null); setClearOpen(false); setMessage("");
+  };
+
   return (
     <div>
       <AdminPageHeader
@@ -95,24 +147,29 @@ export default function AdminLogsPage() {
             <label className="flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-300">
               <input type="checkbox" checked={autoRefresh} onChange={(event) => setAutoRefresh(event.target.checked)} className="accent-red-600" /> Auto-Refresh
             </label>
-            <a href={`/api/logs?${params}&format=csv`} className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800"><Download className="h-4 w-4" /> CSV</a>
-            <button type="button" onClick={() => setClearOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"><Trash2 className="h-4 w-4" /> Logs leeren</button>
+            <a href={`${logEndpoint}?${params}&format=csv`} className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800"><Download className="h-4 w-4" /> CSV</a>
+            {sourceDetail.canClear ? <button type="button" onClick={() => setClearOpen(true)} className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500"><Trash2 className="h-4 w-4" /> Logs leeren</button> : null}
           </>
         }
       />
 
-      {data?.counts && (
+      <div className="mb-5 inline-flex rounded-xl border border-zinc-800 bg-zinc-950 p-1" aria-label="Log-Quelle">
+        <button type="button" onClick={() => selectSource("application")} aria-pressed={source === "application"} className={`rounded-lg px-4 py-2 text-sm ${source === "application" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Anwendungs-Logs</button>
+        <button type="button" onClick={() => selectSource("container")} aria-pressed={source === "container"} className={`rounded-lg px-4 py-2 text-sm ${source === "container" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Docker-Container</button>
+      </div>
+
+      {visibleData?.counts && (
         <div className="mb-5 flex flex-wrap gap-2">
-          {["info", "warn", "error"].map((item) => <button key={item} type="button" onClick={() => { setLevel(item); setPage(1); }} className={`rounded-full px-3 py-1.5 text-xs font-medium ring-1 ${levelStyles[item]}`}>{item === "warn" ? "WARN" : item.toUpperCase()} · {data.counts[item] || 0}</button>)}
+          {["info", "warn", "error"].map((item) => <button key={item} type="button" onClick={() => { setLevel(item); setPage(1); }} className={`rounded-full px-3 py-1.5 text-xs font-medium ring-1 ${levelStyles[item]}`}>{filterLevelLabel(item)} · {visibleData.counts[item] || 0}</button>)}
         </div>
       )}
 
       <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
-        <div className="grid gap-3 border-b border-zinc-800 p-4 xl:grid-cols-[minmax(240px,1fr)_150px_180px_180px_160px_160px]">
+        <div className={`grid gap-3 border-b border-zinc-800 p-4 ${sourceDetail.filterGrid}`}>
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" /><span className="sr-only">Logs durchsuchen</span><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Volltextsuche …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" /></label>
           <select aria-label="Nach Log-Level filtern" value={level} onChange={(event) => { setLevel(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Level</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option></select>
-          <input aria-label="Nach Aktion filtern" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
-          <input aria-label="Nach Benutzer-ID filtern" value={userId} onChange={(event) => { setUserId(event.target.value); setPage(1); }} placeholder="Benutzer-ID …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" />
+          {source === "application" ? <input aria-label="Nach Aktion filtern" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" /> : null}
+          {source === "application" ? <input aria-label="Nach Benutzer-ID filtern" value={userId} onChange={(event) => { setUserId(event.target.value); setPage(1); }} placeholder="Benutzer-ID …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" /> : null}
           <input type="date" aria-label="Von Datum" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
           <input type="date" aria-label="Bis Datum" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
         </div>
@@ -120,29 +177,30 @@ export default function AdminLogsPage() {
           <button type="button" onClick={resetFilters} className="text-xs text-zinc-500 hover:text-white">Filter zurücksetzen</button>
           <span className="flex items-center gap-2 text-xs text-zinc-600"><RefreshCw className={`h-3 w-3 ${isValidating ? "animate-spin" : ""}`} /> {autoRefresh ? "Aktualisierung alle 10 Sekunden" : "Manuelle Aktualisierung"}</span>
         </div>
-        {message && <output className={`block border-b border-zinc-800 px-4 py-3 text-sm ${message.includes("wurden") ? "text-emerald-400" : "text-red-400"}`}>{message}</output>}
+        {message && <output className={`block border-b border-zinc-800 px-4 py-3 text-sm ${messageStyle(message)}`}>{message}</output>}
+        {source === "container" && visibleData?.available === false ? <output className="block border-b border-zinc-800 px-4 py-3 text-sm text-amber-300">Der Host-Collector hat noch keine Container-Logs bereitgestellt.</output> : null}
         {error && <p role="alert" className="p-5 text-red-400">{error.message}</p>}
         {isLoading && <div className="h-80 animate-pulse bg-zinc-900" aria-label="Logs werden geladen" />}
-        {data && (
+        {visibleData && (
           <>
             <div className="overflow-x-auto">
               <table className="min-w-[900px] w-full text-left text-sm">
-                <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs uppercase tracking-wide text-zinc-500"><tr><th className="px-5 py-3">Zeit</th><th className="px-3 py-3">Level</th><th className="px-3 py-3">Aktion</th><th className="px-3 py-3">Benutzer-ID</th><th className="px-5 py-3 text-right">Details</th></tr></thead>
+                <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs uppercase tracking-wide text-zinc-500"><tr><th className="px-5 py-3">Zeit</th><th className="px-3 py-3">Level</th><th className="px-3 py-3">{sourceDetail.thirdHeader}</th><th className="px-3 py-3">{sourceDetail.fourthHeader}</th><th className="px-5 py-3 text-right">Details</th></tr></thead>
                 <tbody className="divide-y divide-zinc-800">
-                  {data.logs.length === 0 && <tr><td colSpan={5} className="p-14 text-center text-zinc-500">Keine Logs für diese Filter gefunden.</td></tr>}
-                  {data.logs.map((log: LogEntry, index: number) => (
+                  {visibleData.logs.length === 0 && <tr><td colSpan={5} className="p-14 text-center text-zinc-500">Keine Logs für diese Filter gefunden.</td></tr>}
+                  {visibleData.logs.map((log: LogEntry, index: number) => (
                     <tr key={`${log.timestamp}-${index}`} className="hover:bg-zinc-800/50">
                       <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-zinc-400">{log.timestamp ? new Date(log.timestamp).toLocaleString("de-DE") : "–"}</td>
-                      <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${levelStyles[log.level || ""] || "bg-zinc-800 text-zinc-300 ring-zinc-700"}`}>{log.level === "warning" ? "WARN" : (log.level || "UNKNOWN").toUpperCase()}</span></td>
-                      <td className="px-3 py-3 font-medium text-zinc-200">{log.action || "–"}</td>
-                      <td className="max-w-[220px] truncate px-3 py-3 font-mono text-xs text-zinc-500">{log.userId || "–"}</td>
+                      <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${levelStyles[log.level || ""] || "bg-zinc-800 text-zinc-300 ring-zinc-700"}`}>{levelLabel(log.level)}</span></td>
+                      <td className="px-3 py-3 font-medium text-zinc-200">{logSourceValue(source, log)}</td>
+                      <td className={`${sourceDetail.detailWidth} truncate px-3 py-3 font-mono text-xs text-zinc-500`}>{logDetailValue(source, log)}</td>
                       <td className="px-5 py-3 text-right"><button type="button" onClick={() => setDetail(log)} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700">Anzeigen</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <AdminPagination page={page} totalPages={data.totalPages} total={data.total} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+            <AdminPagination page={page} totalPages={visibleData.totalPages} total={visibleData.total} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
           </>
         )}
       </section>

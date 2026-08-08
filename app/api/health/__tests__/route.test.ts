@@ -6,11 +6,17 @@ jest.mock("@/lib/db", () => ({
   },
 }));
 
+jest.mock("node:fs/promises", () => ({
+  access: jest.fn(),
+}));
+
+import { access } from "node:fs/promises";
 import { db } from "@/lib/db";
 import { GET } from "@/app/api/health/route";
 import { publicRoutes } from "@/routes";
 
 const mockedQueryRaw = db.$queryRaw as jest.Mock;
+const mockedAccess = access as jest.Mock;
 
 describe("health endpoint", () => {
   beforeEach(() => {
@@ -28,13 +34,29 @@ describe("health endpoint", () => {
     expect(body).toMatchObject({
       status: "ok",
       service: "netflix-clone",
-      version: "1.10.0",
+      version: "1.10.1",
       checks: {
         application: "ok",
         database: "ok",
+        storage: "ok",
       },
     });
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
+  });
+
+  it("returns 503 without exposing paths when media storage is not writable", async () => {
+    mockedQueryRaw.mockResolvedValue([{ "?column?": 1 }]);
+    mockedAccess.mockRejectedValueOnce(Object.assign(new Error("/movies/temp denied"), {
+      code: "EACCES",
+    }));
+
+    const response = await GET();
+    const serializedBody = JSON.stringify(await response.json());
+
+    expect(response.status).toBe(503);
+    expect(serializedBody).toContain('"storage":"error"');
+    expect(serializedBody).not.toContain("/movies");
+    expect(serializedBody).not.toContain("denied");
   });
 
   it("returns 503 without exposing database error details", async () => {

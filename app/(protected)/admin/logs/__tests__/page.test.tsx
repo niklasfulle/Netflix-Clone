@@ -8,6 +8,7 @@ const log = { timestamp: "2026-07-26T12:00:00.000Z", level: "warn", action: "upl
 const mutate = jest.fn();
 const mockedUseSWR = useSWR as jest.Mock;
 const logsData = {
+  source: "application",
   logs: [log],
   total: 1,
   totalPages: 1,
@@ -37,6 +38,35 @@ it("uses the logger's warn level and opens structured details", () => {
   fireEvent.click(screen.getByRole("button", { name: "Anzeigen" }));
   expect(screen.getByRole("dialog", { name: "Log-Details" })).toBeInTheDocument();
   expect(screen.getAllByText(/upload_slow/).length).toBeGreaterThan(0);
+});
+
+it("switches to read-only Docker container logs", () => {
+  mockedUseSWR.mockReturnValue({
+    data: {
+      source: "container",
+      logs: [{
+        timestamp: "2026-08-08T12:00:00.000Z",
+        level: "error",
+        message: "Container failed",
+        source: "container",
+      }],
+      total: 1,
+      totalPages: 1,
+      counts: { info: 0, warn: 0, error: 1 },
+      available: true,
+    },
+    error: undefined,
+    isLoading: false,
+    mutate,
+    isValidating: false,
+  });
+  render(<AdminLogsPage />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Docker-Container" }));
+
+  expect(mockedUseSWR.mock.calls.at(-1)[0]).toContain("/api/admin/container-logs?");
+  expect(screen.getByText("Container failed")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Logs leeren/i })).not.toBeInTheDocument();
 });
 
 it("requires typed confirmation before clearing logs", () => {
@@ -209,7 +239,7 @@ it("renders loading, API error and empty log states", () => {
   expect(screen.getByRole("alert")).toHaveTextContent("Logs offline");
 
   mockedUseSWR.mockReturnValueOnce({
-    data: { logs: [], total: 0, totalPages: 0, counts: { info: 0, warn: 0, error: 0 } },
+    data: { source: "application", logs: [], total: 0, totalPages: 0, counts: { info: 0, warn: 0, error: 0 } },
     error: undefined,
     isLoading: false,
     mutate,

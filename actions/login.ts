@@ -1,6 +1,7 @@
 "use server"
 import { logBackendAction } from '@/lib/logger';
 import { AuthError } from 'next-auth';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import * as z from 'zod';
 
 import { signIn } from '@/auth';
@@ -12,9 +13,14 @@ import { sendTwoFactorEmail, sendVerificationEmail } from '@/lib/mail';
 import { generateTwoFactorToken, generateVerificationToken } from '@/lib/tokens';
 import { DEFAULT_LOGIN_REDIRECT } from '@/routes';
 import { LoginSchema } from '@/schemas';
-import { consumeAuthAttempt } from '@/lib/auth-throttle';
+import { consumeAuthAttempt, releaseAuthAttempt } from '@/lib/auth-throttle';
 
 const RATE_LIMIT_MESSAGE = "Too many attempts. Please try again later.";
+
+const completeSuccessfulLogin = async (email: string) => {
+  await releaseAuthAttempt('login', email);
+  logBackendAction('login_success', { email }, 'info');
+};
 
 const enforceThrottle = async (scope: 'login' | 'verification-resend' | 'two-factor', account: string) => {
   const result = await consumeAuthAttempt(scope, account);
@@ -142,7 +148,11 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
   try {
     await signIn("credentials", { email, password, redirectTo: DEFAULT_LOGIN_REDIRECT })
   } catch (error) {
+    if (isRedirectError(error)) {
+      await completeSuccessfulLogin(email);
+      throw error;
+    }
     return handleAuthError(error, email)
   }
-  logBackendAction('login_success', { email }, 'info');
+  await completeSuccessfulLogin(email);
 }

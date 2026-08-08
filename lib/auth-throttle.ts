@@ -32,16 +32,23 @@ async function requestIp(): Promise<string> {
   }
 }
 
+async function throttleKeys(account: string) {
+  const ip = await requestIp();
+  return {
+    account: `account:${hashIdentifier(account || 'unknown')}`,
+    ip: `ip:${hashIdentifier(ip)}`,
+  };
+}
+
 export async function consumeAuthAttempt(scope: AuthThrottleScope, account: string) {
   if (process.env.NODE_ENV === 'test' && process.env.ENABLE_AUTH_THROTTLE_IN_TESTS !== 'true') {
     return { allowed: true, retryAfterSeconds: 0, keyHash: 'test' };
   }
-  const ip = await requestIp();
   const accountHash = hashIdentifier(account || 'unknown');
-  const ipHash = hashIdentifier(ip);
+  const keys = await throttleKeys(account);
   const limiter = limiters[scope];
-  const accountResult = limiter.consume(`account:${accountHash}`);
-  const ipResult = limiter.consume(`ip:${ipHash}`);
+  const accountResult = limiter.consume(keys.account);
+  const ipResult = limiter.consume(keys.ip);
   const allowed = accountResult.allowed && ipResult.allowed;
 
   return {
@@ -49,4 +56,11 @@ export async function consumeAuthAttempt(scope: AuthThrottleScope, account: stri
     retryAfterSeconds: Math.max(accountResult.retryAfterSeconds, ipResult.retryAfterSeconds),
     keyHash: accountHash,
   };
+}
+
+export async function releaseAuthAttempt(scope: AuthThrottleScope, account: string) {
+  const keys = await throttleKeys(account);
+  const limiter = limiters[scope];
+  limiter.refund(keys.account);
+  limiter.refund(keys.ip);
 }

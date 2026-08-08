@@ -71,7 +71,10 @@ import { POST as uploadMovie } from '@/app/api/movies/upload';
 import { POST as uploadChunk } from '@/app/api/movies/upload-chunk/route';
 import { DELETE as deleteMovieFile } from '@/app/api/movies/delete/route';
 import { GET as streamVideo } from '@/app/api/video/[videoId]/route';
-import { GET as streamBillboard } from '@/app/api/video/billboard/[videoId]/route';
+import {
+  GET as streamBillboard,
+  HEAD as checkBillboardAvailability,
+} from '@/app/api/video/billboard/[videoId]/route';
 import { GET as getLogs } from '@/app/api/logs/route';
 import { POST as clearLogs } from '@/app/api/logs/clear/route';
 
@@ -246,6 +249,24 @@ describe('file and remaining API routes', () => {
     expect((await streamVideo(range, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(206);
     expect((await streamBillboard(noRange, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(200);
     expect((await streamBillboard(range, { params: Promise.resolve({ videoId: 'movie1' }) })).status).toBe(206);
+  });
+
+  it('reports unavailable billboard media without a failed response', async () => {
+    mockedDb.movie.findUnique.mockResolvedValue({
+      id: 'movie1',
+      type: 'Movie',
+      status: 'PUBLISHED',
+      videoUrl: 'missing-video',
+    });
+    mockedFs.existsSync.mockReturnValue(false);
+
+    const response = await checkBillboardAvailability(
+      { headers: new Headers() } as any,
+      { params: Promise.resolve({ videoId: 'movie1' }) },
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get('x-video-available')).toBe('false');
   });
 
   it('does not stream unpublished content to regular users', async () => {

@@ -41,4 +41,15 @@ describe('createRateLimiter', () => {
 
     expect(limiter.size()).toBeLessThanOrEqual(2);
   });
+
+  it('refunds a successful attempt without clearing earlier failures', () => {
+    const limiter = createRateLimiter({ limit: 2, windowMs: 10_000 });
+
+    expect(limiter.consume('account').allowed).toBe(true);
+    expect(limiter.consume('account').allowed).toBe(true);
+    limiter.refund('account');
+
+    expect(limiter.consume('account').allowed).toBe(true);
+    expect(limiter.consume('account').allowed).toBe(false);
+  });
 });

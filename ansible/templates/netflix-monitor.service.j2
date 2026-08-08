@@ -9,12 +9,14 @@ Group=root
 Environment=NETFLIX_CONTAINER_NAME=netflix-clone
 Environment=NETFLIX_MONITOR_OUTPUT=/var/lib/netflix-monitor/status.json
 Environment=NETFLIX_BACKUP_STATUS=/var/lib/netflix-backup-status/last-backup.json
+Environment=NETFLIX_CONTAINER_LOG_OUTPUT=/var/lib/netflix-logs/container.log
+Environment=NETFLIX_CONTAINER_LOG_TAIL=2000
 ExecStart=/usr/bin/python3 /usr/local/lib/netflix-monitor/collector.py
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/var/lib/netflix-monitor
+ReadWritePaths=/var/lib/netflix-monitor /var/lib/netflix-logs
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

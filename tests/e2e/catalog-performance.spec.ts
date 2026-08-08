@@ -1,36 +1,10 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
+import { authStatePaths } from './support';
 
 const INITIAL_CATALOG_JSON_BUDGET_BYTES = 250_000;
 
-function requiredEnvironmentVariable(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing ${name}. Add it to .env.e2e.local.`);
-  return value;
-}
-
-async function login(page: Page) {
-  await page.goto('/auth/login');
-  await page.locator('input[type="email"]').fill(requiredEnvironmentVariable('E2E_USER_EMAIL'));
-  await page.locator('input[type="password"]').fill(requiredEnvironmentVariable('E2E_USER_PASSWORD'));
-  await page.locator('button[type="submit"]').click();
-  await expect(page).not.toHaveURL(/\/auth\/login(?:\?.*)?$/, { timeout: 20_000 });
-  if (new URL(page.url()).pathname === '/profiles') {
-    await expect(page.getByRole('heading', { name: 'Who is watching?' })).toBeVisible();
-    await page.waitForLoadState('networkidle');
-    let profileButton = page.locator('button.w-44.h-44').first();
-    if (await profileButton.count() === 0) {
-      await page.locator('button').first().click();
-      await expect(page.getByRole('heading', { name: 'Add Profile' })).toBeVisible();
-      await page.locator('#profilName').fill('E2E Profile');
-      await page.locator('svg[class*="hover:text-neutral-300"]').last().click();
-      await expect(page.getByRole('heading', { name: 'Who is watching?' })).toBeVisible();
-      profileButton = page.locator('button.w-44.h-44').first();
-    }
-    await page.waitForLoadState('networkidle');
-    await profileButton.click();
-    await expect(page).not.toHaveURL(/\/profiles(?:\?.*)?$/, { timeout: 20_000 });
-  }
-}
+test.use({ storageState: authStatePaths.user });
 
 test('keeps the initial movie catalog JSON within its mobile budget', async ({
   context,
@@ -38,7 +12,6 @@ test('keeps the initial movie catalog JSON within its mobile budget', async ({
 }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 390, height: 844 });
-  await login(page);
 
   const cdp = await context.newCDPSession(page);
   await cdp.send('Network.emulateNetworkConditions', {

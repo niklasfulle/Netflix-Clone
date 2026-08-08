@@ -74,6 +74,21 @@ class NetflixMonitorTests(unittest.TestCase):
             )
             self.assertEqual(list(Path(directory).glob(".status-*.json")), [])
 
+    def test_container_logs_are_bounded_and_written_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "container.log"
+            original_path = netflix_monitor.CONTAINER_LOG_PATH
+            netflix_monitor.CONTAINER_LOG_PATH = output_path
+            try:
+                netflix_monitor.write_container_logs("first\n" + "x" * 200, max_bytes=64)
+            finally:
+                netflix_monitor.CONTAINER_LOG_PATH = original_path
+
+            contents = output_path.read_text(encoding="utf-8")
+            self.assertLessEqual(len(contents.encode("utf-8")), 64)
+            self.assertTrue(contents.endswith("x" * 64))
+            self.assertEqual(list(Path(directory).glob(".container-*.log")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

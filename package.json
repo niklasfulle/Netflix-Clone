@@ -1,6 +1,6 @@
 {
   "name": "netflix",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,7 +10,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --coverageReporters=lcov",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:desktop": "playwright test --project=desktop",
+    "test:e2e:mobile": "playwright test --project=mobile"
   },
   "resolutions": {
     "brace-expansion": "file:vendor/brace-expansion-compat",

@@ -2,6 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import InfoModal from '../InfoModal';
 import { UserRole } from '@prisma/client';
+import { useBillboardVideoAvailability } from '@/hooks/useBillboardVideoAvailability';
+
+jest.mock('@/hooks/useBillboardVideoAvailability', () => ({
+  useBillboardVideoAvailability: jest.fn(),
+}));
 
 // Mock next/image
 jest.mock('next/image', () => ({
@@ -107,6 +112,7 @@ describe('InfoModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (useBillboardVideoAvailability as jest.Mock).mockReturnValue(true);
     (useInfoModal as unknown as jest.Mock).mockReturnValue({ movieId: 'movie-123' });
     (useMovie as jest.Mock).mockReturnValue({ data: mockMovie });
     (useMovieViews as jest.Mock).mockReturnValue({ data: { count: 42 } });
@@ -403,6 +409,18 @@ describe('InfoModal', () => {
   });
 
   describe('Media Display', () => {
+    test('should render the poster on desktop when video media is unavailable', () => {
+      globalThis.innerWidth = 1200;
+      (useBillboardVideoAvailability as jest.Mock).mockReturnValue(false);
+
+      const { container } = render(
+        <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
+      );
+
+      expect(screen.getByTestId('image')).toBeTruthy();
+      expect(container.querySelector('video')).toBeNull();
+    });
+
     test('should render video on desktop', () => {
       globalThis.innerWidth = 1200;
       const { container } = render(

@@ -3,7 +3,7 @@
 Eine selbst gehostete Streaming-Anwendung für Filme und Serien mit Benutzerprofilen,
 Wiedergabefortschritt und einem umfangreichen Administrationsbereich.
 
-Aktuelle Version: **1.10.0**
+Aktuelle Version: **1.10.1**
 
 ## Funktionsumfang
 
@@ -178,6 +178,9 @@ README, Shell-Skripte oder Git.
 | `corepack yarn test` | Jest-Testläufe ausführen |
 | `corepack yarn test:watch` | Jest im Watch-Modus starten |
 | `corepack yarn test:coverage` | LCOV-Coverage erzeugen |
+| `corepack yarn test:e2e` | Gesamte Playwright-Matrix ausführen |
+| `corepack yarn test:e2e:desktop` | Playwright nur mit Desktop Chrome ausführen |
+| `corepack yarn test:e2e:mobile` | Playwright nur mit dem Pixel-7-Projekt ausführen |
 | `corepack yarn prisma generate` | Prisma Client erzeugen |
 | `corepack yarn prisma db push` | Schema ohne Datenbank-Reset synchronisieren |
 
@@ -195,6 +198,52 @@ python -m unittest discover -s ansible/tests -p "test_*.py"
 
 Der LCOV-Bericht wird unter `coverage/lcov.info` erzeugt und von SonarQube
 eingelesen. Generierte Coverage-Dateien werden nicht committed.
+
+### Playwright-End-to-End-Tests
+
+Die Browser-Tests verwenden Desktop Chrome und ein mobiles Pixel-7-Profil. Sie
+dürfen nur gegen eine lokale, isolierte Testdatenbank laufen, niemals gegen
+Produktionsdaten. Installiere Chrome für Playwright einmalig mit:
+
+```powershell
+corepack yarn playwright install chrome
+```
+
+Kopiere anschließend `.env.e2e.example` nach `.env.e2e.local` und hinterlege
+zwei dedizierte lokale Accounts:
+
+- ein normaler Benutzer und ein Administrator;
+- bestätigte E-Mail-Adressen und deaktivierte Zwei-Faktor-Authentifizierung;
+- mindestens ein auswählbares Profil pro Account;
+- mindestens ein Katalogeintrag mit tatsächlich vorhandener Videodatei für den
+  Playback-Test.
+
+`.env.e2e.local`, gespeicherte Browser-Sitzungen, Traces, Screenshots und der
+HTML-Bericht werden von Git ignoriert. Zugangsdaten erscheinen weder in Tests
+noch in Testausgaben.
+
+Playwright kann den Entwicklungsserver selbst starten:
+
+```powershell
+corepack yarn test:e2e
+```
+
+Für einen bereits laufenden Entwicklungs- oder Produktionsbuild:
+
+```powershell
+$env:PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3000"
+$env:PLAYWRIGHT_EXTERNAL_SERVER = "true"
+corepack yarn test:e2e
+Remove-Item Env:PLAYWRIGHT_EXTERNAL_SERVER
+Remove-Item Env:PLAYWRIGHT_BASE_URL
+```
+
+Die Tests bereiten User- und Admin-Sitzungen einmalig und seriell vor; die
+eigentlichen Desktop-/Mobil-Szenarien laufen parallel. Actor- und Content-Flows
+verwenden eindeutige Namen und entfernen ihre Datensätze auch bei einem
+Abbruch. Settings werden nur lokal geändert und zurückgesetzt. Die
+Backup-Szenarien prüfen ausschließlich die Formularvalidierung und senden
+keinen `POST`- oder `PUT`-Request an die Backup-API.
 
 ### SonarQube
 
@@ -250,8 +299,8 @@ das finale Image.
 
 ```powershell
 docker build -t netflix-clone .
-docker tag netflix-clone salkin263/netflix-clone:1.10.0
-docker push salkin263/netflix-clone:1.10.0
+docker tag netflix-clone salkin263/netflix-clone:1.10.1
+docker push salkin263/netflix-clone:1.10.1
 ```
 
 Alternativ übernimmt `docker-build.ps1` Version, Tag und Push automatisch aus
@@ -276,11 +325,14 @@ Sie erwartet die externe Env-Datei und folgende Host-Verzeichnisse:
 Start mit einem konkreten Image-Tag:
 
 ```bash
-APP_VERSION=1.10.0 docker compose up -d
+APP_VERSION=1.10.1 docker compose up -d
 ```
 
-Beim Containerstart führt das Image `prisma db push` aus und startet anschließend
-Next.js. Der Docker-Healthcheck ruft alle 30 Sekunden `/api/health` auf.
+Das Image verändert die Datenbank beim Containerstart nicht selbst. Das
+empfohlene Ansible-Deployment erstellt zuerst ein geprüftes Backup, führt danach
+`prisma migrate deploy` aus und startet anschließend Next.js. Bei einem manuellen
+Compose-Start müssen ausstehende Migrationen daher vorab angewendet werden. Der
+Docker-Healthcheck ruft alle 30 Sekunden `/api/health` auf.
 
 ## Empfohlenes Deployment mit Ansible
 

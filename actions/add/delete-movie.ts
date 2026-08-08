@@ -26,12 +26,9 @@ const deleteVideoFile = (videoUrl: string, type: string) => {
   }
 };
 
-const cleanupOrphanedActors = async (movieId: string) => {
-  const movieActors = await db.movieActor.findMany({
-    where: { movieId },
-    include: { actor: true },
-  });
-
+const cleanupOrphanedActors = async (
+  movieActors: Array<{ actor: { id: string } }>,
+) => {
   for (const movieActor of movieActors) {
     const actor = movieActor.actor;
     const remainingMovieCount = await db.movieActor.count({
@@ -84,11 +81,17 @@ export const deleteMovie = async (movieId: string) => {
       deleteVideoFile(movie.videoUrl, movie.type);
     }
 
-    await db.movie.delete({
-      where: { id: movieId }
+    const movieActors = await db.movieActor.findMany({
+      where: { movieId },
+      include: { actor: true },
     });
 
-    await cleanupOrphanedActors(movieId);
+    await db.$transaction([
+      db.movieActor.deleteMany({ where: { movieId } }),
+      db.movie.delete({ where: { id: movieId } }),
+    ]);
+
+    await cleanupOrphanedActors(movieActors);
 
     logBackendAction('deleteMovie_success', { userId: user.id, movieId }, 'info');
     return { success: "Movie deleted successfully!" }
