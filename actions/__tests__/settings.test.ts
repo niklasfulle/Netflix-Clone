@@ -27,6 +27,14 @@ jest.mock("@/lib/tokens", () => ({
   generateVerificationToken: jest.fn(),
 }));
 
+jest.mock("@/lib/session-security", () => ({
+  currentSecurityContext: jest.fn(),
+  sessionSecurity: {
+    recordActivity: jest.fn(),
+    revokeOtherSessions: jest.fn(),
+  },
+}));
+
 jest.mock("bcryptjs", () => ({
   compare: jest.fn(),
   hash: jest.fn(),
@@ -39,6 +47,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
+import { currentSecurityContext, sessionSecurity } from "@/lib/session-security";
 
 import { settings } from "../settings";
 
@@ -54,6 +63,7 @@ const sessionUser = {
   id: "user-1",
   email: "member@example.com",
   isOAuth: false,
+  sessionId: "current-session",
 };
 
 const databaseUser = {
@@ -72,6 +82,7 @@ describe("settings action", () => {
     (db.user.update as jest.Mock).mockResolvedValue(databaseUser);
     mockCompare.mockResolvedValue(true as never);
     mockHash.mockResolvedValue("new-hash" as never);
+    (currentSecurityContext as jest.Mock).mockResolvedValue({ userAgent: "Browser/1.0" });
   });
 
   it("rejects unauthenticated requests before accessing the database", async () => {
@@ -127,7 +138,10 @@ describe("settings action", () => {
       email: "new@example.com",
     });
 
-    expect(generateVerificationToken).toHaveBeenCalledWith("new@example.com");
+    expect(generateVerificationToken).toHaveBeenCalledWith("new@example.com", {
+      userId: "user-1",
+      targetEmail: "new@example.com",
+    });
     expect(sendVerificationEmail).toHaveBeenCalledWith(
       "new@example.com",
       "verification-token",
@@ -136,7 +150,25 @@ describe("settings action", () => {
     expect(result).toEqual({ success: "Confirmation email sent!" });
   });
 
-  it("updates profile details and two-factor state without overwriting the password", async () => {
+  it("normalizes a changed email before lookup and verification", async () => {
+    (generateVerificationToken as jest.Mock).mockResolvedValue({
+      email: "new@example.com",
+      token: "verification-token",
+    });
+
+    await settings({
+      name: "Member",
+      email: " New@Example.COM ",
+    });
+
+    expect(mockGetUserByEmail).toHaveBeenCalledWith("new@example.com");
+    expect(generateVerificationToken).toHaveBeenCalledWith("new@example.com", {
+      userId: "user-1",
+      targetEmail: "new@example.com",
+    });
+  });
+
+  it("updates profile details without allowing the general action to change MFA", async () => {
     const result = await settings({
       name: "Updated Member",
       email: "member@example.com",
@@ -144,14 +176,13 @@ describe("settings action", () => {
       role: "ADMIN",
       password: "",
       newPassword: "",
-    });
+    } as any);
 
     expect(db.user.update).toHaveBeenCalledWith({
       where: { id: "user-1" },
       data: {
         name: "Updated Member",
         email: "member@example.com",
-        isTwoFactorEnabled: true,
       },
     });
     expect(db.user.update).not.toHaveBeenCalledWith(
@@ -160,6 +191,7 @@ describe("settings action", () => {
       }),
     );
     expect(result).toEqual({ success: "Settings updated!" });
+    expect(sessionSecurity.revokeOtherSessions).not.toHaveBeenCalled();
   });
 
   it("rejects an incorrect current password", async () => {
@@ -169,6 +201,7 @@ describe("settings action", () => {
       name: "Member",
       password: "wrong-password",
       newPassword: "New-password-123",
+      confirmNewPassword: "New-password-123",
     });
 
     expect(result).toEqual({ error: "Incorrect password!" });
@@ -181,6 +214,7 @@ describe("settings action", () => {
       name: "Member",
       password: "current-password",
       newPassword: "New-password-123",
+      confirmNewPassword: "New-password-123",
     });
 
     expect(mockCompare).toHaveBeenCalledWith(
@@ -196,6 +230,17 @@ describe("settings action", () => {
       },
     });
     expect(result).toEqual({ success: "Settings updated!" });
+    expect(sessionSecurity.revokeOtherSessions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        currentSessionId: "current-session",
+      }),
+    );
+    expect(sessionSecurity.recordActivity).toHaveBeenCalledWith(
+      "user-1",
+      "password_changed",
+      expect.anything(),
+    );
   });
 
   it("ignores credential and two-factor changes for OAuth accounts", async () => {
@@ -211,7 +256,7 @@ describe("settings action", () => {
       newPassword: "New-password-123",
       isTwoFactorEnabled: true,
       role: "ADMIN",
-    });
+    } as any);
 
     expect(mockGetUserByEmail).not.toHaveBeenCalled();
     expect(mockCompare).not.toHaveBeenCalled();

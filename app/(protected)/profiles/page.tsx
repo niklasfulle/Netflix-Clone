@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { SetStateAction, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaArrowLeft, FaPen, FaPlus, FaRegSave, FaRegTrashAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaPen, FaPlus, FaRegSave, FaRegTrashAlt, FaSignOutAlt } from 'react-icons/fa';
 
 import { remove } from '@/actions/profil/remove';
 import { save } from '@/actions/profil/save';
@@ -12,6 +12,7 @@ import { use as useProfil } from '@/actions/profil/use';
 import Footer from '@/components/Footer';
 import Input from '@/components/Input';
 import ProfilModal from '@/components/ProfilModal';
+import { LogoutButton } from '@/components/auth/logout-button';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import getProfils from '@/hooks/getProfils';
 import useProfilModal from '@/hooks/useProfilModal';
@@ -101,6 +102,13 @@ const ProfilesPage = () => {
         setProfilImg={setProfilImg}
         ProfilImg={profilImg}
       />
+      <LogoutButton
+        aria-label={t('Logout')}
+        className="fixed right-4 top-4 z-30 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:border-white/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:right-8 md:top-8"
+      >
+        <FaSignOutAlt aria-hidden="true" />
+        <span>{t('Logout')}</span>
+      </LogoutButton>
       <div className="flex items-center justify-center h-svh -mt-20 mb-11">
         <div className="flex flex-col">
           {size !== 0 && profileState === "profiles" && (

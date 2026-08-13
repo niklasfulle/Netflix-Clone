@@ -40,7 +40,7 @@ interface EditMovieFormProps {
   navigateAfterDelete?: (path: string) => void;
 }
 
-const replaceBrowserLocation = (path: string) => window.location.replace(path);
+const replaceBrowserLocation = (path: string) => globalThis.location.replace(path);
 
 export const EditMovieForm = ({
   movie,
@@ -185,7 +185,7 @@ export const EditMovieForm = ({
             isOptional
             onVideoChange={handleVideoUpload}
             onUpload={uploadVideo}
-            onCancel={() => void cancelUpload()}
+            onCancel={cancelUpload}
             uploadDisabled={!form.getValues("movieType")}
             isUploaded={Boolean(videoPreviewUrl)}
           />
@@ -255,7 +255,7 @@ export const EditMovieForm = ({
               <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button
                   type="button"
-                  onClick={() => void handleDelete()}
+                  onClick={handleDelete}
                   disabled={isDeleting}
                   className="h-11 bg-red-600 font-semibold text-white hover:bg-red-500 sm:min-w-36"
                 >

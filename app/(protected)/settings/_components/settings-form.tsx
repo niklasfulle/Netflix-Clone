@@ -23,6 +23,9 @@ import toast from "react-hot-toast";
 import * as z from "zod";
 
 import { settings } from "@/actions/settings";
+import { MfaSettingsPanel } from "@/app/(protected)/settings/_components/mfa-settings-panel";
+import { PasskeySettingsPanel } from "@/app/(protected)/settings/_components/passkey-settings-panel";
+import { SecurityActivityPanel } from "@/app/(protected)/settings/_components/security-activity-panel";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
@@ -36,7 +39,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { SettingsSchema } from "@/schemas";
 import type { SessionDto } from "@/lib/api-types";
 import type { TranslationKey } from "@/lib/i18n/translations";
@@ -58,7 +60,7 @@ const getPasswordStrength = (password: string): { score: number; label: Translat
   }
 
   const checks = [
-    password.length >= 6,
+    password.length >= 12,
     password.length >= 10,
     /[a-z]/.test(password) && /[A-Z]/.test(password),
     /\d/.test(password),
@@ -90,8 +92,8 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
       email: account?.email ?? "",
       password: "",
       newPassword: "",
+      confirmNewPassword: "",
       role: account?.role ?? UserRole.USER,
-      isTwoFactorEnabled: account?.isTwoFactorEnabled ?? false,
     },
   });
   const newPassword =
@@ -123,6 +125,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
               ...values,
               password: "",
               newPassword: "",
+              confirmNewPassword: "",
             });
           }
         })
@@ -311,7 +314,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                             {...field}
                             disabled={isPending}
                             type={showNewPassword ? "text" : "password"}
-                            placeholder={t("At least 6 characters")}
+                            placeholder={t("At least 12 characters")}
                             autoComplete="new-password"
                             className={`${inputClassName} pr-12`}
                           />
@@ -331,6 +334,30 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                           )}
                         </button>
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="confirmNewPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2 text-zinc-200">
+                        <LockKeyhole className="h-4 w-4 text-zinc-500" aria-hidden="true" />
+                        {t("Confirm password")}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={isPending}
+                          type={showNewPassword ? "text" : "password"}
+                          placeholder={t("At least 12 characters")}
+                          autoComplete="new-password"
+                          className={inputClassName}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -358,37 +385,15 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                 </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="isTwoFactorEnabled"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col gap-4 rounded-2xl border border-white/[0.07] bg-black/20 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
-                        <ShieldCheck className="h-4 w-4 text-violet-400" aria-hidden="true" />
-                      </div>
-                      <div className="space-y-1">
-                        <FormLabel className="text-sm font-medium text-zinc-200">
-                          {t("Two-factor authentication")}
-                        </FormLabel>
-                        <FormDescription className="max-w-lg text-xs leading-5 text-zinc-600">
-                          {t("Require an additional email code when signing in.")}
-                        </FormDescription>
-                      </div>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        disabled={isPending}
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        aria-label={t("Two-factor authentication")}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
+              <MfaSettingsPanel
+                initiallyEnabled={account.isTwoFactorEnabled === true}
+                onSessionRefresh={update}
               />
+              <PasskeySettingsPanel />
             </div>
           )}
+
+          <SecurityActivityPanel />
         </section>
 
         <section id="preferences" className={panelClassName}>

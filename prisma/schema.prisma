@@ -18,28 +18,38 @@ enum ContentStatus {
   ARCHIVED
 }
 
-model User{
-  id                    String    @id @unique @default(cuid())
-  name                  String
-  image                 String?
-  email                 String?   @unique
-  emailVerified         DateTime?
-  hashedPassword        String?
-  role                  UserRole  @default(USER)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt 
-  accounts              Account[]
-  profil                Profil[]
-  watchlists            Watchlist[]
-  playlists             Playlist[]
-  movieWatchTimes       MovieWatchTime[]
-  movieViews            MovieView[]
-  isTwoFactorEnabled    Boolean   @default(false)
-  twoFactorConfirmation TwoFactorConfirmation?
-  isBlocked             Boolean   @default(false)
-  blockedAt             DateTime?
-  blockedUntil          DateTime?
-  blockedReason         String?
+model User {
+  id                      String                   @id @unique @default(cuid())
+  name                    String
+  image                   String?
+  email                   String?                  @unique
+  emailVerified           DateTime?
+  hashedPassword          String?
+  role                    UserRole                 @default(USER)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  accounts                Account[]
+  profil                  Profil[]
+  watchlists              Watchlist[]
+  playlists               Playlist[]
+  movieWatchTimes         MovieWatchTime[]
+  movieViews              MovieView[]
+  isTwoFactorEnabled      Boolean                  @default(false)
+  twoFactorConfirmation   TwoFactorConfirmation?
+  isBlocked               Boolean                  @default(false)
+  blockedAt               DateTime?
+  blockedUntil            DateTime?
+  blockedReason           String?
+  verificationTokens      VerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  twoFactorTokens         TwoFactorToken[]
+  mfaAuthenticator        MfaAuthenticator?
+  mfaRecoveryCodes        MfaRecoveryCode[]
+  sessionsInvalidBefore   DateTime?
+  authSessions            AuthSession[]
+  securityActivity        SecurityActivity[]
+  authenticators          Authenticator[]
+  passkeyManagementGrants PasskeyManagementGrant[]
 }
 
 model Account {
@@ -61,108 +71,216 @@ model Account {
 }
 
 model VerificationToken {
-  id String @id @default(cuid())
-  email String
-  token String @unique
-  expires DateTime
+  id          String   @id @default(cuid())
+  email       String
+  tokenHash   String   @unique
+  expires     DateTime
+  userId      String?
+  targetEmail String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([email, token])
+  @@index([email])
+  @@index([userId])
 }
 
 model PasswordResetToken {
-  id    String  @id @default(cuid())
-  email String
-  token String @unique
-  expires DateTime
-  
-  @@unique([email, token])
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String   @unique
+  expires   DateTime
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([userId])
 }
 
 model TwoFactorToken {
-  id    String  @id @default(cuid())
-  email String
-  token String @unique
-  expires DateTime
-  
-  @@unique([email, token])
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String   @unique
+  expires   DateTime
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([userId])
 }
 
-model TwoFactorConfirmation{
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+model TwoFactorConfirmation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
 }
 
+model MfaAuthenticator {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  secretCiphertext String
+  verifiedAt       DateTime?
+  lastUsedCounter  BigInt?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([verifiedAt])
+}
+
+model MfaRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, usedAt])
+}
+
+model AuthSession {
+  id                      String                   @id
+  userId                  String
+  issuedAt                DateTime
+  expiresAt               DateTime
+  lastSeenAt              DateTime                 @default(now())
+  revokedAt               DateTime?
+  ipHash                  String?
+  userAgent               String?
+  createdAt               DateTime                 @default(now())
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passkeyManagementGrants PasskeyManagementGrant[]
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model Authenticator {
+  credentialID         String    @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  label                String?
+  createdAt            DateTime  @default(now())
+  lastUsedAt           DateTime?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@index([userId, createdAt])
+}
+
+model PasskeyManagementGrant {
+  tokenHash String      @id
+  userId    String
+  sessionId String
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId, expiresAt])
+  @@index([expiresAt])
+}
+
+model SecurityActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  event     String
+  ipHash    String?
+  userAgent String?
+  details   Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model AuthRateLimit {
+  scope       String
+  subjectType String
+  subjectHash String
+  attempts    Int      @default(0)
+  resetAt     DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@id([scope, subjectType, subjectHash])
+  @@index([resetAt])
+}
+
 model Profil {
-  id             String    @id @unique @default(cuid())
-  userId         String
-  name           String
-  image          String?
-  inUse          Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  favoriteIds    String[]
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  watchlists     Watchlist[]
-  playlists      Playlist[]
+  id              String           @id @unique @default(cuid())
+  userId          String
+  name            String
+  image           String?
+  inUse           Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  favoriteIds     String[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  watchlists      Watchlist[]
+  playlists       Playlist[]
   movieWatchTimes MovieWatchTime[]
-  movieViews     MovieView[]
+  movieViews      MovieView[]
 }
 
 model Movie {
-  id           String   @id @unique @default(cuid())
-  title        String
-  description  String
-  videoUrl     String
-  thumbnailUrl String
-  type         String
-  genre        String
-  duration     String
-  status       ContentStatus @default(PUBLISHED)
-  publishedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now()) @updatedAt
-  actors       MovieActor[]
-  watchlists   Watchlist[]
+  id              String           @id @unique @default(cuid())
+  title           String
+  description     String
+  videoUrl        String
+  thumbnailUrl    String
+  type            String
+  genre           String
+  duration        String
+  status          ContentStatus    @default(PUBLISHED)
+  publishedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now()) @updatedAt
+  actors          MovieActor[]
+  watchlists      Watchlist[]
   playlistEntries PlaylistEntry[]
-  watchTimes   MovieWatchTime[]
-  views        MovieView[]
+  watchTimes      MovieWatchTime[]
+  views           MovieView[]
 
   @@index([type, status])
   @@index([createdAt])
 }
 
-
 model Actor {
-  id        String   @id @unique @default(cuid())
-  name      String  @unique
-  createdAt DateTime @default(now())
+  id        String       @id @unique @default(cuid())
+  name      String       @unique
+  createdAt DateTime     @default(now())
   movies    MovieActor[]
 }
 
 model MovieActor {
-  movie   Movie   @relation(fields: [movieId], references: [id])
+  movie   Movie  @relation(fields: [movieId], references: [id])
   movieId String
-  actor   Actor   @relation(fields: [actorId], references: [id])
+  actor   Actor  @relation(fields: [actorId], references: [id])
   actorId String
+
   @@id([movieId, actorId])
 }
 
 model ProfilImg {
-  id           String @id @unique @default(cuid())
-  url          String
+  id  String @id @unique @default(cuid())
+  url String
 }
 
 model MovieWatchTime {
-  id           String @id @unique @default(cuid())
-  userId       String
-  profilId     String
-  movieId      String
-  time         Int
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profil       Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
-  movie        Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  id       String @id @unique @default(cuid())
+  userId   String
+  profilId String
+  movieId  String
+  time     Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil   Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie    Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
   @@unique([userId, profilId, movieId])
   @@index([profilId, movieId])
@@ -170,40 +288,40 @@ model MovieWatchTime {
 }
 
 model MovieView {
-  id           String @id @unique @default(cuid())
-  userId       String
-  profilId     String
-  movieId      String
-  createdAt      DateTime  @default(now())
-  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profil       Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
-  movie        Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  id        String   @id @unique @default(cuid())
+  userId    String
+  profilId  String
+  movieId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil    Profil   @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
   @@index([userId, profilId, createdAt])
   @@index([movieId, createdAt])
 }
 
 model Playlist {
-  id                String @id @unique @default(cuid())
-  userId            String
-  profilId          String
-  title             String
-  PlaylistEntrys    PlaylistEntry[]
-  createdAt      DateTime  @default(now())
-  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profil            Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  id             String          @id @unique @default(cuid())
+  userId         String
+  profilId       String
+  title          String
+  PlaylistEntrys PlaylistEntry[]
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil         Profil          @relation(fields: [profilId], references: [id], onDelete: Cascade)
 
   @@index([userId, profilId])
 }
 
 model PlaylistEntry {
-  id           String @id @unique @default(cuid())
-  playlistId   String
-  playlist     Playlist     @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  order        Int
-  movieId      String
-  movie        Movie        @relation(fields: [movieId], references: [id], onDelete: Cascade)
-  createdAt      DateTime  @default(now())
+  id         String   @id @unique @default(cuid())
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  order      Int
+  movieId    String
+  movie      Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@unique([playlistId, movieId])
   @@index([playlistId, order])
@@ -217,9 +335,9 @@ model Watchlist {
   movieId   String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profil    Profil   @relation(fields: [profilId], references: [id], onDelete: Cascade)
-  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profil Profil @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  movie  Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
   @@unique([profilId, movieId])
 }

@@ -7,6 +7,9 @@ export type ExtendedUser = DefaultSession["user"] & {
   isTwoFactorEnabled: boolean
   isOAuth: boolean
   isBlocked: boolean
+  isRevoked: boolean
+  sessionId?: string
+  sessionIssuedAt?: number
 }
 
 declare module "next-auth" {
@@ -18,5 +21,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     isBlocked?: boolean
+    isRevoked?: boolean
+    sessionId?: string
   }
 }

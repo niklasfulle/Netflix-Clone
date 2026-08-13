@@ -21,6 +21,7 @@ describe("health page", () => {
       status: "ok",
       service: "netflix-clone",
       version: "1.10.1",
+      environment: "staging",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",
@@ -37,6 +38,7 @@ describe("health page", () => {
     expect(screen.getByText("All systems operational")).toBeInTheDocument();
     expect(screen.getAllByText("Operational")).toHaveLength(3);
     expect(screen.getByText("1.10.1")).toBeInTheDocument();
+    expect(screen.getByText("staging")).toBeInTheDocument();
   });
 
   it("renders failed health checks", async () => {
@@ -44,6 +46,7 @@ describe("health page", () => {
       status: "error",
       service: "netflix-clone",
       version: "1.10.1",
+      environment: "production",
       timestamp: "2026-07-29T22:00:00.000Z",
       checks: {
         application: "ok",

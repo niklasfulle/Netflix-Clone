@@ -10,6 +10,7 @@ export type HealthStatus = {
   status: "ok" | "error";
   service: "netflix-clone";
   version: string;
+  environment: string;
   timestamp: string;
   checks: {
     application: "ok";
@@ -62,6 +63,7 @@ export async function getHealthStatus(): Promise<HealthStatus> {
     status: databaseStatus === "ok" && storageStatus === "ok" ? "ok" : "error",
     service: "netflix-clone",
     version: packageJson.version,
+    environment: process.env.DEPLOYMENT_ENVIRONMENT ?? "development",
     timestamp: new Date().toISOString(),
     checks: {
       application: "ok",

@@ -1,12 +1,19 @@
 # Docker Build and Ansible Deployment Script
 # This script builds the Docker image and deploys it to the LXC container
-# Usage: .\deploy.ps1 [-SkipDocker] [-p "SSH password"]
+# Usage: .\deploy.ps1 [-Environment Staging|Production] [-SkipDocker] [-ConfirmProduction] [-p "SSH password"]
 
 param(
+    [ValidateSet("Staging", "Production")]
+    [string]$Environment = "Staging",
     [switch]$SkipDocker,
+    [switch]$ConfirmProduction,
     [Alias("p")]
     [string]$Password = $env:NETFLIX_DEPLOY_PASSWORD
 )
+
+$environmentName = $Environment.ToLowerInvariant()
+$inventoryFile = if ($Environment -eq "Staging") { "hosts.staging" } else { "hosts" }
+$environmentFile = if ($Environment -eq "Staging") { ".env.staging" } else { ".env" }
 
 function ConvertTo-WslPath {
     param(
@@ -23,16 +30,39 @@ function ConvertTo-WslPath {
     return "/mnt/$drive/$($Matches[2])"
 }
 
-# Check and load Ansible configuration
-if (-not (Test-Path "ansible\hosts")) {
-    Write-Host "Ansible configuration missing. Setting up..." -ForegroundColor Yellow
+# Check and load the environment-specific Ansible configuration
+if (-not (Test-Path "ansible\$inventoryFile")) {
+    Write-Host "$Environment Ansible configuration missing. Setting up..." -ForegroundColor Yellow
     Push-Location -Path "ansible"
-    .\setup-env.ps1
+    .\setup-env.ps1 -Environment $Environment -EnvFile $environmentFile -OutputFile $inventoryFile
     Pop-Location
 }
 
 # Read the canonical application version from package.json
 $version = (Get-Content -Path "package.json" -Raw | ConvertFrom-Json).version
+$receiptDirectory = Join-Path $PSScriptRoot ".deployment-receipts"
+$stagingReceiptPath = Join-Path $receiptDirectory ("staging-{0}.json" -f $version)
+
+if ($Environment -eq "Production") {
+    if (-not $ConfirmProduction) {
+        throw "Production deployment requires -ConfirmProduction."
+    }
+
+    if (-not $SkipDocker) {
+        throw "Production must promote the image tested in staging. Use -SkipDocker."
+    }
+
+    if (-not (Test-Path -LiteralPath $stagingReceiptPath)) {
+        throw "No successful staging deployment was recorded for version $version. Deploy staging first."
+    }
+
+    $stagingReceipt = Get-Content -LiteralPath $stagingReceiptPath -Raw | ConvertFrom-Json
+    if ($stagingReceipt.version -ne $version) {
+        throw "The staging receipt does not match version $version."
+    }
+} elseif (Test-Path -LiteralPath $stagingReceiptPath) {
+    Remove-Item -LiteralPath $stagingReceiptPath -Force
+}
 
 if (-not $SkipDocker) {
     # Check if Docker is running
@@ -126,7 +156,7 @@ if (-not $SkipDocker) {
 } else {
     Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host "Skipping Docker build (--skip-docker flag)" -ForegroundColor Yellow
-    Write-Host "Deploying version: $version" -ForegroundColor Green
+    Write-Host "Deploying version: $version to $environmentName" -ForegroundColor Green
     Write-Host "========================================`n" -ForegroundColor Cyan
 }
 
@@ -162,14 +192,14 @@ if (-not $ansibleAvailable) {
     Write-Host "`nTo install via WSL:" -ForegroundColor Cyan
     Write-Host "  wsl sudo apt update && wsl sudo apt install ansible -y" -ForegroundColor White
     Write-Host "`nTo deploy manually, run:" -ForegroundColor Cyan
-    Write-Host "  ssh root@192.168.1.155" -ForegroundColor White
+    Write-Host "  Check ansible/$inventoryFile for the selected LXC host." -ForegroundColor White
     Write-Host "  cd /root/netflix-clone && docker-compose pull && docker-compose up -d" -ForegroundColor White
     exit 0
 }
 
 # Deploy with Ansible
 Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "Deploying to LXC Container (192.168.1.155)" -ForegroundColor Green
+Write-Host "Deploying version $version to $environmentName using $inventoryFile" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Change to ansible directory
@@ -220,17 +250,17 @@ try {
     if ($useWSL) {
         if ($passwordFile) {
             $wslPasswordFile = ConvertTo-WslPath -WindowsPath $passwordFile
-            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts update.yml --extra-vars '@$wslPasswordFile' --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' update.yml --extra-vars '@$wslPasswordFile' --extra-vars 'deployment_environment=$environmentName' --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
         } else {
-            Write-Host "`nYou will be prompted for the SSH password for root@192.168.1.155" -ForegroundColor Yellow
+            Write-Host "`nYou will be prompted for the SSH password for the $environmentName LXC." -ForegroundColor Yellow
             Write-Host "Enter the root password when prompted.`n" -ForegroundColor Cyan
-            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i hosts update.yml --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' update.yml --extra-vars 'deployment_environment=$environmentName' --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
         }
     } else {
         if ($passwordFile) {
-            ansible-playbook update.yml --extra-vars "@$passwordFile"
+            ansible-playbook -i $inventoryFile update.yml --extra-vars "@$passwordFile" --extra-vars "deployment_environment=$environmentName"
         } else {
-            ansible-playbook update.yml --ask-pass
+            ansible-playbook -i $inventoryFile update.yml --extra-vars "deployment_environment=$environmentName" --ask-pass
         }
     }
 
@@ -250,7 +280,18 @@ if ($ansibleExitCode -ne 0) {
     exit 1
 }
 
+if ($Environment -eq "Staging") {
+    New-Item -ItemType Directory -Path $receiptDirectory -Force | Out-Null
+    @{
+        version = $version
+        image = "salkin263/netflix-clone:$version"
+        environment = $environmentName
+        deployedAtUtc = [DateTime]::UtcNow.ToString("o")
+    } | ConvertTo-Json | Set-Content -LiteralPath $stagingReceiptPath -Encoding utf8
+    Write-Host "Staging approval recorded for version $version." -ForegroundColor Green
+}
+
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "Deployment completed successfully!" -ForegroundColor Green
-Write-Host "Netflix Clone version $version is now running on 192.168.1.155" -ForegroundColor Green
+Write-Host "Netflix Clone version $version is now running in $environmentName" -ForegroundColor Green
 Write-Host "========================================`n" -ForegroundColor Cyan

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 
 import { LoginSchema } from "@/schemas"
 import { getUserByEmail } from "./data/user"
+import { configuredPasskeyProvider, passkeysEnabled } from "@/lib/passkey-provider"
 
 export default {
   providers: [
@@ -24,6 +25,8 @@ export default {
         return null
 
       },
-    })
-  ]
+    }),
+    ...(configuredPasskeyProvider ? [configuredPasskeyProvider] : []),
+  ],
+  experimental: { enableWebAuthn: passkeysEnabled },
 } satisfies NextAuthConfig

@@ -1,27 +1,29 @@
 import NextAuth from "next-auth"
-import type { UserRole } from "@prisma/client"
 import authConfig from "@/auth.config"
 import { DEFAULT_LOGIN_REDIRECT, apiAuthPrefix, authRoutes, isPublicRoute } from "@/routes"
+import { sessionSecurity } from "@/lib/session-security"
+import { applySessionIdentity } from "@/lib/authentication/session-user"
+import { createProxyAuthenticationConfig } from "@/lib/authentication/proxy-configuration"
 
 const { auth } = NextAuth({
-  ...authConfig,
+  ...createProxyAuthenticationConfig(authConfig),
   callbacks: {
     async session({ session, token }) {
-      if (session.user && token.role) {
-        session.user.role = token.role as UserRole
-      }
-      if (session.user) {
-        session.user.isBlocked = Boolean(token.isBlocked)
-      }
-
-      return session
+      return applySessionIdentity(session, token)
     },
   },
 })
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { nextUrl } = req
-  const isLoggedIn = !!req.auth
+  const sessionUser = req.auth?.user
+  const isLoggedIn = sessionUser?.id
+    ? await sessionSecurity.isAuthorized({
+        userId: sessionUser.id,
+        sessionId: sessionUser.sessionId,
+        issuedAt: new Date((sessionUser.sessionIssuedAt ?? 0) * 1000),
+      })
+    : false
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix)
   const isPublic = isPublicRoute(nextUrl.pathname)
@@ -34,7 +36,7 @@ export default auth((req) => {
     return
   }
 
-  if (req.auth?.user?.isBlocked) {
+  if (sessionUser?.isBlocked || sessionUser?.isRevoked) {
     if (nextUrl.pathname === "/auth/error") return
     return Response.redirect(new URL("/auth/error?error=AccessDenied", nextUrl))
   }

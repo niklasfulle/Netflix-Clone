@@ -1,11 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 import {
-  authStatePaths,
+  accounts,
   createBrowserFailureMonitor,
+  login,
 } from './support';
-
-test.use({ storageState: authStatePaths.user });
 
 async function navigateFromCatalogMenu(
   page: import('@playwright/test').Page,
@@ -21,6 +20,7 @@ async function navigateFromCatalogMenu(
 test('normal user can navigate the primary catalog journey and sign out', async ({ page }) => {
   const browserFailures = createBrowserFailureMonitor(page);
 
+  await login(page, accounts.user);
   await page.goto('/');
 
   await expect(page).toHaveURL(/\/$/);
@@ -37,6 +37,20 @@ test('normal user can navigate the primary catalog journey and sign out', async 
 
   await page.getByRole('button', { name: /Account|Konto/i }).click();
   await page.getByRole('button', { name: /Sign out of Netflix|Von Netflix abmelden/i }).click();
+  await expect(page).toHaveURL(/\/auth\/login/);
+
+  browserFailures.assertNone();
+});
+
+test('normal user can sign out from the profile selection screen', async ({ page }) => {
+  const browserFailures = createBrowserFailureMonitor(page);
+
+  await login(page, accounts.user);
+  await page.goto('/profiles');
+
+  await expect(page.getByRole('heading', { name: /Who is watching|Wer schaut gerade/i }))
+    .toBeVisible();
+  await page.getByRole('button', { name: /Logout|Abmelden/i }).click();
   await expect(page).toHaveURL(/\/auth\/login/);
 
   browserFailures.assertNone();

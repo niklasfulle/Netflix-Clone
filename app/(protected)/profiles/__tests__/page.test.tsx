@@ -83,6 +83,10 @@ jest.mock("@/actions/profil/use", () => ({
   use: jest.fn(),
 }));
 
+jest.mock("@/actions/logout", () => ({
+  logout: jest.fn(),
+}));
+
 // Import after mocks
 import ProfilesPage from "../page";
 import getProfils from "@/hooks/getProfils";
@@ -91,6 +95,7 @@ import { save } from "@/actions/profil/save";
 import { update } from "@/actions/profil/update";
 import { remove } from "@/actions/profil/remove";
 import { use as useProfil } from "@/actions/profil/use";
+import { logout } from "@/actions/logout";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const mockGetProfils = getProfils as jest.MockedFunction<typeof getProfils>;
@@ -99,6 +104,7 @@ const mockSave = save as jest.MockedFunction<typeof save>;
 const mockUpdate = update as jest.MockedFunction<typeof update>;
 const mockRemove = remove as jest.MockedFunction<typeof remove>;
 const mockUseProfil = useProfil as jest.MockedFunction<typeof useProfil>;
+const mockLogout = logout as jest.MockedFunction<typeof logout>;
 
 describe("ProfilesPage", () => {
   const mockProfiles = [
@@ -156,6 +162,14 @@ describe("ProfilesPage", () => {
     it("renders ProfilModal component", () => {
       render(<ProfilesPage />);
       expect(screen.getByTestId("profil-modal")).toBeInTheDocument();
+    });
+
+    it("allows the user to sign out before selecting a profile", () => {
+      render(<ProfilesPage />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+
+      expect(mockLogout).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -373,25 +387,11 @@ describe("ProfilesPage", () => {
     });
 
     it("back button returns to profiles view", () => {
-      const { container } = render(<ProfilesPage />);
-      // Click add button first
-      const addButton = container.querySelector("button.border-white");
-      if (addButton) {
-        fireEvent.click(addButton);
-      }
+      const backButton = screen.getByRole("button", { name: "Back to profiles" });
 
-      // Then click back button
-      const backButtons = screen.getAllByRole("button");
-      const backButton = backButtons.find((button) => {
-        const svg = button.querySelector("svg");
-        return svg && button.className.includes("border-white");
-      });
+      fireEvent.click(backButton);
 
-      if (backButton) {
-        fireEvent.click(backButton);
-        // Should return to "Who is watching?" view
-        expect(screen.getByText("Who is watching?")).toBeInTheDocument();
-      }
+      expect(screen.getByText("Who is watching?")).toBeInTheDocument();
     });
 
     it("opens profil modal when image is clicked", () => {
@@ -638,10 +638,7 @@ describe("ProfilesPage", () => {
         fireEvent.click(editIcons[0]);
         
         // Click back button
-        const backButtons = screen.getAllByRole("button");
-        const backButton = backButtons.find((button) => 
-          button.className.includes("border-white")
-        );
+        const backButton = screen.getByRole("button", { name: "Back to profiles" });
 
         if (backButton) {
           fireEvent.click(backButton);
@@ -1009,10 +1006,7 @@ describe("ProfilesPage", () => {
       const input = screen.getByTestId("profilName");
       fireEvent.change(input, { target: { value: "Test Name" } });
 
-      const backButtons = screen.getAllByRole("button");
-      const backButton = backButtons.find((button) =>
-        button.className.includes("border-white")
-      );
+      const backButton = screen.getByRole("button", { name: "Back to profiles" });
 
       if (backButton) {
         fireEvent.click(backButton);
@@ -1036,10 +1030,7 @@ describe("ProfilesPage", () => {
       if (editIcons[0]) {
         fireEvent.click(editIcons[0]);
         
-        const backButtons = screen.getAllByRole("button");
-        const backButton = backButtons.find((button) =>
-          button.className.includes("border-white")
-        );
+        const backButton = screen.getByRole("button", { name: "Back to profiles" });
 
         if (backButton) {
           fireEvent.click(backButton);

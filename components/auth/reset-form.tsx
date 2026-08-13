@@ -1,26 +1,36 @@
 "use client";
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Mail } from 'lucide-react';
 
 import { reset } from '@/actions/reset-password';
+import { AuthEmailSent } from '@/components/auth/auth-email-sent';
+import { AuthInput } from '@/components/auth/auth-input';
+import { getAuthResultMessageKey } from '@/components/auth/auth-result';
 import { CardWrapper } from '@/components/auth/card-wrapper';
+import { useAuthFormReady } from '@/components/auth/use-auth-form-ready';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import { FormError } from '@/components/form-error';
-import { FormSuccess } from '@/components/form-success';
 import { Button } from '@/components/ui/button';
 import {
     Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { ResetPasswordSchema } from '@/schemas';
+import { createResetPasswordSchema, ResetPasswordSchema } from '@/schemas';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 export const ResetForm = () => {
+  const { t } = useLanguage();
+  const formReady = useAuthFormReady();
   const [error, setError] = useState<string | undefined>("");
-  const [success, setSuccess] = useState<string | undefined>("");
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [isPending, startTransition] = useTransition();
+  const localizedResetSchema = useMemo(
+    () => createResetPasswordSchema(t('Email is required.')),
+    [t],
+  );
   const form = useForm<z.infer<typeof ResetPasswordSchema>>({
-    resolver: zodResolver(ResetPasswordSchema),
+    resolver: zodResolver(localizedResetSchema),
     defaultValues: {
       email: "",
     },
@@ -28,38 +38,73 @@ export const ResetForm = () => {
 
   const onSubmit = (values: z.infer<typeof ResetPasswordSchema>) => {
     setError("");
-    setSuccess("");
 
     startTransition(() => {
-      reset(values).then((data) => {
-        setError(data?.error);
-        setSuccess(data?.success);
-      });
+      reset(values)
+        .then((result) => {
+          const messageKey = getAuthResultMessageKey(result.code);
+          if (result.status === 'rejected' || result.status === 'retry') {
+            setError(messageKey ? t(messageKey) : t('Something went wrong!'));
+            return;
+          }
+          setSubmittedEmail(values.email.trim().toLocaleLowerCase('en'));
+        })
+        .catch(() => setError(t('Something went wrong!')));
     });
   };
 
+  if (submittedEmail) {
+    return (
+      <CardWrapper
+        headerLabel={t('Forgot your password?')}
+        headerDescription={t('Enter your email and we will send you a secure reset link.')}
+        backButtonHref="/auth/login"
+        backButtonLabel={t('Back to login')}
+      >
+        <AuthEmailSent
+          email={submittedEmail}
+          title={t('Check your email')}
+          description={t('We sent a password reset link to your email address.')}
+          expiryHint={t('The link expires in one hour.')}
+          resendLabel={t('Send again')}
+          resendingLabel={t('Sending again…')}
+          resendAvailableLabel={t('Resend available in')}
+          resentLabel={t('Email sent again.')}
+          errorLabel={t('Unable to resend. Please try again.')}
+          onResend={() => reset({ email: submittedEmail })}
+        />
+      </CardWrapper>
+    );
+  }
+
   return (
     <CardWrapper
-      headerLabel="Forgot your password?"
+      headerLabel={t('Forgot your password?')}
+      headerDescription={t('Enter your email and we will send you a secure reset link.')}
       backButtonHref="/auth/login"
-      backButtonLabel="Back to login"
+      backButtonLabel={t('Back to login')}
     >
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">
+        <form method="post" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <fieldset disabled={!formReady || isPending} className="contents">
+          <div className="space-y-5">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-white">Email</FormLabel>
+                  <FormLabel className="text-sm font-medium text-zinc-200">{t('Email')}</FormLabel>
                   <FormControl>
-                    <Input
-                      className="text-white bg-zinc-800 h-10 placeholder:text-gray-300 pt-2 border-gray-500"
+                    <AuthInput
+                      icon={Mail}
                       {...field}
                       disabled={isPending}
                       placeholder="john.doe@example.com"
-                      type="email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
                     />
                   </FormControl>
                   <FormMessage />
@@ -68,10 +113,16 @@ export const ResetForm = () => {
             />
           </div>
           <FormError message={error} />
-          <FormSuccess message={success} />
-          <Button type="submit" disabled={isPending} variant="auth" size="lg">
-            Send reset email
+          <Button
+            type="submit"
+            disabled={isPending}
+            variant="auth"
+            size="lg"
+            className="mt-2 h-12 rounded-xl bg-red-600 text-base shadow-lg shadow-red-950/30 hover:bg-red-500"
+          >
+            {isPending ? t('Sending email…') : t('Send reset email')}
           </Button>
+          </fieldset>
         </form>
       </Form>
     </CardWrapper>

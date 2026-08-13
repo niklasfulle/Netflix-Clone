@@ -203,10 +203,10 @@ describe('LogoutButton Component', () => {
       expect(button?.tagName).toBe('BUTTON');
     });
 
-    it('should have default button type', () => {
+    it('should not submit a surrounding form', () => {
       const { container } = render(<LogoutButton>Logout</LogoutButton>);
       const button = container.querySelector('button');
-      expect(button?.type).toBe('submit');
+      expect(button?.type).toBe('button');
     });
 
     it('should be clickable', () => {

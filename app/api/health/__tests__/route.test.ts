@@ -19,8 +19,19 @@ const mockedQueryRaw = db.$queryRaw as jest.Mock;
 const mockedAccess = access as jest.Mock;
 
 describe("health endpoint", () => {
+  const originalDeploymentEnvironment = process.env.DEPLOYMENT_ENVIRONMENT;
+
   beforeEach(() => {
     jest.resetAllMocks();
+    process.env.DEPLOYMENT_ENVIRONMENT = "staging";
+  });
+
+  afterAll(() => {
+    if (originalDeploymentEnvironment === undefined) {
+      delete process.env.DEPLOYMENT_ENVIRONMENT;
+    } else {
+      process.env.DEPLOYMENT_ENVIRONMENT = originalDeploymentEnvironment;
+    }
   });
 
   it("reports a healthy application and database", async () => {
@@ -34,7 +45,8 @@ describe("health endpoint", () => {
     expect(body).toMatchObject({
       status: "ok",
       service: "netflix-clone",
-      version: "1.10.1",
+      version: "1.11.0",
+      environment: "staging",
       checks: {
         application: "ok",
         database: "ok",

@@ -1,64 +1,11 @@
-"use server"
-import { logBackendAction } from '@/lib/logger';
-import bcrypt from 'bcryptjs';
-import * as z from 'zod';
+"use server";
 
-import { getPasswordResetTokenByToken } from '@/data/password-reset-token';
-import { getUserByEmail } from '@/data/user';
-import { db } from '@/lib/db';
-import { NewPasswordSchema } from '@/schemas';
+import type * as z from 'zod';
 
-export const setNewPassword = async (values: z.infer<typeof NewPasswordSchema>, token?: string | null) => {
-  if (!token) {
-    logBackendAction('newPassword_missing_token', {}, 'error');
-    return { error: "Missing token!" }
-  }
+import { authenticationService } from '@/lib/authentication/production';
+import type { NewPasswordSchema } from '@/schemas';
 
-  const validatedField = NewPasswordSchema.safeParse(values);
-
-  if (!validatedField.success) {
-    logBackendAction('newPassword_invalid_password', {
-      invalidFields: validatedField.error.issues.map((issue) => issue.path.join('.')),
-    }, 'error');
-    return { error: "Invalid password!" }
-  }
-
-  const { password } = validatedField.data
-
-  const existingToken = await getPasswordResetTokenByToken(token)
-
-  if (!existingToken) {
-    logBackendAction('newPassword_token_not_exist', {}, 'error');
-    return { error: "Token does not exist!" }
-  }
-
-  const hasExpired = new Date(existingToken.expires) < new Date()
-
-  if (hasExpired) {
-    logBackendAction('newPassword_token_expired', {}, 'error');
-    return { error: "Token has expired!" }
-  }
-
-  const existingUser = await getUserByEmail(existingToken.email)
-
-  if (!existingUser) {
-    logBackendAction('newPassword_email_not_exist', { email: existingToken.email }, 'error');
-    return { error: "Email does not exist!" }
-  }
-  const hashedPassword = await bcrypt.hash(password, 10)
-
-  await db.user.update({
-    where: { id: existingUser.id },
-    data: {
-      hashedPassword: hashedPassword
-    }
-  })
-
-  await db.passwordResetToken.delete({
-    where: { id: existingToken.id }
-  })
-
-  logBackendAction('newPassword_success', { email: existingToken.email }, 'info');
-
-  return { success: "New password set!" }
-}
+export const setNewPassword = async (
+  values: z.infer<typeof NewPasswordSchema>,
+  token?: string | null,
+) => authenticationService.setNewPassword({ ...values, token });

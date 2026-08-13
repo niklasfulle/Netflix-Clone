@@ -5,11 +5,13 @@ import * as z from "zod";
 
 import { getUserByEmail, getUserById } from "@/data/user";
 import { currentUser } from "@/lib/auth";
+import { normalizeAuthEmail } from "@/lib/authentication/contracts";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
 import { SettingsSchema } from "@/schemas";
+import { currentSecurityContext, sessionSecurity } from "@/lib/session-security";
 
 type SettingsValues = z.infer<typeof SettingsSchema>;
 type SettingsResult = { error: string } | { success: string };
@@ -19,13 +21,14 @@ function normalizeSettingsValues(values: SettingsValues, isOAuth?: boolean) {
     ...values,
     password: values.password || undefined,
     newPassword: values.newPassword || undefined,
+    confirmNewPassword: values.confirmNewPassword || undefined,
   };
 
   if (isOAuth) {
     normalizedValues.email = undefined;
     normalizedValues.password = undefined;
     normalizedValues.newPassword = undefined;
-    normalizedValues.isTwoFactorEnabled = undefined;
+    normalizedValues.confirmNewPassword = undefined;
   }
 
   return normalizedValues;
@@ -46,7 +49,10 @@ async function handleEmailChange(
     return { error: "Email already in use!" };
   }
 
-  const verificationToken = await generateVerificationToken(email);
+  const verificationToken = await generateVerificationToken(email, {
+    userId,
+    targetEmail: email,
+  });
   await sendVerificationEmail(
     verificationToken.email,
     verificationToken.token,
@@ -96,7 +102,19 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
     return { error: "Unauthorized!" };
   }
 
-  const parsedValues = SettingsSchema.safeParse(values);
+  const valuesForValidation = user.isOAuth
+    ? {
+        ...values,
+        email: undefined,
+        password: undefined,
+        newPassword: undefined,
+        confirmNewPassword: undefined,
+      }
+    : {
+        ...values,
+        email: values.email ? normalizeAuthEmail(values.email) : values.email,
+      };
+  const parsedValues = SettingsSchema.safeParse(valuesForValidation);
 
   if (!parsedValues.success) {
     logBackendAction(
@@ -138,11 +156,30 @@ export const settings = async (values: z.infer<typeof SettingsSchema>) => {
       ...(passwordResult.hashedPassword !== undefined && {
         hashedPassword: passwordResult.hashedPassword,
       }),
-      ...(nextValues.isTwoFactorEnabled !== undefined && {
-        isTwoFactorEnabled: nextValues.isTwoFactorEnabled,
-      }),
     },
   });
+
+  if (passwordResult.hashedPassword !== undefined) {
+    const context = await currentSecurityContext();
+    if (user.sessionId) {
+      await sessionSecurity.revokeOtherSessions({
+        userId: user.id as string,
+        currentSessionId: user.sessionId,
+        context,
+      });
+      await sessionSecurity.recordActivity(
+        user.id as string,
+        "password_changed",
+        context,
+      );
+    } else {
+      await sessionSecurity.revokeAllSessions({
+        userId: user.id as string,
+        event: "password_changed",
+        context,
+      });
+    }
+  }
 
   logBackendAction("settings_success", { userId: user.id }, "info");
 

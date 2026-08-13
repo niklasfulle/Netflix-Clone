@@ -30,6 +30,20 @@ jest.mock("@/components/LanguageSwitcher", () => ({
   default: () => <div data-testid="language-switcher">DE / EN</div>,
 }));
 
+jest.mock("../mfa-settings-panel", () => ({
+  MfaSettingsPanel: ({ initiallyEnabled }: { initiallyEnabled: boolean }) => (
+    <div data-testid="mfa-settings-panel" data-enabled={initiallyEnabled} />
+  ),
+}));
+
+jest.mock("../passkey-settings-panel", () => ({
+  PasskeySettingsPanel: () => <div data-testid="passkey-settings-panel" />,
+}));
+
+jest.mock("../security-activity-panel", () => ({
+  SecurityActivityPanel: () => <div data-testid="security-activity-panel" />,
+}));
+
 const mockSettings = settings as jest.MockedFunction<typeof settings>;
 
 class ResizeObserverMock {
@@ -76,6 +90,8 @@ describe("SettingsForm", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Jane Doe");
     expect(screen.getByLabelText("Email")).toHaveValue("jane@example.com");
     expect(screen.getByTestId("language-switcher")).toBeInTheDocument();
+    expect(screen.getByTestId("security-activity-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("passkey-settings-panel")).toBeInTheDocument();
     expect(screen.getByText("Member")).toBeInTheDocument();
   });
 

@@ -1,5 +1,9 @@
 # Ansible Deployment für Netflix Clone
 
+> Staging is the default deployment target. See
+> [`docs/deployment/staging.md`](../docs/deployment/staging.md) for LXC cloning,
+> environment isolation, deployment, and production promotion.
+
 Diese Ansible-Konfiguration ermöglicht es, den Netflix Clone Docker Container auf einem LXC Container automatisch zu aktualisieren.
 
 ## Setup
@@ -43,14 +47,14 @@ Das Playbook liest automatisch die Version aus `package.json` und aktualisiert d
 
 ```bash
 cd ansible
-ansible-playbook update.yml
+ansible-playbook -i hosts.staging update.yml -e deployment_environment=staging
 ```
 
 Oder mit dem erweiterten Playbook:
 
 ```bash
 cd ansible
-ansible-playbook update-netflix-clone.yml
+ansible-playbook -i hosts.staging update-netflix-clone.yml -e deployment_environment=staging
 ```
 
 ### Nur prüfen (Dry-Run)

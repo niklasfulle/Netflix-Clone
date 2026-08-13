@@ -3,13 +3,16 @@
 Eine selbst gehostete Streaming-Anwendung für Filme und Serien mit Benutzerprofilen,
 Wiedergabefortschritt und einem umfangreichen Administrationsbereich.
 
-Aktuelle Version: **1.10.1**
+Aktuelle Version: **1.11.0**
 
 ## Funktionsumfang
 
 ### Streaming und Benutzer
 
 - Anmeldung und Registrierung mit Auth.js
+- Widerrufbare JWT-Sitzungen mit gerätebezogener Abmeldung
+- Datenschutzfreundliche Sicherheitsaktivitäten mit 90 Tagen Aufbewahrung
+- Passwort-, E-Mail-, MFA- und Kontosperränderungen widerrufen betroffene Sitzungen
 - Mehrere Profile pro Benutzerkonto
 - Filme, Serien, Suche, Favoriten und Watchlist
 - „Continue Watching“ mit gespeichertem Wiedergabefortschritt
@@ -103,6 +106,20 @@ Minimale Konfiguration:
 POSTGRESQL_URL=postgresql://USER:PASSWORD@DATABASE_HOST:5432/Netflix
 AUTH_SECRET=REPLACE_WITH_A_RANDOM_SECRET
 AUTH_URL=http://localhost:3000
+AUTH_TRUSTED_PROXY_HOPS=0
+AUTH_PUBLIC_URL=http://localhost:3000
+AUTH_MAIL_HOST=smtp.example.com
+AUTH_MAIL_PORT=587
+AUTH_MAIL_SECURE=false
+AUTH_MAIL_USER=REPLACE_WITH_SMTP_USER
+AUTH_MAIL_PASSWORD=REPLACE_WITH_SMTP_PASSWORD
+AUTH_MAIL_FROM=Netflix Clone <auth@example.com>
+AUTH_MAIL_LOCALE=en
+AUTH_PASSKEYS_ENABLED=false
+# Required only when the feature-flagged passkey pilot is enabled:
+# AUTH_WEBAUTHN_RP_ID=localhost
+# AUTH_WEBAUTHN_RP_NAME=Netflix Clone
+# AUTH_WEBAUTHN_ORIGIN=http://localhost:3000
 NEXT_PUBLIC_GENRE=Action,Comedy,Drama
 ```
 
@@ -142,6 +159,19 @@ Danach ist die Anwendung unter
 | `POSTGRESQL_URL` | Verbindung zur PostgreSQL-Datenbank | erforderlich |
 | `AUTH_SECRET` | Signiert und schützt Authentifizierungsdaten | erforderlich |
 | `AUTH_URL` | Öffentliche Basisadresse der Anwendung | erforderlich |
+| `AUTH_TRUSTED_PROXY_HOPS` | Anzahl der tatsächlich vorgeschalteten, vertrauenswürdigen Reverse-Proxys für die IP-basierte Anmeldedrosselung | `0` |
+| `AUTH_PUBLIC_URL` | Validierte öffentliche Basisadresse für Links in Auth-E-Mails | erforderlich für Auth-E-Mails |
+| `AUTH_MAIL_HOST` | SMTP-Hostname | erforderlich für Auth-E-Mails |
+| `AUTH_MAIL_PORT` | SMTP-Port, beispielsweise `587` | erforderlich für Auth-E-Mails |
+| `AUTH_MAIL_SECURE` | Direkte TLS-Verbindung (`true`/`false`) | erforderlich für Auth-E-Mails |
+| `AUTH_MAIL_USER` | Optionaler SMTP-Benutzer; nur zusammen mit Passwort | nicht gesetzt |
+| `AUTH_MAIL_PASSWORD` | Optionales SMTP-Passwort; nur zusammen mit Benutzer | nicht gesetzt |
+| `AUTH_MAIL_FROM` | Absenderadresse oder Name mit Adresse | erforderlich für Auth-E-Mails |
+| `AUTH_MAIL_LOCALE` | Sprache der Auth-E-Mails (`en` oder `de`) | `en` |
+| `AUTH_PASSKEYS_ENABLED` | Aktiviert den experimentellen Passkey-Pilot | `false` |
+| `AUTH_WEBAUTHN_RP_ID` | Stabile WebAuthn-Domain ohne Schema oder Port | erforderlich bei aktiviertem Pilot |
+| `AUTH_WEBAUTHN_RP_NAME` | Im Authenticator angezeigter Dienstname | erforderlich bei aktiviertem Pilot |
+| `AUTH_WEBAUTHN_ORIGIN` | Exakter kanonischer Ursprung aus Schema, Host und optionalem Port | erforderlich bei aktiviertem Pilot |
 | `NEXT_PUBLIC_GENRE` | Kommagetrennte Allowlist der in Add/Edit auswählbaren Genres | in Produktion erforderlich |
 | `SYSTEM_MONITOR_PATH` | Pfad zum JSON-Snapshot des Host-Agenten | `/monitor/status.json` |
 | `APP_VERSION` | Image-Tag für Docker Compose | `latest` |
@@ -167,6 +197,50 @@ chmod 600 /root/netflix-secrets/app.env
 Secrets gehören weder in `docker-compose.yml` noch in das Docker-Image, die
 README, Shell-Skripte oder Git.
 
+Der Auth-Mailer wird erst beim Versand initialisiert, validiert alle oben
+genannten Werte und wartet auf die SMTP-Bestätigung. Die früheren Variablen
+`NODEMAILER_EMAIL`, `NODEMAILER_PW` und die fest codierte Gmail-Konfiguration
+werden nicht mehr verwendet. Für Produktion muss `AUTH_PUBLIC_URL` eine stabile
+öffentliche HTTPS-Adresse enthalten.
+
+Anmelde-Limits werden in PostgreSQL gespeichert und gelten dadurch über Neustarts
+und mehrere App-Instanzen hinweg. `AUTH_TRUSTED_PROXY_HOPS` bleibt bei direktem
+Zugriff auf `0`. Hinter genau einem kontrollierten Reverse-Proxy wird es auf `1`
+gesetzt. Ein höherer Wert als die echte Proxy-Kette kann gefälschte
+`X-Forwarded-For`-Werte wieder vertrauenswürdig erscheinen lassen.
+
+### Experimenteller Passkey-Pilot
+
+Passkeys sind in 1.11 standardmäßig ausgeschaltet. Auth.js kennzeichnet seine
+Passkey-Unterstützung weiterhin als experimentell; aktiviere den Pilot deshalb
+zuerst nur in Staging und für Test- oder Administratorkonten. Die Anwendung
+erlaubt ausschließlich bereits registrierten, bestätigten und nicht gesperrten
+Konten einen Passkey. Passwortanmeldung, MFA und E-Mail-Wiederherstellung bleiben
+parallel verfügbar.
+
+WebAuthn bindet einen Passkey dauerhaft an die RP-ID. Produktion und Staging
+benötigen daher jeweils eine stabile kanonische HTTPS-Domain. `AUTH_URL`,
+`AUTH_PUBLIC_URL` und `AUTH_WEBAUTHN_ORIGIN` müssen denselben von außen sichtbaren
+Ursprung beschreiben; der Reverse-Proxy muss Host und HTTPS-Informationen korrekt
+weiterreichen. Plain HTTP ist ausschließlich für `http://localhost` in der
+lokalen Entwicklung zulässig. Ein Wechsel zwischen Hostname und IP-Adresse
+macht vorhandene Passkeys für den jeweils anderen Ursprung unbrauchbar.
+
+Beispiel für Staging:
+
+```dotenv
+AUTH_PASSKEYS_ENABLED=true
+AUTH_WEBAUTHN_RP_ID=staging.netflix.example.com
+AUTH_WEBAUTHN_RP_NAME=Netflix Clone Staging
+AUTH_WEBAUTHN_ORIGIN=https://staging.netflix.example.com
+```
+
+Das Aktivieren erfordert die Migration `20260812183000_add_passkeys`. Die
+Einstellungen verlangen vor Hinzufügen, Umbenennen oder Entfernen erneut das
+aktuelle Passwort; die Freigabe ist an die aktive Serversitzung gebunden und
+läuft nach fünf Minuten ab. Der letzte nutzbare Anmeldeweg kann nicht entfernt
+werden.
+
 ## Verfügbare Befehle
 
 | Befehl | Zweck |
@@ -178,6 +252,7 @@ README, Shell-Skripte oder Git.
 | `corepack yarn test` | Jest-Testläufe ausführen |
 | `corepack yarn test:watch` | Jest im Watch-Modus starten |
 | `corepack yarn test:coverage` | LCOV-Coverage erzeugen |
+| `corepack yarn test:auth-integration` | Auth-/MFA-/Session-/Passkey-Persistenz gegen die isolierte Staging-Datenbank prüfen |
 | `corepack yarn test:e2e` | Gesamte Playwright-Matrix ausführen |
 | `corepack yarn test:e2e:desktop` | Playwright nur mit Desktop Chrome ausführen |
 | `corepack yarn test:e2e:mobile` | Playwright nur mit dem Pixel-7-Projekt ausführen |
@@ -237,6 +312,14 @@ corepack yarn test:e2e
 Remove-Item Env:PLAYWRIGHT_EXTERNAL_SERVER
 Remove-Item Env:PLAYWRIGHT_BASE_URL
 ```
+
+MFA- und Passkey-Szenarien verändern ausschließlich deterministische
+Testzustände. Dafür muss `.env.e2e.local` zusätzlich `E2E_DATABASE_URL` mit der
+Datenbank der aufgerufenen Staging-Instanz enthalten. Vor jeder direkten
+Datenbankänderung prüft Playwright `/api/health`, lehnt Produktion grundsätzlich
+ab und verlangt einen Datenbanknamen mit `stage` oder `staging`. So können ein
+lokaler Prisma-Client und eine entfernte Staging-Weboberfläche nicht
+versehentlich unterschiedliche Datenbanken verändern.
 
 Die Tests bereiten User- und Admin-Sitzungen einmalig und seriell vor; die
 eigentlichen Desktop-/Mobil-Szenarien laufen parallel. Actor- und Content-Flows
@@ -299,8 +382,8 @@ das finale Image.
 
 ```powershell
 docker build -t netflix-clone .
-docker tag netflix-clone salkin263/netflix-clone:1.10.1
-docker push salkin263/netflix-clone:1.10.1
+docker tag netflix-clone salkin263/netflix-clone:1.11.0
+docker push salkin263/netflix-clone:1.11.0
 ```
 
 Alternativ übernimmt `docker-build.ps1` Version, Tag und Push automatisch aus
@@ -325,7 +408,7 @@ Sie erwartet die externe Env-Datei und folgende Host-Verzeichnisse:
 Start mit einem konkreten Image-Tag:
 
 ```bash
-APP_VERSION=1.10.1 docker compose up -d
+APP_VERSION=1.11.0 docker compose up -d
 ```
 
 Das Image verändert die Datenbank beim Containerstart nicht selbst. Das
@@ -336,8 +419,8 @@ Docker-Healthcheck ruft alle 30 Sekunden `/api/health` auf.
 
 ## Empfohlenes Deployment mit Ansible
 
-Das normale Deployment baut und pusht das Image und aktualisiert danach den
-Ziel-LXC:
+Das normale Deployment baut und pusht das Image und aktualisiert danach die
+Staging-Umgebung. Staging ist bewusst das Standardziel:
 
 ```powershell
 .\deploy.ps1
@@ -346,10 +429,22 @@ Ziel-LXC:
 Vor dem ersten Deployment:
 
 1. Docker Desktop starten und bei Docker Hub anmelden.
-2. `ansible/hosts` auf die korrekte LXC-Adresse einstellen.
-3. `/root/netflix-secrets/app.env` auf dem Zielsystem anlegen.
-4. Sicherstellen, dass `/movies` und `/series` verfügbar und beschreibbar sind.
-5. SSH-Zugriff und Ansible testen.
+2. Einen neuen, isolierten Staging-LXC vorbereiten.
+3. `ansible/.env.staging` mit seiner LXC-Adresse anlegen.
+4. Auf jedem LXC `/etc/netflix-clone/environment` auf `staging` beziehungsweise
+   `production` setzen.
+5. Für Staging eine eigene Datenbank und eine eigene
+   `/root/netflix-secrets/app.env` verwenden; die Datenbank muss `staging` oder
+   `stage` im Namen tragen und die Datei `DEPLOYMENT_ENVIRONMENT=staging`
+   enthalten.
+6. `.env.e2e.local` als root-eigene Datei mit Modus `0600` nach
+   `/root/netflix-secrets/staging-users.env` kopieren. Daraus legt Ansible nach
+   den Migrationen automatisch den bestätigten Testbenutzer, den Admin und ihre
+   Profile an. Zusätzlich werden ein deterministischer Testkatalog und echte,
+   kurze H.264/AAC-Videos in den isolierten Medien-Mounts erzeugt; die Secret-Datei
+   wird nicht an den laufenden App-Container übergeben.
+7. Sicherstellen, dass `/movies` und `/series` verfügbar und beschreibbar sind.
+8. SSH-Zugriff und Ansible testen.
 
 Das SSH-Passwort kann verdeckt für die aktuelle Sitzung gesetzt werden:
 
@@ -359,11 +454,16 @@ $env:NETFLIX_DEPLOY_PASSWORD = Read-Host "LXC SSH password" -MaskInput
 Remove-Item Env:NETFLIX_DEPLOY_PASSWORD
 ```
 
-Wenn das Image bereits gebaut und gepusht wurde:
+Nach einem erfolgreichen Staging-Deployment wird dieselbe Version ohne neuen
+Build ausdrücklich für Produktion freigegeben:
 
 ```powershell
-.\deploy.ps1 -SkipDocker
+.\deploy.ps1 -Environment Production -SkipDocker -ConfirmProduction
 ```
+
+Ohne erfolgreichen Staging-Nachweis derselben Version lehnt das Skript das
+Produktions-Deployment ab. Die vollständige Einrichtung steht in
+[docs/deployment/staging.md](docs/deployment/staging.md).
 
 Der Image-Tag wird immer aus `package.json` gelesen. Das Playbook:
 
@@ -376,7 +476,7 @@ Der Image-Tag wird immer aus `package.json` gelesen. Das Playbook:
 7. validiert Container und Image im Monitoring-Snapshot und
 8. entfernt erst nach erfolgreichem Start ungenutzte Docker-Layer.
 
-Weitere Details stehen in [ansible/README.md](ansible/README.md).
+Weitere Ansible-Details stehen in [ansible/README.md](ansible/README.md).
 
 ## Healthcheck und Systemübersicht
 

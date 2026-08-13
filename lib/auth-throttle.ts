@@ -1,66 +1,69 @@
-import { createHash } from 'node:crypto';
 import { headers } from 'next/headers';
 
-import { createRateLimiter } from '@/lib/rate-limit';
+import { authRateLimitRepository } from '@/data/auth-rate-limit';
+import {
+  createAuthenticationThrottle,
+  resolveClientAddress,
+  type AuthThrottleScope,
+} from '@/lib/authentication/throttle';
 
-export type AuthThrottleScope = 'login' | 'register' | 'password-reset' | 'verification-resend' | 'two-factor';
+export type { AuthThrottleScope } from '@/lib/authentication/throttle';
 
-const SETTINGS: Record<AuthThrottleScope, { limit: number; windowMs: number }> = {
-  login: { limit: 5, windowMs: 15 * 60_000 },
-  register: { limit: 3, windowMs: 30 * 60_000 },
-  'password-reset': { limit: 3, windowMs: 30 * 60_000 },
-  'verification-resend': { limit: 3, windowMs: 30 * 60_000 },
-  'two-factor': { limit: 5, windowMs: 10 * 60_000 },
+const SETTINGS: Record<AuthThrottleScope, { limit: number; ipLimit: number; windowMs: number }> = {
+  login: { limit: 5, ipLimit: 50, windowMs: 15 * 60_000 },
+  register: { limit: 3, ipLimit: 30, windowMs: 30 * 60_000 },
+  'password-reset': { limit: 3, ipLimit: 30, windowMs: 30 * 60_000 },
+  'verification-resend': { limit: 3, ipLimit: 30, windowMs: 30 * 60_000 },
+  'two-factor': { limit: 5, ipLimit: 50, windowMs: 10 * 60_000 },
+  'two-factor-send': { limit: 1, ipLimit: 20, windowMs: 60_000 },
 };
 
-const limiters = Object.fromEntries(
-  Object.entries(SETTINGS).map(([scope, settings]) => [scope, createRateLimiter(settings)]),
-) as Record<AuthThrottleScope, ReturnType<typeof createRateLimiter>>;
-
-function hashIdentifier(value: string): string {
-  return createHash('sha256').update(value.trim().toLocaleLowerCase('en')).digest('hex').slice(0, 16);
+function trustedProxyHops(): number {
+  const configuredHops = Number.parseInt(process.env.AUTH_TRUSTED_PROXY_HOPS ?? '0', 10);
+  return Number.isInteger(configuredHops) && configuredHops >= 0 && configuredHops <= 5
+    ? configuredHops
+    : 0;
 }
 
 async function requestIp(): Promise<string> {
   try {
     const requestHeaders = await headers();
-    return requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim()
-      || requestHeaders.get('x-real-ip')?.trim()
-      || 'unknown';
+    return resolveClientAddress(requestHeaders, trustedProxyHops());
   } catch {
     return 'unknown';
   }
 }
 
-async function throttleKeys(account: string) {
-  const ip = await requestIp();
-  return {
-    account: `account:${hashIdentifier(account || 'unknown')}`,
-    ip: `ip:${hashIdentifier(ip)}`,
-  };
+function hashSecret(): string {
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET is required for persistent authentication throttling');
+  }
+  return secret ?? 'development-auth-throttle-secret';
+}
+
+let persistentThrottle: ReturnType<typeof createAuthenticationThrottle> | undefined;
+
+function getPersistentThrottle() {
+  persistentThrottle ??= createAuthenticationThrottle({
+    repository: authRateLimitRepository,
+    clientAddress: requestIp,
+    secret: hashSecret(),
+    settings: SETTINGS,
+  });
+  return persistentThrottle;
 }
 
 export async function consumeAuthAttempt(scope: AuthThrottleScope, account: string) {
   if (process.env.NODE_ENV === 'test' && process.env.ENABLE_AUTH_THROTTLE_IN_TESTS !== 'true') {
     return { allowed: true, retryAfterSeconds: 0, keyHash: 'test' };
   }
-  const accountHash = hashIdentifier(account || 'unknown');
-  const keys = await throttleKeys(account);
-  const limiter = limiters[scope];
-  const accountResult = limiter.consume(keys.account);
-  const ipResult = limiter.consume(keys.ip);
-  const allowed = accountResult.allowed && ipResult.allowed;
-
-  return {
-    allowed,
-    retryAfterSeconds: Math.max(accountResult.retryAfterSeconds, ipResult.retryAfterSeconds),
-    keyHash: accountHash,
-  };
+  return getPersistentThrottle().consume(scope, account);
 }
 
 export async function releaseAuthAttempt(scope: AuthThrottleScope, account: string) {
-  const keys = await throttleKeys(account);
-  const limiter = limiters[scope];
-  limiter.refund(keys.account);
-  limiter.refund(keys.ip);
+  if (process.env.NODE_ENV === 'test' && process.env.ENABLE_AUTH_THROTTLE_IN_TESTS !== 'true') {
+    return;
+  }
+  await getPersistentThrottle().release(scope, account);
 }

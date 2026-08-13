@@ -4,6 +4,40 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 ## [current]
 
+- Login, registration, password reset, password renewal, verification, and authentication errors now share a responsive visual system
+- The authentication experience now includes a large-screen product overview while remaining compact and overflow-safe on mobile devices
+- Authentication forms now provide consistent field icons, password-manager metadata, localized validation, pending states, and live status announcements
+- Authentication navigation, language switching, headings, focus states, and social-provider controls received accessibility improvements
+- Registration and email-verification metadata now describe the correct page instead of reusing unrelated titles
+- Auth regression tests now focus on semantics, accessibility, navigation, responsive contracts, and native input behavior instead of brittle implementation details
+- Authentication commands now run through one typed service boundary with normalized identities and stable result codes
+- Registration, login, recovery, verification, and two-factor flows now enforce the shared 12-character password policy, safe duplicate handling, and non-disclosing public responses
+- Authentication mail uses validated SMTP settings, localized templates, awaited delivery, and a canonical public URL instead of fixed provider configuration
+- Verification, password-reset, and two-factor tokens are purpose-bound, stored only as hashes, account-bound where possible, and consumed atomically
+- Authentication rate limits are persisted in PostgreSQL, retain shared IP budgets after successful logins, and trust forwarding headers only through an explicit proxy-hop policy
+- Authentication security logs now replace email identities with stable keyed hashes and omit credentials, tokens, and one-time codes
+- Password fields now include visibility controls, Caps Lock feedback, confirmation progress, and accessible password requirements
+- Registration and password recovery now switch to dedicated check-your-email states with expiry guidance and server-aware resend countdowns
+- Public authentication forms remain disabled until hydration and use POST as their native fallback, preventing credentials from appearing in URLs during early interaction
+- PostgreSQL authentication rate-limit windows now remain correct when the database server uses a non-UTC timezone
+- Desktop and mobile browser coverage now exercises registration and reset success states, keyboard resend, shared rate limits, and redirect races
+- Deployments now target an isolated staging LXC by default and require a successful same-version staging promotion before production
+- Environment markers, health metadata, and database identity checks prevent staging deployments from reaching production infrastructure
+- A guarded staging-only bootstrap initializes and baselines a verified empty PostgreSQL database without resetting existing data
+- Staging deployments now provision the configured E2E user and administrator idempotently from a protected host-only environment file
+- Every staging page now carries a fixed, accessible environment badge while production remains unmarked
+- Staging now receives a deterministic catalog plus ffprobe-validated H.264/AAC movie and series fixtures for real player, seek, range, and billboard tests
+- Local catalog thumbnails are now returned as non-empty image responses instead of redirects that break Next.js image optimization
+- JWT sessions are now individually registered and can be revoked across devices without signing out the current device
+- Password resets, password and email changes, MFA changes, account blocks, and explicit sign-out now invalidate affected sessions
+- Account settings now show privacy-safe recent security activity with bounded 90-day retention
+- Auth handlers and the request proxy now share one session-identity mapper, preventing valid sessions from being rejected after login
+- An opt-in passkey pilot now supports discoverable WebAuthn login for existing verified accounts while retaining password, MFA, and recovery flows
+- Passkey enrollment and management require five-minute session-bound reauthentication, expose device metadata and labels, and prevent removal of the final usable sign-in method
+- Passkey RP ID, canonical origin, HTTPS, signature-counter, ownership, and existing-user rules are enforced and covered by unit and PostgreSQL 18 integration tests
+
+## 1.10.1
+
 - Movie deletion now removes actor relations transactionally, cleans up orphaned actors, and reliably replaces the deleted edit route in browser history
 - Production deployment now includes the generated Prisma runtime, uses Docker CLI transport, and supports safe migration baselining and recovery for existing databases
 - PostgreSQL backups use a matching PostgreSQL 18 client, validate dumps before publication, and preserve credential-redacted diagnostics on failure

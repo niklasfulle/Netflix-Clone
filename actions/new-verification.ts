@@ -1,45 +1,6 @@
-"use server"
-import { logBackendAction } from '@/lib/logger';
-import { getUserByEmail } from '@/data/user';
-import { getVerificationTokenByToken } from '@/data/verification-token';
-import { db } from '@/lib/db';
+"use server";
 
-export const newVerification = async (token: string) => {
-  const existingToken = await getVerificationTokenByToken(token)
+import { authenticationService } from '@/lib/authentication/production';
 
-  if (!existingToken) {
-    logBackendAction('newVerification_token_not_exist', {}, 'error');
-    return { error: "Token does not exist!" }
-  }
-
-  const hasExpired = new Date(existingToken.expires) < new Date()
-
-  if (hasExpired) {
-    logBackendAction('newVerification_token_expired', {}, 'error');
-    return { error: "Token has expired!" }
-  }
-
-  const existingUser = await getUserByEmail(existingToken.email)
-
-  if (!existingUser) {
-    logBackendAction('newVerification_email_not_exist', { email: existingToken.email }, 'error');
-    return { error: "Email dows not exist!" }
-  }
-  await db.user.update({
-    where: {
-      id: existingUser.id
-    },
-    data: {
-      emailVerified: new Date(),
-      email: existingToken.email
-    }
-  })
-
-  await db.verificationToken.delete({
-    where: { id: existingToken.id }
-  })
-
-  logBackendAction('newVerification_success', { email: existingToken.email }, 'info');
-
-  return { succes: "Email verified!" }
-}
+export const newVerification = async (token: string) =>
+  authenticationService.verifyEmail({ token });

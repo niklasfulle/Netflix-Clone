@@ -7,8 +7,13 @@ if (existsSync(e2eEnvironmentFile)) {
   process.loadEnvFile(e2eEnvironmentFile);
 }
 
+if (process.env.E2E_DATABASE_URL) {
+  process.env.POSTGRESQL_URL = process.env.E2E_DATABASE_URL;
+}
+
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000';
 const useExternalServer = process.env.PLAYWRIGHT_EXTERNAL_SERVER === 'true';
+const nodeExecutable = `"${process.execPath}"`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -31,20 +36,26 @@ export default defineConfig({
     {
       name: 'desktop',
       dependencies: ['auth-setup'],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /mfa-journey\.spec\.ts/],
       use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     },
     {
       name: 'mobile',
       dependencies: ['auth-setup'],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /mfa-journey\.spec\.ts/],
       use: { ...devices['Pixel 7'], channel: 'chrome' },
+    },
+    {
+      name: 'mfa',
+      dependencies: ['desktop', 'mobile'],
+      testMatch: /mfa-journey\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     },
   ],
   webServer: useExternalServer
     ? undefined
     : {
-        command: 'node node_modules/next/dist/bin/next dev --hostname 127.0.0.1',
+        command: `${nodeExecutable} node_modules/next/dist/bin/next dev --webpack --hostname 127.0.0.1`,
         env: {
           AUTH_URL: baseURL,
           NEXTAUTH_URL: baseURL,

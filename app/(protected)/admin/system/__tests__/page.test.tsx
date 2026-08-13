@@ -8,7 +8,7 @@ const mockedUseSWR = useSWR as jest.Mock;
 
 const healthyOverview = {
   status: "healthy",
-  version: "1.10.1",
+  version: "1.11.0",
   checkedAt: "2026-07-29T12:00:30.000Z",
   agent: {
     status: "ok",
@@ -57,7 +57,7 @@ const healthyOverview = {
       health: "healthy",
       startedAt: "2026-07-29T11:00:00.000Z",
       restartCount: 0,
-      image: "salkin263/netflix-clone:1.10.1",
+      image: "salkin263/netflix-clone:1.11.0",
       imageId: "abc",
       cpuPercent: 2,
       memoryUsedBytes: 500_000_000,
@@ -97,7 +97,7 @@ describe("admin system page", () => {
     expect(screen.getByText("12.5%")).toBeInTheDocument();
     expect(screen.getByText("18 ms")).toBeInTheDocument();
     expect(screen.getByText("/movies")).toBeInTheDocument();
-    expect(screen.getByText("salkin263/netflix-clone:1.10.1")).toBeInTheDocument();
+    expect(screen.getByText("salkin263/netflix-clone:1.11.0")).toBeInTheDocument();
     expect(screen.getByText("No active alerts.")).toBeInTheDocument();
   });
 

@@ -1,13 +1,19 @@
 import crypto from 'node:crypto';
-import { v4 as uuidv4 } from 'uuid';
 
 import { getPasswordResetTokenByEmail } from '@/data/password-reset-token';
 import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
 import { getVerificationTokenByEmail } from '@/data/verification-token';
 import { db } from '@/lib/db';
+import {
+  createOpaqueOneTimeToken,
+  hashOneTimeToken,
+} from '@/lib/authentication/token-crypto';
 
-export const generateVerificationToken = async (email: string) => {
-  const token = uuidv4()
+export const generateVerificationToken = async (
+  email: string,
+  binding: { userId?: string; targetEmail?: string } = {},
+) => {
+  const token = createOpaqueOneTimeToken()
   const expires = new Date(Date.now() + 3600 * 1000)
 
   const existingToken = await getVerificationTokenByEmail(email)
@@ -20,19 +26,21 @@ export const generateVerificationToken = async (email: string) => {
     })
   }
 
-  const verificationToken = await db.verificationToken.create({
+  await db.verificationToken.create({
     data: {
       email,
-      token,
-      expires
+      tokenHash: hashOneTimeToken('verification', token),
+      expires,
+      userId: binding.userId,
+      targetEmail: binding.targetEmail,
     }
   })
 
-  return verificationToken
+  return { email, token, expires }
 }
 
-export const generatePasswordResetToken = async (email: string) => {
-  const token = uuidv4()
+export const generatePasswordResetToken = async (email: string, userId?: string) => {
+  const token = createOpaqueOneTimeToken()
   const expires = new Date(Date.now() + 3600 * 1000)
 
   const existingToken = await getPasswordResetTokenByEmail(email)
@@ -45,18 +53,19 @@ export const generatePasswordResetToken = async (email: string) => {
     })
   }
 
-  const passwordResetToken = await db.passwordResetToken.create({
+  await db.passwordResetToken.create({
     data: {
       email,
-      token,
-      expires
+      tokenHash: hashOneTimeToken('password-reset', token),
+      expires,
+      userId,
     }
   })
 
-  return passwordResetToken
+  return { email, token, expires }
 }
 
-export const generateTwoFactorToken = async (email: string) => {
+export const generateTwoFactorToken = async (email: string, userId?: string) => {
   const token = crypto.randomInt(100_000, 1_000_000).toString()
   const expires = new Date(Date.now() + 900 * 1000)
 
@@ -70,13 +79,14 @@ export const generateTwoFactorToken = async (email: string) => {
     })
   }
 
-  const twoFactorToken = await db.twoFactorToken.create({
+  await db.twoFactorToken.create({
     data: {
       email,
-      token,
-      expires
+      tokenHash: hashOneTimeToken('two-factor', token),
+      expires,
+      userId,
     }
   })
 
-  return twoFactorToken
+  return { email, token, expires }
 }

@@ -26,7 +26,8 @@ test.describe('user settings', () => {
     await language.getByRole('button', { name: 'EN', exact: true }).click();
     await expect(page.getByRole('heading', { name: /Your account, your preferences/i })).toBeVisible();
 
-    await page.getByRole('textbox', { name: /Current password/i }).fill('not-sent-to-the-server');
+    await page.getByRole('textbox', { name: 'Current password', exact: true })
+      .fill('not-sent-to-the-server');
     await page.getByRole('button', { name: /Save changes/i }).click();
     await expect(page.getByText(/New password is required/i)).toBeVisible();
     browserFailures.assertNone();

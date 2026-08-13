@@ -1,4 +1,6 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
+
+import { db } from '@/lib/db';
 
 function requiredEnvironmentVariable(name: string) {
   const value = process.env[name];
@@ -26,16 +28,66 @@ export const authStatePaths = {
   admin: 'output/playwright/.auth/admin.json',
 };
 
+export async function assertSafeE2EDataTarget(request: APIRequestContext) {
+  const healthResponse = await request.get('/api/health');
+  if (!healthResponse.ok()) {
+    throw new Error(`E2E target health check failed with HTTP ${healthResponse.status()}.`);
+  }
+
+  const health = await healthResponse.json() as { environment?: string };
+  const environment = health.environment?.trim().toLowerCase();
+  if (environment === 'production') {
+    throw new Error('Database-mutating E2E tests are forbidden against production.');
+  }
+  if (environment !== 'staging') {
+    throw new Error(`Database-mutating E2E tests require staging; received '${environment ?? 'unknown'}'.`);
+  }
+
+  const rows = await db.$queryRaw<Array<{ databaseName: string }>>`
+    SELECT current_database() AS "databaseName"
+  `;
+  const databaseName = rows[0]?.databaseName?.trim().toLowerCase() ?? '';
+  if (!databaseName.includes('stage') && !databaseName.includes('staging')) {
+    throw new Error(
+      `Playwright is connected to '${databaseName || 'unknown'}', not an isolated staging database.`,
+    );
+  }
+}
+
+export async function resetAccountMfa(email: string) {
+  await db.$transaction([
+    db.$executeRaw`
+      DELETE FROM "MfaRecoveryCode"
+      WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = ${email})
+    `,
+    db.$executeRaw`
+      DELETE FROM "MfaAuthenticator"
+      WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = ${email})
+    `,
+    db.$executeRaw`
+      DELETE FROM "TwoFactorConfirmation"
+      WHERE "userId" IN (SELECT "id" FROM "User" WHERE "email" = ${email})
+    `,
+    db.$executeRaw`
+      UPDATE "User"
+      SET "isTwoFactorEnabled" = false
+      WHERE "email" = ${email}
+    `,
+  ]);
+}
+
 export async function login(page: Page, account: { email: string; password: string }) {
   await page.goto('/auth/login');
   await page.getByRole('textbox', { name: /Email|E-Mail/i }).fill(account.email);
-  await page.getByLabel(/Password|Passwort/i).fill(account.password);
+  await page.locator('input[autocomplete="current-password"]').fill(account.password);
   await page.getByRole('button', { name: /Login|Anmelden/i }).click();
 
   const authenticationFeedback = page.getByText(
     /Invalid credentials|Confirmation email sent|Too many attempts|Something went wrong|Invalid fields/i,
   );
-  const twoFactorField = page.getByLabel(/2FA Code/i);
+  const twoFactorField = page.getByLabel(
+    /Authenticator code|Email verification code|Recovery code|2FA Code|Authenticator-Code|E-Mail-Bestätigungscode|Wiederherstellungscode/i,
+  );
   await expect.poll(async () => {
     if (new URL(page.url()).pathname !== '/auth/login') return 'redirected';
     if (await authenticationFeedback.isVisible()) return 'feedback';
@@ -43,9 +95,14 @@ export async function login(page: Page, account: { email: string; password: stri
     return 'pending';
   }, { timeout: 20_000 }).not.toBe('pending');
 
-  if (await authenticationFeedback.isVisible()) {
-    throw new Error(`Login failed: ${await authenticationFeedback.textContent()}`);
+  if (new URL(page.url()).pathname !== '/auth/login') return;
+
+  const feedbackText = await authenticationFeedback.textContent({ timeout: 1_000 })
+    .catch(() => null);
+  if (feedbackText) {
+    throw new Error(`Login failed: ${feedbackText}`);
   }
+  if (new URL(page.url()).pathname !== '/auth/login') return;
   if (await twoFactorField.isVisible()) {
     throw new Error('The E2E account requires two-factor authentication.');
   }
@@ -56,9 +113,14 @@ export async function selectFirstProfile(page: Page) {
   const profileButton = page.getByRole('button', {
     name: /Select profile|Profil auswählen/i,
   }).first();
+  if (await profileButton.count() === 0) {
+    await expect(page.getByRole('button', { name: /Add Profile|Profil hinzufügen/i }))
+      .toBeVisible();
+    return;
+  }
   await expect(profileButton).toBeVisible();
   await profileButton.click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
 }
 
 export function createBrowserFailureMonitor(page: Page) {

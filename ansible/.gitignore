@@ -1,6 +1,8 @@
 # .gitignore for Ansible
 # Umgebungsspezifische Dateien nicht in Git committen
 .env
+.env.staging
 .env.local
 ansible/hosts
+hosts.staging
 *.bak

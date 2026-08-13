@@ -18,34 +18,78 @@ export const createLoginSchema = (
 ) => z.object({
   email: z.email(messages.emailRequired),
   password: z.string().min(1, messages.passwordRequired),
-  code: z.optional(z.string().min(6, messages.codeRequired)),
+  code: z.optional(z.string().trim().min(6, messages.codeRequired).max(20, messages.codeRequired)),
+  challengeMethod: z.optional(z.enum(['totp', 'email_otp'])),
 });
 
 export const LoginSchema = createLoginSchema();
-export const RegisterSchema = z.object({
-  email: z.email("Email is requierd"),
-  password: z.string().min(6, "Minimum 6 characters requierd"),
-  confirm: z.string().min(6, "Minimum 6 characters requierd"),
-  name: z.string().min(1, "Name is requierd")
+
+export interface RegisterValidationMessages {
+  emailRequired: string;
+  passwordLength: string;
+  nameRequired: string;
+  passwordsMismatch: string;
+}
+
+const defaultRegisterValidationMessages: RegisterValidationMessages = {
+  emailRequired: "Email is required.",
+  passwordLength: "Minimum 12 characters required",
+  nameRequired: "Name is required.",
+  passwordsMismatch: "Passwords don't match.",
+};
+
+export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MAX_LENGTH = 128;
+
+const passwordSchema = (message: string) => z.string()
+  .min(PASSWORD_MIN_LENGTH, message)
+  .max(PASSWORD_MAX_LENGTH, "Maximum 128 characters allowed");
+
+export const createRegisterSchema = (
+  messages: RegisterValidationMessages = defaultRegisterValidationMessages,
+) => z.object({
+  email: z.email(messages.emailRequired),
+  password: passwordSchema(messages.passwordLength),
+  confirm: passwordSchema(messages.passwordLength),
+  name: z.string().trim().min(1, messages.nameRequired),
 }).refine((data) => data.password === data.confirm, {
-  message: "Passwords don't match!",
-  path: ["confirm"], // path of error
+  message: messages.passwordsMismatch,
+  path: ["confirm"],
 });
 
-export const ResetPasswordSchema = z.object({
-  email: z.email("Email is requierd"),
-})
+export const RegisterSchema = createRegisterSchema();
 
-export const NewPasswordSchema = z.object({
-  password: z.string().min(6, "Minimum 6 characters requierd"),
-})
+export const createResetPasswordSchema = (emailRequired = "Email is required.") => z.object({
+  email: z.email(emailRequired),
+});
+
+export const ResetPasswordSchema = createResetPasswordSchema();
+
+export const createNewPasswordSchema = (
+  passwordLength = "Minimum 12 characters required",
+  passwordsMismatch = "Passwords don't match.",
+) => z.object({
+  password: passwordSchema(passwordLength),
+  confirm: passwordSchema(passwordLength),
+}).refine((data) => data.password === data.confirm, {
+  message: passwordsMismatch,
+  path: ["confirm"],
+});
+
+export const NewPasswordSchema = createNewPasswordSchema();
 export const SettingsSchema = z.object({
   name: z.string().trim().min(2, "Minimum 2 characters required").max(60, "Maximum 60 characters allowed"),
-  isTwoFactorEnabled: z.optional(z.boolean()),
   role: z.optional(z.enum([UserRole.ADMIN, UserRole.USER])),
   email: z.optional(z.email("Enter a valid email address")),
-  password: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
-  newPassword: z.optional(z.union([z.string().min(6, "Minimum 6 characters required"), z.literal("")])),
+  password: z.optional(z.union([z.string().min(1, "Current password is required!"), z.literal("")])),
+  newPassword: z.optional(z.union([
+    passwordSchema("Minimum 12 characters required"),
+    z.literal(""),
+  ])),
+  confirmNewPassword: z.optional(z.union([
+    passwordSchema("Minimum 12 characters required"),
+    z.literal(""),
+  ])),
 }).refine((data) => {
   if (data.password && !data.newPassword) {
     return false
@@ -58,6 +102,18 @@ export const SettingsSchema = z.object({
     }
     return true
   }, { message: "Current password is required!", path: ["password"] })
+  .refine((data) => {
+    if (data.newPassword && !data.confirmNewPassword) {
+      return false
+    }
+    return true
+  }, { message: "Passwords don't match.", path: ["confirmNewPassword"] })
+  .refine((data) => {
+    if (data.newPassword && data.newPassword !== data.confirmNewPassword) {
+      return false
+    }
+    return true
+  }, { message: "Passwords don't match.", path: ["confirmNewPassword"] })
 
 export const ProfilSchema = z.object({
   profilId: z.string().trim().min(1).optional(),

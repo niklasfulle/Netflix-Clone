@@ -2,9 +2,12 @@ import { mkdir } from 'node:fs/promises';
 
 import { test as setup } from '@playwright/test';
 
-import { accounts, authStatePaths, login, selectFirstProfile } from './support';
+import { accounts, authStatePaths, login, resetAccountMfa, selectFirstProfile } from './support';
 
 setup.describe.configure({ mode: 'serial' });
+setup.beforeAll(async () => {
+  await resetAccountMfa(accounts.user.email);
+});
 
 for (const role of ['user', 'admin'] as const) {
   setup(`authenticate ${role}`, async ({ page }) => {

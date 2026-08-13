@@ -2,6 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
+import { currentSecurityContext, sessionSecurity } from "@/lib/session-security";
 
 async function getAdminBlockError(block: boolean, role: string) {
   if (!block || role !== "ADMIN") return null;
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
       blockedReason: block ? String(reason || "").trim() || null : null,
     },
     select: { id: true, isBlocked: true, blockedAt: true, blockedUntil: true, blockedReason: true },
+  });
+  await sessionSecurity.revokeAllSessions({
+    userId,
+    event: block ? "account_blocked" : "account_unblocked",
+    context: await currentSecurityContext(),
   });
   logBackendAction(block ? "admin_user_blocked" : "admin_user_unblocked", { userId }, "info");
   return Response.json({ success: true, user });

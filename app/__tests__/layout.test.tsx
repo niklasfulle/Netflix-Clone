@@ -86,6 +86,11 @@ describe("RootLayout (layout.tsx)", () => {
       expect(source).toContain("<Toaster");
     });
 
+    it("should expose the deployment environment and render its global badge", () => {
+      expect(source).toContain("data-environment={deploymentEnvironment}");
+      expect(source).toContain("<EnvironmentBadge environment={deploymentEnvironment}");
+    });
+
     it("Toaster should be at bottom-right", () => {
       expect(source).toContain('position="bottom-right"');
     });

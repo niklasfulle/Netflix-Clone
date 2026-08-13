@@ -4,15 +4,22 @@ import { logout } from '@/actions/logout';
 
 interface LogoutButtonProps {
   children?: React.ReactNode;
+  className?: string;
+  'aria-label'?: string;
 }
 
-export const LogoutButton = ({ children }: LogoutButtonProps) => {
+export const LogoutButton = ({ children, className, 'aria-label': ariaLabel }: LogoutButtonProps) => {
   const onClick = () => {
     logout();
   };
 
   return (
-    <button onClick={onClick} className="cursor-pointer">
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className={`cursor-pointer ${className ?? ''}`.trim()}
+    >
       {children}
     </button>
   );

@@ -389,8 +389,8 @@ describe('Button Component', () => {
       const { container } = render(<Button>Transition</Button>);
       const button = container.querySelector('button');
       expect(button?.className).toContain('transition-colors');
-      expect(button?.className).toContain('transition-all');
-      expect(button?.className).toContain('duration-300');
+      expect(button?.className).toContain('duration-200');
+      expect(button?.className).not.toContain('transition-all');
     });
 
     test('should have focus-visible styles', () => {

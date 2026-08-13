@@ -2,18 +2,29 @@
 # Lädt .env Datei und erstellt die hosts Datei dynamisch
 
 param(
-    [string]$EnvFile = ".env"
+    [ValidateSet("Staging", "Production")]
+    [string]$Environment = "Staging",
+    [string]$EnvFile,
+    [string]$OutputFile
 )
 
-Write-Host "Loading Ansible configuration from .env..." -ForegroundColor Cyan
+if (-not $EnvFile) {
+    $EnvFile = if ($Environment -eq "Staging") { ".env.staging" } else { ".env" }
+}
+
+if (-not $OutputFile) {
+    $OutputFile = if ($Environment -eq "Staging") { "hosts.staging" } else { "hosts" }
+}
+
+Write-Host "Loading Ansible configuration from $EnvFile..." -ForegroundColor Cyan
 
 # Check if .env exists
 if (-not (Test-Path $EnvFile)) {
     Write-Host "Error: $EnvFile not found!" -ForegroundColor Red
-    Write-Host "Please create $EnvFile based on $EnvFile.example" -ForegroundColor Yellow
+    Write-Host "Please create $EnvFile based on .env.example" -ForegroundColor Yellow
     Write-Host "`nExample:" -ForegroundColor Cyan
-    Write-Host "  Copy-Item .env.example .env" -ForegroundColor White
-    Write-Host "  Edit .env with your LXC settings" -ForegroundColor White
+    Write-Host "  Copy-Item .env.example $EnvFile" -ForegroundColor White
+    Write-Host "  Edit $EnvFile with your $Environment LXC settings" -ForegroundColor White
     exit 1
 }
 
@@ -27,6 +38,7 @@ Get-Content $EnvFile | Where-Object { $_ -match '=' -and $_ -notmatch '^#' } | F
 # Extract variables
 $lxcHost = $envVars['LXC_HOST']
 $lxcUser = $envVars['LXC_USER']
+$lxcPort = if ($envVars['LXC_PORT']) { $envVars['LXC_PORT'] } else { '22' }
 
 if (-not $lxcHost -or -not $lxcUser) {
     Write-Host "Error: LXC_HOST and LXC_USER must be set in .env!" -ForegroundColor Red
@@ -36,9 +48,10 @@ if (-not $lxcHost -or -not $lxcUser) {
 # Create hosts file
 $hostsContent = @"
 [netflix]
-netflix-lxc ansible_host=$lxcHost ansible_user=$lxcUser ansible_port=$lxcPort
+netflix-$($Environment.ToLowerInvariant()) ansible_host=$lxcHost ansible_user=$lxcUser ansible_port=$lxcPort
 "@
 
-Set-Content -Path "hosts" -Value $hostsContent
-Write-Host "✓ hosts file created successfully ($lxcHost)" -ForegroundColor Green
+Set-Content -Path $OutputFile -Value $hostsContent
+Write-Host "✓ $Environment inventory created successfully ($lxcHost)" -ForegroundColor Green
 Write-Host "  User: $lxcUser" -ForegroundColor Green
+Write-Host "  Port: $lxcPort" -ForegroundColor Green

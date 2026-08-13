@@ -32,6 +32,7 @@ export default async function HealthPage() {
           <StatusCard label="Database" value={health.checks.database} />
           <StatusCard label="Media storage" value={health.checks.storage} />
           <InfoCard label="Version" value={health.version} />
+          <InfoCard label="Environment" value={health.environment} />
           <InfoCard
             label="Last checked"
             value={new Date(health.timestamp).toLocaleString("en-US")}

@@ -57,3 +57,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 IMPLEMENTATION_CHECKPOINT.md
+/.deployment-receipts/
+/ansible/.env.staging
+/ansible/hosts.staging

@@ -49,6 +49,8 @@ COPY --chown=10001:10001 --from=builder /netflix-clone/node_modules/.prisma ./no
 COPY --chown=10001:10001 --from=builder /netflix-clone/.next ./.next
 COPY --chown=10001:10001 --from=builder /netflix-clone/public ./public
 COPY --chown=10001:10001 --from=builder /netflix-clone/prisma ./prisma
+COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-staging-catalog.js ./scripts/seed-staging-catalog.js
+COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-staging-users.js ./scripts/seed-staging-users.js
 COPY --chown=10001:10001 --from=builder /netflix-clone/package.json ./package.json
 COPY --chown=10001:10001 --from=builder /netflix-clone/CHANGELOG.md ./CHANGELOG.md
 COPY --chown=10001:10001 --from=builder /netflix-clone/next.config.js ./next.config.js

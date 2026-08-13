@@ -13,6 +13,11 @@ jest.mock('@/lib/logger', () => ({
   logBackendAction: jest.fn(),
 }));
 
+jest.mock('@/lib/session-security', () => ({
+  currentSecurityContext: jest.fn(),
+  sessionSecurity: { revokeAllSessions: jest.fn() },
+}));
+
 jest.mock('@/lib/watch-progress', () => ({
   CONTINUE_WATCHING_MAX_ITEMS: 20,
   getRecentContinueWatchingIds: jest.fn(() => ['movie1']),
@@ -53,6 +58,7 @@ import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { db } from '@/lib/db';
 import * as apiHelpers from '@/lib/api-helpers';
 import { getRecentContinueWatchingIds } from '@/lib/watch-progress';
+import { sessionSecurity } from '@/lib/session-security';
 import { GET as getCurrentUser } from '@/app/api/current/user/route';
 import { GET as getCurrentProfile } from '@/app/api/current/profil/route';
 import { GET as getProfiles } from '@/app/api/profil/route';
@@ -250,6 +256,9 @@ describe('API route coverage', () => {
     mockedDb.user.findUnique.mockResolvedValueOnce({ role: 'USER' });
     mockedDb.user.update.mockResolvedValueOnce({ id: 'user1', isBlocked: true });
     expect(await json(await blockAdminUser(request({ userId: 'user1', block: true })))).toMatchObject({ success: true });
+    expect(sessionSecurity.revokeAllSessions).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user1', event: 'account_blocked' }),
+    );
   });
 
   it('returns watchlist movies for the active profile', async () => {

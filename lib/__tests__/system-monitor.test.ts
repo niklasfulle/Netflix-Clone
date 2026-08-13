@@ -57,7 +57,7 @@ function snapshot(overrides: Partial<SystemSnapshot> = {}): SystemSnapshot {
         health: "healthy",
         startedAt: "2026-07-29T11:00:00.000Z",
         restartCount: 0,
-        image: "salkin263/netflix-clone:1.10.1",
+        image: "salkin263/netflix-clone:1.11.0",
         imageId: "abc123",
         cpuPercent: 3,
         memoryUsedBytes: 100,

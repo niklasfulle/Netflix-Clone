@@ -18,13 +18,13 @@ describe('logout action - Authentifizierung & Fehlerbehandlung', () => {
     jest.clearAllMocks();
   });
 
-  it('✅ sollte signOut erfolgreich aufrufen', async () => {
+  it('✅ beendet die Sitzung und leitet explizit zur Anmeldung weiter', async () => {
     const mockSignOut = signOut as jest.MockedFunction<typeof signOut>;
     mockSignOut.mockResolvedValue(undefined);
 
     await logout();
 
-    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    expect(mockSignOut).toHaveBeenCalledWith({ redirectTo: '/auth/login' });
   });
 
   it('❌ sollte Fehler werfen wenn signOut fehlschlägt', async () => {

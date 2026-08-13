@@ -1,0 +1,31 @@
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[33m[auth][warn][experimental-webauthn][0m Read more: https://warnings.authjs.dev
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[33m[auth][warn][experimental-webauthn][0m Read more: https://warnings.authjs.dev
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[33m[auth][warn][experimental-webauthn][0m Read more: https://warnings.authjs.dev
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)
+[33m[auth][warn][experimental-webauthn][0m Read more: https://warnings.authjs.dev
+[31m[auth][error][0m MissingAdapter: WebAuthn requires an adapter. Read more at https://errors.authjs.dev#missingadapter
+    at assertConfig (webpack-internal:///(middleware)/./node_modules/@auth/core/lib/utils/assert.js:159:20)
+    at Auth (webpack-internal:///(middleware)/./node_modules/@auth/core/index.js:91:95)

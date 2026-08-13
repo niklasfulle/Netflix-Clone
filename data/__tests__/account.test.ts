@@ -53,11 +53,12 @@ describe('Account Data Access', () => {
     });
 
     it('should filter by userId', () => {
-      expect(fileContent).toContain('userId:');
+      expect(fileContent).toMatch(/where:\s*{\s*userId(?:\s*:\s*userId)?\s*,/);
     });
 
     it('should use userId parameter in query', () => {
-      expect(fileContent).toMatch(/where:\s*{\s*userId:\s*userId\s*}/);
+      expect(fileContent).toMatch(/where:\s*{\s*userId(?:\s*:\s*userId)?\s*,/);
+      expect(fileContent).toContain("provider: { not: 'passkey' }");
     });
 
     it('should await the database call', () => {
@@ -233,11 +234,11 @@ describe('Account Data Access', () => {
     });
 
     it('should use userId in query', () => {
-      expect(fileContent).toMatch(/userId:\s*userId/);
+      expect(fileContent).toMatch(/where:\s*{\s*userId(?:\s*:\s*userId)?\s*,/);
     });
 
     it('should pass userId to where clause', () => {
-      expect(fileContent).toMatch(/where:\s*{\s*userId:\s*userId\s*}/);
+      expect(fileContent).toMatch(/where:\s*{\s*userId(?:\s*:\s*userId)?\s*,/);
     });
 
     it('should not modify userId parameter', () => {

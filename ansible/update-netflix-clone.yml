@@ -7,6 +7,8 @@
     docker_registry: "salkin263"
     image_name: "netflix-clone"
     postgres_backup_image: "postgres:18-alpine"
+    staging_media_image: "jrottenberg/ffmpeg:7.1-alpine@sha256:8ec1ee1f6a0fcd37c97725827b6b7832795c9596e3439b8da56d7700d61ae778"
+    container_cpu_limit: 2
     docker_pull_retries: 5
     docker_pull_delay: 15
     legacy_pre_integrity_migrations:
@@ -14,6 +16,8 @@
       - '20251224222337_'
       - '20260726120000_admin_management_upgrade'
     failed_legacy_baseline_migration: '20251224222337_'
+    environment_marker_path: /etc/netflix-clone/environment
+    staging_seed_env_file: /root/netflix-secrets/staging-users.env
     legacy_relational_integrity_diff:
       - '[*] Changed the `MovieView` table'
       - '[+] Added index on columns (userId, profilId, createdAt)'
@@ -38,6 +42,74 @@
       - '[+] Added unique index on columns (playlistId, movieId)'
       - '[+] Added foreign key on columns (movieId)'
   
+  pre_tasks:
+    - name: Validate requested deployment environment
+      assert:
+        that:
+          - (deployment_environment | default('')) in ['staging', 'production']
+        fail_msg: >-
+          Set deployment_environment to either staging or production.
+
+    - name: Check immutable LXC environment marker
+      stat:
+        path: "{{ environment_marker_path }}"
+      register: environment_marker
+
+    - name: Require an explicit LXC environment marker
+      assert:
+        that:
+          - environment_marker.stat.exists
+          - environment_marker.stat.isreg
+        fail_msg: >-
+          The target has no {{ environment_marker_path }} marker. Create it manually
+          with exactly '{{ deployment_environment }}' before deploying.
+
+    - name: Read immutable LXC environment marker
+      slurp:
+        src: "{{ environment_marker_path }}"
+      register: environment_marker_file
+
+    - name: Prevent deployment to the wrong LXC
+      assert:
+        that:
+          - (environment_marker_file.content | b64decode | trim) == deployment_environment
+        fail_msg: >-
+          Deployment target mismatch: the selected inventory is for
+          '{{ deployment_environment }}', but the LXC marker contains a different environment.
+
+    - name: Read CPUs available to the LXC
+      command: nproc
+      register: available_lxc_cpus
+      changed_when: false
+
+    - name: Require enough CPUs for the container limit
+      assert:
+        that:
+          - available_lxc_cpus.stdout | trim | int >= container_cpu_limit | int
+        fail_msg: >-
+          The LXC exposes {{ available_lxc_cpus.stdout | trim }} CPU(s), but the
+          application reserves {{ container_cpu_limit }}. Increase the LXC CPU
+          allocation before deploying.
+
+    - name: Check protected staging user seed file
+      stat:
+        path: "{{ staging_seed_env_file }}"
+      register: staging_seed_file
+      when: deployment_environment == 'staging'
+
+    - name: Validate protected staging user seed file
+      assert:
+        that:
+          - staging_seed_file.stat.exists
+          - staging_seed_file.stat.isreg
+          - staging_seed_file.stat.uid == 0
+          - staging_seed_file.stat.mode == '0600'
+        fail_msg: >-
+          Create {{ staging_seed_env_file }} as a root-owned 0600 file containing
+          E2E_USER_EMAIL, E2E_USER_PASSWORD, E2E_ADMIN_EMAIL, and
+          E2E_ADMIN_PASSWORD before deploying staging.
+      when: deployment_environment == 'staging'
+
   tasks:
     - name: Read version from local package.json
       delegate_to: localhost
@@ -51,7 +123,7 @@
 
     - name: Display version to update
       debug:
-        msg: "Updating to version {{ app_version }}"
+        msg: "Updating {{ deployment_environment }} to version {{ app_version }}"
 
     - name: Ensure docker-compose directory exists
       file:
@@ -108,6 +180,13 @@
         src: files/backup-postgres.sh
         dest: /usr/local/lib/netflix-deploy/backup-postgres.sh
         mode: '0755'
+
+    - name: Install staging media seed helper
+      copy:
+        src: files/seed-staging-media.sh
+        dest: /usr/local/lib/netflix-deploy/seed-staging-media.sh
+        mode: '0755'
+      when: deployment_environment == 'staging'
 
     - name: Install read-only LXC system monitoring
       include_tasks: tasks/system-monitor.yml
@@ -176,6 +255,69 @@
           - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
       changed_when: false
 
+    - name: Pull pinned staging media generator
+      command:
+        argv:
+          - docker
+          - pull
+          - "{{ staging_media_image }}"
+      when: deployment_environment == 'staging'
+
+    - name: Read staging environment declaration from app configuration
+      command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --env-file
+          - /root/netflix-secrets/app.env
+          - --entrypoint
+          - /bin/sh
+          - "{{ postgres_backup_image }}"
+          - -ec
+          - printf '%s' "${DEPLOYMENT_ENVIRONMENT:-missing}"
+      register: staging_environment_declaration
+      changed_when: false
+      when: deployment_environment == 'staging'
+
+    - name: Validate staging environment declaration
+      assert:
+        that:
+          - staging_environment_declaration.stdout | trim == 'staging'
+        fail_msg: >-
+          /root/netflix-secrets/app.env must contain exactly
+          DEPLOYMENT_ENVIRONMENT=staging without quotes.
+      when: deployment_environment == 'staging'
+
+    - name: Read staging database name
+      command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --env-file
+          - /root/netflix-secrets/app.env
+          - --entrypoint
+          - /bin/sh
+          - "{{ postgres_backup_image }}"
+          - -ec
+          - psql "$POSTGRESQL_URL" -Atqc 'SELECT lower(current_database())'
+      register: staging_database_name
+      changed_when: false
+      when: deployment_environment == 'staging'
+
+    - name: Verify staging uses an isolated staging database
+      assert:
+        that:
+          - >-
+            'stage' in (staging_database_name.stdout | trim) or
+            'staging' in (staging_database_name.stdout | trim)
+        fail_msg: >-
+          POSTGRESQL_URL connects to database
+          '{{ staging_database_name.stdout | trim | default('unknown', true) }}'.
+          The staging database name must contain 'stage' or 'staging'.
+      when: deployment_environment == 'staging'
+
     - name: Deploy, migrate, and verify with automatic rollback
       block:
         - name: Back up the PostgreSQL database before migration
@@ -222,6 +364,46 @@
           failed_when: >-
             prisma_migration_table_status.rc != 0 or
             (prisma_migration_table_status.stdout | trim) not in ['missing', 'present']
+
+        - name: Count tables in a database without Prisma migration history
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - --entrypoint
+              - /bin/sh
+              - "{{ postgres_backup_image }}"
+              - -ec
+              - >-
+                psql "$POSTGRESQL_URL" -Atqc
+                "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname = 'public'"
+          register: public_schema_table_count
+          changed_when: false
+          failed_when: >-
+            public_schema_table_count.rc != 0 or
+            (public_schema_table_count.stdout | trim) is not regex('^[0-9]+$')
+          when: prisma_migration_table_status.stdout | trim == 'missing'
+
+        - name: Initialize an empty staging database schema
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - ./node_modules/.bin/prisma
+              - db
+              - push
+              - --skip-generate
+          when:
+            - deployment_environment == 'staging'
+            - prisma_migration_table_status.stdout | trim == 'missing'
+            - public_schema_table_count.stdout | trim | int == 0
 
         - name: Check known failed legacy baseline migration
           command:
@@ -396,6 +578,42 @@
               - status
           changed_when: false
 
+        - name: Seed deterministic staging users
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - --env-file
+              - "{{ staging_seed_env_file }}"
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - node
+              - scripts/seed-staging-users.js
+          when: deployment_environment == 'staging'
+
+        - name: Generate and verify staging test media
+          command:
+            argv:
+              - /usr/local/lib/netflix-deploy/seed-staging-media.sh
+          environment:
+            STAGING_MEDIA_IMAGE: "{{ staging_media_image }}"
+          when: deployment_environment == 'staging'
+
+        - name: Seed deterministic staging catalog
+          command:
+            argv:
+              - docker
+              - run
+              - --rm
+              - --env-file
+              - /root/netflix-secrets/app.env
+              - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+              - node
+              - scripts/seed-staging-catalog.js
+          when: deployment_environment == 'staging'
+
         - name: Stop and remove the existing container
           command:
             argv:
@@ -431,7 +649,8 @@
           until: >
             (health_response.status | default(0)) == 200 and
             (health_response.json | default({})).get('status') == 'ok' and
-            (health_response.json | default({})).get('version') == app_version
+            (health_response.json | default({})).get('version') == app_version and
+            (health_response.json | default({})).get('environment') == deployment_environment
 
         - name: Refresh deployed system metrics
           systemd:
@@ -457,8 +676,8 @@
       rescue:
         - name: Preserve failed-container diagnostics
           shell: >-
-            docker inspect netflix-clone > /root/netflix-deploy-failures/{{ app_version }}-inspect.json 2>&1 || true;
-            docker logs netflix-clone > /root/netflix-deploy-failures/{{ app_version }}-container.log 2>&1 || true
+            docker inspect netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-inspect.json 2>&1 || true;
+            docker logs netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-container.log 2>&1 || true
           args:
             executable: /bin/bash
           changed_when: true
@@ -508,4 +727,6 @@
 
     - name: Display completion message
       debug:
-        msg: "Netflix Clone version {{ app_version }} is deployed, healthy, and visible in system monitoring"
+        msg: >-
+          Netflix Clone version {{ app_version }} is deployed to
+          {{ deployment_environment }}, healthy, and visible in system monitoring

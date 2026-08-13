@@ -11,6 +11,8 @@ function filterDetails(level: LogLevel, action: string, details: Record<string, 
   if (sanitized.userId) base.userId = sanitized.userId;
   if (sanitized.userEmail) base.userEmail = sanitized.userEmail;
   if (sanitized.email) base.email = sanitized.email;
+  if (sanitized.identityHash) base.identityHash = sanitized.identityHash;
+  if (sanitized.keyHash) base.keyHash = sanitized.keyHash;
   if (sanitized.role) base.role = sanitized.role;
   if (sanitized.movieId) base.movieId = sanitized.movieId;
   const values = sanitized.values as Record<string, unknown> | undefined;

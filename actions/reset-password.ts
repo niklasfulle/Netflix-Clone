@@ -1,45 +1,9 @@
-"use server"
-import { logBackendAction } from '@/lib/logger';
-import * as z from 'zod';
+"use server";
 
-import { getUserByEmail } from '@/data/user';
-import { sendResetPasswordEmail } from '@/lib/mail';
-import { generatePasswordResetToken } from '@/lib/tokens';
-import { ResetPasswordSchema } from '@/schemas';
-import { consumeAuthAttempt } from '@/lib/auth-throttle';
+import type * as z from 'zod';
 
-export const reset = async (values: z.infer<typeof ResetPasswordSchema>) => {
-  const validatedField = ResetPasswordSchema.safeParse(values);
+import { authenticationService } from '@/lib/authentication/production';
+import type { ResetPasswordSchema } from '@/schemas';
 
-  if (!validatedField.success) {
-    logBackendAction('resetPassword_invalid_email', {
-      invalidFields: (validatedField.error?.issues ?? []).map((issue) => issue.path.join('.')),
-    }, 'error');
-    return { error: "Invalid email!" }
-  }
-
-  const { email } = validatedField.data
-
-  const throttle = await consumeAuthAttempt('password-reset', email);
-  if (!throttle.allowed) {
-    logBackendAction('auth_rate_limited', {
-      scope: 'password-reset',
-      keyHash: throttle.keyHash,
-      retryAfterSeconds: throttle.retryAfterSeconds,
-    }, 'warn');
-    return { error: "Too many attempts. Please try again later." }
-  }
-
-  const existingUser = await getUserByEmail(email)
-
-  if (!existingUser) {
-    logBackendAction('resetPassword_request_accepted', { email }, 'info');
-    return { success: "Reset email sent!" }
-  }
-  logBackendAction('resetPassword_success', { email }, 'info');
-
-  const passwordResetToken = await generatePasswordResetToken(email)
-  await sendResetPasswordEmail(passwordResetToken.email, passwordResetToken.token)
-
-  return { success: "Reset email sent!" }
-}
+export const reset = async (values: z.infer<typeof ResetPasswordSchema>) =>
+  authenticationService.requestPasswordReset(values);

@@ -17,6 +17,38 @@ export interface VideoByteRange {
   end: number;
 }
 
+export function createAbortSafeWebStream(
+  source: Readable,
+): ReadableStream<Uint8Array> {
+  const iterator = source[Symbol.asyncIterator]();
+  let settled = false;
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const next = await iterator.next();
+        if (settled) return;
+        if (next.done) {
+          settled = true;
+          controller.close();
+          return;
+        }
+        controller.enqueue(next.value);
+      } catch (error) {
+        if (settled) return;
+        settled = true;
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      if (settled) return;
+      settled = true;
+      source.destroy(reason instanceof Error ? reason : undefined);
+      await iterator.return?.();
+    },
+  });
+}
+
 export function resolveVideoFile(
   baseFolder: string,
   storedVideoPath: string,
@@ -107,8 +139,8 @@ export function createVideoStreamResponse(
   };
 
   if (!rangeHeader) {
-    const stream = Readable.toWeb(fs.createReadStream(videoPath));
-    return new Response(stream as ReadableStream, {
+    const stream = createAbortSafeWebStream(fs.createReadStream(videoPath));
+    return new Response(stream, {
       status: 200,
       headers: {
         ...commonHeaders,
@@ -130,9 +162,9 @@ export function createVideoStreamResponse(
 
   const { start, end } = parsedRange;
   const chunkSize = end - start + 1;
-  const stream = Readable.toWeb(fs.createReadStream(videoPath, { start, end }));
+  const stream = createAbortSafeWebStream(fs.createReadStream(videoPath, { start, end }));
 
-  return new Response(stream as ReadableStream, {
+  return new Response(stream, {
     status: 206,
     headers: {
       ...commonHeaders,

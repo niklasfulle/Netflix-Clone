@@ -27,6 +27,7 @@ const MINIMAL_MP4 = [
   105, 115, 111, 109, 0, 0, 2, 0,
   105, 115, 111, 109, 105, 115, 111, 50,
 ];
+const STAGING_PLAYER_MOVIE_ID = 'staging-player-movie';
 
 async function createAdminContext(browser: Browser, baseURL: string) {
   return browser.newContext({
@@ -45,7 +46,12 @@ async function findPlayableCatalogItem(
   expect(response.ok()).toBe(true);
   const candidates = await response.json() as CatalogCandidate[];
 
-  for (const candidate of candidates) {
+  const stagingCandidate = candidates.find(({ id }) => id === STAGING_PLAYER_MOVIE_ID);
+  const orderedCandidates = stagingCandidate
+    ? [stagingCandidate, ...candidates.filter(({ id }) => id !== STAGING_PLAYER_MOVIE_ID)]
+    : candidates;
+
+  for (const candidate of orderedCandidates) {
     if (!candidate.id || !candidate.title || candidate.title.includes('/')) continue;
     const availability = await request.head(`/api/video/billboard/${candidate.id}`);
     if (availability.headers()['x-video-available'] === 'true') {
@@ -177,11 +183,21 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
   const { movie } = fixture;
 
   try {
+    const rangeResponse = await page.request.get(`/api/video/${movie.id}`, {
+      headers: { Range: 'bytes=0-15' },
+    });
+    expect(rangeResponse.status()).toBe(206);
+    expect(rangeResponse.headers()['accept-ranges']).toBe('bytes');
+    expect(rangeResponse.headers()['content-range']).toMatch(/^bytes 0-15\/\d+$/);
+    expect((await rangeResponse.body()).byteLength).toBe(16);
+
     await page.goto('/');
     const search = page.getByRole('searchbox', { name: /Search|Suchen/i });
     await search.fill(movie.title);
     await search.press('Enter');
-    await expect(page).toHaveURL(new RegExp(`/search/${encodeURIComponent(movie.title)}`));
+    await expect(page).toHaveURL((url) => (
+      decodeURIComponent(url.pathname) === `/search/${movie.title}`
+    ));
 
   await page.getByRole('button', {
     name: `Show details for ${movie.title}`,
@@ -199,12 +215,23 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
     await expect(dialog.getByRole('button', { name: /Add to favorites/i })).toBeVisible();
   }
 
-  await dialog.getByRole('link', { name: /Play content/i }).click();
-  await expect(page).toHaveURL(new RegExp(`/watch/${movie.id}`));
-  await expect(page.locator('video')).toBeVisible();
+    await dialog.getByRole('link', { name: /Play content/i }).click();
+    await expect(page).toHaveURL(new RegExp(`/watch/${movie.id}`));
+    const video = page.locator('video');
+    await expect(video).toBeVisible();
+    if (movie.id === STAGING_PLAYER_MOVIE_ID) {
+      await expect.poll(() => video.evaluate((element) => {
+        const media = element as HTMLVideoElement;
+        return Number.isFinite(media.duration)
+          && media.duration >= 9
+          && media.readyState >= 1;
+      })).toBe(true);
+    }
 
   await page.goBack();
-  await expect(page).toHaveURL(new RegExp(`/search/${encodeURIComponent(movie.title)}`));
+  await expect(page).toHaveURL((url) => (
+    decodeURIComponent(url.pathname) === `/search/${movie.title}`
+  ));
   const closeButton = page.getByRole('button', { name: /Close details$/i });
   if (await closeButton.isVisible()) await closeButton.click();
 
