@@ -2,6 +2,10 @@
 
 Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.json` eingesetzt.
 
+Ältere Einträge wurden anhand der vollständigen Git-Historie rekonstruiert.
+Reine Merge-Commits und wiederholte Dependency-/Lockfile-Aktualisierungen sind
+jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
+
 ## [current]
 
 - Login, registration, password reset, password renewal, verification, and authentication errors now share a responsive visual system
@@ -37,6 +41,9 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Passkey RP ID, canonical origin, HTTPS, signature-counter, ownership, and existing-user rules are enforced and covered by unit and PostgreSQL 18 integration tests
 - The changelog now presents release statistics, a highlighted current version, and a responsive accessible release timeline
 - Production and staging now use stable LAN hostnames with Caddy-managed internal HTTPS, certificate-validating deployment health checks, and localhost-only direct application ports
+- The Changelog is now reachable without signing in and no longer inherits the protected application layout
+- A sticky, keyboard-accessible version index now links directly to every release in the Changelog
+- A floating, keyboard-accessible Back to top shortcut now returns readers to the Changelog heading without client-side JavaScript
 
 ## 1.10.1
 
@@ -66,6 +73,17 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Complex administration and catalog workflows have expanded regression and browser coverage
 - SonarQube analysis, deployment documentation, and release tooling were hardened for repeatable local and production checks
 
+## 1.9.3
+
+- An initial administrator-only system overview reports host, Docker, database, filesystem, backup, and application-health information
+- A read-only LXC monitoring agent and systemd timer collect CPU, memory, uptime, storage, and container telemetry without mounting the Docker socket into the application
+- Backup operations now publish non-sensitive status metadata for the administration overview
+- The public health page and `/api/health` checks were expanded for deployment verification
+- Production genre selection is restricted to the configured `NEXT_PUBLIC_GENRE` allowlist while existing stored genres remain editable
+- PowerShell and shell SonarQube launchers now accept explicit server and token parameters and wait for the Quality Gate
+- SonarQube configuration, coverage paths, README guidance, and deployment documentation were consolidated
+- System-monitoring, backup-status, health-route, genre-policy, layout, and administration tests were added
+
 ## 1.9.2
 
 - Movie upload, chunk upload, media deletion, and legacy actor deletion now require administrator access
@@ -75,19 +93,32 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Existing sessions propagate the current blocked state and can no longer use protected server helpers while blocked
 - Full player and billboard video routes now share the same traversal-safe file resolution, MIME detection, and standards-compliant byte-range streaming
 - Draft and archived content can no longer be streamed by regular users through a known content ID
-- German and English can now be switched directly from the desktop and mobile admin navigation
-- Administration pages, filters, dialogs, forms, dynamic counters, statuses, and upload states now use a consistent selected language
-- Content creation and editing now use the administration layout and navigation consistently
-- Actors can be created and selected directly while adding new content
-- Successfully created content now clears all form, actor, video, thumbnail, and file-input state without requiring a page reload
-- Content and dashboard caches are refreshed after creation so newly added entries appear immediately
-- Failed content submissions now preserve the entered form values for correction and retrying
-- Movie type and genre selectors are controlled correctly and no longer retain stale values after a form reset
 - Deployment and database-update handling was hardened for existing movie records
 - User settings and administration management pages received visual and usability refinements
 - Bug fixes and minor improvements based on SonarQube analysis
 - Admin dashboard, catalog, actor, user, analytics, and log workflows now have expanded regression coverage for loading, error, empty, filtering, dialog, export, and mutation states
 - Billboard videos now use complete byte-range streaming, restart reliably when content changes, and fall back to the poster if playback fails
+- A production health endpoint and browser health page now expose deployment readiness without revealing sensitive configuration
+- The Docker image now uses a smaller multi-stage runtime, includes required compatibility packages, and preserves the Changelog in the final image
+- Deployment scripts retry registry DNS and image pulls, retain rollback images, and avoid destructive database resets
+- Dependency resolutions and the vendored `brace-expansion` compatibility package make frozen Yarn installs reproducible inside Docker
+- Log access and SonarQube exclusions were tightened while maintaining administrator diagnostics
+
+## 1.9.1
+
+- German and English can now be switched directly from desktop and mobile administration navigation
+- Administration pages, filters, dialogs, forms, counters, statuses, and upload states use one shared language provider
+- Content creation and editing now use the administration layout and navigation consistently
+- The movie edit page was moved into the current administration design while preserving legacy-route compatibility
+- Actors can be created and selected inline while adding new content
+- Successfully created content clears form, actor, video, thumbnail, and file-input state without requiring a reload
+- Content and dashboard caches are refreshed after creation so new entries appear immediately
+- Failed submissions preserve entered values for correction and retrying
+- Movie type and genre selectors no longer retain stale values after a reset
+- Billboard streaming gained reusable byte-range handling and more reliable playback fallback behavior
+- Thumbnail previews retain their aspect ratio without zooming or overlapping surrounding content
+- Form-state, inline-actor, language-provider, billboard-streaming, navigation, and edit-page regressions received dedicated tests
+- Runtime and development dependencies were refreshed without changing the deployment contract
 
 ## 1.9.0
 
@@ -105,10 +136,13 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 
 - Actor playlists omit embedded thumbnails to stay within Safari session storage limits
 - Administrators can enable global on-device diagnostics with `?debug=1` to trace errors, requests, navigation, network status, and UI interactions
+- Debug sessions can be enabled without rebuilding the application and keep their captured context within the affected browser
+- Diagnostic output was added to the existing administration and troubleshooting workflow without exposing it to ordinary sessions
 
 ## 1.8.3
 
 - Optional on-device playlist diagnostics can trace Safari touch, storage, and navigation failures
+- Actor-playlist navigation now records the sequence needed to diagnose mobile Safari failures without changing normal playback behavior
 
 ## 1.8.2
 
@@ -119,88 +153,171 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - Actor names with URL control characters are handled correctly in movie and series lists
 - Prisma connections remain available across concurrent API requests instead of being disconnected per request
 - Linting is compatible with Next.js 16 and checks production source files again
-- UI improvements
+- Shared billboard and actor-filter components replace duplicated movie and series implementations
+- The watchlist gained dedicated persistence actions, API routes, hooks, pages, and navigation
+- API response and error handling was consolidated in shared helpers across catalog routes
+- Movie cards, modals, navigation, administrative tables, authentication pages, and mobile layouts received UI and accessibility corrections
+- Temporary-upload cleanup, validation, logging, and proxy handling were hardened
+- SonarQube findings across actions, routes, hooks, components, and administration pages were resolved
 
 ## 1.8.0
 
-- Randomized actor playlists are now available.
+- Randomized actor playlists are now available
 - German and English can be selected across the entire application
 - Continue Watching shows the four most recently viewed videos below 60 percent progress
 - Actor rows hide navigation arrows at their boundaries and support native horizontal swiping on mobile devices
 - Actor playlist buttons now have a reliable mobile touch target above the swipe area
+- Movie and series billboards share consistent playback and information controls
+- Random, actor, search, playlist, and watch pages preserve navigation state more reliably
 
 ## 1.7.4
 
 - Volume and mute settings are now saved in localStorage and restored on page load
-- Updated dependencies for improved performance and security
+- Watch-page playback state survives component updates without resetting the selected volume
+- Random playback and direct movie playback use the same persisted audio behavior
+- Dependencies and lockfiles were refreshed for performance, compatibility, and security
+- Watch-page and changelog regressions were corrected after the dependency update
 
 ## 1.7.3
 
-- Bug fixes for back navigation
+- Playback buttons and restart controls now use consistent navigation behavior
+- Back navigation from the player no longer returns users to an invalid state
+- Search results correctly handle route changes and updated query values
+- Dependency and lockfile maintenance removed obsolete transitive packages
+- README and version metadata were synchronized with the delivered release
 
 ## 1.7.2
 
-- Bug fixes for footer layout
-- Bug fixes for search functionality
+- Ansible inventories are generated from ignored environment-specific configuration instead of being committed
+- Deployment gained PowerShell orchestration, Docker Compose templates, SSH configuration, and clearer operational documentation
+- Search API routing was restored after the deployment reorganization
+- Footer version and navigation behavior were corrected across protected pages
+- Production host details were removed from version control
 
 ## 1.7.1
 
-- Bug fixes by random generated movies and series
+- Movies and series now use dedicated random endpoints and hooks instead of sharing an ambiguous response path
+- Random home-page rows load movie and series results independently
+- Billboard selection and random-page rendering handle empty or unavailable results safely
+- Footer and version metadata now show the correct maintenance release
+- Random-route, hook, footer, and home-page behavior received regression tests
 
-## 1.7
+## 1.7.0
 
-- Changelog introduced
-- Watch History page added
-- Bug fixes and minor improvements with Sonarqube analysis
+- The in-application Changelog was introduced with protected routing and release rendering
+- A dedicated watchlist page, persistence actions, API route, and hooks were added
+- Movie and series billboards and filter rows were consolidated into reusable base components
+- Catalog API responses and errors now use shared helpers instead of duplicated route logic
+- Movie cards, administration tables, uploads, authentication, playlists, profiles, and responsive navigation received a broad SonarQube cleanup
+- Video and thumbnail upload controls were split into focused reusable components
+- Jest, Testing Library, shared setup, coverage reporting, and cross-platform test launchers were introduced
+- Action, API, hook, component, page, authentication, administration, playlist, player, and UI primitives gained extensive regression coverage
+- Initial coverage reached 30.8 percent and was subsequently expanded across nearly every application page
+- Docker build tooling, version metadata, testing guides, and SonarQube configuration were added or updated
 
 ## 1.6.4
 
-- Bug fixes and minor improvements
+- Maintenance work consolidated the 1.6 administration and logging fixes before the 1.7 refactor
+- The repository contains no dedicated 1.6.4 release commit; its changes are represented by the surrounding 1.6 maintenance history
 
 ## 1.6.3
 
-- Bug fixes and minor improvements
+- Maintenance work consolidated upload, statistics, and administration corrections after 1.6.2
+- The repository contains no dedicated 1.6.3 release commit; its changes are represented by the surrounding 1.6 maintenance history
 
 ## 1.6.2
 
-- Bug fixes and minor improvements
+- Administrative movie and actor loading moved to dedicated endpoints and hooks
+- Chunked uploads gained more reliable state handling and cleanup of abandoned temporary files
+- Scheduled cleanup scripts remove stale upload fragments safely
+- Movie updates, actor management, statistics, and add/edit forms received correctness fixes
+- Dependencies were refreshed on the maintained 1.6 branch
 
 ## 1.6.1
 
-- Bug fixes and minor improvements
+- Administrators can clear stored application logs through a dedicated endpoint
+- Log, actor, statistics, footer, and billboard presentation issues were corrected
+- Administration overview calculations and charts return consistent values
+- Movie and series billboards share corrected responsive sizing
 
 ## 1.6.0
 
-- Logging introduced for all backend activities
+- Structured logging was introduced across authentication, profiles, favorites, playlists, watch progress, catalog mutations, uploads, and administration actions
+- Administrators gained a searchable log page backed by dedicated read and clear APIs
+- Administration pages use shared live counters and improved actor, movie, and statistics queries
+- API routes report failures consistently while retaining actionable server diagnostics
+- Admin navigation, footer links, tables, charts, and protected layouts were refined
+
+## 1.5.1
+
+- Movie creation and updates gained stronger validation and clearer error logging
+- Administration gained log navigation, user and actor refinements, and improved overview statistics
+- Movie management tables display more useful state and actions
+- New bar-chart summaries complement the existing administration statistics
+- Footer and mobile administration navigation were aligned with the expanded management area
 
 ## 1.5.0
 
-- Admin page introduced
-- User management
-- Actor management
-- Movie management
-- Statistics
+- A dedicated protected administration area was introduced
+- User management supports account inspection and blocking controls
+- Actor management supports listing, creation, editing, and deletion
+- Movie management supports adding, updating, deleting, and reviewing catalog entries
+- Administration statistics summarize users, content, actors, and viewing activity
+- Video add and edit workflows were redesigned around chunked uploads and streaming-compatible media paths
+- The administration navigation, tables, actors, and responsive layouts were reworked
+- Proxmox/LXC and Docker deployment compatibility was added
+- `MovieAdminTable` rendering and management actions were corrected before release
 
 ## 1.4.0
 
-- Backend rework
-- Improved performance
-- Video streaming introduced for faster loading times
+- Authentication forms, validation, tokens, and server actions received a broad backend rework
+- Movie and series loading was reorganized to reduce duplicate requests and improve page performance
+- Video streaming and watch-page behavior were corrected for direct and playlist playback
+- Movie creation gained improved validation, upload progress, thumbnail selection, and responsive layout
+- Administrators gained the first complete movie edit flow, including actor assignments and media updates
+- Actor names link directly to filtered search results
+- Playlist and movie routes return their entries in a stable order
+- Next.js, Axios, Yarn dependencies, and build configuration were updated throughout the maintenance cycle
+- Cache-poisoning mitigations and response-header controls were added
+- Deployment notifications can report script completion to Discord
+- Runtime, network, and Proxmox-oriented configuration was updated without embedding credentials
+- Add/edit layouts and package compatibility were corrected before the administration rework
 
 ## 1.3.0
 
-- Playlists introduced
-- Create, edit, and delete playlists
-- Movies page updated
+- Playlists were introduced with creation, editing, deletion, and dedicated list pages
+- Movies can be added, removed, reordered, and played from a playlist
+- Duplicate playlist entries are rejected instead of being stored twice
+- Playlist covers, cards, modals, and watch pages gained responsive UI and error handling
+- Playlist navigation and playback routes preserve the configured item order
+- Movie pages and shared cards were updated to expose playlist actions
+- SonarQube cleanup standardized imports and improved code quality across playlist components
 
 ## 1.2.0
 
-- Random page added
+- A random-play page was added for immediate movie or series discovery
+- Random selection APIs and navigation were integrated with the existing catalog
+- Static response headers and caching behavior were adjusted for the new route
 
 ## 1.1.0
 
-- Bug fixes and minor improvements
+- Dependency and lockfile updates improved framework compatibility after the initial release
+- Build, rendering, and responsive UI issues were corrected across catalog pages
+- Initial PowerShell, shell, Docker, and Ansible deployment helpers were added
+- Application headers and static-route behavior were configured for self-hosted deployment
+- Profile, catalog, and playlist groundwork was cleaned up before the next feature releases
 
 ## 1.0.0
 
-- First release of the Netflix app
+- The project was initialized as a self-hosted Netflix-style application
+- Login, registration, authentication, protected routes, and account recovery were implemented
+- Movie and series catalogs gained billboards, cards, horizontal rows, detail modals, and dedicated pages
+- Responsive mobile layouts were added throughout authentication, profiles, navigation, and catalog browsing
+- Users can create, select, edit, and remove profiles with configurable profile images
+- Movie creation and media upload formed the first administration workflow
+- Video playback records and restores watch progress and displays progress bars on catalog cards
+- Movie and series pages gained incremental loading and initial performance optimizations
+- Titles, favicon, runtime process configuration, Prisma integration, and production build fixes were added
+- Form validation was introduced across authentication and content workflows
+- Cache and response handling were hardened against known Next.js cache-poisoning behavior
+- A major authentication and server-function rework completed the first stable application release

@@ -1,7 +1,9 @@
 import {
+  ArrowUp,
   CheckCircle2,
   History,
   Layers3,
+  ListTree,
   Rocket,
   Sparkles,
 } from 'lucide-react';
@@ -32,8 +34,9 @@ function ReleaseChanges({ entry }: Readonly<{ entry: ChangelogEntry }>) {
 function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
   return (
     <section
-      aria-labelledby={`release-${entry.version}`}
-      className="relative overflow-hidden rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-500/[0.14] via-zinc-950 to-zinc-950 p-6 shadow-2xl shadow-black/40 sm:p-8 lg:p-10"
+      id={`release-${entry.version}`}
+      aria-labelledby={`release-title-${entry.version}`}
+      className="relative scroll-mt-40 overflow-hidden rounded-3xl border border-red-500/20 bg-gradient-to-br from-red-500/[0.14] via-zinc-950 to-zinc-950 p-6 shadow-2xl shadow-black/40 target:ring-2 target:ring-red-500/40 sm:p-8 lg:p-10"
     >
       <div
         aria-hidden="true"
@@ -47,7 +50,7 @@ function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
           </div>
           <p className="text-sm font-medium text-zinc-400">Now Available</p>
           <h2
-            id={`release-${entry.version}`}
+            id={`release-title-${entry.version}`}
             className="mt-2 text-balance text-4xl font-black tracking-tight text-white sm:text-5xl"
           >
             Version {entry.version}
@@ -60,6 +63,41 @@ function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
         <ReleaseChanges entry={entry} />
       </div>
     </section>
+  );
+}
+
+function VersionJumpNavigation({ entries }: Readonly<{ entries: ChangelogEntry[] }>) {
+  return (
+    <nav
+      aria-label="Jump to version"
+      className="sticky top-20 z-30 mb-8 rounded-2xl border border-white/10 bg-zinc-950/90 p-3 shadow-xl shadow-black/30 backdrop-blur-xl sm:p-4"
+    >
+      <div className="flex items-center gap-3 sm:items-start">
+        <div className="hidden shrink-0 items-center gap-2 pt-2 text-sm font-semibold text-white sm:flex">
+          <ListTree aria-hidden="true" className="h-4 w-4 text-red-400" />
+          Jump to version
+        </div>
+        <ListTree aria-hidden="true" className="h-4 w-4 shrink-0 text-red-400 sm:hidden" />
+        <ol className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto pb-1 sm:max-h-24 sm:flex-wrap sm:overflow-y-auto">
+          {entries.map((entry, index) => (
+            <li key={entry.version} className="shrink-0 snap-start">
+              <a
+                href={`#release-${entry.version}`}
+                aria-label={`Version ${entry.version}`}
+                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm font-semibold tabular-nums text-zinc-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 motion-reduce:transition-none"
+              >
+                v{entry.version}
+                {index === 0 ? (
+                  <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-red-300">
+                    Latest
+                  </span>
+                ) : null}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </nav>
   );
 }
 
@@ -89,12 +127,13 @@ function ReleaseTimeline({ entries }: Readonly<{ entries: ChangelogEntry[] }>) {
               className="absolute -left-[1.9rem] top-7 h-3 w-3 rounded-full border-2 border-zinc-950 bg-zinc-600 ring-4 ring-zinc-950 sm:-left-[2.82rem]"
             />
             <article
-              aria-labelledby={`release-${entry.version}`}
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5 shadow-lg shadow-black/10 transition-colors duration-200 hover:border-white/15 hover:bg-white/[0.055] motion-reduce:transition-none sm:p-7"
+              id={`release-${entry.version}`}
+              aria-labelledby={`release-title-${entry.version}`}
+              className="scroll-mt-40 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5 shadow-lg shadow-black/10 transition-colors duration-200 hover:border-white/15 hover:bg-white/[0.055] target:border-red-500/30 target:ring-2 target:ring-red-500/30 motion-reduce:transition-none sm:p-7"
             >
               <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <h3
-                  id={`release-${entry.version}`}
+                  id={`release-title-${entry.version}`}
                   className="text-xl font-bold tracking-tight text-white sm:text-2xl"
                 >
                   Version {entry.version}
@@ -128,7 +167,11 @@ export default function ChangelogPage() {
         />
 
         <div className="relative mx-auto w-full max-w-6xl">
-          <header className="mb-10 max-w-3xl sm:mb-14">
+          <header
+            id="changelog-top"
+            tabIndex={-1}
+            className="mb-10 scroll-mt-32 max-w-3xl focus:outline-none sm:mb-14"
+          >
             <div className="mb-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-red-400">
               <Rocket aria-hidden="true" className="h-4 w-4" />
               Product Updates
@@ -164,6 +207,7 @@ export default function ChangelogPage() {
                 </div>
               </dl>
 
+              <VersionJumpNavigation entries={changelog} />
               <LatestRelease entry={latestRelease} />
               {previousReleases.length > 0 ? <ReleaseTimeline entries={previousReleases} /> : null}
             </>
@@ -177,6 +221,15 @@ export default function ChangelogPage() {
             </section>
           )}
         </div>
+
+        <a
+          href="#changelog-top"
+          aria-label="Back to top"
+          className="fixed bottom-5 right-4 z-30 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-3 text-sm font-semibold text-zinc-200 shadow-xl shadow-black/40 backdrop-blur-xl transition-colors hover:border-red-400/50 hover:bg-red-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 motion-reduce:transition-none sm:bottom-6 sm:right-6 sm:px-4"
+        >
+          <ArrowUp aria-hidden="true" className="h-4 w-4" />
+          <span className="hidden sm:inline">Back to top</span>
+        </a>
       </main>
       <Footer />
     </div>

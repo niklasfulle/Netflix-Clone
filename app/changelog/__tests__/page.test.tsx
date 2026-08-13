@@ -72,6 +72,31 @@ describe('ChangelogPage', () => {
     expect(screen.queryByRole('heading', { level: 3, name: 'Version 1.11.0' })).not.toBeInTheDocument();
   });
 
+  it('offers direct anchor navigation to every version', () => {
+    render(<ChangelogPage />);
+
+    const navigation = screen.getByRole('navigation', { name: 'Jump to version' });
+    const links = within(navigation).getAllByRole('link');
+
+    expect(links).toHaveLength(changelog.length);
+    for (const entry of changelog) {
+      expect(
+        within(navigation).getByRole('link', { name: `Version ${entry.version}` }),
+      ).toHaveAttribute('href', `#release-${entry.version}`);
+      expect(document.getElementById(`release-${entry.version}`)).not.toBeNull();
+    }
+  });
+
+  it('offers a keyboard-accessible shortcut back to the page heading', () => {
+    render(<ChangelogPage />);
+
+    expect(screen.getByRole('link', { name: 'Back to top' })).toHaveAttribute(
+      'href',
+      '#changelog-top',
+    );
+    expect(document.getElementById('changelog-top')).not.toBeNull();
+  });
+
   it('renders every published change', () => {
     render(<ChangelogPage />);
 
@@ -89,6 +114,7 @@ describe('ChangelogPage', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: 'No Releases Yet' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Changelog summary')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Jump to version' })).not.toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Release history' })).not.toBeInTheDocument();
   });
 });
