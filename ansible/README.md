@@ -8,14 +8,20 @@ Diese Ansible-Konfiguration ermöglicht es, den Netflix Clone Docker Container a
 
 ## Setup
 
-### 1. Hosts-Datei konfigurieren
+### 1. Ziel und LAN-HTTPS konfigurieren
 
-Bearbeite `ansible/hosts` und trage die IP-Adresse deines LXC Containers ein:
+Lege für jede Umgebung eine lokale Konfigurationsdatei aus `.env.example` an.
+`HTTPS_HOST` enthält nur den im LAN auflösbaren Namen, ohne Schema oder Port:
 
-```ini
-[netflix]
-netflix-lxc ansible_host=192.168.1.100 ansible_user=root
+```dotenv
+LXC_HOST=192.168.1.164
+LXC_USER=root
+LXC_PORT=22
+HTTPS_HOST=netflix-staging
 ```
+
+Ohne Angabe verwendet das Setup `netflix-staging` für Staging und `netflix`
+für Produktion. `setup-env.ps1` erzeugt daraus das passende Inventory.
 
 ### 2. SSH-Zugriff einrichten
 
@@ -74,15 +80,17 @@ ansible-playbook update.yml -v
 ## Was passiert beim Update?
 
 1. Version wird aus `package.json` gelesen
-2. `docker-compose.yml` wird auf dem LXC Container aktualisiert
+2. `docker-compose.yml` und die interne Caddy-HTTPS-Konfiguration werden aktualisiert
 3. Docker-Hub- und CloudFront-DNS werden mit Wiederholungsversuchen geprüft
 4. Das neue Docker-Image wird mit Wiederholungsversuchen vollständig geladen und verifiziert
 5. Erst danach wird der alte Container gestoppt und entfernt
 6. Ein eingeschränkter systemd-Agent erfasst LXC-, Speicher- und Docker-Metriken
-7. Der Container wird mit der neuen Version gestartet und über `/api/health` geprüft
-8. Ansible bestätigt, dass der Monitoring-Agent den neuen Container und Image-Tag erkennt
-9. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
-10. Volumes (`/movies`, `/series`, Monitoring- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
+7. App und Reverse-Proxy werden gestartet; Port 3000 bleibt auf localhost beschränkt
+8. Ansible prüft `/api/health` direkt und anschließend über das echte kanonische HTTPS-Ziel
+9. Ansible exportiert die interne Root-CA nach `/root/netflix-clone/caddy-local-root.crt`
+10. Der Monitoring-Agent muss den neuen Container und Image-Tag erkennen
+11. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
+12. Volumes (`/movies`, `/series`, Caddy-PKI, Monitoring- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
 
 ## Dateien
 
@@ -91,6 +99,7 @@ ansible-playbook update.yml -v
 - `update.yml` - Einfaches Playbook (verwendet Shell-Befehle)
 - `update-netflix-clone.yml` - Erweitertes Playbook mit Migration, Health-Prüfung und Rollback
 - `docker-compose.yml.j2` - Template für docker-compose.yml
+- `Caddyfile.j2` - internes HTTPS für den kanonischen LAN-Namen
 - `files/netflix_monitor.py` - Read-only LXC- und Docker-Metriksammler
 - `tasks/system-monitor.yml` - Installation und Validierung des Monitoring-Agenten
 - `templates/netflix-monitor.*.j2` - systemd-Service und Timer
@@ -125,6 +134,16 @@ Wenn die Abfragen über den eingetragenen DNS-Server fehlschlagen, korrigiere di
 ### Docker meldet `Not supported URL scheme http+docker`
 
 Das erweiterte Playbook verwendet bewusst die Docker-CLI statt der Python-Docker-SDK-Module. Dadurch ist es unabhängig von inkompatiblen Kombinationen aus `requests`, Docker SDK und `community.docker`.
+
+### Der Browser vertraut `https://netflix` noch nicht
+
+Caddy stellt für reine LAN-Namen Zertifikate aus seiner internen CA aus. Nach
+dem ersten erfolgreichen Deployment muss deren öffentliches Root-Zertifikat
+einmalig auf jedem Client als vertrauenswürdige Stammzertifizierungsstelle
+installiert werden. Die Datei liegt auf dem LXC unter
+`/root/netflix-clone/caddy-local-root.crt`. Produktion und Staging haben jeweils
+eine eigene CA; beide Zertifikate müssen auf Clients installiert werden, die
+beide Umgebungen verwenden.
 
 ### Chunk-Upload meldet `EACCES` für `/movies/temp`
 

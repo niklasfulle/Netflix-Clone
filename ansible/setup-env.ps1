@@ -39,19 +39,27 @@ Get-Content $EnvFile | Where-Object { $_ -match '=' -and $_ -notmatch '^#' } | F
 $lxcHost = $envVars['LXC_HOST']
 $lxcUser = $envVars['LXC_USER']
 $lxcPort = if ($envVars['LXC_PORT']) { $envVars['LXC_PORT'] } else { '22' }
+$defaultHttpsHost = if ($Environment -eq 'Staging') { 'netflix-staging' } else { 'netflix' }
+$httpsHost = if ($envVars['HTTPS_HOST']) { $envVars['HTTPS_HOST'].ToLowerInvariant() } else { $defaultHttpsHost }
 
 if (-not $lxcHost -or -not $lxcUser) {
     Write-Host "Error: LXC_HOST and LXC_USER must be set in .env!" -ForegroundColor Red
     exit 1
 }
 
+if ($httpsHost -notmatch '^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$' -or $httpsHost.Contains('..')) {
+    Write-Host "Error: HTTPS_HOST must be a hostname without protocol, port, or path." -ForegroundColor Red
+    exit 1
+}
+
 # Create hosts file
 $hostsContent = @"
 [netflix]
-netflix-$($Environment.ToLowerInvariant()) ansible_host=$lxcHost ansible_user=$lxcUser ansible_port=$lxcPort
+netflix-$($Environment.ToLowerInvariant()) ansible_host=$lxcHost ansible_user=$lxcUser ansible_port=$lxcPort https_hostname=$httpsHost
 "@
 
 Set-Content -Path $OutputFile -Value $hostsContent
 Write-Host "✓ $Environment inventory created successfully ($lxcHost)" -ForegroundColor Green
 Write-Host "  User: $lxcUser" -ForegroundColor Green
 Write-Host "  Port: $lxcPort" -ForegroundColor Green
+Write-Host "  HTTPS URL: https://$httpsHost" -ForegroundColor Green

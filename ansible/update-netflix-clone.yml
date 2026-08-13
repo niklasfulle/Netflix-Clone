@@ -7,6 +7,9 @@
     docker_registry: "salkin263"
     image_name: "netflix-clone"
     postgres_backup_image: "postgres:18-alpine"
+    caddy_image: "caddy:2.10.2-alpine"
+    canonical_url: "https://{{ https_hostname }}"
+    caddy_root_certificate_path: "{{ docker_compose_path }}/caddy-local-root.crt"
     staging_media_image: "jrottenberg/ffmpeg:7.1-alpine@sha256:8ec1ee1f6a0fcd37c97725827b6b7832795c9596e3439b8da56d7700d61ae778"
     container_cpu_limit: 2
     docker_pull_retries: 5
@@ -49,6 +52,22 @@
           - (deployment_environment | default('')) in ['staging', 'production']
         fail_msg: >-
           Set deployment_environment to either staging or production.
+
+    - name: Select the canonical LAN HTTPS hostname
+      set_fact:
+        https_hostname: >-
+          {{ https_hostname | default('netflix-staging' if deployment_environment == 'staging' else 'netflix', true) }}
+
+    - name: Validate canonical LAN HTTPS hostname
+      assert:
+        that:
+          - https_hostname is defined
+          - https_hostname | length > 0
+          - https_hostname is match('^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$')
+          - "'..' not in https_hostname"
+        fail_msg: >-
+          Set https_hostname to a LAN hostname without protocol, port, or path,
+          for example 'netflix' or 'netflix-staging'.
 
     - name: Check immutable LXC environment marker
       stat:
@@ -196,6 +215,11 @@
         path: "{{ docker_compose_path }}/docker-compose.yml"
       register: previous_compose
 
+    - name: Check for an existing reverse-proxy definition
+      stat:
+        path: "{{ docker_compose_path }}/Caddyfile"
+      register: previous_caddyfile
+
     - name: Preserve the previous compose definition for rollback
       copy:
         src: "{{ docker_compose_path }}/docker-compose.yml"
@@ -203,6 +227,14 @@
         remote_src: true
         mode: '0600'
       when: previous_compose.stat.exists
+
+    - name: Preserve the previous reverse-proxy definition for rollback
+      copy:
+        src: "{{ docker_compose_path }}/Caddyfile"
+        dest: "{{ docker_compose_path }}/Caddyfile.previous"
+        remote_src: true
+        mode: '0600'
+      when: previous_caddyfile.stat.exists
 
     - name: Record the previously running image
       command:
@@ -221,6 +253,12 @@
         dest: "{{ docker_compose_path }}/docker-compose.yml"
         mode: '0644'
       register: compose_file
+
+    - name: Copy internal HTTPS reverse-proxy configuration
+      template:
+        src: Caddyfile.j2
+        dest: "{{ docker_compose_path }}/Caddyfile"
+        mode: '0644'
 
     - name: Wait for Docker registry DNS
       shell: |
@@ -245,6 +283,18 @@
       retries: "{{ docker_pull_retries }}"
       delay: "{{ docker_pull_delay }}"
       until: docker_image_pull.rc == 0
+
+    - name: Pull pinned internal HTTPS reverse proxy
+      command:
+        argv:
+          - docker
+          - pull
+          - "{{ caddy_image }}"
+      register: caddy_image_pull
+      changed_when: "'Image is up to date' not in caddy_image_pull.stdout"
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: caddy_image_pull.rc == 0
 
     - name: Verify new Docker image
       command:
@@ -652,6 +702,55 @@
             (health_response.json | default({})).get('version') == app_version and
             (health_response.json | default({})).get('environment') == deployment_environment
 
+        - name: Wait for the internal HTTPS root certificate
+          command:
+            argv:
+              - docker
+              - exec
+              - netflix-proxy
+              - test
+              - -s
+              - /data/caddy/pki/authorities/local/root.crt
+          register: caddy_root_certificate
+          changed_when: false
+          retries: 12
+          delay: 2
+          until: caddy_root_certificate.rc == 0
+
+        - name: Export the internal HTTPS root certificate
+          command:
+            argv:
+              - docker
+              - cp
+              - netflix-proxy:/data/caddy/pki/authorities/local/root.crt
+              - "{{ caddy_root_certificate_path }}"
+          changed_when: true
+
+        - name: Resolve the canonical LAN hostname locally for deployment checks
+          lineinfile:
+            path: /etc/hosts
+            regexp: '^127\.0\.0\.1\s+.*# netflix-clone-https$'
+            line: "127.0.0.1 {{ https_hostname }} # netflix-clone-https"
+            state: present
+
+        - name: Verify canonical HTTPS health
+          uri:
+            url: "https://{{ https_hostname }}/api/health"
+            method: GET
+            return_content: yes
+            status_code: 200
+            ca_path: "{{ caddy_root_certificate_path }}"
+            validate_certs: true
+          register: https_health_response
+          changed_when: false
+          retries: 12
+          delay: 3
+          until: >
+            (https_health_response.status | default(0)) == 200 and
+            (https_health_response.json | default({})).get('status') == 'ok' and
+            (https_health_response.json | default({})).get('version') == app_version and
+            (https_health_response.json | default({})).get('environment') == deployment_environment
+
         - name: Refresh deployed system metrics
           systemd:
             name: netflix-monitor.service
@@ -677,7 +776,9 @@
         - name: Preserve failed-container diagnostics
           shell: >-
             docker inspect netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-inspect.json 2>&1 || true;
-            docker logs netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-container.log 2>&1 || true
+            docker logs netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-container.log 2>&1 || true;
+            docker inspect netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy-inspect.json 2>&1 || true;
+            docker logs netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy.log 2>&1 || true
           args:
             executable: /bin/bash
           changed_when: true
@@ -695,6 +796,20 @@
             remote_src: true
             mode: '0644'
           when: previous_compose.stat.exists
+
+        - name: Restore the previous reverse-proxy definition
+          copy:
+            src: "{{ docker_compose_path }}/Caddyfile.previous"
+            dest: "{{ docker_compose_path }}/Caddyfile"
+            remote_src: true
+            mode: '0644'
+          when: previous_caddyfile.stat.exists
+
+        - name: Remove the new reverse-proxy definition after a first-deployment failure
+          file:
+            path: "{{ docker_compose_path }}/Caddyfile"
+            state: absent
+          when: not previous_caddyfile.stat.exists
 
         - name: Restart the previous working image
           shell: docker compose up -d --no-build || docker-compose up -d --no-build
@@ -714,6 +829,22 @@
           until: (rollback_health.status | default(0)) == 200
           when: previous_compose.stat.exists and previous_container_image.rc == 0
 
+        - name: Verify rollback through canonical HTTPS
+          uri:
+            url: "https://{{ https_hostname }}/api/health"
+            method: GET
+            status_code: 200
+            ca_path: "{{ caddy_root_certificate_path }}"
+            validate_certs: true
+          register: rollback_https_health
+          retries: 18
+          delay: 5
+          until: (rollback_https_health.status | default(0)) == 200
+          when: >-
+            previous_compose.stat.exists and
+            previous_caddyfile.stat.exists and
+            previous_container_image.rc == 0
+
         - name: Stop deployment after rollback
           fail:
             msg: >-
@@ -729,4 +860,5 @@
       debug:
         msg: >-
           Netflix Clone version {{ app_version }} is deployed to
-          {{ deployment_environment }}, healthy, and visible in system monitoring
+          {{ deployment_environment }} at {{ canonical_url }}, healthy, and visible
+          in system monitoring. Install {{ caddy_root_certificate_path }} on LAN clients.

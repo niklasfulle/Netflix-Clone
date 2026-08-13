@@ -55,24 +55,24 @@ application. At minimum, staging needs separate values for:
 - `POSTGRESQL_URL`, pointing to a dedicated staging database;
 - `DEPLOYMENT_ENVIRONMENT=staging`, confirming that the cloned configuration
   has been reviewed;
-- the Auth.js URL and trusted host, pointing to the staging hostname;
+- the remaining Auth.js secrets and mail settings; canonical URL, WebAuthn
+  origin and trusted proxy count are injected by the deployment;
 - OAuth callback URLs and provider credentials, if social login is tested;
 - email delivery settings, preferably using a sandbox mailbox;
 - any encryption or signing keys that should not be shared with production.
 
 Passkeys remain disabled unless `AUTH_PASSKEYS_ENABLED=true` is set. To test the
-feature-flagged pilot, staging needs a stable HTTPS hostname and these additional
-values in `app.env`:
+feature-flagged pilot, staging needs the following additional values in
+`app.env`:
 
 ```dotenv
 AUTH_PASSKEYS_ENABLED=true
-AUTH_WEBAUTHN_RP_ID=staging.netflix.example.com
 AUTH_WEBAUTHN_RP_NAME=Netflix Clone Staging
-AUTH_WEBAUTHN_ORIGIN=https://staging.netflix.example.com
 ```
 
-`AUTH_URL`, `AUTH_PUBLIC_URL`, and `AUTH_WEBAUTHN_ORIGIN` must describe the same
-canonical external origin. The RP ID is the hostname without scheme or port.
+The deployment derives `AUTH_URL`, `AUTH_PUBLIC_URL`, `AUTH_WEBAUTHN_ORIGIN`,
+and the RP ID from `HTTPS_HOST`, so they cannot drift apart. The RP ID is the
+hostname without scheme or port.
 Do not alternate between an IP address and a hostname: passkeys registered for
 one RP ID do not work for another. WebAuthn permits plain HTTP only on
 `http://localhost`; a LAN hostname or address therefore requires TLS through a
@@ -140,11 +140,34 @@ Set the cloned LXC address:
 LXC_HOST=192.168.1.156
 LXC_USER=root
 LXC_PORT=22
+HTTPS_HOST=netflix-staging
 ```
 
 Both `.env.staging` and the generated `hosts.staging` are ignored by Git.
 The deployment script generates the inventory automatically when it is first
 needed.
+
+Resolve `netflix-staging` to the staging LXC and `netflix` to production using
+your router's local DNS. A hosts-file entry works as a fallback:
+
+```text
+192.168.1.164 netflix-staging
+192.168.1.155 netflix
+```
+
+The deployment exposes Caddy on ports 80 and 443 and binds the direct Next.js
+port to `127.0.0.1:3000`. Caddy uses a persistent internal CA because no public
+domain exists. After the first successful deployment, copy and trust its public
+root certificate on each client:
+
+```powershell
+scp root@192.168.1.164:/root/netflix-clone/caddy-local-root.crt .\netflix-staging-root.crt
+Import-Certificate -FilePath .\netflix-staging-root.crt -CertStoreLocation Cert:\CurrentUser\Root
+```
+
+Repeat this for production. Do not copy a CA private key; only the exported
+`caddy-local-root.crt` is needed. Existing clients keep trusting future
+certificates while the persistent `caddy_data` volume remains intact.
 
 ## 4. Deploy and promote
 
@@ -155,8 +178,9 @@ Staging is the safe default:
 ```
 
 The command builds and pushes the versioned image, deploys it to staging,
-runs migrations, verifies backup integrity, waits for `/api/health`, checks the
-reported environment, and records a local staging receipt only after success.
+runs migrations, verifies backup integrity, checks `/api/health` through the
+canonical HTTPS URL with certificate validation, and records a local staging
+receipt only after success.
 
 Promote that exact version to production without rebuilding it:
 
@@ -172,6 +196,8 @@ passes.
 ## 5. Acceptance checks before production
 
 - Health endpoint returns HTTP 200, the expected version, and `staging`.
+- `http://netflix-staging` redirects to `https://netflix-staging`, and the
+  browser reports a trusted certificate without warnings.
 - A clearly visible `STAGING` badge appears at the top of every application page.
 - Login, registration, verification, password reset, MFA, and logout work.
 - When the passkey pilot is enabled, enrollment, cancellation, passkey login,

@@ -6,10 +6,17 @@ services:
       - /root/netflix-secrets/app.env
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
+      AUTH_URL: {{ canonical_url | quote }}
+      NEXTAUTH_URL: {{ canonical_url | quote }}
+      AUTH_PUBLIC_URL: {{ canonical_url | quote }}
+      AUTH_TRUST_HOST: 'true'
+      AUTH_TRUSTED_PROXY_HOPS: '1'
+      AUTH_WEBAUTHN_RP_ID: {{ https_hostname | quote }}
+      AUTH_WEBAUTHN_ORIGIN: {{ canonical_url | quote }}
     labels:
       com.netflix-clone.environment: {{ deployment_environment | quote }}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     user: "10001:10001"
     read_only: true
     security_opt:
@@ -34,3 +41,40 @@ services:
         max-size: "10m"
         max-file: "3"
     restart: unless-stopped
+
+  proxy:
+    image: {{ caddy_image }}
+    container_name: netflix-proxy
+    depends_on:
+      - app
+    labels:
+      com.netflix-clone.environment: {{ deployment_environment | quote }}
+    ports:
+      - "80:80"
+      - "443:443"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 256m
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    volumes:
+      - {{ docker_compose_path }}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

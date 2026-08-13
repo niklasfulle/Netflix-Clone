@@ -25,6 +25,42 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('"hosts.staging"', setup_script)
         self.assertIn("$envVars['LXC_PORT']", setup_script)
         self.assertIn('LXC_PORT=22', env_example)
+        self.assertIn("$envVars['HTTPS_HOST']", setup_script)
+        self.assertIn('HTTPS_HOST=', env_example)
+
+    def test_internal_https_terminates_at_a_hardened_reverse_proxy(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(
+            encoding="utf-8"
+        )
+        caddyfile = (ROOT / "ansible" / "Caddyfile.j2").read_text(encoding="utf-8")
+
+        self.assertIn("Select the canonical LAN HTTPS hostname", playbook)
+        self.assertIn("'netflix-staging' if deployment_environment == 'staging' else 'netflix'", playbook)
+        self.assertIn("Validate canonical LAN HTTPS hostname", playbook)
+        self.assertIn("Copy internal HTTPS reverse-proxy configuration", playbook)
+        self.assertIn("Pull pinned internal HTTPS reverse proxy", playbook)
+        self.assertIn("Verify canonical HTTPS health", playbook)
+        self.assertIn("Preserve the previous reverse-proxy definition for rollback", playbook)
+        self.assertIn("Restore the previous reverse-proxy definition", playbook)
+        self.assertIn("Verify rollback through canonical HTTPS", playbook)
+        self.assertIn('url: "https://{{ https_hostname }}/api/health"', playbook)
+        self.assertIn('ca_path: "{{ caddy_root_certificate_path }}"', playbook)
+        self.assertIn('"127.0.0.1:3000:3000"', compose)
+        self.assertIn('"80:80"', compose)
+        self.assertIn('"443:443"', compose)
+        self.assertIn("AUTH_URL: {{ canonical_url | quote }}", compose)
+        self.assertIn("AUTH_PUBLIC_URL: {{ canonical_url | quote }}", compose)
+        self.assertIn("AUTH_TRUSTED_PROXY_HOPS: '1'", compose)
+        self.assertIn("caddy_data:", compose)
+        self.assertIn("tls internal", caddyfile)
+        self.assertIn("reverse_proxy app:3000", caddyfile)
+        self.assertIn("Strict-Transport-Security", caddyfile)
+
+        manual_compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+        self.assertIn("HTTPS_HOST: ${HTTPS_HOST:-netflix}", manual_compose)
 
     def test_deployment_rejects_an_environment_mismatch(self):
         playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")

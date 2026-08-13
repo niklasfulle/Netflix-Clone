@@ -35,6 +35,8 @@ Die aktuelle Version wird mit `[current]` markiert und automatisch aus `package.
 - An opt-in passkey pilot now supports discoverable WebAuthn login for existing verified accounts while retaining password, MFA, and recovery flows
 - Passkey enrollment and management require five-minute session-bound reauthentication, expose device metadata and labels, and prevent removal of the final usable sign-in method
 - Passkey RP ID, canonical origin, HTTPS, signature-counter, ownership, and existing-user rules are enforced and covered by unit and PostgreSQL 18 integration tests
+- The changelog now presents release statistics, a highlighted current version, and a responsive accessible release timeline
+- Production and staging now use stable LAN hostnames with Caddy-managed internal HTTPS, certificate-validating deployment health checks, and localhost-only direct application ports
 
 ## 1.10.1
 
