@@ -222,6 +222,18 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("Preserve failed-container diagnostics", playbook)
         self.assertIn("Restore the previous compose definition", playbook)
         self.assertIn("Restart the previous working image", playbook)
+        self.assertIn(
+            "deployed_system_metrics.docker.container.imageId ==",
+            playbook,
+        )
+        self.assertIn(
+            "(deployed_image_identity.stdout | trim | regex_replace('^sha256:', ''))",
+            playbook,
+        )
+        self.assertNotIn(
+            "deployed_system_metrics.docker.container.image == docker_registry",
+            playbook,
+        )
         self.assertLess(
             playbook.index("Verify deployed container in system metrics"),
             playbook.index("Remove dangling Docker layers after successful start"),
