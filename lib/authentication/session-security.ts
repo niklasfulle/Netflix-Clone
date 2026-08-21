@@ -8,7 +8,8 @@ export type SecurityActivityEvent =
   | 'account_blocked'
   | 'account_unblocked'
   | 'mfa_enabled'
-  | 'mfa_disabled';
+  | 'mfa_disabled'
+  | 'qr_device_approved';
 
 export type SecurityActivity = {
   id: string;

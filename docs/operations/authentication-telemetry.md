@@ -1,8 +1,17 @@
 # Authentication telemetry
 
-Version 1.12 records the established authentication lifecycle as structured,
-privacy-safe JSON events. Passkey-specific additions and QR-assisted device
-login are intentionally outside this release.
+Version 1.12.1 adds QR-assisted device-login events to the established
+privacy-safe authentication lifecycle. QR payloads and event metadata never
+contain a session, account identity, pairing secret, manual code, or URL.
+
+## QR device-pairing operations
+
+Pairing requests expire after five minutes. The application marks expired
+pending requests terminally while servicing a new request and removes terminal
+requests that have been expired for more than 24 hours in bounded batches of
+50. This needs no Redis, worker, or GitHub Actions job. Operators should treat
+unexpected repeated terminal outcomes as a rate-limit or client-connectivity
+signal, not as evidence that a specific account exists.
 
 ## Event contract
 
