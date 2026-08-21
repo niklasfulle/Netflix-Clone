@@ -66,7 +66,7 @@ test.describe('admin accessibility', () => {
       name: /Open navigation|Navigation öffnen/i,
     });
     await navigationTrigger.focus();
-    await page.keyboard.press('Enter');
+    await navigationTrigger.press('Enter');
 
     const navigationDialog = page.getByRole('dialog', {
       name: /Admin Area|Admin-Bereich/i,

@@ -22,7 +22,7 @@ test('changes the login language using only the keyboard', async ({ page }) => {
   await expect(germanButton).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('html')).toHaveAttribute('lang', 'de');
   await expect(page.getByText('Willkommen zurück')).toBeVisible();
-  const loginButton = page.getByRole('button', { name: 'Anmelden' });
+  const loginButton = page.getByRole('button', { name: 'Anmelden', exact: true });
   await expect(loginButton).toBeVisible();
 
   await loginButton.click();

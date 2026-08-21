@@ -83,11 +83,17 @@ export default function AdminNav() {
   const { t } = useLanguage();
   const drawerRef = useRef<HTMLDialogElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const previousPathnameRef = useRef(pathname);
   const closeMobileNavigation = useCallback(() => setMobileOpen(false), []);
 
   useDialogFocus(mobileOpen, drawerRef, closeMobileNavigation, drawerCloseRef);
 
-  useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => {
+    if (previousPathnameRef.current !== pathname) {
+      setMobileOpen(false);
+      previousPathnameRef.current = pathname;
+    }
+  }, [pathname]);
 
   const profileImage = profil?.image || "placeholder.png";
 
