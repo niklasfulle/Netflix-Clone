@@ -10,7 +10,7 @@ export default function EnvironmentBadge({ environment }: EnvironmentBadgeProps)
   return (
     <output
       aria-label="Staging environment"
-      className="pointer-events-none fixed left-1/2 top-2 z-[100] flex -translate-x-1/2 select-none items-center gap-2 rounded-full border border-amber-300/70 bg-amber-400 px-3 py-1 text-[11px] font-black tracking-[0.2em] text-zinc-950 shadow-lg shadow-black/40"
+      className="pointer-events-none fixed left-1/2 top-[4.5rem] z-[100] flex -translate-x-1/2 select-none items-center gap-2 rounded-full border border-amber-300/70 bg-amber-400 px-3 py-1 text-[11px] font-black tracking-[0.2em] text-zinc-950 shadow-lg shadow-black/40 lg:top-2"
     >
       <span
         aria-hidden="true"

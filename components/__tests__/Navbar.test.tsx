@@ -80,7 +80,7 @@ describe('Navbar Component', () => {
     mockUseCurrentProfil.mockReturnValue({
       data: { image: 'profile1.png' },
     } as any);
-    Object.defineProperty(globalThis, 'screenY', {
+    Object.defineProperty(globalThis, 'scrollY', {
       writable: true,
       configurable: true,
       value: 0,
@@ -409,13 +409,13 @@ describe('Navbar Component', () => {
 
       expect(mainDiv?.className).not.toMatch(/bg-zinc-900/);
 
-      Object.defineProperty(globalThis, 'screenY', {
+      Object.defineProperty(globalThis, 'scrollY', {
         writable: true,
         configurable: true,
         value: 100,
       });
 
-      fireEvent.scroll(window, { target: { screenY: 100 } });
+      fireEvent.scroll(window, { target: { scrollY: 100 } });
 
       expect(mainDiv?.className).toMatch(/bg-zinc-900/);
     });
@@ -424,29 +424,29 @@ describe('Navbar Component', () => {
       const { container } = render(<Navbar />);
       const mainDiv = container.querySelector('nav > div');
 
-      Object.defineProperty(globalThis, 'screenY', {
+      Object.defineProperty(globalThis, 'scrollY', {
         writable: true,
         configurable: true,
         value: 100,
       });
 
-      fireEvent.scroll(window, { target: { screenY: 100 } });
+      fireEvent.scroll(window, { target: { scrollY: 100 } });
       expect(mainDiv?.className).toMatch(/bg-zinc-900/);
 
-      Object.defineProperty(globalThis, 'screenY', {
+      Object.defineProperty(globalThis, 'scrollY', {
         writable: true,
         configurable: true,
         value: 0,
       });
 
-      fireEvent.scroll(window, { target: { screenY: 0 } });
+      fireEvent.scroll(window, { target: { scrollY: 0 } });
       expect(mainDiv?.className).not.toMatch(/bg-zinc-900/);
     });
 
     test('should add scroll event listener on mount', () => {
       const addEventListenerSpy = jest.spyOn(globalThis, 'addEventListener');
       render(<Navbar />);
-      expect(addEventListenerSpy).toHaveBeenCalledWith('scroll', expect.any(Function));
+      expect(addEventListenerSpy).toHaveBeenCalledWith('scroll', expect.any(Function), { passive: true });
       addEventListenerSpy.mockRestore();
     });
 
@@ -465,19 +465,19 @@ describe('Navbar Component', () => {
       expect(mainDiv?.className).toMatch(/duration-500/);
     });
 
-    test('should use correct TOP_OFFSET (66px)', () => {
+    test('should use correct TOP_OFFSET (66px) with the page scroll position', () => {
       const { container } = render(<Navbar />);
       const mainDiv = container.querySelector('nav > div');
 
       expect(mainDiv?.className).not.toMatch(/bg-zinc-900/);
 
-      Object.defineProperty(globalThis, 'screenY', {
+      Object.defineProperty(globalThis, 'scrollY', {
         writable: true,
         configurable: true,
         value: 66,
       });
 
-      fireEvent.scroll(window, { target: { screenY: 66 } });
+      fireEvent.scroll(window, { target: { scrollY: 66 } });
       expect(mainDiv?.className).toMatch(/bg-zinc-900/);
     });
   });
@@ -689,12 +689,12 @@ describe('Navbar Component', () => {
       const mainDiv = container.querySelector('nav > div');
 
       for (let i = 0; i < 5; i++) {
-        Object.defineProperty(globalThis, 'screenY', {
+        Object.defineProperty(globalThis, 'scrollY', {
           writable: true,
           configurable: true,
           value: 100,
         });
-        fireEvent.scroll(window, { target: { screenY: 100 } });
+        fireEvent.scroll(window, { target: { scrollY: 100 } });
       }
 
       expect(mainDiv?.className).toMatch(/bg-zinc-900/);
@@ -809,17 +809,17 @@ describe('Navbar Component', () => {
       expect(navs.length).toBe(2);
     });
 
-    test('should work with large screenY values', () => {
+    test('should work with large scrollY values', () => {
       const { container } = render(<Navbar />);
       const mainDiv = container.querySelector('nav > div');
 
-      Object.defineProperty(globalThis, 'screenY', {
+      Object.defineProperty(globalThis, 'scrollY', {
         writable: true,
         configurable: true,
         value: 10000,
       });
 
-      fireEvent.scroll(window, { target: { screenY: 10000 } });
+      fireEvent.scroll(window, { target: { scrollY: 10000 } });
       expect(mainDiv?.className).toMatch(/bg-zinc-900/);
     });
 

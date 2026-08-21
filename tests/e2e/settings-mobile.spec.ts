@@ -15,6 +15,8 @@ test.describe('mobile settings', () => {
         .toBeVisible();
       await expect(page.getByRole('button', { name: /Sign out other devices|Andere Geräte abmelden/i }))
         .toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, 160));
+      await expect(page.locator('nav > div').first()).toHaveClass(/bg-zinc-900/);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);
       browserFailures.assertNone();
