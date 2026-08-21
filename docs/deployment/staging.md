@@ -94,6 +94,9 @@ seed container and is never added to the application container, image, or Git.
 `E2E_DATABASE_URL` is used only by the local Playwright runner and is ignored by
 the seed. It must connect to the same isolated staging database as the
 application when MFA or passkey journeys run against the remote staging URL.
+For a local runner, keep the real credential file outside the workspace and
+set `E2E_ENV_FILE` to its absolute path before invoking Playwright. The
+placeholder-only `.env.e2e.example` remains the repository template.
 The idempotent seed confirms both email addresses, assigns `USER` and `ADMIN`,
 creates a profile when missing, clears blocking and MFA state, and refreshes the
 configured passwords. Staging authentication throttles are also cleared so the
@@ -206,6 +209,11 @@ passes.
 - Two independent browser sessions can sign in; "Sign out other devices" invalidates only the second session.
 - Password reset, password change, MFA change, and administrator blocking invalidate the expected existing sessions.
 - Both configured E2E accounts can log in and select their seeded profiles.
+- The desktop and mobile Playwright projects complete QR-assisted sign-in with
+  two isolated browser contexts: a signed-out target device and a separately
+  authenticated phone. The phone explicitly re-enters its password (and MFA
+  when enabled), while the target continues to profile selection with its own
+  revocable session.
 - Database-mutating Playwright helpers confirm both the staging health marker
   and a database name containing `stage` or `staging` before changing data.
 - `/api/video/staging-player-movie` returns the complete MP4 and HTTP 206 byte ranges.
