@@ -35,6 +35,9 @@ jest.mock("@/components/Footer", () => ({
 jest.mock("../_components/settings-form", () => ({
   SettingsForm: () => <div data-testid="settings-form">Settings form</div>,
 }));
+jest.mock("../_components/certificate-trust-panel", () => ({
+  CertificateTrustPanel: () => <div data-testid="certificate-trust-panel">Certificate trust</div>,
+}));
 
 const mockGetUser = getUser as jest.MockedFunction<typeof getUser>;
 const mockUseCurrentProfile = useCurrentProfil as jest.MockedFunction<
@@ -85,6 +88,7 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("Signed in with profile Jane.")).toBeInTheDocument();
     expect(screen.getByTestId("settings-form")).toBeInTheDocument();
+    expect(screen.getByTestId("certificate-trust-panel")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
   });
 

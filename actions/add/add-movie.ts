@@ -7,8 +7,10 @@ import { MovieSchema } from '@/schemas';
 import { UserRole } from '@prisma/client';
 import { logBackendAction } from '@/lib/logger';
 import { isGenreAllowed } from '@/lib/genres';
+import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 
 export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl: string) => {
+  const audit = adminMutationAudit.begin('content.create');
   const user = await currentUser();
   const role = await currentRole();
 
@@ -23,12 +25,14 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
 
   if (!user) {
     logBackendAction('addMovie_unauthorized', { values }, 'error');
+    await audit.denied();
     return { error: "Unauthorized!" };
   }
 
 
   if (role !== UserRole.ADMIN) {
     logBackendAction('addMovie_not_allowed', { userId: user.id, role }, 'error');
+    await audit.denied();
     return { error: "Not allowed Server Action!" };
   }
 
@@ -37,6 +41,7 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
 
   if (!validatedField.success) {
     logBackendAction('addMovie_invalid_fields', { userId: user.id, values }, 'error');
+    await audit.failed();
     return { error: "Invalid fields!" };
   }
 
@@ -44,6 +49,7 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
 
   if (!isGenreAllowed(movieGenre)) {
     logBackendAction('addMovie_genre_not_allowed', { userId: user.id, movieGenre }, 'warn');
+    await audit.failed({ metadata: { contentType: movieType } });
     return { error: "Genre is not allowed!" };
   }
 
@@ -73,6 +79,11 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
       )
     );
   }
+
+  await audit.succeeded({
+    target: { type: 'content', id: createdMovie.id },
+    metadata: { contentType: movieType, initialStatus: 'PUBLISHED' },
+  });
 
   return { success: "Movie added!" }
 }

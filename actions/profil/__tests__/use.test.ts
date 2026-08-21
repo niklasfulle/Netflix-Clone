@@ -22,6 +22,13 @@ jest.mock('@/lib/logger', () => ({
   logBackendAction: jest.fn(),
 }));
 
+const mockTelemetryComplete = jest.fn();
+jest.mock('@/lib/authentication/production-telemetry', () => ({
+  authenticationTelemetry: {
+    start: () => ({ correlationId: 'profile-reference', complete: mockTelemetryComplete }),
+  },
+}));
+
 import { use } from '../use';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -75,6 +82,9 @@ describe('use profil action - Authentifizierung & Validierung', () => {
       select: { id: true },
     });
     expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({
+      reasonCode: 'profile_selected',
+    }));
   });
 
   it('❌ aktiviert kein Profil eines anderen Benutzers', async () => {
@@ -86,5 +96,17 @@ describe('use profil action - Authentifizierung & Validierung', () => {
 
     expect(result).toEqual({ error: 'Profile not found!' });
     expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns a privacy-safe reference when the profile transaction fails', async () => {
+    const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
+    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    (db.profil.findFirst as jest.Mock).mockResolvedValue({ id: 'profil1' });
+    (db.$transaction as jest.Mock).mockRejectedValue(new Error('profile private value'));
+
+    await expect(use({ profilId: 'profil1' })).resolves.toEqual({
+      error: 'Profile could not be selected. Reference: profile-reference',
+    });
+    expect(JSON.stringify(mockTelemetryComplete.mock.calls)).not.toContain('private value');
   });
 });

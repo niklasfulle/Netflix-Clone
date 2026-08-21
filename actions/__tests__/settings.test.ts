@@ -19,6 +19,15 @@ jest.mock("@/lib/logger", () => ({
   logBackendAction: jest.fn(),
 }));
 
+const mockTelemetryComplete = jest.fn();
+const mockTelemetryStart = jest.fn(() => ({
+  correlationId: 'settings-reference',
+  complete: mockTelemetryComplete,
+}));
+jest.mock('@/lib/authentication/production-telemetry', () => ({
+  authenticationTelemetry: { start: () => mockTelemetryStart() },
+}));
+
 jest.mock("@/lib/mail", () => ({
   sendVerificationEmail: jest.fn(),
 }));
@@ -93,6 +102,9 @@ describe("settings action", () => {
     });
     expect(mockGetUserById).not.toHaveBeenCalled();
     expect(db.user.update).not.toHaveBeenCalled();
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({
+      reasonCode: 'unauthorized',
+    }));
   });
 
   it("rejects requests when the database user no longer exists", async () => {
@@ -241,6 +253,19 @@ describe("settings action", () => {
       "password_changed",
       expect.anything(),
     );
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({
+      outcome: 'success',
+      reasonCode: 'password_updated',
+    }));
+  });
+
+  it('returns only a safe support reference for unexpected failures', async () => {
+    (db.user.update as jest.Mock).mockRejectedValue(new Error('member@example.com database row'));
+
+    await expect(settings({ name: 'New name' })).resolves.toEqual({
+      error: 'Settings could not be updated. Reference: settings-reference',
+    });
+    expect(JSON.stringify(mockTelemetryComplete.mock.calls)).not.toContain('member@example.com');
   });
 
   it("ignores credential and two-factor changes for OAuth accounts", async () => {

@@ -83,14 +83,18 @@ ansible-playbook update.yml -v
 2. `docker-compose.yml` und die interne Caddy-HTTPS-Konfiguration werden aktualisiert
 3. Docker-Hub- und CloudFront-DNS werden mit Wiederholungsversuchen geprüft
 4. Das neue Docker-Image wird mit Wiederholungsversuchen vollständig geladen und verifiziert
-5. Erst danach wird der alte Container gestoppt und entfernt
-6. Ein eingeschränkter systemd-Agent erfasst LXC-, Speicher- und Docker-Metriken
-7. App und Reverse-Proxy werden gestartet; Port 3000 bleibt auf localhost beschränkt
-8. Ansible prüft `/api/health` direkt und anschließend über das echte kanonische HTTPS-Ziel
-9. Ansible exportiert die interne Root-CA nach `/root/netflix-clone/caddy-local-root.crt`
-10. Der Monitoring-Agent muss den neuen Container und Image-Tag erkennen
-11. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
-12. Volumes (`/movies`, `/series`, Caddy-PKI, Monitoring- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
+5. Ein PostgreSQL-Dump wird erstellt und in einem temporären Container ohne Netzwerk vollständig wiederhergestellt und geprüft
+6. Erst nach erfolgreicher Restore-Verifikation werden Prisma-Migrationen angewendet
+7. Erst danach wird der alte Container gestoppt und entfernt
+8. Ein eingeschränkter systemd-Agent erfasst LXC-, Speicher- und Docker-Metriken
+9. App und Reverse-Proxy werden gestartet; Port 3000 bleibt auf localhost beschränkt
+10. Ansible prüft `/api/health` direkt und anschließend über das echte kanonische HTTPS-Ziel
+11. Ansible exportiert die interne Root-CA nach `/root/netflix-clone/caddy-local-root.crt`
+12. Der Monitoring-Agent muss den neuen Container und Image-Tag erkennen
+13. Der LXC signiert den aktuellen Deployment-, Migrations-, Health- und Rollback-Status mit seinem privaten Ed25519-Schlüssel
+14. Ein persistenter systemd-Timer erstellt täglich einen atomaren PostgreSQL-Dump, verifiziert ihn per isoliertem Restore und wendet die sichere Retention an
+15. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
+16. Volumes (`/movies`, `/series`, Caddy-PKI, Monitoring-, Deployment- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
 
 ## Dateien
 
@@ -101,8 +105,16 @@ ansible-playbook update.yml -v
 - `docker-compose.yml.j2` - Template für docker-compose.yml
 - `Caddyfile.j2` - internes HTTPS für den kanonischen LAN-Namen
 - `files/netflix_monitor.py` - Read-only LXC- und Docker-Metriksammler
+- `files/verify-postgres-backup.sh` - isolierter Restore und bounded Statusvertrag
+- `files/run-postgres-backup-verification.sh` - Host-Lock und gehärteter Docker-Aufruf
+- `files/run-postgres-backup.sh` - geplanter Dump, Checksumme, Restore-Prüfung und Status
+- `files/manage-postgres-backups.py` - pfadgebundene tägliche/wöchentliche/monatliche Retention
+- `files/publish_deployment_status.py` - atomarer, host-signierter Deployment Record
+- `tasks/publish-deployment-status.yml` - wiederverwendbare Lifecycle-Publikation
 - `tasks/system-monitor.yml` - Installation und Validierung des Monitoring-Agenten
 - `templates/netflix-monitor.*.j2` - systemd-Service und Timer
+- `templates/netflix-backup-verification.*.j2` - manueller Admin-Trigger über systemd
+- `templates/netflix-postgres-backup.*.j2` - persistenter Backup-Service und Timer
 
 ## Troubleshooting
 
@@ -141,9 +153,13 @@ Caddy stellt für reine LAN-Namen Zertifikate aus seiner internen CA aus. Nach
 dem ersten erfolgreichen Deployment muss deren öffentliches Root-Zertifikat
 einmalig auf jedem Client als vertrauenswürdige Stammzertifizierungsstelle
 installiert werden. Die Datei liegt auf dem LXC unter
-`/root/netflix-clone/caddy-local-root.crt`. Produktion und Staging haben jeweils
-eine eigene CA; beide Zertifikate müssen auf Clients installiert werden, die
-beide Umgebungen verwenden.
+`/var/lib/netflix-public-certificates/current.pem`. Sie wird validiert und nur
+lesbar in die Anwendung eingebunden. Produktion und Staging haben jeweils eine
+eigene CA; beide Zertifikate müssen auf Clients installiert werden, die beide
+Umgebungen verwenden. Ein unerwarteter Wechsel wird standardmäßig abgelehnt.
+Der kontrollierte Übergang mit `allow_public_ca_rotation=true` sowie die spätere
+explizite Entfernung stehen in
+[`docs/operations/certificate-trust.md`](../docs/operations/certificate-trust.md).
 
 ### Chunk-Upload meldet `EACCES` für `/movies/temp`
 

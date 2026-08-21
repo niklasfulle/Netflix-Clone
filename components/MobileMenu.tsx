@@ -11,7 +11,10 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
   }
 
   return (
-    <div className="absolute left-0 flex flex-col w-44 py-4 bg-black border-2 border-gray-800 top-8">
+    <div
+      id="mobile-catalog-menu"
+      className="absolute left-0 top-8 flex w-44 flex-col border-2 border-gray-800 bg-black py-4"
+    >
       <div className="flex flex-col gap-4">
         <Link href={"/"}>
           <div className="px-3 text-center text-white hover:underline">

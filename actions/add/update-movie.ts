@@ -4,6 +4,7 @@ import { UserRole } from '@prisma/client';
 import * as z from 'zod';
 
 import { currentRole, currentUser } from '@/lib/auth';
+import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 import { db } from '@/lib/db';
 import { isGenreAllowed } from '@/lib/genres';
 import { logBackendAction } from '@/lib/logger';
@@ -29,15 +30,18 @@ export const updateMovie = async (
   values: z.infer<typeof MovieSchema>,
   thumbnailUrl: string,
 ) => {
+  const audit = adminMutationAudit.begin('content.update');
   const user = await currentUser();
   const role = await currentRole();
 
   if (!user) {
     logBackendAction('updateMovie_unauthorized', { movieId }, 'error');
+    await audit.denied();
     return { error: "Unauthorized!" };
   }
   if (role !== UserRole.ADMIN) {
     logBackendAction('updateMovie_not_allowed', { userId: user.id, role, movieId }, 'error');
+    await audit.denied();
     return { error: "Not allowed Server Action!" };
   }
 
@@ -48,6 +52,7 @@ export const updateMovie = async (
       movieId,
       invalidFields: validatedField.error.issues.map((issue) => issue.path.join('.')),
     }, 'error');
+    await audit.failed({ target: { type: 'content', id: movieId } });
     return { error: "Invalid fields!" };
   }
 
@@ -62,11 +67,15 @@ export const updateMovie = async (
   } = validatedField.data;
   if (!isGenreAllowed(movieGenre)) {
     logBackendAction('updateMovie_genre_not_allowed', { userId: user.id, movieId, movieGenre }, 'warn');
+    await audit.failed({ target: { type: 'content', id: movieId } });
     return { error: "Genre is not allowed!" };
   }
 
   const movie = await db.movie.findUnique({ where: { id: movieId } });
-  if (!movie) return { error: "Movie not found!" };
+  if (!movie) {
+    await audit.failed({ target: { type: 'content', id: movieId } });
+    return { error: "Movie not found!" };
+  }
 
   let stagedMove: StagedMove;
   try {
@@ -81,6 +90,7 @@ export const updateMovie = async (
       movieId,
       errorName: getErrorName(error),
     }, 'error');
+    await audit.failed({ target: { type: 'content', id: movieId } });
     return { error: error instanceof Error ? error.message : "Video file could not be moved!" };
   }
 
@@ -113,6 +123,7 @@ export const updateMovie = async (
       movieId,
       errorName: getErrorName(error),
     }, 'error');
+    await audit.failed({ target: { type: 'content', id: movieId } });
     return { error: "Movie could not be updated!" };
   }
 
@@ -127,5 +138,20 @@ export const updateMovie = async (
   }
 
   logBackendAction('updateMovie_success', { userId: user.id, movieId }, 'info');
+  await audit.succeeded({
+    target: { type: 'content', id: movieId },
+    metadata: {
+      changedFields: [
+        'title',
+        'description',
+        'type',
+        'genre',
+        'duration',
+        'videoUrl',
+        'thumbnailUrl',
+        'actors',
+      ],
+    },
+  });
   return { success: "Movie updated!" };
 }

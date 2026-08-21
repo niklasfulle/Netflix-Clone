@@ -22,6 +22,9 @@ jest.mock('@/lib/db', () => ({
     actor: {
       delete: jest.fn(),
     },
+    adminAuditEvent: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -52,6 +55,7 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
     id: 'user-1',
     email: 'admin@example.com',
     emailVerified: new Date(),
+    role: UserRole.ADMIN,
   };
 
   const mockMovie = {
@@ -59,6 +63,7 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
     title: 'Test Movie',
     videoUrl: 'video-file',
     type: 'Movie',
+    status: 'PUBLISHED',
   };
 
   const mockActor = {
@@ -76,6 +81,23 @@ describe('deleteMovie action - Movie Deletion with Authorization', () => {
     (db.movieActor.deleteMany as jest.Mock).mockResolvedValue({ count: 0 });
     (db.movieActor.count as jest.Mock).mockResolvedValue(0);
     (fs.existsSync as jest.Mock).mockReturnValue(false);
+  });
+
+  it('records a successful destructive content mutation', async () => {
+    await expect(deleteMovie('movie-1')).resolves.toEqual({
+      success: 'Movie deleted successfully!',
+    });
+
+    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'content.delete',
+        actorUserId: 'user-1',
+        targetId: 'movie-1',
+        outcome: 'SUCCEEDED',
+        correlationId: expect.any(String),
+        metadata: { contentType: 'Movie', previousStatus: 'PUBLISHED' },
+      }),
+    });
   });
 
   describe('Authorization', () => {

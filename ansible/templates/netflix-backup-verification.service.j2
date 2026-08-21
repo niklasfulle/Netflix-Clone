@@ -1,0 +1,17 @@
+[Unit]
+Description=Verify the latest Netflix Clone PostgreSQL backup through an isolated restore
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+Environment=POSTGRES_BACKUP_IMAGE={{ postgres_backup_image }}
+ExecStart=/usr/local/lib/netflix-deploy/run-postgres-backup-verification.sh
+TimeoutStartSec=8min
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadOnlyPaths=/root/netflix-database-backups /usr/local/lib/netflix-deploy
+ReadWritePaths=/var/lib/netflix-backup-status/verification /run/lock

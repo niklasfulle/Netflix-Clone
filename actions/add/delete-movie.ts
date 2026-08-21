@@ -1,5 +1,6 @@
 "use server"
 import { logBackendAction } from '@/lib/logger';
+import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 
 import { currentRole, currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -53,16 +54,19 @@ const cleanupOrphanedActors = async (
 };
 
 export const deleteMovie = async (movieId: string) => {
+  const audit = adminMutationAudit.begin('content.delete');
   const user = await currentUser()
   const role = await currentRole()
 
   if (!user) {
     logBackendAction('deleteMovie_unauthorized', { movieId }, 'error');
+    await audit.denied();
     return { error: "Unauthorized!" }
   }
 
   if (role !== UserRole.ADMIN) {
     logBackendAction('deleteMovie_not_allowed', { userId: user.id, role, movieId }, 'error');
+    await audit.denied();
     return { error: "Not allowed Server Action!" }
   }
 
@@ -74,6 +78,7 @@ export const deleteMovie = async (movieId: string) => {
 
     if (!movie) {
       logBackendAction('deleteMovie_not_found', { userId: user.id, movieId }, 'error');
+      await audit.failed({ target: { type: 'content', id: movieId } });
       return { error: "Movie not found!" }
     }
 
@@ -94,10 +99,15 @@ export const deleteMovie = async (movieId: string) => {
     await cleanupOrphanedActors(movieActors);
 
     logBackendAction('deleteMovie_success', { userId: user.id, movieId }, 'info');
+    await audit.succeeded({
+      target: { type: 'content', id: movieId },
+      metadata: { contentType: movie.type, previousStatus: movie.status },
+    });
     return { success: "Movie deleted successfully!" }
   } catch (error) {
     logBackendAction('deleteMovie_error', { userId: user?.id, movieId, error: String(error) }, 'error');
     console.error("Delete movie error:", error);
+    await audit.failed({ target: { type: 'content', id: movieId } });
     return { error: "Failed to delete movie!" }
   }
 }

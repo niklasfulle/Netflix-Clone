@@ -9,7 +9,6 @@ export async function GET() {
     const user = await currentUser()
 
     if (!user) {
-      logBackendAction('api_current_profil_no_user', {}, 'error');
       return Response.json(null, { status: 404 })
     }
 
@@ -21,14 +20,11 @@ export async function GET() {
     })
 
     if (!profil) {
-      logBackendAction('api_current_profil_no_profil', { userId: user.id }, 'error');
       return Response.json(null, { status: 404 })
     }
-    logBackendAction('api_current_profil_success', { userId: user.id, profilId: profil.id }, 'info');
     return Response.json(profil, { status: 200 })
-  } catch (error) {
-    logBackendAction('api_current_profil_error', { error: String(error) }, 'error');
-    console.log(error)
+  } catch {
+    logBackendAction('api_current_profil_error', {}, 'error');
     return Response.json(null, { status: 400 })
   }
 }

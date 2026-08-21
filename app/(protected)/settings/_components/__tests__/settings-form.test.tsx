@@ -154,6 +154,20 @@ describe("SettingsForm", () => {
     expect(newPassword).toHaveAttribute("type", "text");
   });
 
+  it("keeps the new-password pair together below the current password", () => {
+    render(<SettingsForm user={passwordAccount} />);
+
+    expect(
+      screen.getByLabelText("Current password").closest('[class~="sm:col-span-2"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("New password").closest('[class~="sm:col-span-2"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Confirm password").closest('[class~="sm:col-span-2"]'),
+    ).not.toBeInTheDocument();
+  });
+
   it("requires the current password when a new password is entered", async () => {
     render(<SettingsForm user={passwordAccount} />);
 

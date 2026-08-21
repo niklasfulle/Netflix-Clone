@@ -7,9 +7,24 @@
     docker_registry: "salkin263"
     image_name: "netflix-clone"
     postgres_backup_image: "postgres:18-alpine"
+    postgres_backup_schedule: "*-*-* 03:15:00"
+    postgres_backup_timezone: "Europe/Berlin"
+    postgres_backup_randomized_delay_seconds: 300
+    postgres_backup_lock_wait_seconds: 30
+    postgres_backup_timeout_seconds: 900
+    postgres_backup_service_timeout_seconds: 1500
+    postgres_backup_minimum_copies: 3
+    postgres_backup_retention_daily_days: 7
+    postgres_backup_retention_weekly_weeks: 4
+    postgres_backup_retention_monthly_months: 6
     caddy_image: "caddy:2.10.2-alpine"
     canonical_url: "https://{{ https_hostname }}"
     caddy_root_certificate_path: "{{ docker_compose_path }}/caddy-local-root.crt"
+    public_ca_root: /var/lib/netflix-public-certificates
+    public_ca_publisher_path: /usr/local/lib/netflix-deploy/publish-public-ca.sh
+    allow_public_ca_rotation: false
+    retire_previous_public_ca: false
+    public_ca_overlap_days: 30
     staging_media_image: "jrottenberg/ffmpeg:7.1-alpine@sha256:8ec1ee1f6a0fcd37c97725827b6b7832795c9596e3439b8da56d7700d61ae778"
     container_cpu_limit: 2
     docker_pull_retries: 5
@@ -21,6 +36,9 @@
     failed_legacy_baseline_migration: '20251224222337_'
     environment_marker_path: /etc/netflix-clone/environment
     staging_seed_env_file: /root/netflix-secrets/staging-users.env
+    deployment_status_root: /var/lib/netflix-deployment-status
+    deployment_status_private_key: /etc/netflix-clone/deployment-status.key
+    deployment_status_publisher_path: /usr/local/lib/netflix-deploy/publish-deployment-status.py
     legacy_relational_integrity_diff:
       - '[*] Changed the `MovieView` table'
       - '[+] Added index on columns (userId, profilId, createdAt)'
@@ -53,6 +71,24 @@
         fail_msg: >-
           Set deployment_environment to either staging or production.
 
+    - name: Validate scheduled PostgreSQL backup policy
+      assert:
+        that:
+          - postgres_backup_schedule is match('^[0-9*,:./-]+ [0-9*,:./-]+$')
+          - postgres_backup_timezone is match('^[A-Za-z_]+(?:/[A-Za-z0-9_+.-]+)+$')
+          - postgres_backup_randomized_delay_seconds | int >= 0
+          - postgres_backup_randomized_delay_seconds | int <= 3600
+          - postgres_backup_lock_wait_seconds | int >= 1
+          - postgres_backup_timeout_seconds | int >= 60
+          - (postgres_backup_service_timeout_seconds | int) > (postgres_backup_timeout_seconds | int)
+          - postgres_backup_minimum_copies | int >= 1
+          - postgres_backup_retention_daily_days | int >= 1
+          - postgres_backup_retention_weekly_weeks | int >= 1
+          - postgres_backup_retention_monthly_months | int >= 1
+        fail_msg: >-
+          Configure a bounded backup schedule, timezone, timeout, lock wait, and
+          retention policy before deploying.
+
     - name: Select the canonical LAN HTTPS hostname
       set_fact:
         https_hostname: >-
@@ -68,6 +104,19 @@
         fail_msg: >-
           Set https_hostname to a LAN hostname without protocol, port, or path,
           for example 'netflix' or 'netflix-staging'.
+
+    - name: Validate public CA rotation controls
+      assert:
+        that:
+          - allow_public_ca_rotation | bool in [true, false]
+          - retire_previous_public_ca | bool in [true, false]
+          - not (retire_previous_public_ca | bool) or (allow_public_ca_rotation | bool)
+          - public_ca_overlap_days | int >= 1
+          - public_ca_overlap_days | int <= 90
+        fail_msg: >-
+          Certificate rotation and retirement must be explicit. Set
+          allow_public_ca_rotation=true for a changed root and additionally set
+          retire_previous_public_ca=true only after the overlap period ends.
 
     - name: Check immutable LXC environment marker
       stat:
@@ -150,6 +199,32 @@
         state: directory
         mode: '0755'
 
+    - name: Ensure backup status root is readable by the app
+      file:
+        path: /var/lib/netflix-backup-status
+        state: directory
+        owner: root
+        group: '10001'
+        mode: '0750'
+
+    - name: Inspect backup status root access boundary
+      stat:
+        path: /var/lib/netflix-backup-status
+      register: backup_status_root
+      changed_when: false
+
+    - name: Verify backup status root access boundary
+      assert:
+        that:
+          - backup_status_root.stat.exists
+          - backup_status_root.stat.isdir
+          - backup_status_root.stat.uid == 0
+          - backup_status_root.stat.gid == 10001
+          - backup_status_root.stat.mode == '0750'
+        fail_msg: >-
+          /var/lib/netflix-backup-status must remain root-owned, group-readable
+          by application gid 10001, and non-writable to that group.
+
     - name: Ensure non-root runtime directories are writable
       file:
         path: "{{ item }}"
@@ -160,7 +235,8 @@
       loop:
         - /movies
         - /series
-        - /var/lib/netflix-backup-status
+        - /var/lib/netflix-backup-status/verification
+        - /var/lib/netflix-backup-status/scheduled
         - /var/lib/netflix-logs
       tags:
         - runtime_permissions
@@ -194,11 +270,149 @@
         state: directory
         mode: '0755'
 
+    - name: Ensure deployment status directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "{{ deployment_status_root }}"
+        - "{{ deployment_status_root }}/records"
+        - "{{ deployment_status_root }}/trusted-keys"
+
+    - name: Ensure public CA directory exists
+      file:
+        path: "{{ public_ca_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install public CA publisher
+      copy:
+        src: files/publish-public-ca.sh
+        dest: "{{ public_ca_publisher_path }}"
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Generate the host deployment-status signing key
+      command: >-
+        openssl genpkey -algorithm ED25519 -out {{ deployment_status_private_key }}
+      args:
+        creates: "{{ deployment_status_private_key }}"
+
+    - name: Protect the host deployment-status signing key
+      file:
+        path: "{{ deployment_status_private_key }}"
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Export the host deployment-status verification key
+      command:
+        argv:
+          - openssl
+          - pkey
+          - -in
+          - "{{ deployment_status_private_key }}"
+          - -pubout
+      register: deployment_status_public_key
+      changed_when: false
+
+    - name: Publish the verification key as read-only deployment metadata
+      copy:
+        content: "{{ deployment_status_public_key.stdout }}\n"
+        dest: "{{ deployment_status_root }}/trusted-keys/{{ deployment_environment }}.pem"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install deployment status publisher
+      copy:
+        src: files/publish_deployment_status.py
+        dest: "{{ deployment_status_publisher_path }}"
+        owner: root
+        group: root
+        mode: '0755'
+
     - name: Install PostgreSQL backup helper
       copy:
         src: files/backup-postgres.sh
         dest: /usr/local/lib/netflix-deploy/backup-postgres.sh
         mode: '0755'
+
+    - name: Install isolated PostgreSQL backup verifier
+      copy:
+        src: files/verify-postgres-backup.sh
+        dest: /usr/local/lib/netflix-deploy/verify-postgres-backup.sh
+        mode: '0755'
+
+    - name: Install PostgreSQL backup verification runner
+      copy:
+        src: files/run-postgres-backup-verification.sh
+        dest: /usr/local/lib/netflix-deploy/run-postgres-backup-verification.sh
+        mode: '0755'
+
+    - name: Install manual PostgreSQL backup verification service
+      template:
+        src: templates/netflix-backup-verification.service.j2
+        dest: /etc/systemd/system/netflix-backup-verification.service
+        mode: '0644'
+
+    - name: Install manual PostgreSQL backup verification path
+      template:
+        src: templates/netflix-backup-verification.path.j2
+        dest: /etc/systemd/system/netflix-backup-verification.path
+        mode: '0644'
+
+    - name: Enable manual PostgreSQL backup verification requests
+      systemd:
+        name: netflix-backup-verification.path
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Install scheduled PostgreSQL backup runner
+      copy:
+        src: files/run-postgres-backup.sh
+        dest: /usr/local/lib/netflix-deploy/run-postgres-backup.sh
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Install safe PostgreSQL backup retention manager
+      copy:
+        src: files/manage-postgres-backups.py
+        dest: /usr/local/lib/netflix-deploy/manage-postgres-backups.py
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Install scheduled PostgreSQL backup service
+      template:
+        src: templates/netflix-postgres-backup.service.j2
+        dest: /etc/systemd/system/netflix-postgres-backup.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install scheduled PostgreSQL backup timer
+      template:
+        src: templates/netflix-postgres-backup.timer.j2
+        dest: /etc/systemd/system/netflix-postgres-backup.timer
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable scheduled PostgreSQL backups
+      systemd:
+        name: netflix-postgres-backup.timer
+        daemon_reload: true
+        enabled: true
+        state: started
 
     - name: Install staging media seed helper
       copy:
@@ -305,6 +519,21 @@
           - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
       changed_when: false
 
+    - name: Record verified Docker image identity
+      command:
+        argv:
+          - docker
+          - image
+          - inspect
+          - --format={{ '{{' }}.Id{{ '}}' }}
+          - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+      register: deployed_image_identity
+      changed_when: false
+      failed_when: >-
+        deployed_image_identity.rc != 0 or
+        (deployed_image_identity.stdout | trim) is not
+        regex('^sha256:[a-f0-9]{64}$')
+
     - name: Pull pinned staging media generator
       command:
         argv:
@@ -368,11 +597,38 @@
           The staging database name must contain 'stage' or 'staging'.
       when: deployment_environment == 'staging'
 
+    - name: Read deployment start time
+      command: date -u +%Y-%m-%dT%H:%M:%S.000Z
+      register: deployment_started_at
+      changed_when: false
+
+    - name: Initialize deployment status facts
+      set_fact:
+        deployment_id: >-
+          {{ deployment_environment }}-{{ app_version }}-{{ deployment_started_at.stdout | regex_replace('[^0-9A-Za-z._-]', '') }}
+        deployment_migration_result: pending
+        deployment_migration_attempted: false
+        deployment_application_health: pending
+        deployment_https_health: pending
+        deployment_monitoring_health: pending
+        deployment_backup_reference: ''
+        deployment_status_rollback_result: >-
+          {{ 'pending' if previous_compose.stat.exists and previous_container_image.rc == 0 else 'not_possible' }}
+
     - name: Deploy, migrate, and verify with automatic rollback
       block:
+        - name: Publish deployment start status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: in_progress
+
         - name: Back up the PostgreSQL database before migration
           command:
             argv:
+              - /usr/bin/flock
+              - --wait
+              - "{{ postgres_backup_lock_wait_seconds }}"
+              - /run/lock/netflix-postgres-backup.lock
               - docker
               - run
               - --rm
@@ -387,14 +643,17 @@
               - "{{ postgres_backup_image }}"
               - /usr/local/bin/backup-postgres
 
-        - name: Verify the pre-migration database backup
-          shell: >-
-            test -s /root/netflix-database-backups/pre-{{ app_version }}.dump &&
-            docker run --rm -v /root/netflix-database-backups:/backups:ro {{ postgres_backup_image }}
-            pg_restore --list /backups/pre-{{ app_version }}.dump >/dev/null
-          args:
-            executable: /bin/bash
-          changed_when: false
+        - name: Restore-verify the pre-migration database backup
+          command:
+            argv:
+              - /usr/local/lib/netflix-deploy/run-postgres-backup-verification.sh
+              - /root/netflix-database-backups/pre-{{ app_version }}.dump
+          environment:
+            POSTGRES_BACKUP_IMAGE: "{{ postgres_backup_image }}"
+
+        - name: Record verified deployment backup reference
+          set_fact:
+            deployment_backup_reference: "pre-{{ app_version }}.dump"
 
         - name: Check Prisma migration history table
           command:
@@ -601,6 +860,10 @@
               legacy_schema_diff.rc == 0 or
               (item | basename) in legacy_pre_integrity_migrations
 
+        - name: Record migration attempt
+          set_fact:
+            deployment_migration_attempted: true
+
         - name: Apply versioned Prisma migrations
           command:
             argv:
@@ -627,6 +890,15 @@
               - migrate
               - status
           changed_when: false
+
+        - name: Record successful migration status
+          set_fact:
+            deployment_migration_result: succeeded
+
+        - name: Publish post-migration deployment status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: in_progress
 
         - name: Seed deterministic staging users
           command:
@@ -702,6 +974,15 @@
             (health_response.json | default({})).get('version') == app_version and
             (health_response.json | default({})).get('environment') == deployment_environment
 
+        - name: Record successful application health check
+          set_fact:
+            deployment_application_health: passed
+
+        - name: Publish application health deployment status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: in_progress
+
         - name: Wait for the internal HTTPS root certificate
           command:
             argv:
@@ -725,6 +1006,18 @@
               - netflix-proxy:/data/caddy/pki/authorities/local/root.crt
               - "{{ caddy_root_certificate_path }}"
           changed_when: true
+
+        - name: Validate and publish the public HTTPS root certificate
+          command:
+            argv:
+              - "{{ public_ca_publisher_path }}"
+              - "{{ caddy_root_certificate_path }}"
+              - "{{ public_ca_root }}"
+              - "{{ allow_public_ca_rotation | bool | ternary('true', 'false') }}"
+              - "{{ retire_previous_public_ca | bool | ternary('true', 'false') }}"
+              - "{{ public_ca_overlap_days }}"
+          register: public_ca_publication
+          changed_when: "'published' in public_ca_publication.stdout or 'retired' in public_ca_publication.stdout"
 
         - name: Resolve the canonical LAN hostname locally for deployment checks
           lineinfile:
@@ -751,6 +1044,15 @@
             (https_health_response.json | default({})).get('version') == app_version and
             (https_health_response.json | default({})).get('environment') == deployment_environment
 
+        - name: Record successful HTTPS health check
+          set_fact:
+            deployment_https_health: passed
+
+        - name: Publish HTTPS health deployment status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: in_progress
+
         - name: Refresh deployed system metrics
           systemd:
             name: netflix-monitor.service
@@ -772,7 +1074,33 @@
               - deployed_system_metrics.docker.container.status == 'running'
               - deployed_system_metrics.docker.container.image == docker_registry ~ '/' ~ image_name ~ ':' ~ app_version
             fail_msg: "System monitoring did not detect the newly deployed container."
+
+        - name: Record successful monitoring health check
+          set_fact:
+            deployment_monitoring_health: passed
+            deployment_status_rollback_result: not_required
+
+        - name: Publish successful deployment status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: succeeded
       rescue:
+        - name: Mark incomplete migration and health checks as failed
+          set_fact:
+            deployment_migration_result: >-
+              {{ 'succeeded' if deployment_migration_result == 'succeeded' else ('failed' if deployment_migration_attempted else 'pending') }}
+            deployment_application_health: >-
+              {{ 'passed' if deployment_application_health == 'passed' else 'failed' }}
+            deployment_https_health: >-
+              {{ 'passed' if deployment_https_health == 'passed' else 'failed' }}
+            deployment_monitoring_health: >-
+              {{ 'passed' if deployment_monitoring_health == 'passed' else 'failed' }}
+
+        - name: Publish failed deployment status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: failed
+
         - name: Preserve failed-container diagnostics
           shell: >-
             docker inspect netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-inspect.json 2>&1 || true;
@@ -840,6 +1168,23 @@
           retries: 18
           delay: 5
           until: (rollback_https_health.status | default(0)) == 200
+          when: >-
+            previous_compose.stat.exists and
+            previous_caddyfile.stat.exists and
+            previous_container_image.rc == 0
+
+        - name: Record successful rollback result
+          set_fact:
+            deployment_status_rollback_result: succeeded
+          when: >-
+            previous_compose.stat.exists and
+            previous_caddyfile.stat.exists and
+            previous_container_image.rc == 0
+
+        - name: Publish successful rollback status
+          include_tasks: tasks/publish-deployment-status.yml
+          vars:
+            deployment_status_result: rolled_back
           when: >-
             previous_compose.stat.exists and
             previous_caddyfile.stat.exists and

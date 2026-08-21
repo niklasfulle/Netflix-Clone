@@ -19,6 +19,7 @@ import useSWR from "swr";
 
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { DeploymentStatusPanel } from "@/components/admin/DeploymentStatusPanel";
 import type {
   SystemAlert,
   SystemOverview,
@@ -429,6 +430,7 @@ export default function AdminSystemPage() {
             <RuntimeSection data={data} />
             <RecoverySection data={data} />
           </div>
+          <DeploymentStatusPanel />
           <AlertsSection alerts={data.alerts} />
         </>
       )}

@@ -79,18 +79,23 @@ const Navbar = () => {
           <NavbarItem label={t('Watchlist')} href="/watchlist" />
           <NavbarItem label={t('Random')} href="/random" />
         </div>
-        <button
-          onClick={toggleMobileMenu}
-          className="relative flex flex-row items-center gap-2 ml-4 cursor-pointer md:ml-8 lg:hidden"
-        >
-          <p className="text-base text-white">{t('Browse')}</p>
-          <FaChevronDown
-            className={`text-white transition mr-4 ${
-              showMobileMenu ? "rotate-180" : "rotate-0"
-            }`}
-          />
+        <div className="relative ml-4 md:ml-8 lg:hidden">
+          <button
+            type="button"
+            onClick={toggleMobileMenu}
+            aria-expanded={showMobileMenu}
+            aria-controls="mobile-catalog-menu"
+            className="flex flex-row items-center gap-2 cursor-pointer"
+          >
+            <p className="text-base text-white">{t('Browse')}</p>
+            <FaChevronDown
+              className={`mr-4 text-white transition ${
+                showMobileMenu ? "rotate-180" : "rotate-0"
+              }`}
+            />
+          </button>
           <MobileMenu visible={showMobileMenu} />
-        </button>
+        </div>
         <div className="flex flex-row items-center ml-auto gap-7">
           <SearchItem />
           <div className="relative flex flex-row items-center">

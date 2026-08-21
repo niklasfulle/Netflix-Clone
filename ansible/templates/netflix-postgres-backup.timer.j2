@@ -1,0 +1,12 @@
+[Unit]
+Description=Schedule verified Netflix Clone PostgreSQL backups
+
+[Timer]
+OnCalendar={{ postgres_backup_schedule }} {{ postgres_backup_timezone }}
+Persistent=true
+RandomizedDelaySec={{ postgres_backup_randomized_delay_seconds }}s
+AccuracySec=1min
+Unit=netflix-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

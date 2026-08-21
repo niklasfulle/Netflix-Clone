@@ -261,7 +261,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="sm:col-span-2">
                       <FormLabel className="flex items-center gap-2 text-zinc-200">
                         <KeyRound className="h-4 w-4 text-zinc-500" aria-hidden="true" />
                         {t("Current password")}

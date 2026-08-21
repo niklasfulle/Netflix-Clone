@@ -44,6 +44,20 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - The Changelog is now reachable without signing in and no longer inherits the protected application layout
 - A sticky, keyboard-accessible version index now links directly to every release in the Changelog
 - A floating, keyboard-accessible Back to top shortcut now returns readers to the Changelog heading without client-side JavaScript
+- Administrator operations now have a typed, privacy-safe, append-only PostgreSQL audit foundation with bounded retention and isolated integration coverage
+- Existing content, actor, user-security, and backup mutations now record correlated success, denial, and controlled-failure audit outcomes without changing their public results
+- Administrators can now search, filter, paginate, inspect, and safely export the retained audit history from a responsive bilingual management page
+- A read-only media integrity engine now validates published videos and thumbnails, probes streams and codecs with bounded ffprobe workers, detects duplicates and orphaned videos, and persists privacy-safe scan findings with bounded retention
+- The production image now includes a pinned static ffprobe runtime with roughly 55 MB of uncompressed overhead instead of the substantially larger Debian FFmpeg dependency tree
+- Administrators can now review media-health summaries, stale or unavailable scanner states, filtered findings, remediation guidance, and direct content-editing links from a responsive bilingual dashboard
+- Full-catalog and single-content scans can be started from the administration area, are correlated with audit outcomes, and only report success after findings have been persisted
+- A PostgreSQL-backed active-scan lock rejects duplicate concurrent catalog scans, while bounded runtime file access keeps media inspection out of the production bundle trace
+- Every deployment PostgreSQL dump is now restored into a disposable network-isolated PostgreSQL instance before migrations can run, with explicit archive and version compatibility checks
+- Backup verification publishes only bounded checksum, version, timing, schema, and representative-record evidence while keeping dumps, database URLs, credentials, and raw diagnostics outside the application container
+- Administrators can inspect the last recovery verification and request a serialized recheck of the latest host dump from the backup page without browser access to Docker or PostgreSQL
+- Every deployment attempt now publishes a bounded Ed25519-signed Deployment Record covering image identity, migrations, health checks, rollback, and its verified backup reference
+- The admin System Overview distinguishes current, stale, unavailable, and tampered local or explicitly approved peer records without receiving Docker, SSH, or signing-key access
+- Failed and partially completed deployments remain visible after Ansible exits, while successful rollbacks replace them with signed recovery evidence
 
 ## 1.10.1
 

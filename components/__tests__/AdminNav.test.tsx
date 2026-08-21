@@ -37,6 +37,8 @@ it("marks the active admin area and exposes all destinations", () => {
   expect(screen.getAllByRole("link", { name: "System" })[0]).toHaveAttribute("href", "/admin/system");
   expect(screen.getAllByRole("link", { name: "Backups" })[0]).toHaveAttribute("href", "/admin/backups");
   expect(screen.getAllByRole("link", { name: "System Logs" }).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("link", { name: "Audit Log" })[0]).toHaveAttribute("href", "/admin/audit");
+  expect(screen.getAllByRole("link", { name: "Media Health" })[0]).toHaveAttribute("href", "/admin/media-health");
   expect(screen.getAllByRole("group", { name: "Language" })).toHaveLength(2);
 });
 
@@ -78,6 +80,7 @@ it("switches the complete admin navigation between German and English", async ()
     expect(screen.getAllByRole("link", { name: "Übersicht" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Neuer Inhalt" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Benutzer" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Medienzustand" }).length).toBeGreaterThan(0);
   });
 
   fireEvent.click(screen.getAllByRole("button", { name: "EN" })[0]);

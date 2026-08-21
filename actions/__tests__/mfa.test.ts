@@ -11,6 +11,11 @@ const mockLogBackendAction = jest.fn();
 const mockCurrentSecurityContext = jest.fn();
 const mockRevokeOtherSessions = jest.fn();
 const mockRecordActivity = jest.fn();
+const mockTelemetryComplete = jest.fn();
+const mockTelemetryStart = jest.fn((_input?: unknown) => ({
+  correlationId: 'mfa-correlation',
+  complete: mockTelemetryComplete,
+}));
 
 jest.mock('@/lib/auth', () => ({ currentUser: (...args: unknown[]) => mockCurrentUser(...args) }));
 jest.mock('@/data/user', () => ({ getUserById: (...args: unknown[]) => mockGetUserById(...args) }));
@@ -44,6 +49,9 @@ jest.mock('@/lib/session-security', () => ({
     recordActivity: (...args: unknown[]) => mockRecordActivity(...args),
   },
 }));
+jest.mock('@/lib/authentication/production-telemetry', () => ({
+  authenticationTelemetry: { start: (input: unknown) => mockTelemetryStart(input) },
+}));
 
 import {
   beginTotpEnrollment,
@@ -54,6 +62,10 @@ import {
 describe('MFA account actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTelemetryStart.mockReturnValue({
+      correlationId: 'mfa-correlation',
+      complete: mockTelemetryComplete,
+    });
     mockCurrentUser.mockResolvedValue({
       id: 'user-1',
       isOAuth: false,
@@ -84,6 +96,13 @@ describe('MFA account actions', () => {
       code: 'reauthentication_required',
     });
     expect(mockSavePending).not.toHaveBeenCalled();
+    expect(mockTelemetryComplete).toHaveBeenCalledWith({
+      stage: 'credentials',
+      outcome: 'rejected',
+      reasonCode: 'reauthentication_required',
+      retryable: false,
+      errorCategory: 'credentials',
+    });
   });
 
   it('starts enrollment only after verifying the current password', async () => {
@@ -97,6 +116,12 @@ describe('MFA account actions', () => {
     });
     expect(mockCompare).toHaveBeenCalledWith('password123', 'stored-hash');
     expect(mockSavePending).toHaveBeenCalledWith('user-1', 'encrypted-secret');
+    expect(mockTelemetryComplete).toHaveBeenCalledWith({
+      stage: 'mfa',
+      outcome: 'success',
+      reasonCode: 'mfa_enrollment_started',
+      retryable: false,
+    });
   });
 
   it('activates TOTP and returns recovery codes exactly once after a valid setup code', async () => {
@@ -124,6 +149,12 @@ describe('MFA account actions', () => {
       'mfa_enabled',
       { userAgent: 'Browser/1.0' },
     );
+    expect(mockTelemetryComplete).toHaveBeenCalledWith({
+      stage: 'mfa',
+      outcome: 'success',
+      reasonCode: 'mfa_enabled',
+      retryable: false,
+    });
   });
 
   it('rejects enrollment confirmation after the recent-reauthentication window expires', async () => {

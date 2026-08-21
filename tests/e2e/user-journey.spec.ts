@@ -4,23 +4,36 @@ import {
   accounts,
   createBrowserFailureMonitor,
   login,
+  selectFirstProfile,
 } from './support';
 
 async function navigateFromCatalogMenu(
   page: import('@playwright/test').Page,
   name: RegExp,
 ) {
-  const link = page.getByRole('link', { name, exact: true });
-  if (!(await link.isVisible())) {
+  const links = page.getByRole('link', { name, exact: true });
+  const findVisibleLink = async () => {
+    for (let index = 0; index < await links.count(); index += 1) {
+      const link = links.nth(index);
+      if (await link.isVisible()) return link;
+    }
+    return null;
+  };
+
+  let visibleLink = await findVisibleLink();
+  if (!visibleLink) {
     await page.getByRole('button', { name: /Browse|Durchsuchen/i }).click();
+    visibleLink = await findVisibleLink();
   }
-  await link.click();
+  await expect(visibleLink, `No visible catalog link matched ${name}`).not.toBeNull();
+  await visibleLink!.click();
 }
 
 test('normal user can navigate the primary catalog journey and sign out', async ({ page }) => {
   const browserFailures = createBrowserFailureMonitor(page);
 
   await login(page, accounts.user);
+  await selectFirstProfile(page);
   await page.goto('/');
 
   await expect(page).toHaveURL(/\/$/);
@@ -36,10 +49,9 @@ test('normal user can navigate the primary catalog journey and sign out', async 
   await expect(page).toHaveURL(/\/$/);
 
   await page.getByRole('button', { name: /Account|Konto/i }).click();
+  browserFailures.assertNone();
   await page.getByRole('button', { name: /Sign out of Netflix|Von Netflix abmelden/i }).click();
   await expect(page).toHaveURL(/\/auth\/login/);
-
-  browserFailures.assertNone();
 });
 
 test('normal user can sign out from the profile selection screen', async ({ page }) => {

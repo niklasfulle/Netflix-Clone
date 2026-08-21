@@ -3,6 +3,7 @@ import { expect, test, type APIRequestContext, type Browser, type Page } from '@
 import {
   authStatePaths,
   createBrowserFailureMonitor,
+  selectFirstProfile,
 } from './support';
 
 test.use({ storageState: authStatePaths.user });
@@ -159,11 +160,22 @@ async function findPlayableCatalogItem(
 }
 
 async function openMobileMenuWhenNeeded(page: Page, linkName: RegExp) {
-  const link = page.getByRole('link', { name: linkName, exact: true });
-  if (!(await link.isVisible())) {
+  const links = page.getByRole('link', { name: linkName, exact: true });
+  const findVisibleLink = async () => {
+    for (let index = 0; index < await links.count(); index += 1) {
+      const link = links.nth(index);
+      if (await link.isVisible()) return link;
+    }
+    return null;
+  };
+
+  let visibleLink = await findVisibleLink();
+  if (!visibleLink) {
     await page.getByRole('button', { name: /Browse|Durchsuchen/i }).click();
+    visibleLink = await findVisibleLink();
   }
-  return link;
+  await expect(visibleLink, `No visible catalog link matched ${linkName}`).not.toBeNull();
+  return visibleLink!;
 }
 
 test('user can search, inspect, favorite, play, and find content in the watchlist', async ({
@@ -191,6 +203,7 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
     expect(rangeResponse.headers()['content-range']).toMatch(/^bytes 0-15\/\d+$/);
     expect((await rangeResponse.body()).byteLength).toBe(16);
 
+    await selectFirstProfile(page);
     await page.goto('/');
     const search = page.getByRole('searchbox', { name: /Search|Suchen/i });
     await search.fill(movie.title);

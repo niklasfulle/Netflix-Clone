@@ -8,6 +8,7 @@ jest.mock('@/lib/media-library', () => ({
 jest.mock('@/lib/db', () => ({
   db: {
     movie: { findUnique: jest.fn() },
+    adminAuditEvent: { create: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
@@ -38,7 +39,9 @@ describe('updateMovie', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (currentUser as jest.Mock).mockResolvedValue({ id: 'user-1', email: 'admin@example.com' });
+    (currentUser as jest.Mock).mockResolvedValue({
+      id: 'user-1', email: 'admin@example.com', role: UserRole.ADMIN,
+    });
     (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
     (isGenreAllowed as jest.Mock).mockReturnValue(true);
     (db.movie.findUnique as jest.Mock).mockResolvedValue({
@@ -95,6 +98,16 @@ describe('updateMovie', () => {
       ],
       skipDuplicates: true,
     });
+    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'content.update',
+        actorUserId: 'user-1',
+        targetId: 'movie-1',
+        outcome: 'SUCCEEDED',
+        correlationId: expect.any(String),
+        metadata: { changedFields: ['title', 'description', 'type', 'genre', 'duration', 'videoUrl', 'thumbnailUrl', 'actors'] },
+      }),
+    });
   });
 
   it('commits a staged media move only after the database transaction succeeds', async () => {
@@ -120,5 +133,12 @@ describe('updateMovie', () => {
     });
     expect(staged.rollback).toHaveBeenCalledTimes(1);
     expect(staged.commit).not.toHaveBeenCalled();
+    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'content.update',
+        targetId: 'movie-1',
+        outcome: 'FAILED',
+      }),
+    });
   });
 });

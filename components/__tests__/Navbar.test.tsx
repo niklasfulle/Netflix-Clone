@@ -309,7 +309,7 @@ describe('Navbar Component', () => {
     test('should hide browse button on desktop', () => {
       render(<Navbar />);
       const browseButton = screen.getByText('Browse').closest('button');
-      expect(browseButton?.className).toMatch(/lg:hidden/);
+      expect(browseButton?.parentElement?.className).toMatch(/lg:hidden/);
     });
   });
 

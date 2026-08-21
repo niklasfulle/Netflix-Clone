@@ -20,6 +20,11 @@ import {
   generateTotpSecret,
   hashRecoveryCode,
 } from '@/lib/authentication/mfa-crypto';
+import { authenticationTelemetry } from '@/lib/authentication/production-telemetry';
+import type {
+  AuthenticationTelemetryAttempt,
+  AuthenticationTelemetryRecord,
+} from '@/lib/authentication/telemetry';
 import { logBackendAction } from '@/lib/logger';
 import { sendSecurityNotificationEmail } from '@/lib/mail';
 import { currentSecurityContext, sessionSecurity } from '@/lib/session-security';
@@ -45,6 +50,64 @@ type ReauthenticatedUser = {
   sessionId?: string;
 };
 
+type MfaSuccessCode = 'mfa_enrollment_started' | 'mfa_enabled' | 'mfa_disabled';
+
+function completeMfaAttempt<Result extends MfaActionFailure | { status: 'success'; code: MfaSuccessCode }>(
+  attempt: AuthenticationTelemetryAttempt,
+  stage: AuthenticationTelemetryRecord['stage'],
+  result: Result,
+): Result {
+  if (result.status === 'success') {
+    attempt.complete({
+      stage,
+      outcome: 'success',
+      reasonCode: result.code,
+      retryable: false,
+    });
+    return result;
+  }
+  attempt.complete({
+    stage,
+    outcome: 'rejected',
+    reasonCode: result.code,
+    retryable: false,
+    errorCategory: result.code === 'unauthorized'
+      || result.code === 'reauthentication_required'
+      || result.code === 'invalid_credentials'
+      ? 'credentials'
+      : 'validation',
+  });
+  return result;
+}
+
+function failMfaAttempt(
+  attempt: AuthenticationTelemetryAttempt,
+  stage: AuthenticationTelemetryRecord['stage'],
+  errorCategory: NonNullable<AuthenticationTelemetryRecord['errorCategory']>,
+) {
+  attempt.complete({
+    stage,
+    outcome: 'failed',
+    reasonCode: 'unexpected_failure',
+    retryable: true,
+    errorCategory,
+  });
+}
+
+async function runMfaStep<Result>(
+  attempt: AuthenticationTelemetryAttempt,
+  stage: AuthenticationTelemetryRecord['stage'],
+  errorCategory: NonNullable<AuthenticationTelemetryRecord['errorCategory']>,
+  operation: () => Promise<Result>,
+): Promise<Result> {
+  try {
+    return await operation();
+  } catch (error) {
+    failMfaAttempt(attempt, stage, errorCategory);
+    throw error;
+  }
+}
+
 async function authenticatedAccount() {
   const sessionUser = await currentUser();
   if (!sessionUser?.id) return null;
@@ -69,11 +132,21 @@ async function reauthenticate(password: string): Promise<ReauthenticatedUser | M
   };
 }
 
-async function sendSecurityNotice(email: string, event: string, userId: string) {
+async function sendSecurityNotice(email: string, event: string) {
+  const attempt = authenticationTelemetry.start({
+    flow: 'mail_delivery',
+    component: 'authentication.action',
+  });
   try {
     await sendSecurityNotificationEmail(email, event);
+    attempt.complete({
+      stage: 'mail', outcome: 'success', reasonCode: 'mail_delivered', retryable: false,
+    });
   } catch {
-    logBackendAction('mfa_security_notice_failed', { userId }, 'error');
+    attempt.complete({
+      stage: 'mail', outcome: 'failed', reasonCode: 'delivery_failed',
+      retryable: true, errorCategory: 'mail',
+    });
   }
 }
 
@@ -103,23 +176,38 @@ export async function beginTotpEnrollment({
   code: 'mfa_enrollment_started';
   setup: { secret: string; uri: string };
 }> {
-  const account = await reauthenticate(password);
-  if ('status' in account) return account;
-  if (account.isTwoFactorEnabled) {
-    return { status: 'rejected', code: 'mfa_already_enabled' };
-  }
+  const attempt = authenticationTelemetry.start({
+    flow: 'mfa_enrollment',
+    component: 'authentication.action',
+  });
+  let stage: AuthenticationTelemetryRecord['stage'] = 'credentials';
+  try {
+    const account = await reauthenticate(password);
+    if ('status' in account) return completeMfaAttempt(attempt, stage, account);
+    if (account.isTwoFactorEnabled) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'mfa_already_enabled' },
+      );
+    }
 
-  const secret = generateTotpSecret();
-  await savePendingMfaAuthenticator(account.id, encryptMfaSecret(secret));
-  logBackendAction('mfa_enrollment_started', { userId: account.id }, 'info');
-  return {
-    status: 'success',
-    code: 'mfa_enrollment_started',
-    setup: {
-      secret,
-      uri: createTotpEnrollmentUri({ secret, accountName: account.email }),
-    },
-  };
+    stage = 'mfa';
+    const secret = generateTotpSecret();
+    await savePendingMfaAuthenticator(account.id, encryptMfaSecret(secret));
+    logBackendAction('mfa_enrollment_started', {}, 'info');
+    return completeMfaAttempt(attempt, stage, {
+      status: 'success',
+      code: 'mfa_enrollment_started',
+      setup: {
+        secret,
+        uri: createTotpEnrollmentUri({ secret, accountName: account.email }),
+      },
+    });
+  } catch (error) {
+    failMfaAttempt(attempt, stage, stage === 'credentials' ? 'credentials' : 'database');
+    throw error;
+  }
 }
 
 export async function confirmTotpEnrollment({
@@ -131,38 +219,76 @@ export async function confirmTotpEnrollment({
   code: 'mfa_enabled';
   recoveryCodes: string[];
 }> {
-  const account = await authenticatedAccount();
-  if (!account) return { status: 'rejected', code: 'unauthorized' };
-  const authenticator = await getMfaAuthenticator(account.id);
-  if (!authenticator || authenticator.verifiedAt) {
-    return { status: 'rejected', code: 'mfa_setup_missing' };
+  const attempt = authenticationTelemetry.start({
+    flow: 'mfa_enrollment',
+    component: 'authentication.action',
+  });
+  let stage: AuthenticationTelemetryRecord['stage'] = 'account';
+  try {
+    const account = await authenticatedAccount();
+    if (!account) {
+      return completeMfaAttempt(attempt, stage, { status: 'rejected', code: 'unauthorized' });
+    }
+    stage = 'mfa';
+    const authenticator = await getMfaAuthenticator(account.id);
+    if (!authenticator || authenticator.verifiedAt) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'mfa_setup_missing' },
+      );
+    }
+
+    const now = new Date();
+    if (now.getTime() - authenticator.updatedAt.getTime() > 10 * 60_000) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'mfa_setup_expired' },
+      );
+    }
+    const secret = decryptMfaSecret(authenticator.secretCiphertext);
+    const counter = findMatchingTotpCounter(secret, code, now);
+    if (counter === null) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'invalid_mfa_code' },
+      );
+    }
+
+    const recoveryCodes = generateRecoveryCodes();
+    const activated = await activateMfaAuthenticator(
+      account.id,
+      counter,
+      recoveryCodes.map((recoveryCode) => hashRecoveryCode(account.id, recoveryCode)),
+      now,
+    );
+    if (!activated) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'mfa_setup_missing' },
+      );
+    }
+
+    await runMfaStep(attempt, 'session', 'database', () => (
+      secureMfaChange(account, 'mfa_enabled')
+    ));
+    logBackendAction('mfa_enabled', {}, 'info');
+    await sendSecurityNotice(
+      account.email as string,
+      'Authenticator-based multi-factor authentication was enabled.',
+    );
+    return completeMfaAttempt(attempt, 'mfa', {
+      status: 'success',
+      code: 'mfa_enabled',
+      recoveryCodes,
+    });
+  } catch (error) {
+    failMfaAttempt(attempt, stage, 'database');
+    throw error;
   }
-
-  const now = new Date();
-  if (now.getTime() - authenticator.updatedAt.getTime() > 10 * 60_000) {
-    return { status: 'rejected', code: 'mfa_setup_expired' };
-  }
-  const secret = decryptMfaSecret(authenticator.secretCiphertext);
-  const counter = findMatchingTotpCounter(secret, code, now);
-  if (counter === null) return { status: 'rejected', code: 'invalid_mfa_code' };
-
-  const recoveryCodes = generateRecoveryCodes();
-  const activated = await activateMfaAuthenticator(
-    account.id,
-    counter,
-    recoveryCodes.map((recoveryCode) => hashRecoveryCode(account.id, recoveryCode)),
-    now,
-  );
-  if (!activated) return { status: 'rejected', code: 'mfa_setup_missing' };
-
-  await secureMfaChange(account, 'mfa_enabled');
-  logBackendAction('mfa_enabled', { userId: account.id }, 'info');
-  await sendSecurityNotice(
-    account.email as string,
-    'Authenticator-based multi-factor authentication was enabled.',
-    account.id,
-  );
-  return { status: 'success', code: 'mfa_enabled', recoveryCodes };
 }
 
 export async function disableMfa({
@@ -172,22 +298,42 @@ export async function disableMfa({
   password: string;
   code: string;
 }): Promise<MfaActionFailure | { status: 'success'; code: 'mfa_disabled' }> {
-  const account = await reauthenticate(password);
-  if ('status' in account) return account;
-  if (!account.isTwoFactorEnabled) {
-    return { status: 'rejected', code: 'mfa_not_enabled' };
-  }
-  if (!code || !(await consumeMfaChallenge(account.id, code, new Date()))) {
-    return { status: 'rejected', code: 'invalid_mfa_code' };
-  }
+  const attempt = authenticationTelemetry.start({
+    flow: 'mfa_management',
+    component: 'authentication.action',
+  });
+  let stage: AuthenticationTelemetryRecord['stage'] = 'credentials';
+  try {
+    const account = await reauthenticate(password);
+    if ('status' in account) return completeMfaAttempt(attempt, stage, account);
+    if (!account.isTwoFactorEnabled) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'mfa_not_enabled' },
+      );
+    }
+    stage = 'mfa';
+    if (!code || !(await consumeMfaChallenge(account.id, code, new Date()))) {
+      return completeMfaAttempt(
+        attempt,
+        stage,
+        { status: 'rejected', code: 'invalid_mfa_code' },
+      );
+    }
 
-  await removeMfa(account.id);
-  await secureMfaChange(account, 'mfa_disabled');
-  logBackendAction('mfa_disabled', { userId: account.id }, 'info');
-  await sendSecurityNotice(
-    account.email,
-    'Multi-factor authentication was disabled.',
-    account.id,
-  );
-  return { status: 'success', code: 'mfa_disabled' };
+    await removeMfa(account.id);
+    await runMfaStep(attempt, 'session', 'database', () => (
+      secureMfaChange(account, 'mfa_disabled')
+    ));
+    logBackendAction('mfa_disabled', {}, 'info');
+    await sendSecurityNotice(
+      account.email,
+      'Multi-factor authentication was disabled.',
+    );
+    return completeMfaAttempt(attempt, 'mfa', { status: 'success', code: 'mfa_disabled' });
+  } catch (error) {
+    failMfaAttempt(attempt, stage, stage === 'credentials' ? 'credentials' : 'database');
+    throw error;
+  }
 }

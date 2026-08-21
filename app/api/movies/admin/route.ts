@@ -1,12 +1,18 @@
 import type { ContentStatus, Prisma } from "@prisma/client";
 
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 const allowedSortKeys = new Set(["title", "type", "genre", "createdAt", "updatedAt", "status"]);
+const AUDIT_ACTION_BY_STATUS = {
+  DRAFT: 'content.update',
+  PUBLISHED: 'content.publish',
+  ARCHIVED: 'content.archive',
+} as const satisfies Record<ContentStatus, 'content.update' | 'content.publish' | 'content.archive'>;
 
 function boundedNumber(value: string | null, fallback: number, min: number, max: number) {
   const parsed = Number.parseInt(value || "", 10);
@@ -75,23 +81,62 @@ export async function GET(request: Request = new Request("http://localhost/api/m
 }
 
 export async function PATCH(request: Request) {
+  const authorizationAudit = adminMutationAudit.begin('content.update');
   if (!(await isCurrentUserAdmin())) {
+    await authorizationAudit.denied();
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { ids, status } = await request.json();
   const allowedStatuses: ContentStatus[] = ["DRAFT", "PUBLISHED", "ARCHIVED"];
   if (!Array.isArray(ids) || ids.length === 0 || !allowedStatuses.includes(status)) {
+    await authorizationAudit.failed();
     return Response.json({ error: "Ungültige Auswahl oder Status." }, { status: 400 });
   }
 
-  const result = await db.movie.updateMany({
-    where: { id: { in: ids } },
-    data: {
-      status,
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
-    },
-  });
-  logBackendAction("api_movies_admin_bulk_status", { count: result.count, status }, "info");
-  return Response.json({ success: true, count: result.count });
+  const action = AUDIT_ACTION_BY_STATUS[status as ContentStatus];
+  let audits: Array<{
+    previousStatus: ContentStatus;
+    operation: ReturnType<typeof adminMutationAudit.begin>;
+    targetId: string;
+  }> = [];
+
+  try {
+    const targets = await db.movie.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, status: true },
+    });
+    audits = targets.map((target) => ({
+      previousStatus: target.status,
+      operation: adminMutationAudit.begin(action),
+      targetId: target.id,
+    }));
+
+    const result = await db.movie.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        status,
+        publishedAt: status === "PUBLISHED" ? new Date() : null,
+      },
+    });
+    await Promise.all(audits.map(({ operation, previousStatus, targetId }) => (
+      operation.succeeded({
+        target: { type: 'content', id: targetId },
+        metadata: action === 'content.update'
+          ? { changedFields: ['status'], previousStatus, nextStatus: status }
+          : { previousStatus },
+      })
+    )));
+    logBackendAction("api_movies_admin_bulk_status", { count: result.count, status }, "info");
+    return Response.json({ success: true, count: result.count });
+  } catch (error) {
+    if (audits.length === 0) {
+      await authorizationAudit.failed();
+    } else {
+      await Promise.all(audits.map(({ operation, targetId }) => (
+        operation.failed({ target: { type: 'content', id: targetId } })
+      )));
+    }
+    throw error;
+  }
 }

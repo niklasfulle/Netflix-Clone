@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  assertSafeE2EDataTarget,
   authStatePaths,
   createBrowserFailureMonitor,
 } from './support';
@@ -33,6 +34,97 @@ test.describe('normal user permissions', () => {
 
 test.describe('admin management', () => {
   test.use({ storageState: authStatePaths.admin });
+
+  test('admin can inspect deployment evidence on desktop and mobile', async ({ page }) => {
+    const browserFailures = createBrowserFailureMonitor(page);
+
+    await page.goto('/admin/system');
+    await expect(page.getByRole('heading', { name: /System/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Deployment Status' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open backup evidence' }))
+      .toHaveAttribute('href', '/admin/backups');
+    await expect(page.getByRole('link', { name: 'Open container logs' }))
+      .toHaveAttribute('href', '/admin/logs');
+
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
+    browserFailures.assertNone();
+  });
+
+  test('admin can inspect media-health controls on desktop and mobile', async ({ page }) => {
+    const browserFailures = createBrowserFailureMonitor(page);
+
+    await page.goto('/admin/media-health');
+    await expect(page.getByRole('heading', { name: /Media Health|Medienzustand/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Scan full catalog|Gesamten Katalog prüfen/i })).toBeVisible();
+    await expect(page.getByText(/Scanner (available|unavailable)|Scanner (verfügbar|nicht verfügbar)/i)).toBeVisible();
+
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
+
+    const filteredResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/admin/media-health'
+        && url.searchParams.get('severity') === 'CRITICAL'
+        && response.ok();
+    });
+    await page.getByRole('combobox', { name: /Filter by severity|Nach Schweregrad filtern/i })
+      .selectOption('CRITICAL');
+    await filteredResponse;
+    await page.getByRole('button', { name: /Reset filters|Filter zurücksetzen/i }).click();
+
+    await expect(page.getByRole('textbox', { name: /Content ID|Inhalts-ID/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Start content scan|Inhalt prüfen/i })).toBeDisabled();
+
+    browserFailures.assertNone();
+  });
+
+  test('admin can filter and export correlated audit events', async ({ page }) => {
+    const browserFailures = createBrowserFailureMonitor(page);
+    await assertSafeE2EDataTarget(page.request);
+    const actorName = `E2E Audit Actor ${Date.now()}`;
+    let actorId: string | undefined;
+
+    try {
+      const created = await page.request.post('/api/actors', { data: { name: actorName } });
+      expect(created.ok()).toBe(true);
+      actorId = (await created.json() as { id: string }).id;
+
+      const deleted = await page.request.delete(`/api/actors?id=${encodeURIComponent(actorId)}`);
+      expect(deleted.ok()).toBe(true);
+
+      await page.goto('/admin/audit');
+      await expect(page.getByRole('heading', { name: /Audit Log|Audit-Protokoll/i })).toBeVisible();
+      await page.getByRole('combobox', { name: /Filter by action|Nach Aktion filtern/i }).selectOption('actor.delete');
+      await page.getByRole('combobox', { name: /Filter by target type|Nach Zieltyp filtern/i }).selectOption('actor');
+      const filteredResponse = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.pathname === '/api/admin/audit'
+          && url.searchParams.get('action') === 'actor.delete'
+          && url.searchParams.get('targetType') === 'actor'
+          && url.searchParams.get('outcome') === 'SUCCEEDED'
+          && response.ok();
+      });
+      await page.getByRole('combobox', { name: /Filter by outcome|Nach Ergebnis filtern/i }).selectOption('SUCCEEDED');
+      await filteredResponse;
+
+      await expect(page.getByRole('link', { name: actorId, exact: true })).toBeVisible();
+      const exportLink = page.getByRole('link', { name: /Export CSV|CSV exportieren/i });
+      await expect(exportLink).toHaveAttribute('href', /action=actor.delete/);
+      await expect(exportLink).toHaveAttribute('href', /targetType=actor/);
+      await expect(exportLink).toHaveAttribute('href', /outcome=SUCCEEDED/);
+      actorId = undefined;
+      browserFailures.assertNone();
+    } finally {
+      if (actorId) {
+        await page.request.delete(`/api/actors?id=${encodeURIComponent(actorId)}`);
+      }
+    }
+  });
 
   test('admin can create and remove an actor', async ({ page }) => {
     const browserFailures = createBrowserFailureMonitor(page);

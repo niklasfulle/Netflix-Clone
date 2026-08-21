@@ -19,6 +19,7 @@ import { currentSecurityContext, sessionSecurity } from '@/lib/session-security'
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 import { privacySafeAuthenticationContext } from './privacy';
+import { authenticationTelemetry } from './production-telemetry';
 import { createAuthenticationService } from './service';
 
 const authenticationAuditSecret = process.env.AUTH_SECRET
@@ -102,6 +103,7 @@ export const authenticationService = createAuthenticationService({
     },
     isRedirectError,
   },
+  telemetry: authenticationTelemetry,
   confirmations: {
     replaceForUser: async (userId) => {
       const existingConfirmation = await getTwoFactorConfirmationByUserId(userId);

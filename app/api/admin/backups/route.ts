@@ -10,6 +10,7 @@ import {
   RESTORE_CONFIRMATION,
 } from "@/lib/admin-backup";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { recordBackupStatus } from "@/lib/backup-status";
 import { logBackendAction } from "@/lib/logger";
 
@@ -28,7 +29,9 @@ function errorResponse(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const audit = adminMutationAudit.begin('backup.create');
   if (!(await isCurrentUserAdmin())) {
+    await audit.denied();
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -36,6 +39,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const passphrase = typeof body?.passphrase === "string" ? body.passphrase : "";
     if (passphrase.length < MIN_BACKUP_PASSPHRASE_LENGTH || passphrase.length > 256) {
+      await audit.failed();
       return Response.json(
         { error: `Das Backup-Passwort muss zwischen ${MIN_BACKUP_PASSPHRASE_LENGTH} und 256 Zeichen lang sein.` },
         { status: 400 },
@@ -65,6 +69,10 @@ export async function POST(request: Request) {
       { records, bytes: archive.byteLength, createdAt: backup.createdAt },
       "info",
     );
+    await audit.succeeded({
+      target: { type: 'backup', id: backup.createdAt },
+      metadata: { source: 'manual', scheduled: false },
+    });
     return new Response(responseBody, {
       status: 200,
       headers: {
@@ -76,12 +84,15 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    await audit.failed();
     return errorResponse(error);
   }
 }
 
 export async function PUT(request: Request) {
+  const audit = adminMutationAudit.begin('backup.restore');
   if (!(await isCurrentUserAdmin())) {
+    await audit.denied();
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -92,15 +103,19 @@ export async function PUT(request: Request) {
     const confirmation = formData.get("confirmation");
 
     if (!(file instanceof File)) {
+      await audit.failed();
       return Response.json({ error: "Bitte wähle eine Backup-Datei aus." }, { status: 400 });
     }
     if (file.size === 0 || file.size > MAX_BACKUP_FILE_SIZE) {
+      await audit.failed();
       return Response.json({ error: "Die Backup-Datei ist leer oder überschreitet 100 MB." }, { status: 400 });
     }
     if (typeof passphrase !== "string") {
+      await audit.failed();
       return Response.json({ error: "Das Backup-Passwort fehlt." }, { status: 400 });
     }
     if (confirmation !== RESTORE_CONFIRMATION) {
+      await audit.failed();
       return Response.json(
         { error: `Gib zur Bestätigung ${RESTORE_CONFIRMATION} ein.` },
         { status: 400 },
@@ -116,6 +131,10 @@ export async function PUT(request: Request) {
       { records, backupCreatedAt: backup.createdAt },
       "warn",
     );
+    await audit.succeeded({
+      target: { type: 'backup', id: backup.createdAt },
+      metadata: { verificationStatus: 'accepted' },
+    });
     return Response.json({
       success: true,
       records,
@@ -123,6 +142,7 @@ export async function PUT(request: Request) {
       message: "Das Datenbank-Backup wurde vollständig wiederhergestellt.",
     });
   } catch (error) {
+    await audit.failed();
     return errorResponse(error);
   }
 }

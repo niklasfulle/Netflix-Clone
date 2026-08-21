@@ -6,6 +6,7 @@ services:
       - /root/netflix-secrets/app.env
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
+      DEPLOYMENT_STATUS_APPROVED_PEERS: {{ ('production' if deployment_environment == 'staging' else 'staging') | quote }}
       AUTH_URL: {{ canonical_url | quote }}
       NEXTAUTH_URL: {{ canonical_url | quote }}
       AUTH_PUBLIC_URL: {{ canonical_url | quote }}
@@ -13,6 +14,7 @@ services:
       AUTH_TRUSTED_PROXY_HOPS: '1'
       AUTH_WEBAUTHN_RP_ID: {{ https_hostname | quote }}
       AUTH_WEBAUTHN_ORIGIN: {{ canonical_url | quote }}
+      PUBLIC_CA_OVERLAP_DAYS: {{ public_ca_overlap_days | quote }}
     labels:
       com.netflix-clone.environment: {{ deployment_environment | quote }}
     ports:
@@ -33,6 +35,8 @@ services:
       - /movies:/movies
       - /series:/series
       - /var/lib/netflix-monitor:/monitor:ro
+      - /var/lib/netflix-deployment-status:/deployment-status:ro
+      - /var/lib/netflix-public-certificates:/public-certificates:ro
       - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
     logging:

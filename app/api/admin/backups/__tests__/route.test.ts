@@ -1,7 +1,9 @@
 /** @jest-environment node */
 
 jest.mock("@/lib/admin-auth", () => ({ isCurrentUserAdmin: jest.fn() }));
+jest.mock("@/lib/auth", () => ({ currentUser: jest.fn() }));
 jest.mock("@/lib/logger", () => ({ logBackendAction: jest.fn() }));
+jest.mock("@/lib/db", () => ({ db: { adminAuditEvent: { create: jest.fn() } } }));
 jest.mock("@/lib/backup-status", () => ({ recordBackupStatus: jest.fn() }));
 jest.mock("@/lib/admin-backup", () => ({
   BackupValidationError: class BackupValidationError extends Error {},
@@ -23,6 +25,8 @@ import {
   restoreDatabaseBackup,
 } from "@/lib/admin-backup";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { currentUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { recordBackupStatus } from "@/lib/backup-status";
 import type { DatabaseBackup } from "@/lib/admin-backup";
 import { POST, PUT } from "../route";
@@ -47,6 +51,7 @@ const storedBackup = {
 describe("admin backup API", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
   });
 
   it("rejects non-admin requests", async () => {
@@ -74,6 +79,15 @@ describe("admin backup API", () => {
       createdAt: storedBackup.createdAt,
       sizeBytes: 3,
       records: 42,
+    });
+    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'backup.create',
+        targetId: storedBackup.createdAt,
+        outcome: 'SUCCEEDED',
+        correlationId: expect.any(String),
+        metadata: { source: 'manual', scheduled: false },
+      }),
     });
   });
 
@@ -116,5 +130,17 @@ describe("admin backup API", () => {
     expect(await response.json()).toMatchObject({ success: true, records: 42 });
     expect(mockedDecrypt).toHaveBeenCalledWith(expect.any(Uint8Array), "secure-backup-password");
     expect(mockedRestore).toHaveBeenCalledWith(storedBackup);
+    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'backup.restore',
+        targetId: storedBackup.createdAt,
+        outcome: 'SUCCEEDED',
+        correlationId: expect.any(String),
+        metadata: { verificationStatus: 'accepted' },
+      }),
+    });
+    expect(JSON.stringify((db as any).adminAuditEvent.create.mock.calls)).not.toContain(
+      'secure-backup-password',
+    );
   });
 });

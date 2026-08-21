@@ -1,7 +1,11 @@
+FROM mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585 AS ffprobe
+
 FROM node:22-slim AS base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ffprobe /ffprobe /usr/local/bin/ffprobe
 
 WORKDIR /netflix-clone
 

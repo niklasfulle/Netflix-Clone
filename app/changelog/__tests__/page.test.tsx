@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 
 import ChangelogPage from '../page';
 import { getChangelog } from '@/lib/changelog';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 jest.mock('@/components/Navbar', () => function MockNavbar() {
   return <nav aria-label="Primary">Navbar</nav>;
@@ -65,7 +66,7 @@ describe('ChangelogPage', () => {
   it('renders older versions as a semantic release timeline', () => {
     render(<ChangelogPage />);
 
-    const history = screen.getByRole('list', { name: 'Release history' });
+    const history = screen.getByRole('list', { name: 'Release History' });
     expect(history.children).toHaveLength(2);
     expect(screen.getByRole('heading', { level: 3, name: 'Version 1.10.1' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: 'Version 1.10.0' })).toBeInTheDocument();
@@ -105,6 +106,18 @@ describe('ChangelogPage', () => {
         expect(screen.getByText(change)).toBeInTheDocument();
       }
     }
+  });
+
+  it('translates the changelog interface when German is selected', () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <ChangelogPage />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText('Produktneuigkeiten')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Zu Version springen' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Nach oben' })).toBeInTheDocument();
   });
 
   it('shows a useful empty state when no releases are available', () => {

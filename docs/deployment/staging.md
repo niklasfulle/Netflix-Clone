@@ -215,6 +215,9 @@ passes.
 - Prisma reports all migrations applied.
 - A database backup is created and validated before migration.
 - Container health and LXC monitoring report the expected image.
+- The admin System Overview verifies the host-signed staging Deployment Record;
+  an approved production peer is shown as unavailable until its public key and
+  signed record are deliberately transported.
 - No staging email, OAuth callback, database write, or backup reaches a
   production service.
 

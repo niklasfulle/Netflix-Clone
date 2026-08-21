@@ -6,8 +6,9 @@ import * as z from "zod";
 import { getUserByEmail, getUserById } from "@/data/user";
 import { currentUser } from "@/lib/auth";
 import { normalizeAuthEmail } from "@/lib/authentication/contracts";
+import { authenticationTelemetry } from "@/lib/authentication/production-telemetry";
+import type { AuthenticationTelemetryRecord } from "@/lib/authentication/telemetry";
 import { db } from "@/lib/db";
-import { logBackendAction } from "@/lib/logger";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
 import { SettingsSchema } from "@/schemas";
@@ -45,7 +46,6 @@ async function handleEmailChange(
 
   const existingUser = await getUserByEmail(email);
   if (existingUser && existingUser.id !== userId) {
-    logBackendAction("settings_email_in_use", { userId }, "error");
     return { error: "Email already in use!" };
   }
 
@@ -64,124 +64,192 @@ async function hashNewPassword(
   currentPassword: string | undefined,
   newPassword: string | undefined,
   storedPassword: string | null,
-  userId: string,
 ): Promise<{ error?: string; hashedPassword?: string }> {
   if (!currentPassword || !newPassword) {
     return {};
   }
   if (!storedPassword) {
-    logBackendAction("settings_password_unavailable", { userId }, "error");
     return { error: "Password cannot be changed for this account." };
   }
 
   const passwordMatch = await bcrypt.compare(currentPassword, storedPassword);
   if (!passwordMatch) {
-    logBackendAction("settings_incorrect_password", { userId }, "error");
     return { error: "Incorrect password!" };
   }
 
   return { hashedPassword: await bcrypt.hash(newPassword, 10) };
 }
 
-export const settings = async (values: z.infer<typeof SettingsSchema>) => {
-  const user = await currentUser();
+function settingsFailureCategory(
+  stage: AuthenticationTelemetryRecord['stage'],
+): NonNullable<AuthenticationTelemetryRecord['errorCategory']> {
+  if (stage === 'mail') return 'mail';
+  if (stage === 'credentials') return 'credentials';
+  return 'database';
+}
 
-  if (!user) {
-    logBackendAction("settings_unauthorized", {}, "error");
-    return { error: "Unauthorized!" };
-  }
-
-  const dbUser = await getUserById(user.id as string);
-
-  if (!dbUser) {
-    logBackendAction(
-      "settings_dbuser_unauthorized",
-      { userId: user.id },
-      "error",
-    );
-    return { error: "Unauthorized!" };
-  }
-
-  const valuesForValidation = user.isOAuth
-    ? {
-        ...values,
-        email: undefined,
-        password: undefined,
-        newPassword: undefined,
-        confirmNewPassword: undefined,
-      }
-    : {
-        ...values,
-        email: values.email ? normalizeAuthEmail(values.email) : values.email,
-      };
-  const parsedValues = SettingsSchema.safeParse(valuesForValidation);
-
-  if (!parsedValues.success) {
-    logBackendAction(
-      "settings_validation_failed",
-      { userId: user.id },
-      "error",
-    );
+function settingsValuesForValidation(
+  values: SettingsValues,
+  isOAuth?: boolean,
+): SettingsValues {
+  if (isOAuth) {
     return {
-      error: parsedValues.error.issues[0]?.message ?? "Invalid settings.",
+      ...values,
+      email: undefined,
+      password: undefined,
+      newPassword: undefined,
+      confirmNewPassword: undefined,
     };
   }
+  return {
+    ...values,
+    email: values.email ? normalizeAuthEmail(values.email) : values.email,
+  };
+}
 
-  const nextValues = normalizeSettingsValues(
-    parsedValues.data,
-    user.isOAuth,
-  );
-  const emailResult = await handleEmailChange(
-    nextValues.email,
-    dbUser.email,
-    user.id as string,
-  );
-  if (emailResult) return emailResult;
-
-  const passwordResult = await hashNewPassword(
-    nextValues.password,
-    nextValues.newPassword,
-    dbUser.hashedPassword,
-    user.id as string,
-  );
-  if (passwordResult.error) return { error: passwordResult.error };
-
-  await db.user.update({
-    where: {
-      id: dbUser.id,
-    },
-    data: {
-      name: nextValues.name,
-      ...(nextValues.email !== undefined && { email: nextValues.email }),
-      ...(passwordResult.hashedPassword !== undefined && {
-        hashedPassword: passwordResult.hashedPassword,
-      }),
-    },
-  });
-
-  if (passwordResult.hashedPassword !== undefined) {
-    const context = await currentSecurityContext();
-    if (user.sessionId) {
-      await sessionSecurity.revokeOtherSessions({
-        userId: user.id as string,
-        currentSessionId: user.sessionId,
-        context,
-      });
-      await sessionSecurity.recordActivity(
-        user.id as string,
-        "password_changed",
-        context,
-      );
-    } else {
-      await sessionSecurity.revokeAllSessions({
-        userId: user.id as string,
-        event: "password_changed",
-        context,
-      });
-    }
+async function securePasswordChange(
+  userId: string,
+  sessionId: string | undefined,
+) {
+  const context = await currentSecurityContext();
+  if (sessionId) {
+    await sessionSecurity.revokeOtherSessions({
+      userId,
+      currentSessionId: sessionId,
+      context,
+    });
+    await sessionSecurity.recordActivity(userId, "password_changed", context);
+    return;
   }
+  await sessionSecurity.revokeAllSessions({
+    userId,
+    event: "password_changed",
+    context,
+  });
+}
 
-  logBackendAction("settings_success", { userId: user.id }, "info");
+export const settings = async (values: z.infer<typeof SettingsSchema>) => {
+  const attempt = authenticationTelemetry.start({
+    flow: 'account_settings',
+    component: 'authentication.action',
+  });
+  let stage: AuthenticationTelemetryRecord['stage'] = 'session';
 
-  return { success: "Settings updated!" };
+  try {
+    const user = await currentUser();
+
+    if (!user) {
+      attempt.complete({
+        stage,
+        outcome: 'rejected',
+        reasonCode: 'unauthorized',
+        retryable: false,
+      });
+      return { error: "Unauthorized!" };
+    }
+
+    stage = 'account';
+    const dbUser = await getUserById(user.id as string);
+
+    if (!dbUser) {
+      attempt.complete({
+        stage,
+        outcome: 'rejected',
+        reasonCode: 'account_missing',
+        retryable: false,
+      });
+      return { error: "Unauthorized!" };
+    }
+
+    const valuesForValidation = settingsValuesForValidation(values, user.isOAuth);
+    const parsedValues = SettingsSchema.safeParse(valuesForValidation);
+
+    if (!parsedValues.success) {
+      attempt.complete({
+        stage: 'request',
+        outcome: 'rejected',
+        reasonCode: 'invalid_fields',
+        retryable: false,
+        errorCategory: 'validation',
+      });
+      return {
+        error: parsedValues.error.issues[0]?.message ?? "Invalid settings.",
+      };
+    }
+
+    const nextValues = normalizeSettingsValues(
+      parsedValues.data,
+      user.isOAuth,
+    );
+    stage = 'mail';
+    const emailResult = await handleEmailChange(
+      nextValues.email,
+      dbUser.email,
+      user.id as string,
+    );
+    if (emailResult) {
+      attempt.complete({
+        stage,
+        outcome: 'success' in emailResult ? 'challenge' : 'rejected',
+        reasonCode: 'success' in emailResult ? 'verification_sent' : 'email_in_use',
+        retryable: false,
+      });
+      return emailResult;
+    }
+
+    stage = 'credentials';
+    const passwordResult = await hashNewPassword(
+      nextValues.password,
+      nextValues.newPassword,
+      dbUser.hashedPassword,
+    );
+    if (passwordResult.error) {
+      attempt.complete({
+        stage,
+        outcome: 'rejected',
+        reasonCode: 'invalid_credentials',
+        retryable: false,
+        errorCategory: 'credentials',
+      });
+      return { error: passwordResult.error };
+    }
+
+    stage = 'account';
+    await db.user.update({
+      where: {
+        id: dbUser.id,
+      },
+      data: {
+        name: nextValues.name,
+        ...(nextValues.email !== undefined && { email: nextValues.email }),
+        ...(passwordResult.hashedPassword !== undefined && {
+          hashedPassword: passwordResult.hashedPassword,
+        }),
+      },
+    });
+
+    if (passwordResult.hashedPassword !== undefined) {
+      stage = 'session';
+      await securePasswordChange(user.id as string, user.sessionId);
+    }
+
+    const passwordChanged = passwordResult.hashedPassword !== undefined;
+
+    attempt.complete({
+      stage,
+      outcome: 'success',
+      reasonCode: passwordChanged ? 'password_updated' : 'settings_updated',
+      retryable: false,
+    });
+    return { success: "Settings updated!" };
+  } catch {
+    attempt.complete({
+      stage,
+      outcome: 'failed',
+      reasonCode: 'unexpected_failure',
+      retryable: true,
+      errorCategory: settingsFailureCategory(stage),
+    });
+    return { error: `Settings could not be updated. Reference: ${attempt.correlationId}` };
+  }
 };

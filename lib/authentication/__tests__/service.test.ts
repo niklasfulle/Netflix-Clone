@@ -2,9 +2,27 @@ import {
   createAuthenticationService,
   type AuthenticationDependencies,
 } from '../service';
+import {
+  createAuthenticationTelemetry,
+  type AuthenticationTelemetryRecord,
+} from '../telemetry';
 
 type DependencyOverrides = {
   [Key in keyof AuthenticationDependencies]?: Partial<AuthenticationDependencies[Key]>;
+};
+
+const createTelemetry = (records: AuthenticationTelemetryRecord[] = []) => {
+  const times = [
+    new Date('2026-08-20T18:00:00.000Z'),
+    new Date('2026-08-20T18:00:00.125Z'),
+  ];
+  return createAuthenticationTelemetry({
+    write: (record) => records.push(record),
+    now: () => times.shift() ?? new Date('2026-08-20T18:00:00.125Z'),
+    randomUUID: () => '018f48d8-8ba1-7dd9-8000-000000000001',
+    environment: 'test',
+    version: '1.12.0-rc.1',
+  });
 };
 
 const defaultDependencies: AuthenticationDependencies = {
@@ -56,6 +74,7 @@ const defaultDependencies: AuthenticationDependencies = {
     signInCredentials: async () => undefined,
     isRedirectError: () => false,
   },
+  telemetry: createTelemetry(),
   audit: { log: () => undefined },
   confirmations: { replaceForUser: async () => undefined },
   mfa: { consumeChallenge: async () => null },
@@ -70,6 +89,7 @@ const createDependencies = (overrides: DependencyOverrides = {}): Authentication
   tokens: { ...defaultDependencies.tokens, ...overrides.tokens },
   mail: { ...defaultDependencies.mail, ...overrides.mail },
   session: { ...defaultDependencies.session, ...overrides.session },
+  telemetry: { ...defaultDependencies.telemetry, ...overrides.telemetry },
   audit: { ...defaultDependencies.audit, ...overrides.audit },
   confirmations: { ...defaultDependencies.confirmations, ...overrides.confirmations },
   mfa: { ...defaultDependencies.mfa, ...overrides.mfa },
@@ -88,13 +108,58 @@ describe('authentication service', () => {
   });
 
   it('rejects credentials for an unknown account without exposing account state', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
     const service = createAuthenticationService(createDependencies({
       users: { findByEmail: async () => null },
+      telemetry: createTelemetry(records),
     }));
 
     await expect(
       service.login({ email: 'unknown@example.com', password: 'password123' }),
     ).resolves.toEqual({ status: 'rejected', code: 'invalid_credentials' });
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.login.completed',
+      level: 'info',
+      flow: 'login',
+      stage: 'credentials',
+      outcome: 'rejected',
+      reasonCode: 'invalid_credentials',
+      retryable: false,
+    });
+    const serialized = JSON.stringify(records);
+    expect(serialized).not.toContain('unknown@example.com');
+    expect(serialized).not.toContain('password123');
+    expect(serialized).not.toContain('identity-hash');
+  });
+
+  it('records a database category without serializing the thrown login error', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
+    const databaseError = new Error('query failed for viewer@example.com');
+    const service = createAuthenticationService(createDependencies({
+      users: {
+        findByEmail: async () => {
+          throw databaseError;
+        },
+      },
+      telemetry: createTelemetry(records),
+    }));
+
+    await expect(
+      service.login({ email: 'viewer@example.com', password: 'password123' }),
+    ).rejects.toBe(databaseError);
+    expect(records[1]).toMatchObject({
+      action: 'auth.login.completed',
+      level: 'error',
+      stage: 'credentials',
+      outcome: 'failed',
+      reasonCode: 'unexpected_failure',
+      errorCategory: 'database',
+      retryable: true,
+    });
+    const serialized = JSON.stringify(records);
+    expect(serialized).not.toContain('viewer@example.com');
+    expect(serialized).not.toContain('query failed');
   });
 
   it('signs in a verified credential account through the normalized identity', async () => {
@@ -113,6 +178,65 @@ describe('authentication service', () => {
     expect(signInAttempts).toEqual([
       { email: 'viewer@example.com', password: 'password123' },
     ]);
+  });
+
+  it('keeps legacy login audit events free of identities and throttle fingerprints', async () => {
+    const auditEvents: Array<{ event: string; context: Record<string, unknown> }> = [];
+    const audit = {
+      log: (event: string, context: Record<string, unknown>) => {
+        auditEvents.push({ event, context });
+      },
+    };
+
+    await createAuthenticationService(createDependencies({ audit })).login({
+      email: 'viewer@example.com',
+      password: 'password123',
+    });
+    await createAuthenticationService(createDependencies({
+      audit,
+      throttle: {
+        consume: async () => ({
+          allowed: false,
+          retryAfterSeconds: 420,
+          keyHash: 'sensitive-identity-fingerprint',
+        }),
+      },
+    })).login({ email: 'viewer@example.com', password: 'password123' });
+    await createAuthenticationService(createDependencies({
+      audit,
+      users: {
+        findByEmail: async () => ({
+          id: 'user-1',
+          email: 'viewer@example.com',
+          hashedPassword: 'stored-hash',
+          emailVerified: new Date('2026-08-01T10:00:00.000Z'),
+          isTwoFactorEnabled: true,
+        }),
+      },
+      tokens: { consumeTwoFactor: async () => ({ status: 'invalid' }) },
+    })).login({
+      email: 'viewer@example.com',
+      password: 'password123',
+      code: '654321',
+    });
+    await createAuthenticationService(createDependencies({
+      audit,
+      users: {
+        findByEmail: async () => ({
+          id: 'user-1',
+          email: 'viewer@example.com',
+          hashedPassword: 'stored-hash',
+          emailVerified: null,
+          isTwoFactorEnabled: false,
+        }),
+      },
+    })).login({ email: 'viewer@example.com', password: 'password123' });
+
+    expect(auditEvents.length).toBeGreaterThan(0);
+    const serialized = JSON.stringify(auditEvents);
+    expect(serialized).not.toContain('viewer@example.com');
+    expect(serialized).not.toContain('sensitive-identity-fingerprint');
+    expect(serialized).not.toContain('user-1');
   });
 
   it('returns retry metadata when a login identity is throttled', async () => {
@@ -520,6 +644,42 @@ describe('authentication service', () => {
     expect(delivered).toEqual([{ email: 'viewer@example.com', token: 'token' }]);
   });
 
+  it('records a privacy-safe registration attempt without legacy identity metadata', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
+    const auditEvents: Array<{ event: string; context: Record<string, unknown> }> = [];
+    const service = createAuthenticationService(createDependencies({
+      users: { findByEmail: async () => null },
+      telemetry: createTelemetry(records),
+      audit: {
+        log: (event, context) => {
+          auditEvents.push({ event, context });
+        },
+      },
+    }));
+
+    await expect(service.register({
+      name: 'Private Viewer',
+      email: 'private.viewer@example.com',
+      password: 'private-password123',
+      confirm: 'private-password123',
+    })).resolves.toEqual({ status: 'success', code: 'verification_sent' });
+
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.registration.completed',
+      flow: 'registration',
+      stage: 'mail',
+      outcome: 'success',
+      reasonCode: 'verification_sent',
+    });
+    expect(auditEvents).toContainEqual({ event: 'register_success', context: {} });
+    const serialized = JSON.stringify({ records, auditEvents });
+    expect(serialized).not.toContain('Private Viewer');
+    expect(serialized).not.toContain('private.viewer@example.com');
+    expect(serialized).not.toContain('private-password123');
+    expect(serialized).not.toContain('identity-hash');
+  });
+
   it('handles a concurrent duplicate registration without leaking or throwing', async () => {
     const delivered: Array<{ email: string; token: string }> = [];
     const service = createAuthenticationService(createDependencies({
@@ -589,6 +749,33 @@ describe('authentication service', () => {
     expect(delivered).toEqual([{ email: 'viewer@example.com', token: 'reset-token' }]);
   });
 
+  it('keeps password-reset enumeration safe while recording a mail failure', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
+    const service = createAuthenticationService(createDependencies({
+      telemetry: createTelemetry(records),
+      mail: {
+        sendPasswordReset: async () => {
+          throw new Error('SMTP rejected reset for viewer@example.com');
+        },
+      },
+    }));
+
+    await expect(service.requestPasswordReset({ email: 'viewer@example.com' }))
+      .resolves.toEqual({ status: 'success', code: 'password_reset_sent' });
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.password_reset_request.completed',
+      flow: 'password_reset_request',
+      stage: 'mail',
+      outcome: 'failed',
+      reasonCode: 'delivery_failed',
+      errorCategory: 'mail',
+      retryable: true,
+    });
+    expect(JSON.stringify(records)).not.toContain('viewer@example.com');
+    expect(JSON.stringify(records)).not.toContain('SMTP rejected');
+  });
+
   it('resends verification to a known unverified account with a fresh bound token', async () => {
     const delivered: Array<{ email: string; token: string }> = [];
     const issued: Array<{ email: string; userId?: string }> = [];
@@ -636,6 +823,26 @@ describe('authentication service', () => {
     expect(sendVerification).not.toHaveBeenCalled();
   });
 
+  it('records verification resend as one privacy-safe attempt', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
+    const service = createAuthenticationService(createDependencies({
+      users: { findByEmail: async () => null },
+      telemetry: createTelemetry(records),
+    }));
+
+    await expect(service.resendVerification({ email: 'missing@example.com' }))
+      .resolves.toEqual({ status: 'success', code: 'verification_sent' });
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.verification_resend.completed',
+      flow: 'verification_resend',
+      stage: 'account',
+      outcome: 'success',
+      reasonCode: 'verification_sent',
+    });
+    expect(JSON.stringify(records)).not.toContain('missing@example.com');
+  });
+
   it('sets a new password with a valid reset token', async () => {
     const updatedPasswords: Array<{ userId: string; hashedPassword: string }> = [];
     const revokeAllSessions = jest.fn();
@@ -668,7 +875,10 @@ describe('authentication service', () => {
   });
 
   it('rejects a missing password-reset token with a stable result code', async () => {
-    const service = createAuthenticationService(createDependencies());
+    const records: AuthenticationTelemetryRecord[] = [];
+    const service = createAuthenticationService(createDependencies({
+      telemetry: createTelemetry(records),
+    }));
 
     await expect(service.setNewPassword({
       token: null,
@@ -676,6 +886,15 @@ describe('authentication service', () => {
       confirm: 'new-password123',
     }))
       .resolves.toEqual({ status: 'rejected', code: 'invalid_token' });
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.password_update.completed',
+      flow: 'password_update',
+      stage: 'token',
+      outcome: 'rejected',
+      reasonCode: 'invalid_token',
+    });
+    expect(JSON.stringify(records)).not.toContain('new-password123');
   });
 
   it('verifies an account with a valid email token', async () => {
@@ -761,5 +980,40 @@ describe('authentication service', () => {
 
     await expect(service.verifyEmail({ token: 'verification-token' }))
       .resolves.toEqual({ status: 'rejected', code: 'token_expired' });
+  });
+
+  it('categorizes an unexpected email-verification database failure without leaking it', async () => {
+    const records: AuthenticationTelemetryRecord[] = [];
+    const databaseError = new Error('verification query exposed viewer@example.com');
+    const service = createAuthenticationService(createDependencies({
+      tokens: {
+        consumeVerification: async () => ({
+          status: 'valid',
+          email: 'viewer@example.com',
+          userId: 'user-1',
+        }),
+      },
+      users: {
+        findById: async () => {
+          throw databaseError;
+        },
+      },
+      telemetry: createTelemetry(records),
+    }));
+
+    await expect(service.verifyEmail({ token: 'verification-token' })).rejects.toBe(databaseError);
+    expect(records).toHaveLength(2);
+    expect(records[1]).toMatchObject({
+      action: 'auth.email_verification.completed',
+      flow: 'email_verification',
+      stage: 'account',
+      outcome: 'failed',
+      reasonCode: 'unexpected_failure',
+      errorCategory: 'database',
+    });
+    const serialized = JSON.stringify(records);
+    expect(serialized).not.toContain('viewer@example.com');
+    expect(serialized).not.toContain('verification query exposed');
+    expect(serialized).not.toContain('verification-token');
   });
 });

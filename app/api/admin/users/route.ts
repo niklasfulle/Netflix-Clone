@@ -2,6 +2,7 @@ import type { Prisma, UserRole } from "@prisma/client";
 
 import { currentUser } from "@/lib/auth";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 
@@ -82,24 +83,55 @@ export async function GET(request: Request = new Request("http://localhost/api/a
 }
 
 export async function PATCH(request: Request) {
-  if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const actor = await currentUser();
-  const { userId, role } = await request.json();
-  if (!userId || !["ADMIN", "USER"].includes(role)) {
+  const audit = adminMutationAudit.begin('user.role_change');
+  if (!(await isCurrentUserAdmin())) {
+    await audit.denied();
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: { userId?: unknown; role?: unknown };
+  try {
+    body = await request.json();
+  } catch (error) {
+    await audit.failed();
+    throw error;
+  }
+
+  const { userId, role } = body;
+  if (typeof userId !== 'string' || !userId || (role !== 'ADMIN' && role !== 'USER')) {
+    await audit.failed();
     return Response.json({ error: "Ungültige Benutzer-ID oder Rolle." }, { status: 400 });
   }
-  if (actor?.id === userId && role !== "ADMIN") {
-    return Response.json({ error: "Du kannst deine eigene Admin-Rolle nicht entfernen." }, { status: 409 });
-  }
 
-  const target = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
-  if (!target) return Response.json({ error: "Benutzer wurde nicht gefunden." }, { status: 404 });
-  if (target.role === "ADMIN" && role === "USER") {
-    const adminCount = await db.user.count({ where: { role: "ADMIN" } });
-    if (adminCount <= 1) return Response.json({ error: "Der letzte Administrator kann nicht herabgestuft werden." }, { status: 409 });
-  }
+  try {
+    const actor = await currentUser();
+    if (actor?.id === userId && role !== "ADMIN") {
+      await audit.denied();
+      return Response.json({ error: "Du kannst deine eigene Admin-Rolle nicht entfernen." }, { status: 409 });
+    }
 
-  const user = await db.user.update({ where: { id: userId }, data: { role }, select: { id: true, role: true } });
-  logBackendAction("admin_user_role_changed", { userId, role }, "info");
-  return Response.json({ success: true, user });
+    const target = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) {
+      await audit.failed({ target: { type: 'user', id: userId } });
+      return Response.json({ error: "Benutzer wurde nicht gefunden." }, { status: 404 });
+    }
+    if (target.role === "ADMIN" && role === "USER") {
+      const adminCount = await db.user.count({ where: { role: "ADMIN" } });
+      if (adminCount <= 1) {
+        await audit.denied();
+        return Response.json({ error: "Der letzte Administrator kann nicht herabgestuft werden." }, { status: 409 });
+      }
+    }
+
+    const user = await db.user.update({ where: { id: userId }, data: { role }, select: { id: true, role: true } });
+    logBackendAction("admin_user_role_changed", { userId, role }, "info");
+    await audit.succeeded({
+      target: { type: 'user', id: userId },
+      metadata: { previousRole: target.role, nextRole: role },
+    });
+    return Response.json({ success: true, user });
+  } catch (error) {
+    await audit.failed({ target: { type: 'user', id: userId } });
+    throw error;
+  }
 }

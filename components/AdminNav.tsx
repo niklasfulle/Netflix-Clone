@@ -15,6 +15,8 @@ import {
   PlusCircle,
   ScrollText,
   ServerCog,
+  ScanSearch,
+  ShieldCheck,
   Users,
   UserRoundSearch,
   X,
@@ -35,8 +37,10 @@ const navigation: { label: TranslationKey; href: string; icon: typeof LayoutDash
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Analytics", href: "/admin/statistics", icon: BarChart3 },
   { label: "System", href: "/admin/system", icon: ServerCog },
+  { label: "Media Health", href: "/admin/media-health", icon: ScanSearch },
   { label: "Backups", href: "/admin/backups", icon: DatabaseBackup },
   { label: "System Logs", href: "/admin/logs", icon: ScrollText },
+  { label: "Audit Log", href: "/admin/audit", icon: ShieldCheck },
 ];
 
 function NavLinks({ onNavigate }: Readonly<{ onNavigate?: () => void }>) {

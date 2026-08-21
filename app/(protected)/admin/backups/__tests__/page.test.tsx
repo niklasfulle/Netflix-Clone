@@ -2,6 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import AdminBackupsPage from "../page";
 
+jest.mock("@/components/admin/BackupVerificationPanel", () => ({
+  BackupVerificationPanel: () => <div>PostgreSQL verification panel</div>,
+}));
+
 describe("admin backups page", () => {
   beforeEach(() => {
     jest.restoreAllMocks();

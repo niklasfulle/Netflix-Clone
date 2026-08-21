@@ -13,6 +13,7 @@ import useCurrentProfil from "@/hooks/useCurrentProfil";
 import getUser from "@/hooks/useUser";
 
 import { SettingsForm } from "./_components/settings-form";
+import { CertificateTrustPanel } from "./_components/certificate-trust-panel";
 
 const SettingsSkeleton = () => (
   <div className="mx-auto grid w-full max-w-6xl animate-pulse gap-6 lg:grid-cols-[260px_1fr]">
@@ -119,6 +120,13 @@ export default function SettingsPage() {
                       <Settings2 className="h-4 w-4" aria-hidden="true" />
                       {t("Preferences")}
                     </a>
+                    <a
+                      href="#https-trust"
+                      className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-zinc-400 transition hover:bg-white/[0.05] hover:text-white"
+                    >
+                      <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                      {t("HTTPS trust")}
+                    </a>
                   </nav>
                 </div>
 
@@ -139,7 +147,10 @@ export default function SettingsPage() {
                 </div>
               </aside>
 
-              <SettingsForm user={user} />
+              <div>
+                <SettingsForm user={user} />
+                <CertificateTrustPanel />
+              </div>
             </div>
           )}
         </div>

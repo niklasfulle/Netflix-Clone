@@ -1,0 +1,50 @@
+---
+- name: Read deployment status publication time
+  command: date -u +%Y-%m-%dT%H:%M:%S.000Z
+  register: deployment_status_publication_time
+  changed_when: false
+
+- name: Publish signed deployment status record
+  command:
+    argv:
+      - python3
+      - "{{ deployment_status_publisher_path }}"
+      - --environment
+      - "{{ deployment_environment }}"
+      - --deployment-id
+      - "{{ deployment_id }}"
+      - --application-version
+      - "{{ app_version }}"
+      - --image-reference
+      - "{{ docker_registry }}/{{ image_name }}:{{ app_version }}"
+      - --image-identity
+      - "{{ deployed_image_identity.stdout | trim }}"
+      - --started-at
+      - "{{ deployment_started_at.stdout | trim }}"
+      - --completed-at
+      - "{{ deployment_status_completed_at | default(deployment_status_publication_time.stdout if deployment_status_result != 'in_progress' else '') }}"
+      - --published-at
+      - "{{ deployment_status_publication_time.stdout }}"
+      - --result
+      - "{{ deployment_status_result }}"
+      - --migration-result
+      - "{{ deployment_migration_result }}"
+      - --health-application
+      - "{{ deployment_application_health }}"
+      - --health-https
+      - "{{ deployment_https_health }}"
+      - --health-monitoring
+      - "{{ deployment_monitoring_health }}"
+      - --rollback-result
+      - "{{ deployment_status_rollback_result }}"
+      - --rollback-image-reference
+      - "{{ (previous_container_image.stdout | default('') | trim) if deployment_status_rollback_result in ['pending', 'succeeded', 'failed'] else '' }}"
+      - --backup-reference
+      - "{{ deployment_backup_reference }}"
+      - --status-root
+      - "{{ deployment_status_root }}"
+      - --private-key
+      - "{{ deployment_status_private_key }}"
+      - --key-id
+      - "{{ deployment_environment }}-host-v1"
+  changed_when: true

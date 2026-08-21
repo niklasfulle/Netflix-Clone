@@ -18,38 +18,49 @@ enum ContentStatus {
   ARCHIVED
 }
 
+enum QrDevicePairingStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+  CONSUMED
+  EXPIRED
+}
+
 model User {
-  id                      String                   @id @unique @default(cuid())
-  name                    String
-  image                   String?
-  email                   String?                  @unique
-  emailVerified           DateTime?
-  hashedPassword          String?
-  role                    UserRole                 @default(USER)
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  accounts                Account[]
-  profil                  Profil[]
-  watchlists              Watchlist[]
-  playlists               Playlist[]
-  movieWatchTimes         MovieWatchTime[]
-  movieViews              MovieView[]
-  isTwoFactorEnabled      Boolean                  @default(false)
-  twoFactorConfirmation   TwoFactorConfirmation?
-  isBlocked               Boolean                  @default(false)
-  blockedAt               DateTime?
-  blockedUntil            DateTime?
-  blockedReason           String?
-  verificationTokens      VerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  twoFactorTokens         TwoFactorToken[]
-  mfaAuthenticator        MfaAuthenticator?
-  mfaRecoveryCodes        MfaRecoveryCode[]
-  sessionsInvalidBefore   DateTime?
-  authSessions            AuthSession[]
-  securityActivity        SecurityActivity[]
-  authenticators          Authenticator[]
-  passkeyManagementGrants PasskeyManagementGrant[]
+  id                         String                      @id @unique @default(cuid())
+  name                       String
+  image                      String?
+  email                      String?                     @unique
+  emailVerified              DateTime?
+  hashedPassword             String?
+  role                       UserRole                    @default(USER)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  accounts                   Account[]
+  profil                     Profil[]
+  watchlists                 Watchlist[]
+  playlists                  Playlist[]
+  movieWatchTimes            MovieWatchTime[]
+  movieViews                 MovieView[]
+  isTwoFactorEnabled         Boolean                     @default(false)
+  twoFactorConfirmation      TwoFactorConfirmation?
+  isBlocked                  Boolean                     @default(false)
+  blockedAt                  DateTime?
+  blockedUntil               DateTime?
+  blockedReason              String?
+  verificationTokens         VerificationToken[]
+  passwordResetTokens        PasswordResetToken[]
+  twoFactorTokens            TwoFactorToken[]
+  mfaAuthenticator           MfaAuthenticator?
+  mfaRecoveryCodes           MfaRecoveryCode[]
+  sessionsInvalidBefore      DateTime?
+  authSessions               AuthSession[]
+  securityActivity           SecurityActivity[]
+  authenticators             Authenticator[]
+  passkeyManagementGrants    PasskeyManagementGrant[]
+  approvedQrDevicePairings   QrDevicePairingRequest[]    @relation("QrDevicePairingApprover")
+  recentAuthenticationGrants RecentAuthenticationGrant[]
 }
 
 model Account {
@@ -140,19 +151,54 @@ model MfaRecoveryCode {
 }
 
 model AuthSession {
-  id                      String                   @id
-  userId                  String
-  issuedAt                DateTime
-  expiresAt               DateTime
-  lastSeenAt              DateTime                 @default(now())
-  revokedAt               DateTime?
-  ipHash                  String?
-  userAgent               String?
-  createdAt               DateTime                 @default(now())
-  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  passkeyManagementGrants PasskeyManagementGrant[]
+  id                         String                      @id
+  userId                     String
+  issuedAt                   DateTime
+  expiresAt                  DateTime
+  lastSeenAt                 DateTime                    @default(now())
+  revokedAt                  DateTime?
+  ipHash                     String?
+  userAgent                  String?
+  createdAt                  DateTime                    @default(now())
+  user                       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passkeyManagementGrants    PasskeyManagementGrant[]
+  recentAuthenticationGrants RecentAuthenticationGrant[]
 
   @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model QrDevicePairingRequest {
+  id                 String                @id
+  status             QrDevicePairingStatus @default(PENDING)
+  environment        String
+  manualCodeHash     String                @unique
+  approvalSecretHash String                @unique
+  pollSecretHash     String                @unique
+  exchangeSecretHash String?               @unique
+  approverUserId     String?
+  approvedAt         DateTime?
+  deniedAt           DateTime?
+  cancelledAt        DateTime?
+  consumedAt         DateTime?
+  expiresAt          DateTime
+  createdAt          DateTime              @default(now())
+  approverUser       User?                 @relation("QrDevicePairingApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([approverUserId, createdAt])
+}
+
+model RecentAuthenticationGrant {
+  id        String      @id @default(cuid())
+  userId    String
+  sessionId String
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionId])
   @@index([expiresAt])
 }
 
@@ -211,6 +257,58 @@ model AuthRateLimit {
 
   @@id([scope, subjectType, subjectHash])
   @@index([resetAt])
+}
+
+model AdminAuditEvent {
+  id            String   @id @default(cuid())
+  actorUserId   String
+  actorRole     String
+  action        String
+  targetType    String?
+  targetId      String?
+  outcome       String
+  correlationId String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, outcome, createdAt])
+  @@index([targetType, targetId, createdAt])
+}
+
+model MediaIntegrityScanRun {
+  id                 String                  @id @default(cuid())
+  lockKey            String?
+  scope              String
+  requestedContentId String?
+  status             String
+  startedAt          DateTime                @default(now())
+  completedAt        DateTime?
+  contentCount       Int                     @default(0)
+  findingCount       Int                     @default(0)
+  criticalCount      Int                     @default(0)
+  warningCount       Int                     @default(0)
+  findings           MediaIntegrityFinding[]
+
+  @@index([startedAt])
+  @@index([status, startedAt])
+}
+
+model MediaIntegrityFinding {
+  id           String                @id @default(cuid())
+  scanRunId    String
+  contentId    String?
+  resourceKind String
+  severity     String
+  code         String
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+  scanRun      MediaIntegrityScanRun @relation(fields: [scanRunId], references: [id], onDelete: Cascade)
+
+  @@index([scanRunId, severity])
+  @@index([contentId, createdAt])
+  @@index([code, createdAt])
 }
 
 model Profil {

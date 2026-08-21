@@ -7,6 +7,16 @@ jest.mock('@/lib/session-security', () => ({
   },
 }));
 
+const mockTelemetryComplete = jest.fn();
+const mockTelemetryStart = jest.fn((_input?: unknown) => ({
+  correlationId: 'session-correlation',
+  complete: mockTelemetryComplete,
+}));
+
+jest.mock('@/lib/authentication/production-telemetry', () => ({
+  authenticationTelemetry: { start: (input: unknown) => mockTelemetryStart(input) },
+}));
+
 import { currentUser } from '@/lib/auth';
 import { currentSecurityContext, sessionSecurity } from '@/lib/session-security';
 
@@ -17,6 +27,10 @@ const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 describe('session security actions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTelemetryStart.mockReturnValue({
+      correlationId: 'session-correlation',
+      complete: mockTelemetryComplete,
+    });
     mockCurrentUser.mockResolvedValue({
       id: 'user-1',
       sessionId: 'current-session',
@@ -51,6 +65,12 @@ describe('session security actions', () => {
       currentSessionId: 'current-session',
       context: { address: '192.0.2.10' },
     });
+    expect(mockTelemetryComplete).toHaveBeenCalledWith({
+      stage: 'session',
+      outcome: 'success',
+      reasonCode: 'other_sessions_revoked',
+      retryable: false,
+    });
   });
 
   it('rejects missing and unregistered sessions', async () => {
@@ -66,5 +86,12 @@ describe('session security actions', () => {
       code: 'session_unavailable',
     });
     expect(sessionSecurity.revokeOtherSessions).not.toHaveBeenCalled();
+    expect(mockTelemetryComplete).toHaveBeenCalledWith({
+      stage: 'session',
+      outcome: 'rejected',
+      reasonCode: 'session_unavailable',
+      retryable: false,
+      errorCategory: 'credentials',
+    });
   });
 });

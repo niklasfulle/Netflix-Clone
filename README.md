@@ -175,6 +175,8 @@ Danach ist die Anwendung unter
 | `AUTH_WEBAUTHN_ORIGIN` | Exakter kanonischer Ursprung aus Schema, Host und optionalem Port | erforderlich bei aktiviertem Pilot |
 | `NEXT_PUBLIC_GENRE` | Kommagetrennte Allowlist der in Add/Edit auswählbaren Genres | in Produktion erforderlich |
 | `SYSTEM_MONITOR_PATH` | Pfad zum JSON-Snapshot des Host-Agenten | `/monitor/status.json` |
+| `DEPLOYMENT_STATUS_ROOT` | Read-only Wurzel für signierte Deployment Records | `/deployment-status` |
+| `DEPLOYMENT_STATUS_APPROVED_PEERS` | Kommagetrennte, explizit freigegebene Peer-Umgebungen | nicht gesetzt |
 | `APP_VERSION` | Image-Tag für Docker Compose | `latest` |
 | `NETFLIX_DEPLOY_PASSWORD` | Optionales SSH-Passwort für `deploy.ps1` | nicht gesetzt |
 
@@ -254,6 +256,7 @@ werden.
 | `corepack yarn test:watch` | Jest im Watch-Modus starten |
 | `corepack yarn test:coverage` | LCOV-Coverage erzeugen |
 | `corepack yarn test:auth-integration` | Auth-/MFA-/Session-/Passkey-Persistenz gegen die isolierte Staging-Datenbank prüfen |
+| `corepack yarn test:admin-audit-integration` | Audit-Persistenz, parallele Writes und Retention gegen die isolierte Staging-Datenbank prüfen |
 | `corepack yarn test:e2e` | Gesamte Playwright-Matrix ausführen |
 | `corepack yarn test:e2e:desktop` | Playwright nur mit Desktop Chrome ausführen |
 | `corepack yarn test:e2e:mobile` | Playwright nur mit dem Pixel-7-Projekt ausführen |
@@ -478,11 +481,20 @@ Der Image-Tag wird immer aus `package.json` gelesen. Das Playbook:
 5. startet die erwartete Version,
 6. prüft `/api/health` zuerst lokal und danach über das kanonische HTTPS-Ziel
    mit Zertifikatsvalidierung,
-7. exportiert das öffentliche Root-Zertifikat der internen Caddy-CA,
+7. validiert und veröffentlicht ausschließlich das öffentliche Root-Zertifikat
+   der internen Caddy-CA für angemeldete Nutzer,
 8. validiert Container und Image im Monitoring-Snapshot und
-9. entfernt erst nach erfolgreichem Start ungenutzte Docker-Layer.
+9. veröffentlicht atomar den host-signierten Deployment Record und
+10. entfernt erst nach erfolgreichem Start ungenutzte Docker-Layer.
 
 Weitere Ansible-Details stehen in [ansible/README.md](ansible/README.md).
+Der sichere Zertifikats-Bootstrap, Gerätehinweise und die explizite Rotation
+stehen in
+[`docs/operations/certificate-trust.md`](docs/operations/certificate-trust.md).
+Das privacy-sichere Auth-Logformat, Retention und die Staging-Fehlerübungen sind
+in
+[`docs/operations/authentication-telemetry.md`](docs/operations/authentication-telemetry.md)
+dokumentiert.
 
 ## Healthcheck und Systemübersicht
 
@@ -521,6 +533,8 @@ Die Admin-Seite `/admin/system` aktualisiert sich automatisch und zeigt:
 - Docker-Status, Healthcheck, Neustarts, Image und Container-Ressourcen
 - Datenbankstatus und Abfragelatenz
 - Alter, Größe und Datensatzanzahl des letzten Backups
+- signierte Deployment-, Migrations-, Health- und Rollback-Ergebnisse für die
+  lokale und ausdrücklich freigegebene Peer-Umgebung
 
 Der systemd-Timer erfasst alle 30 Sekunden ausschließlich lesend Host- und
 Docker-Metriken und schreibt einen atomaren Snapshot nach:
@@ -531,6 +545,13 @@ Docker-Metriken und schreibt einen atomaren Snapshot nach:
 
 Dieser Pfad wird schreibgeschützt als `/monitor` in den Webcontainer eingehängt.
 Der Docker-Socket wird nicht in die Anwendung gemountet.
+
+Deployment Records werden mit einem ausschließlich auf dem LXC vorhandenen
+Ed25519-Schlüssel signiert. Der Webcontainer erhält Statusdateien und öffentliche
+Prüfschlüssel ausschließlich read-only. Manipulierte, veraltete und nicht
+erreichbare Records werden getrennt dargestellt. Das Vertrauens-, Transport-
+und Retentionsmodell steht in
+[`docs/operations/deployment-status.md`](docs/operations/deployment-status.md).
 
 ```mermaid
 flowchart LR
@@ -558,6 +579,8 @@ Unter `/admin/backups` können Administratoren:
 
 - ein verschlüsseltes Datenbank-Backup als `.nfbak` herunterladen,
 - ein Backup nach Passwort- und Dateiprüfung wiederherstellen und
+- den letzten isolierten Restore-Test eines PostgreSQL-Deployment-Dumps prüfen,
+- die Verifikation des neuesten Host-Dumps manuell anfordern und
 - den Zeitpunkt des letzten erfolgreichen Backups in der Systemübersicht sehen.
 
 Die Wiederherstellung akzeptiert Dateien bis 100 MB und verlangt eine zusätzliche
@@ -569,7 +592,15 @@ und liegen auf dem Host unter:
 
 ```text
 /var/lib/netflix-backup-status/last-backup.json
+/var/lib/netflix-backup-status/verification/latest.json
 ```
+
+Vor jeder Migration stellt Ansible den PostgreSQL-Dump zusätzlich in einem
+temporären PostgreSQL-Container ohne Netzwerk wieder her. Erst nach erfolgreicher
+Archiv-, Versions-, Schema- und Stichprobenprüfung wird die Migration ausgeführt.
+Der Webcontainer erhält weder Zugriff auf das Backup-Verzeichnis noch auf den
+Docker-Socket. Details, Statuscodes und manuelle Diagnose stehen in
+[`docs/operations/postgres-backup-verification.md`](docs/operations/postgres-backup-verification.md).
 
 Die Datenbank-Backups enthalten keine Film- oder Serien-Dateien. `/movies` und
 `/series` müssen separat gesichert werden.
@@ -673,6 +704,8 @@ erzeugt sofort einen ersten Snapshot.
 - Backups werden vor dem Download verschlüsselt.
 - Der Monitoring-Agent arbeitet lesend und gibt dem Webcontainer keinen Zugriff
   auf den Docker-Socket.
+- Deployment-Erfolg wird auf dem Host signiert; Browser und Webcontainer besitzen
+  weder den privaten Signierschlüssel noch Schreibzugriff auf Deployment Records.
 - `.env`, lokale Medien, Logs, Coverage und Build-Artefakte werden ignoriert.
 
 ## Changelog

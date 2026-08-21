@@ -1,4 +1,5 @@
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { ApiError, handleApiError } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
@@ -8,13 +9,16 @@ export const dynamic = "force-dynamic";
 async function runAdminRoute(
   logContext: string,
   operation: () => Promise<Response>,
+  audit?: ReturnType<typeof adminMutationAudit.begin>,
 ): Promise<Response> {
   try {
     if (!(await isCurrentUserAdmin())) {
+      await audit?.denied();
       throw new ApiError('FORBIDDEN', 'Administrator access required.');
     }
     return await operation();
   } catch (error) {
+    await audit?.failed();
     return handleApiError(error, logContext);
   }
 }
@@ -85,6 +89,7 @@ export async function GET(request: Request = new Request("http://localhost/api/a
 }
 
 export async function POST(request: Request) {
+  const audit = adminMutationAudit.begin('actor.create');
   return runAdminRoute('api_actors_create', async () => {
     const rawName = (await request.json()).name;
     const name = typeof rawName === "string" ? rawName.trim() : "";
@@ -95,11 +100,13 @@ export async function POST(request: Request) {
 
     const actor = await db.actor.create({ data: { name } });
     logBackendAction("actor_created", { actorId: actor.id }, "info");
+    await audit.succeeded({ target: { type: 'actor', id: actor.id } });
     return Response.json(actor, { status: 201 });
-  });
+  }, audit);
 }
 
 export async function PATCH(request: Request) {
+  const audit = adminMutationAudit.begin('actor.update');
   return runAdminRoute('api_actors_update', async () => {
     const { id, name: rawName } = await request.json();
     const name = typeof rawName === "string" ? rawName.trim() : "";
@@ -112,11 +119,16 @@ export async function PATCH(request: Request) {
 
     const actor = await db.actor.update({ where: { id }, data: { name } });
     logBackendAction("actor_renamed", { actorId: id }, "info");
+    await audit.succeeded({
+      target: { type: 'actor', id },
+      metadata: { changedFields: ['name'] },
+    });
     return Response.json(actor);
-  });
+  }, audit);
 }
 
 export async function DELETE(request: Request) {
+  const audit = adminMutationAudit.begin('actor.delete');
   return runAdminRoute('api_actors_delete', async () => {
     const id = new URL(request.url).searchParams.get("id");
     if (!id) throw new ApiError('VALIDATION_ERROR', 'Actor ID is required.');
@@ -128,6 +140,10 @@ export async function DELETE(request: Request) {
     }
     await db.actor.delete({ where: { id } });
     logBackendAction("actor_deleted", { actorId: id }, "info");
+    await audit.succeeded({
+      target: { type: 'actor', id },
+      metadata: { associatedContentCount: actor.movies.length },
+    });
     return Response.json({ success: true });
-  });
+  }, audit);
 }

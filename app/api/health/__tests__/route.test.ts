@@ -14,6 +14,7 @@ import { access } from "node:fs/promises";
 import { db } from "@/lib/db";
 import { GET } from "@/app/api/health/route";
 import { publicRoutes } from "@/routes";
+import packageJson from "@/package.json";
 
 const mockedQueryRaw = db.$queryRaw as jest.Mock;
 const mockedAccess = access as jest.Mock;
@@ -45,7 +46,7 @@ describe("health endpoint", () => {
     expect(body).toMatchObject({
       status: "ok",
       service: "netflix-clone",
-      version: "1.11.0",
+      version: packageJson.version,
       environment: "staging",
       checks: {
         application: "ok",

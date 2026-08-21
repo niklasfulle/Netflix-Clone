@@ -12,6 +12,8 @@ import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import { getChangelog, type ChangelogEntry } from '@/lib/changelog';
 
+import LocalizedText from './_components/LocalizedText';
+
 function ReleaseChanges({ entry }: Readonly<{ entry: ChangelogEntry }>) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2">
@@ -46,9 +48,9 @@ function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
         <header>
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-red-200">
             <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-            Latest Release
+            <LocalizedText text="Latest Release" />
           </div>
-          <p className="text-sm font-medium text-zinc-400">Now Available</p>
+          <p className="text-sm font-medium text-zinc-400"><LocalizedText text="Now Available" /></p>
           <h2
             id={`release-title-${entry.version}`}
             className="mt-2 text-balance text-4xl font-black tracking-tight text-white sm:text-5xl"
@@ -56,7 +58,7 @@ function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
             Version {entry.version}
           </h2>
           <p className="mt-4 max-w-md text-pretty text-sm leading-6 text-zinc-400">
-            The newest improvements, fixes, and features available in Netflix Clone.
+            <LocalizedText text="The newest improvements, fixes, and features available in Netflix Clone." />
           </p>
         </header>
 
@@ -69,13 +71,13 @@ function LatestRelease({ entry }: Readonly<{ entry: ChangelogEntry }>) {
 function VersionJumpNavigation({ entries }: Readonly<{ entries: ChangelogEntry[] }>) {
   return (
     <nav
-      aria-label="Jump to version"
+      aria-labelledby="version-jump-heading"
       className="sticky top-20 z-30 mb-8 rounded-2xl border border-white/10 bg-zinc-950/90 p-3 shadow-xl shadow-black/30 backdrop-blur-xl sm:p-4"
     >
       <div className="flex items-center gap-3 sm:items-start">
         <div className="hidden shrink-0 items-center gap-2 pt-2 text-sm font-semibold text-white sm:flex">
           <ListTree aria-hidden="true" className="h-4 w-4 text-red-400" />
-          Jump to version
+          <span id="version-jump-heading"><LocalizedText text="Jump to version" /></span>
         </div>
         <ListTree aria-hidden="true" className="h-4 w-4 shrink-0 text-red-400 sm:hidden" />
         <ol className="flex min-w-0 flex-1 snap-x gap-2 overflow-x-auto pb-1 sm:max-h-24 sm:flex-wrap sm:overflow-y-auto">
@@ -89,7 +91,7 @@ function VersionJumpNavigation({ entries }: Readonly<{ entries: ChangelogEntry[]
                 v{entry.version}
                 {index === 0 ? (
                   <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-red-300">
-                    Latest
+                    <LocalizedText text="Latest" />
                   </span>
                 ) : null}
               </a>
@@ -107,19 +109,19 @@ function ReleaseTimeline({ entries }: Readonly<{ entries: ChangelogEntry[] }>) {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-400">
-            Previous Releases
+            <LocalizedText text="Previous Releases" />
           </p>
           <h2
             id="release-history-heading"
             className="mt-2 text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl"
           >
-            Release History
+            <LocalizedText text="Release History" />
           </h2>
         </div>
         <History aria-hidden="true" className="hidden h-7 w-7 text-zinc-600 sm:block" />
       </div>
 
-      <ol aria-label="Release history" className="relative space-y-6 border-l border-white/10 pl-6 sm:pl-10">
+      <ol aria-labelledby="release-history-heading" className="relative space-y-6 border-l border-white/10 pl-6 sm:pl-10">
         {entries.map((entry) => (
           <li key={entry.version} className="relative">
             <span
@@ -139,7 +141,7 @@ function ReleaseTimeline({ entries }: Readonly<{ entries: ChangelogEntry[] }>) {
                   Version {entry.version}
                 </h3>
                 <span className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-medium tabular-nums text-zinc-400">
-                  {entry.changes.length} {entry.changes.length === 1 ? 'Change' : 'Changes'}
+                  {entry.changes.length} <LocalizedText text={entry.changes.length === 1 ? 'Change' : 'Changes'} />
                 </span>
               </header>
               <ReleaseChanges entry={entry} />
@@ -174,13 +176,13 @@ export default function ChangelogPage() {
           >
             <div className="mb-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-red-400">
               <Rocket aria-hidden="true" className="h-4 w-4" />
-              Product Updates
+              <LocalizedText text="Product Updates" />
             </div>
             <h1 className="text-balance text-4xl font-black tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
-              What’s New in Netflix Clone
+              <LocalizedText text="What’s New in Netflix Clone" />
             </h1>
             <p className="mt-5 max-w-2xl text-pretty text-base leading-7 text-zinc-400 sm:text-lg">
-              Follow every feature, improvement, and fix as the platform evolves.
+              <LocalizedText text="Follow every feature, improvement, and fix as the platform evolves." />
             </p>
           </header>
 
@@ -189,19 +191,19 @@ export default function ChangelogPage() {
               <dl aria-label="Changelog summary" className="mb-8 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5">
                   <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-                    <Rocket aria-hidden="true" className="h-4 w-4" /> Latest
+                    <Rocket aria-hidden="true" className="h-4 w-4" /> <LocalizedText text="Latest" />
                   </dt>
                   <dd className="mt-2 text-2xl font-bold tabular-nums text-white">v{latestRelease.version}</dd>
                 </div>
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5">
                   <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-                    <Layers3 aria-hidden="true" className="h-4 w-4" /> Releases
+                    <Layers3 aria-hidden="true" className="h-4 w-4" /> <LocalizedText text="Releases" />
                   </dt>
                   <dd className="mt-2 text-2xl font-bold tabular-nums text-white">{changelog.length}</dd>
                 </div>
                 <div className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5">
                   <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
-                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" /> Changes
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" /> <LocalizedText text="Changes" />
                   </dt>
                   <dd className="mt-2 text-2xl font-bold tabular-nums text-white">{changeCount}</dd>
                 </div>
@@ -214,9 +216,9 @@ export default function ChangelogPage() {
           ) : (
             <section className="rounded-3xl border border-dashed border-white/15 bg-white/[0.03] px-6 py-16 text-center">
               <History aria-hidden="true" className="mx-auto h-9 w-9 text-zinc-600" />
-              <h2 className="mt-5 text-xl font-semibold text-white">No Releases Yet</h2>
+              <h2 className="mt-5 text-xl font-semibold text-white"><LocalizedText text="No Releases Yet" /></h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">
-                Release notes will appear here as soon as the first version is published.
+                <LocalizedText text="Release notes will appear here as soon as the first version is published." />
               </p>
             </section>
           )}
@@ -224,11 +226,11 @@ export default function ChangelogPage() {
 
         <a
           href="#changelog-top"
-          aria-label="Back to top"
           className="fixed bottom-5 right-4 z-30 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-white/15 bg-zinc-950/90 px-3 text-sm font-semibold text-zinc-200 shadow-xl shadow-black/40 backdrop-blur-xl transition-colors hover:border-red-400/50 hover:bg-red-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 motion-reduce:transition-none sm:bottom-6 sm:right-6 sm:px-4"
         >
           <ArrowUp aria-hidden="true" className="h-4 w-4" />
-          <span className="hidden sm:inline">Back to top</span>
+          <span className="sr-only"><LocalizedText text="Back to top" /></span>
+          <span aria-hidden="true" className="hidden sm:inline"><LocalizedText text="Back to top" /></span>
         </a>
       </main>
       <Footer />

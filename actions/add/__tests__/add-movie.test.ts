@@ -11,6 +11,9 @@ jest.mock('@/lib/db', () => ({
     movieActor: {
       create: jest.fn(),
     },
+    adminAuditEvent: {
+      create: jest.fn(),
+    },
   },
 }));
 
@@ -55,7 +58,7 @@ describe('add movie action - Authentifizierung & Validierung', () => {
 
   it('❌ sollte Fehler zurückgeben wenn User kein Admin ist', async () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
-    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockCurrentUser.mockResolvedValue({ id: 'user1', role: UserRole.USER } as any);
 
     const mockCurrentRole = currentRole as jest.MockedFunction<typeof currentRole>;
     mockCurrentRole.mockResolvedValue(UserRole.USER);
@@ -73,11 +76,20 @@ describe('add movie action - Authentifizierung & Validierung', () => {
 
     expect(result).toEqual({ error: 'Not allowed Server Action!' });
     expect(db.movie.create).not.toHaveBeenCalled();
+    expect(db.adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId: 'user1',
+        actorRole: 'USER',
+        action: 'content.create',
+        targetId: null,
+        outcome: 'DENIED',
+      }),
+    });
   });
 
   it('❌ sollte Fehler zurückgeben wenn Felder ungültig sind', async () => {
     const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
-    mockCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockCurrentUser.mockResolvedValue({ id: 'user1', role: UserRole.ADMIN } as any);
 
     const mockCurrentRole = currentRole as jest.MockedFunction<typeof currentRole>;
     mockCurrentRole.mockResolvedValue(UserRole.ADMIN);
@@ -95,6 +107,13 @@ describe('add movie action - Authentifizierung & Validierung', () => {
 
     expect(result).toEqual({ error: 'Invalid fields!' });
     expect(db.movie.create).not.toHaveBeenCalled();
+    expect(db.adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId: 'user1',
+        action: 'content.create',
+        outcome: 'FAILED',
+      }),
+    });
   });
 
   it('✅ sollte nur für Admins verfügbar sein', async () => {
@@ -148,5 +167,33 @@ describe('add movie action - Authentifizierung & Validierung', () => {
 
     expect(result).toEqual({ error: 'Genre is not allowed!' });
     expect(db.movie.create).not.toHaveBeenCalled();
+  });
+
+  it('records a successful content creation with its generated target', async () => {
+    (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: UserRole.ADMIN });
+    (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+    (db.movie.create as jest.Mock).mockResolvedValue({ id: 'movie-1' });
+
+    await expect(addMovie({
+      movieName: 'Test Movie',
+      movieDescripton: 'A test movie',
+      movieType: 'Movie',
+      movieGenre: 'Drama',
+      movieDuration: '02:00:00',
+      movieVideo: 'test-video',
+      movieActor: ['actor-1'],
+    }, 'thumbnail-url')).resolves.toEqual({ success: 'Movie added!' });
+
+    expect(db.adminAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId: 'admin-1',
+        action: 'content.create',
+        targetType: 'content',
+        targetId: 'movie-1',
+        outcome: 'SUCCEEDED',
+        correlationId: expect.any(String),
+        metadata: { contentType: 'Movie', initialStatus: 'PUBLISHED' },
+      }),
+    });
   });
 });
