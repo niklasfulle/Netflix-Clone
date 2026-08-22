@@ -19,7 +19,7 @@ test.describe('QR-assisted device login', () => {
       const pairing = await (await pairingResponse).json() as { approvalUrl: string };
       expect(pairing.approvalUrl).toMatch(/^https?:\/\//);
       expect(JSON.stringify(pairing)).not.toMatch(/session|email|account/i);
-      await expect(targetPage.getByText(/Manual code|Manueller Code/i, { exact: true })).toBeVisible();
+      await expect(targetPage.getByText(/^(Manual code|Manueller Code)$/i)).toBeVisible();
 
       const phoneContext = await browser.newContext({ storageState: authStatePaths.user });
       const phonePage = await phoneContext.newPage();

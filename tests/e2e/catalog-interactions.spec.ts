@@ -159,8 +159,8 @@ async function findPlayableCatalogItem(
   }
 }
 
-async function openMobileMenuWhenNeeded(page: Page, linkName: RegExp) {
-  const links = page.getByRole('link', { name: linkName, exact: true });
+async function openCatalogLink(page: Page, href: string) {
+  const links = page.locator(`a[href="${href}"]`);
   const findVisibleLink = async () => {
     for (let index = 0; index < await links.count(); index += 1) {
       const link = links.nth(index);
@@ -172,9 +172,9 @@ async function openMobileMenuWhenNeeded(page: Page, linkName: RegExp) {
   let visibleLink = await findVisibleLink();
   if (!visibleLink) {
     await page.getByRole('button', { name: /Browse|Durchsuchen/i }).click();
-    visibleLink = await findVisibleLink();
+    visibleLink = page.locator(`#mobile-catalog-menu a[href="${href}"]`);
   }
-  await expect(visibleLink, `No visible catalog link matched ${linkName}`).not.toBeNull();
+  await expect(visibleLink, `No visible catalog link matched ${href}`).toBeVisible();
   return visibleLink!;
 }
 
@@ -248,7 +248,7 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
   const closeButton = page.getByRole('button', { name: /Close details$/i });
   if (await closeButton.isVisible()) await closeButton.click();
 
-  const watchlistLink = await openMobileMenuWhenNeeded(page, /Watchlist/i);
+  const watchlistLink = await openCatalogLink(page, '/watchlist');
   await watchlistLink.click();
   await expect(page).toHaveURL(/\/watchlist$/);
   await expect(page.getByRole('button', {
