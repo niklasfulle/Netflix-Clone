@@ -1056,7 +1056,7 @@
         - name: Refresh deployed system metrics
           systemd:
             name: netflix-monitor.service
-            state: started
+            state: restarted
 
         - name: Read deployed system metrics
           slurp:
@@ -1072,8 +1072,16 @@
             that:
               - deployed_system_metrics.docker.container is not none
               - deployed_system_metrics.docker.container.status == 'running'
-              - deployed_system_metrics.docker.container.image == docker_registry ~ '/' ~ image_name ~ ':' ~ app_version
-            fail_msg: "System monitoring did not detect the newly deployed container."
+              - >-
+                deployed_system_metrics.docker.container.imageId ==
+                (deployed_image_identity.stdout | trim | regex_replace('^sha256:', ''))
+            fail_msg: >-
+              System monitoring did not confirm the newly deployed container image.
+              Expected image ID {{ deployed_image_identity.stdout | trim }};
+              observed container {{ deployed_system_metrics.docker.container.name | default('missing') }},
+              status {{ deployed_system_metrics.docker.container.status | default('missing') }},
+              image {{ deployed_system_metrics.docker.container.image | default('missing') }},
+              image ID {{ deployed_system_metrics.docker.container.imageId | default('missing') }}.
 
         - name: Record successful monitoring health check
           set_fact:

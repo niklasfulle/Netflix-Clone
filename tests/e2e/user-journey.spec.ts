@@ -9,9 +9,10 @@ import {
 
 async function navigateFromCatalogMenu(
   page: import('@playwright/test').Page,
+  href: string,
   name: RegExp,
 ) {
-  const links = page.getByRole('link', { name, exact: true });
+  const links = page.locator(`a[href="${href}"]`).filter({ hasText: name });
   const findVisibleLink = async () => {
     for (let index = 0; index < await links.count(); index += 1) {
       const link = links.nth(index);
@@ -39,13 +40,13 @@ test('normal user can navigate the primary catalog journey and sign out', async 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('navigation')).toBeVisible();
 
-  await navigateFromCatalogMenu(page, /Movies|Filme/i);
+  await navigateFromCatalogMenu(page, '/movies', /Movies|Filme/i);
   await expect(page).toHaveURL(/\/movies$/);
 
-  await navigateFromCatalogMenu(page, /Series|Serien/i);
+  await navigateFromCatalogMenu(page, '/series', /Series|Serien/i);
   await expect(page).toHaveURL(/\/series$/);
 
-  await navigateFromCatalogMenu(page, /Home|Startseite/i);
+  await navigateFromCatalogMenu(page, '/', /Home|Startseite/i);
   await expect(page).toHaveURL(/\/$/);
 
   await page.getByRole('button', { name: /Account|Konto/i }).click();

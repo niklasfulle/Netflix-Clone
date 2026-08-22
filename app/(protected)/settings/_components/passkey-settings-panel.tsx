@@ -32,7 +32,7 @@ type PasskeyRowProps = {
 };
 
 const inputClassName =
-  'h-11 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20';
+  'min-w-0 h-11 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20';
 
 const isCancelledCeremony = (error: unknown) =>
   error instanceof DOMException && error.name === 'NotAllowedError';
@@ -44,7 +44,7 @@ const PasskeyRow = ({ passkey, pending, onRename, onRemove }: PasskeyRowProps) =
   const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 
   return (
-    <li className="space-y-4 rounded-2xl border border-white/[0.08] bg-black/20 p-4">
+    <li className="min-w-0 max-w-full space-y-4 rounded-2xl border border-white/[0.08] bg-black/20 p-4">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300">
           <KeyRound className="size-4" aria-hidden="true" />
@@ -230,7 +230,7 @@ export const PasskeySettingsPanel = () => {
   };
 
   return (
-    <div className="mt-7 border-t border-white/10 pt-7">
+    <div className="mt-7 min-w-0 max-w-full border-t border-white/10 pt-7">
       <div className="mb-5 flex gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300">
           <ShieldCheck className="size-5" aria-hidden="true" />

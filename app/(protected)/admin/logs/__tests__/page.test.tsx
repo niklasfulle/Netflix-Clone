@@ -62,10 +62,45 @@ it("switches to read-only Docker container logs", () => {
   });
   render(<AdminLogsPage />);
 
-  fireEvent.click(screen.getByRole("button", { name: "Docker-Container" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Docker-Container" }));
 
   expect(mockedUseSWR.mock.calls.at(-1)[0]).toContain("/api/admin/container-logs?");
   expect(screen.getByText("Container failed")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Logs leeren/i })).not.toBeInTheDocument();
+});
+
+it("shows authentication telemetry in a dedicated read-only tab", () => {
+  mockedUseSWR.mockImplementation((requestUrl: string) => ({
+    data: requestUrl.includes("category=authentication")
+      ? {
+          source: "authentication",
+          logs: [{
+            timestamp: "2026-08-22T12:00:00.000Z",
+            level: "warn",
+            action: "auth.login.completed",
+            category: "authentication",
+            flow: "login",
+            outcome: "rejected",
+            reasonCode: "invalid_credentials",
+          }],
+          total: 1,
+          totalPages: 1,
+          counts: { info: 0, warn: 1, error: 0 },
+        }
+      : logsData,
+    error: undefined,
+    isLoading: false,
+    mutate,
+    isValidating: false,
+  }));
+  render(<AdminLogsPage />);
+
+  fireEvent.click(screen.getByRole("tab", { name: "Authentifizierungs-Logs" }));
+
+  expect(mockedUseSWR.mock.calls.at(-1)[0]).toContain("category=authentication");
+  expect(screen.getByText("login")).toBeInTheDocument();
+  expect(screen.getByText("rejected · invalid_credentials")).toBeInTheDocument();
+  expect(screen.queryByRole("textbox", { name: "Nach Benutzer-ID filtern" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Logs leeren/i })).not.toBeInTheDocument();
 });
 
@@ -166,6 +201,7 @@ it("updates filters, level chips and auto-refresh options", () => {
   act(() => jest.advanceTimersByTime(300));
 
   const [requestUrl, , options] = mockedUseSWR.mock.calls.at(-1);
+  expect(requestUrl).toContain("category=application");
   expect(requestUrl).toContain("search=upload");
   expect(requestUrl).toContain("level=error");
   expect(requestUrl).toContain("action=upload_slow");

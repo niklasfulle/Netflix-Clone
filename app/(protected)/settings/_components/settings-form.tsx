@@ -50,9 +50,9 @@ interface SettingsFormProps {
 }
 
 const panelClassName =
-  "scroll-mt-28 rounded-3xl border border-white/10 bg-[#111116]/95 p-5 shadow-2xl shadow-black/20 sm:p-7";
+  "min-w-0 max-w-full scroll-mt-28 break-words rounded-3xl border border-white/10 bg-[#111116]/95 p-5 shadow-2xl shadow-black/20 sm:p-7";
 const inputClassName =
-  "h-12 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-red-500/60 focus-visible:ring-red-500/20";
+  "min-w-0 h-12 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-red-500/60 focus-visible:ring-red-500/20";
 
 const getPasswordStrength = (password: string): { score: number; label: TranslationKey; color: string } => {
   if (!password) {
@@ -135,7 +135,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
 
   return (
     <Form {...form}>
-      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="min-w-0 w-full space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <section id="account" className={panelClassName}>
           <div className="mb-7 flex flex-col gap-3 border-b border-white/10 pb-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3">
@@ -154,7 +154,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
             </span>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
@@ -256,7 +256,7 @@ export const SettingsForm = ({ user }: SettingsFormProps) => {
             </div>
           ) : (
             <div className="space-y-7">
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="password"

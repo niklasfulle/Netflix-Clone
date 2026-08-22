@@ -101,6 +101,33 @@ describe('createLogStore', () => {
     expect(result.logs[1]).toMatchObject({ level: 'unknown', raw: 'not-json' });
   });
 
+  it('filters authentication records and keeps level counts scoped to that category', async () => {
+    const store = createLogStore({ directory, maxBytes: 64_000, maxFiles: 3 });
+    await store.write({ level: 'error', action: 'upload_failed', category: 'application' });
+    await store.write({ level: 'info', action: 'auth.login.started', category: 'authentication' });
+    await store.write({ level: 'warn', action: 'auth.login.completed', category: 'authentication' });
+
+    const result = await store.query({
+      page: 1,
+      pageSize: 10,
+      category: 'authentication',
+    });
+
+    expect(result.logs).toHaveLength(2);
+    expect(result.logs.every((entry) => entry.category === 'authentication')).toBe(true);
+    expect(result.counts).toEqual({ info: 1, warn: 1 });
+
+    const applicationResult = await store.query({
+      page: 1,
+      pageSize: 10,
+      category: 'application',
+    });
+    expect(applicationResult.logs).toEqual([
+      expect.objectContaining({ action: 'upload_failed' }),
+    ]);
+    expect(applicationResult.counts).toEqual({ error: 1 });
+  });
+
   it('bounds oversized entries', async () => {
     const store = createLogStore({
       directory,

@@ -1,7 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
-const e2eEnvironmentFile = '.env.e2e.local';
+// Keep local credentials outside the workspace by setting E2E_ENV_FILE to an
+// absolute, user-private path. The legacy workspace path remains a temporary
+// compatibility fallback for placeholder-only local setup.
+const e2eEnvironmentFile = process.env.E2E_ENV_FILE ?? '.env.e2e.local';
 
 if (existsSync(e2eEnvironmentFile)) {
   process.loadEnvFile(e2eEnvironmentFile);

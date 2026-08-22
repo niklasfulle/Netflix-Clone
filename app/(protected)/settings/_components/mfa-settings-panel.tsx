@@ -15,7 +15,7 @@ type MfaSettingsPanelProps = Readonly<{
 }>;
 
 const inputClassName =
-  'h-11 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20';
+  'min-w-0 h-11 rounded-xl border-white/10 bg-black/30 px-4 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20';
 
 export function MfaSettingsPanel({
   initiallyEnabled,
@@ -76,7 +76,7 @@ export function MfaSettingsPanel({
 
   if (recoveryCodes.length > 0) {
     return (
-      <div className="space-y-5 rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5">
+      <div className="min-w-0 max-w-full space-y-5 rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5">
         <div className="flex gap-3">
           <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
           <div>
@@ -99,7 +99,7 @@ export function MfaSettingsPanel({
   }
 
   return (
-    <div className="space-y-5 rounded-2xl border border-white/[0.07] bg-black/20 p-5">
+    <div className="min-w-0 max-w-full space-y-5 rounded-2xl border border-white/[0.07] bg-black/20 p-5">
       <div className="flex gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
           {enabled

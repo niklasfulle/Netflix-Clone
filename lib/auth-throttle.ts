@@ -16,6 +16,9 @@ const SETTINGS: Record<AuthThrottleScope, { limit: number; ipLimit: number; wind
   'verification-resend': { limit: 3, ipLimit: 30, windowMs: 30 * 60_000 },
   'two-factor': { limit: 5, ipLimit: 50, windowMs: 10 * 60_000 },
   'two-factor-send': { limit: 1, ipLimit: 20, windowMs: 60_000 },
+  'qr-create': { limit: 10, ipLimit: 30, windowMs: 15 * 60_000 },
+  'qr-approve': { limit: 5, ipLimit: 20, windowMs: 10 * 60_000 },
+  'qr-poll': { limit: 120, ipLimit: 300, windowMs: 5 * 60_000 },
 };
 
 function trustedProxyHops(): number {

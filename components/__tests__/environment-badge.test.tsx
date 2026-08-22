@@ -8,6 +8,10 @@ describe('EnvironmentBadge', () => {
 
     expect(screen.getByRole('status', { name: 'Staging environment' })).toBeInTheDocument();
     expect(screen.getByText('STAGING')).toBeVisible();
+    expect(screen.getByRole('status', { name: 'Staging environment' })).toHaveClass(
+      'top-[4.5rem]',
+      'lg:top-2',
+    );
   });
 
   it.each([undefined, 'development', 'production'])(

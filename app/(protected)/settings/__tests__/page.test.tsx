@@ -87,9 +87,23 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("Signed in with profile Jane.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Scan QR code" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("settings-form")).toBeInTheDocument();
     expect(screen.getByTestId("certificate-trust-panel")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
+  });
+
+  it("allows the mobile settings column to shrink within the viewport", () => {
+    render(<SettingsPage />);
+
+    const contentColumn = screen.getByTestId("settings-form").parentElement;
+    expect(contentColumn).toHaveClass("min-w-0");
+    expect(contentColumn?.parentElement).toHaveClass(
+      "min-w-0",
+      "grid-cols-[minmax(0,1fr)]",
+    );
   });
 
   it("renders the settings shell in German at render time", () => {

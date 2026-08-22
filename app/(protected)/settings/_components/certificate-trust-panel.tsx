@@ -35,7 +35,7 @@ function CertificateCard({
 }>) {
   const label = certificate.id === 'current' ? t('Current root') : t('Previous root (rotation overlap)');
   return (
-    <article className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5">
+    <article className="min-w-0 max-w-full break-words rounded-2xl border border-white/10 bg-black/20 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold text-white">{label}</h3>
         <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
@@ -121,12 +121,12 @@ export function CertificateTrustPanel() {
   };
 
   return (
-    <section id="https-trust" className="mt-6 rounded-3xl border border-white/10 bg-white/[0.045] p-5 sm:p-7">
+    <section id="https-trust" className="mt-6 min-w-0 max-w-full break-words rounded-3xl border border-white/10 bg-white/[0.045] p-5 sm:p-7">
       <div className="flex items-start gap-3">
         <span className="rounded-xl bg-sky-500/10 p-2.5 text-sky-300">
           <ShieldCheck className="h-5 w-5" aria-hidden="true" />
         </span>
-        <div>
+        <div className="min-w-0">
           <h2 className="text-xl font-semibold text-white">{t('LAN HTTPS certificate trust')}</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-400">
             {t('Download only the public root certificate used by this deployment and verify its fingerprint through a separate trusted channel.')}

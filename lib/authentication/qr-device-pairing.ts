@@ -11,8 +11,11 @@ type PairingRequest = {
   manualCodeHash: string;
   approvalSecretHash: string;
   pollSecretHash: string;
+  exchangeSecretHash: string;
   expiresAt: Date;
 };
+
+type PairingRequestStatus = 'PENDING' | 'APPROVED' | 'DENIED' | 'CANCELLED' | 'CONSUMED' | 'EXPIRED';
 
 type PairingSecrets = {
   randomBytes(size: number): Buffer;
@@ -27,6 +30,14 @@ type QrDevicePairingDependencies = {
       approverUserId: string;
       now: Date;
     }): Promise<boolean>;
+    approveByManualCode?(input: {
+      manualCodeHash: string;
+      approverUserId: string;
+      now: Date;
+    }): Promise<boolean>;
+    cancel?(input: { pollSecretHash: string; now: Date }): Promise<boolean>;
+    getStatus?(input: { pollSecretHash: string; now: Date }): Promise<PairingRequestStatus | null>;
+    cleanup?(input: { now: Date; limit: number }): Promise<void>;
   };
   recentAuthentication?: {
     isValid(input: { userId: string; sessionId: string; now: Date }): Promise<boolean>;
@@ -72,10 +83,13 @@ export function createQrDevicePairingService({
 
   return {
     async create() {
+      const now = clock.now();
+      await pairingRequests.cleanup?.({ now, limit: 50 });
       const approvalSecret = secrets.randomBytes(32).toString('base64url');
       const pollSecret = secrets.randomBytes(32).toString('base64url');
+      const exchangeSecret = secrets.randomBytes(32).toString('base64url');
       const displayCode = manualCode(secrets.randomBytes(MANUAL_CODE_LENGTH));
-      const expiresAt = new Date(clock.now().getTime() + PAIRING_LIFETIME_MS);
+      const expiresAt = new Date(now.getTime() + PAIRING_LIFETIME_MS);
 
       await pairingRequests.create({
         id: randomUUID(),
@@ -84,6 +98,7 @@ export function createQrDevicePairingService({
         manualCodeHash: secrets.hash(displayCode),
         approvalSecretHash: secrets.hash(approvalSecret),
         pollSecretHash: secrets.hash(pollSecret),
+        exchangeSecretHash: secrets.hash(exchangeSecret),
         expiresAt,
       });
 
@@ -94,6 +109,8 @@ export function createQrDevicePairingService({
         expiresAt,
         manualCode: displayCode,
         approvalUrl: approvalUrl.toString(),
+        pollSecret,
+        exchangeSecret,
       };
     },
 
@@ -116,6 +133,47 @@ export function createQrDevicePairingService({
         now,
       });
       return approved ? { status: 'approved' } : { status: 'rejected' };
+    },
+
+    async approveByManualCode(input: {
+      manualCode: string;
+      userId: string;
+      sessionId: string;
+    }): Promise<{ status: 'approved' } | { status: 'rejected' }> {
+      const now = clock.now();
+      const isRecentlyAuthenticated = await recentAuthentication?.isValid({
+        userId: input.userId,
+        sessionId: input.sessionId,
+        now,
+      });
+      if (!isRecentlyAuthenticated || !pairingRequests.approveByManualCode) return { status: 'rejected' };
+
+      const approved = await pairingRequests.approveByManualCode({
+        manualCodeHash: secrets.hash(input.manualCode),
+        approverUserId: input.userId,
+        now,
+      });
+      return approved ? { status: 'approved' } : { status: 'rejected' };
+    },
+
+    async cancel(pollSecret: string): Promise<{ status: 'cancelled' } | { status: 'rejected' }> {
+      if (!pairingRequests.cancel) return { status: 'rejected' };
+      const cancelled = await pairingRequests.cancel({
+        pollSecretHash: secrets.hash(pollSecret),
+        now: clock.now(),
+      });
+      return cancelled ? { status: 'cancelled' } : { status: 'rejected' };
+    },
+
+    async status(pollSecret: string): Promise<{ status: 'pending' | 'approved' | 'terminal' }> {
+      if (!pairingRequests.getStatus) return { status: 'terminal' };
+      const status = await pairingRequests.getStatus({
+        pollSecretHash: secrets.hash(pollSecret),
+        now: clock.now(),
+      });
+      if (status === 'PENDING') return { status: 'pending' };
+      if (status === 'APPROVED') return { status: 'approved' };
+      return { status: 'terminal' };
     },
   };
 }

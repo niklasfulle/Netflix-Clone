@@ -14,6 +14,7 @@ import { getAuthResultMessageKey } from '@/components/auth/auth-result';
 import { CardWrapper } from '@/components/auth/card-wrapper';
 import { MfaChallenge } from '@/components/auth/mfa-challenge';
 import { PasskeyLogin } from '@/components/auth/passkey-login';
+import { QrDeviceLogin } from '@/components/auth/qr-device-login';
 import { useAuthFormReady } from '@/components/auth/use-auth-form-ready';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { FormError } from '@/components/form-error';
@@ -228,6 +229,7 @@ export const LoginForm = () => {
         </form>
       </Form>
       <PasskeyLogin />
+      <QrDeviceLogin />
     </CardWrapper>
   );
 };

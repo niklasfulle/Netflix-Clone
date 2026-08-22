@@ -87,7 +87,7 @@ export function SecurityActivityPanel() {
   }
 
   return (
-    <div className="mt-7 space-y-5 rounded-2xl border border-white/[0.07] bg-black/20 p-5">
+    <div className="mt-7 min-w-0 max-w-full space-y-5 rounded-2xl border border-white/[0.07] bg-black/20 p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">

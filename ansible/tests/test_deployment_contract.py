@@ -222,10 +222,32 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("Preserve failed-container diagnostics", playbook)
         self.assertIn("Restore the previous compose definition", playbook)
         self.assertIn("Restart the previous working image", playbook)
+        self.assertIn(
+            "deployed_system_metrics.docker.container.imageId ==",
+            playbook,
+        )
+        self.assertIn(
+            "(deployed_image_identity.stdout | trim | regex_replace('^sha256:', ''))",
+            playbook,
+        )
+        self.assertNotIn(
+            "deployed_system_metrics.docker.container.image == docker_registry",
+            playbook,
+        )
         self.assertLess(
             playbook.index("Verify deployed container in system metrics"),
             playbook.index("Remove dangling Docker layers after successful start"),
         )
+
+    def test_deployment_forces_a_fresh_monitor_snapshot_after_health_checks(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        refresh_start = playbook.index("- name: Refresh deployed system metrics")
+        refresh_end = playbook.index("- name: Read deployed system metrics", refresh_start)
+        refresh_task = playbook[refresh_start:refresh_end]
+
+        self.assertIn("state: restarted", refresh_task)
 
     def test_compose_applies_runtime_limits(self):
         compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(encoding="utf-8")

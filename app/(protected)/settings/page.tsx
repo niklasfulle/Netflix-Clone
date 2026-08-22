@@ -12,13 +12,14 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import getUser from "@/hooks/useUser";
 
-import { SettingsForm } from "./_components/settings-form";
 import { CertificateTrustPanel } from "./_components/certificate-trust-panel";
+import { QrDeviceScanner } from "./_components/qr-device-scanner";
+import { SettingsForm } from "./_components/settings-form";
 
 const SettingsSkeleton = () => (
-  <div className="mx-auto grid w-full max-w-6xl animate-pulse gap-6 lg:grid-cols-[260px_1fr]">
+  <div className="mx-auto grid min-w-0 w-full max-w-6xl grid-cols-[minmax(0,1fr)] animate-pulse gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
     <div className="h-56 rounded-3xl bg-white/[0.05]" />
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="h-72 rounded-3xl bg-white/[0.05]" />
       <div className="h-80 rounded-3xl bg-white/[0.05]" />
     </div>
@@ -48,13 +49,13 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[#08080b] text-white">
       <Navbar />
 
-      <main className="relative overflow-hidden px-4 pb-20 pt-28 sm:px-6 sm:pt-32 lg:px-8">
+      <main className="relative overflow-x-clip px-4 pb-20 pt-28 sm:px-6 sm:pt-32 lg:px-8">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-[430px] bg-[radial-gradient(circle_at_15%_10%,rgba(229,9,20,0.18),transparent_38%),radial-gradient(circle_at_88%_5%,rgba(87,64,202,0.16),transparent_35%)]"
         />
 
-        <div className="relative mx-auto max-w-6xl">
+        <div className="relative mx-auto min-w-0 w-full max-w-6xl">
           <Link
             href="/"
             className="mb-7 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-zinc-300 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
@@ -63,7 +64,7 @@ export default function SettingsPage() {
             {t("Back to Netflix")}
           </Link>
 
-          <header className="mb-10 max-w-3xl">
+          <header className="mb-10 min-w-0 max-w-3xl">
             <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-red-400">
               <Settings2 className="h-4 w-4" aria-hidden="true" />
               {t("Account settings")}
@@ -79,9 +80,9 @@ export default function SettingsPage() {
           {isLoading ? (
             <SettingsSkeleton />
           ) : (
-            <div className="grid items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-              <aside className="space-y-4 lg:sticky lg:top-28">
-                <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20">
+            <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+              <aside className="min-w-0 space-y-4 lg:sticky lg:top-28">
+                <div className="min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/20">
                   <div className="flex items-center gap-3 border-b border-white/10 pb-5">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-800 text-lg font-bold shadow-lg shadow-red-950/40">
                       {(account.name || account.email || "N")
@@ -130,12 +131,12 @@ export default function SettingsPage() {
                   </nav>
                 </div>
 
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.07] p-4">
+                <div className="min-w-0 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.07] p-4">
                   <div className="flex gap-3">
                     <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
                       <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold text-emerald-100">
                         {t("Account active")}
                       </p>
@@ -147,7 +148,8 @@ export default function SettingsPage() {
                 </div>
               </aside>
 
-              <div>
+              <div className="min-w-0">
+                <QrDeviceScanner />
                 <SettingsForm user={user} />
                 <CertificateTrustPanel />
               </div>

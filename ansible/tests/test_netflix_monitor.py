@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -88,6 +89,37 @@ class NetflixMonitorTests(unittest.TestCase):
             self.assertLessEqual(len(contents.encode("utf-8")), 64)
             self.assertTrue(contents.endswith("x" * 64))
             self.assertEqual(list(Path(directory).glob(".container-*.log")), [])
+
+    def test_docker_snapshot_keeps_image_reference_and_normalizes_image_id(self):
+        image_id = "a" * 64
+        inspect_result = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=(
+                "running\thealthy\t2026-08-21T12:00:00Z\t0\t"
+                "docker.io/salkin263/netflix-clone:1.12.1\tsha256:"
+                f"{image_id}\n"
+            ),
+        )
+        stats_result = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout='{"CPUPerc":"0.10%","MemUsage":"1MiB / 2MiB","MemPerc":"50%","PIDs":"5"}\n',
+        )
+        original_run_command = netflix_monitor.run_command
+        netflix_monitor.run_command = lambda _arguments: (
+            inspect_result if _arguments[1] == "inspect" else stats_result
+        )
+        try:
+            result = netflix_monitor.collect_docker()
+        finally:
+            netflix_monitor.run_command = original_run_command
+
+        self.assertEqual(
+            result["container"]["image"],
+            "docker.io/salkin263/netflix-clone:1.12.1",
+        )
+        self.assertEqual(result["container"]["imageId"], image_id)
 
 
 if __name__ == "__main__":

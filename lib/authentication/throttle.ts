@@ -6,7 +6,10 @@ export type AuthThrottleScope =
   | 'password-reset'
   | 'verification-resend'
   | 'two-factor'
-  | 'two-factor-send';
+  | 'two-factor-send'
+  | 'qr-create'
+  | 'qr-approve'
+  | 'qr-poll';
 
 export type RateLimitSubject = {
   scope: AuthThrottleScope;
@@ -30,11 +33,11 @@ export interface AuthRateLimitRepository {
   reset(subject: RateLimitSubject): Promise<void>;
 }
 
-type ThrottleSettings = Record<AuthThrottleScope, {
+type ThrottleSettings = Partial<Record<AuthThrottleScope, {
   limit: number;
   ipLimit?: number;
   windowMs: number;
-}>;
+}>>;
 
 type AuthenticationThrottleDependencies = {
   repository: AuthRateLimitRepository;
@@ -88,6 +91,9 @@ export function createAuthenticationThrottle({
     async consume(scope: AuthThrottleScope, identity: string) {
       const timestamp = now();
       const configuration = settings[scope];
+      if (!configuration) {
+        throw new Error(`Missing authentication throttle configuration for ${scope}`);
+      }
       const accountSubject = subject(scope, 'account', identity);
       const ipSubject = subject(scope, 'ip', await clientAddress());
       const accountLimit = await repository.consume({
