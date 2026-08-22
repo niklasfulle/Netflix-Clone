@@ -7,6 +7,8 @@ const mockRelease = jest.fn();
 const mockHeaders = jest.fn();
 const mockResolveClientAddress = jest.fn();
 const mockCreateAuthenticationThrottle = jest.fn();
+const mockCreateRedisAuthRateLimitRepository = jest.fn();
+const mockGetRedisRuntime = jest.fn();
 
 jest.mock('next/headers', () => ({
   headers: (...args: unknown[]) => mockHeaders(...args),
@@ -14,6 +16,16 @@ jest.mock('next/headers', () => ({
 
 jest.mock('@/data/auth-rate-limit', () => ({
   authRateLimitRepository: { kind: 'persistent-repository' },
+}));
+
+jest.mock('@/data/redis-auth-rate-limit', () => ({
+  createRedisAuthRateLimitRepository: (...args: unknown[]) => (
+    mockCreateRedisAuthRateLimitRepository(...args)
+  ),
+}));
+
+jest.mock('@/lib/redis/runtime', () => ({
+  getRedisRuntime: (...args: unknown[]) => mockGetRedisRuntime(...args),
 }));
 
 jest.mock('@/lib/authentication/throttle', () => ({
@@ -38,6 +50,8 @@ describe('authentication throttle runtime adapter', () => {
       consume: mockConsume,
       release: mockRelease,
     });
+    mockGetRedisRuntime.mockReturnValue({ kind: 'redis-runtime' });
+    mockCreateRedisAuthRateLimitRepository.mockReturnValue({ kind: 'redis-rate-limit-repository' });
   });
 
   afterAll(() => {
@@ -92,6 +106,11 @@ describe('authentication throttle runtime adapter', () => {
       ipLimit: 50,
       windowMs: 15 * 60_000,
     });
+    expect(mockCreateRedisAuthRateLimitRepository).toHaveBeenCalledWith({
+      redis: { kind: 'redis-runtime' },
+      fallback: { kind: 'persistent-repository' },
+    });
+    expect(dependencies.repository).toEqual({ kind: 'redis-rate-limit-repository' });
   });
 
   it('falls back to an unknown address when request headers are unavailable', async () => {

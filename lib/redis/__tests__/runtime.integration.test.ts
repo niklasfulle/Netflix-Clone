@@ -78,6 +78,39 @@ describeIntegration('RedisRuntime with a real Redis server', () => {
       value: { ready: true },
     });
 
+    const accountCounter = runtime.key('auth-rate-limit', 1, ['login', 'account', 'account-hash']);
+    const ipCounter = runtime.key('auth-rate-limit', 1, ['login', 'ip', 'ip-hash']);
+    const counters = [
+      { key: accountCounter, limit: 2, windowMs: 30_000 },
+      { key: ipCounter, limit: 3, windowMs: 30_000 },
+    ] as const;
+    await expect(runtime.incrementFixedWindowCounters(counters)).resolves.toMatchObject({
+      status: 'ok',
+      value: [{ attempts: 1 }, { attempts: 1 }],
+    });
+    await expect(runtime.incrementFixedWindowCounters(counters)).resolves.toMatchObject({
+      status: 'ok',
+      value: [{ attempts: 2 }, { attempts: 2 }],
+    });
+    await expect(runtime.incrementFixedWindowCounters(counters)).resolves.toMatchObject({
+      status: 'ok',
+      value: [{ attempts: 3 }, { attempts: 3 }],
+    });
+
+    const concurrentCounter = runtime.key('auth-rate-limit', 1, [
+      'login',
+      'account',
+      'concurrent-account-hash',
+    ]);
+    const concurrentResults = await Promise.all(Array.from({ length: 6 }, () => (
+      runtime.incrementFixedWindowCounters([
+        { key: concurrentCounter, limit: 2, windowMs: 30_000 },
+      ])
+    )));
+    expect(concurrentResults.map(result => (
+      result.status === 'ok' ? result.value[0]?.attempts : undefined
+    )).sort()).toEqual([1, 2, 3, 3, 3, 3]);
+
     docker('pause', containerName);
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await expect(runtime.get(key, value => value)).resolves.toMatchObject({

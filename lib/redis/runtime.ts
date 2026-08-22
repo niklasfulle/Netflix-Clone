@@ -33,9 +33,23 @@ export type RedisRuntime = {
   key(namespace: string, version: number, identities: readonly string[]): RedisKey;
   get<T>(key: RedisKey, decode: (value: unknown) => T): Promise<RedisResult<T | null>>;
   set<T>(key: RedisKey, value: T, options: { ttlSeconds: number }): Promise<RedisResult<true>>;
+  incrementFixedWindowCounters(counters: readonly RedisFixedWindowCounter[]): Promise<
+    RedisResult<readonly RedisFixedWindowCounterValue[]>
+  >;
   delete(key: RedisKey): Promise<RedisResult<boolean>>;
   health(): Promise<RedisHealth>;
   close(): Promise<void>;
+};
+
+export type RedisFixedWindowCounter = {
+  key: RedisKey;
+  limit: number;
+  windowMs: number;
+};
+
+export type RedisFixedWindowCounterValue = {
+  attempts: number;
+  retryAfterMs: number;
 };
 
 export type RedisRuntimeOptions = {
@@ -58,6 +72,29 @@ const ENVIRONMENT_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_VALUE_BYTES = 64 * 1024;
 const CIRCUIT_FAILURE_THRESHOLD = 3;
 const DEFAULT_CIRCUIT_COOLDOWN_MS = 5_000;
+const INCREMENT_FIXED_WINDOW_COUNTERS_SCRIPT = `
+local result = {}
+for index, key in ipairs(KEYS) do
+  local limit = tonumber(ARGV[(index - 1) * 2 + 1])
+  local window = tonumber(ARGV[(index - 1) * 2 + 2])
+  local attempts = redis.call('INCR', key)
+  if attempts == 1 then
+    redis.call('PEXPIRE', key, window)
+  end
+  local retryAfter = redis.call('PTTL', key)
+  if retryAfter < 1 then
+    redis.call('PEXPIRE', key, window)
+    retryAfter = window
+  end
+  if attempts > limit + 1 then
+    attempts = limit + 1
+    redis.call('SET', key, attempts, 'PX', retryAfter)
+  end
+  table.insert(result, attempts)
+  table.insert(result, retryAfter)
+end
+return result
+`;
 
 class InvalidRedisDataError extends Error {}
 class RedisTimeoutError extends Error {}
@@ -349,6 +386,48 @@ export function createRedisRuntime(options: RedisRuntimeOptions): RedisRuntime {
       return execute(async currentClient => {
         await currentClient.set(key, encoded, { EX: ttlSeconds });
         return true as const;
+      });
+    },
+    async incrementFixedWindowCounters(counters) {
+      const invalidCounter = counters.length < 1
+        || counters.length > 8
+        || counters.some(counter => (
+          !Number.isSafeInteger(counter.limit)
+          || counter.limit < 1
+          || counter.limit > 100_000
+          || !Number.isSafeInteger(counter.windowMs)
+          || counter.windowMs < 1_000
+          || counter.windowMs > 604_800_000
+        ));
+      if (invalidCounter) {
+        return execute(async () => {
+          throw new InvalidRedisDataError('Redis fixed-window counters are invalid');
+        });
+      }
+
+      return execute(async currentClient => {
+        const rawResult = await currentClient.eval(INCREMENT_FIXED_WINDOW_COUNTERS_SCRIPT, {
+          keys: counters.map(counter => counter.key),
+          arguments: counters.flatMap(counter => [String(counter.limit), String(counter.windowMs)]),
+        });
+        if (!Array.isArray(rawResult) || rawResult.length !== counters.length * 2) {
+          throw new InvalidRedisDataError('Redis returned an invalid fixed-window decision');
+        }
+        const values = [];
+        for (let index = 0; index < rawResult.length; index += 2) {
+          const attempts = Number(rawResult[index]);
+          const retryAfterMs = Number(rawResult[index + 1]);
+          if (
+            !Number.isSafeInteger(attempts)
+            || attempts < 1
+            || !Number.isSafeInteger(retryAfterMs)
+            || retryAfterMs < 1
+          ) {
+            throw new InvalidRedisDataError('Redis returned an invalid fixed-window decision');
+          }
+          values.push({ attempts, retryAfterMs });
+        }
+        return values;
       });
     },
     async delete(key) {

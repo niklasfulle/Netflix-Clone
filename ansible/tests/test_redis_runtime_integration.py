@@ -313,10 +313,27 @@ class RedisRuntimeIntegrationTests(unittest.TestCase):
                     *app_command, "SET", "netflix:production:smoke", "blocked"
                 )
                 denied_admin = self.docker_run(*app_command, "FLUSHDB")
+                atomic_counters = self.docker_run(
+                    *app_command,
+                    "EVAL",
+                    "return {redis.call('INCR', KEYS[1]), redis.call('INCR', KEYS[2])}",
+                    "2",
+                    "netflix:staging:v1:auth-rate-limit:account",
+                    "netflix:staging:v1:auth-rate-limit:ip",
+                )
+                denied_script_key = self.docker_run(
+                    *app_command,
+                    "EVAL",
+                    "return redis.call('INCR', KEYS[1])",
+                    "1",
+                    "netflix:production:v1:auth-rate-limit:account",
+                )
 
                 self.assertEqual("OK", allowed.stdout.strip())
                 self.assertIn("NOPERM", denied_key.stdout)
                 self.assertIn("NOPERM", denied_admin.stdout)
+                self.assertEqual(["1", "1"], atomic_counters.stdout.splitlines())
+                self.assertIn("NOPERM", denied_script_key.stdout)
 
                 self.docker_run("restart", container_name)
                 self.wait_until_healthy(container_name)

@@ -6,6 +6,7 @@ const mockRedisState = {
   store: new Map<string, string>(),
   listeners: new Map<string, Array<(...arguments_: unknown[]) => void>>(),
   commandError: undefined as Error | undefined,
+  evalArguments: undefined as { keys: string[]; arguments: string[] } | undefined,
 };
 
 jest.mock('redis', () => {
@@ -40,6 +41,11 @@ jest.mock('redis', () => {
       if (mockRedisState.commandError) throw mockRedisState.commandError;
       return mockRedisState.store.delete(key) ? 1 : 0;
     },
+    async eval(_script: string, options: { keys: string[]; arguments: string[] }) {
+      if (mockRedisState.commandError) throw mockRedisState.commandError;
+      mockRedisState.evalArguments = options;
+      return [1, 60_000, 2, 59_500];
+    },
     async ping() {
       if (mockRedisState.commandError) throw mockRedisState.commandError;
       return 'PONG';
@@ -66,6 +72,31 @@ describe('configured RedisRuntime', () => {
     mockRedisState.store.clear();
     mockRedisState.listeners.clear();
     mockRedisState.commandError = undefined;
+    mockRedisState.evalArguments = undefined;
+  });
+
+  it('increments multiple fixed-window counters in one atomic Redis command', async () => {
+    const runtime = createRedisRuntime({
+      environment: 'staging',
+      url: 'redis://127.0.0.1:6379/0',
+    });
+    const accountKey = runtime.key('auth-rate-limit', 1, ['login', 'account', 'account-hash']);
+    const ipKey = runtime.key('auth-rate-limit', 1, ['login', 'ip', 'ip-hash']);
+
+    await expect(runtime.incrementFixedWindowCounters([
+      { key: accountKey, limit: 5, windowMs: 60_000 },
+      { key: ipKey, limit: 50, windowMs: 60_000 },
+    ])).resolves.toMatchObject({
+      status: 'ok',
+      value: [
+        { attempts: 1, retryAfterMs: 60_000 },
+        { attempts: 2, retryAfterMs: 59_500 },
+      ],
+    });
+    expect(mockRedisState.evalArguments).toEqual({
+      keys: [accountKey, ipKey],
+      arguments: ['5', '60000', '50', '60000'],
+    });
   });
 
   it('stores, decodes, invalidates, and reports cache results through one interface', async () => {

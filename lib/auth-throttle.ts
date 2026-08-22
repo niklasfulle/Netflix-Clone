@@ -1,11 +1,13 @@
 import { headers } from 'next/headers';
 
 import { authRateLimitRepository } from '@/data/auth-rate-limit';
+import { createRedisAuthRateLimitRepository } from '@/data/redis-auth-rate-limit';
 import {
   createAuthenticationThrottle,
   resolveClientAddress,
   type AuthThrottleScope,
 } from '@/lib/authentication/throttle';
+import { getRedisRuntime } from '@/lib/redis/runtime';
 
 export type { AuthThrottleScope } from '@/lib/authentication/throttle';
 
@@ -49,7 +51,10 @@ let persistentThrottle: ReturnType<typeof createAuthenticationThrottle> | undefi
 
 function getPersistentThrottle() {
   persistentThrottle ??= createAuthenticationThrottle({
-    repository: authRateLimitRepository,
+    repository: createRedisAuthRateLimitRepository({
+      redis: getRedisRuntime(),
+      fallback: authRateLimitRepository,
+    }),
     clientAddress: requestIp,
     secret: hashSecret(),
     settings: SETTINGS,

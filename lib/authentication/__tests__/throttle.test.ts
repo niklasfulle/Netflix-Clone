@@ -13,18 +13,22 @@ function createPersistentFakeRepository() {
   const records = new Map<string, StoredLimit>();
   const resetSubjects: RateLimitSubject[] = [];
   const repository: AuthRateLimitRepository = {
-    consume: async (input) => {
-      const key = `${input.scope}:${input.subjectType}:${input.subjectHash}`;
-      const existing = records.get(key);
-      const next = !existing || existing.resetAt <= input.now
-        ? { attempts: 1, resetAt: new Date(input.now.getTime() + input.windowMs) }
-        : { attempts: Math.min(existing.attempts + 1, input.limit + 1), resetAt: existing.resetAt };
-      records.set(key, next);
-      return next;
+    consume: async inputs => {
+      return inputs.map(input => {
+        const key = `${input.scope}:${input.subjectType}:${input.subjectHash}`;
+        const existing = records.get(key);
+        const next = !existing || existing.resetAt <= input.now
+          ? { attempts: 1, resetAt: new Date(input.now.getTime() + input.windowMs) }
+          : { attempts: Math.min(existing.attempts + 1, input.limit + 1), resetAt: existing.resetAt };
+        records.set(key, next);
+        return next;
+      });
     },
-    reset: async (subject) => {
-      resetSubjects.push(subject);
-      records.delete(`${subject.scope}:${subject.subjectType}:${subject.subjectHash}`);
+    reset: async subjects => {
+      for (const subject of subjects) {
+        resetSubjects.push(subject);
+        records.delete(`${subject.scope}:${subject.subjectType}:${subject.subjectHash}`);
+      }
     },
   };
   return { repository, records, resetSubjects };
@@ -39,6 +43,29 @@ describe('authentication throttle', () => {
     'two-factor': { limit: 2, windowMs: 10_000 },
     'two-factor-send': { limit: 1, windowMs: 60_000 },
   } as const;
+
+  it('consumes the account and shared IP budgets as one atomic repository decision', async () => {
+    const resetAt = new Date('2026-08-09T20:00:10.000Z');
+    const consume = jest.fn().mockResolvedValue([
+      { attempts: 1, resetAt },
+      { attempts: 1, resetAt },
+    ]);
+    const throttle = createAuthenticationThrottle({
+      repository: { consume, reset: jest.fn() },
+      clientAddress: async () => '192.0.2.10',
+      secret: 'stable-test-secret',
+      settings,
+      now: () => new Date('2026-08-09T20:00:00.000Z'),
+    });
+
+    await expect(throttle.consume('login', 'viewer@example.com')).resolves
+      .toMatchObject({ allowed: true });
+    expect(consume).toHaveBeenCalledTimes(1);
+    expect(consume.mock.calls[0]?.[0]).toEqual([
+      expect.objectContaining({ scope: 'login', subjectType: 'account', limit: 2 }),
+      expect.objectContaining({ scope: 'login', subjectType: 'ip', limit: 2 }),
+    ]);
+  });
 
   it('shares limits across throttle instances and survives an instance restart', async () => {
     const { repository } = createPersistentFakeRepository();

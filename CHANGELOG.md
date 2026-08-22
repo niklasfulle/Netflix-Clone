@@ -12,6 +12,7 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - The administrator System Overview now reports Redis connectivity, command latency, errors, reconnects, fallbacks, and cache hits and misses
 - Shared movie and series catalog metadata is cached in Redis for five minutes while profile watch progress remains current in PostgreSQL
 - Catalog cache misses, invalid values, timeouts, disabled Redis, and write failures fall back safely to PostgreSQL without failing the user request
+- Authentication throttling now atomically increments Redis account and shared-IP budgets while PostgreSQL remains the fail-closed authority across outages, eviction, restarts, and rolling deployments
 
 ## 1.12.1
 

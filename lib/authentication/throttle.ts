@@ -29,8 +29,8 @@ type StoredRateLimit = {
 };
 
 export interface AuthRateLimitRepository {
-  consume(input: ConsumeRateLimitInput): Promise<StoredRateLimit>;
-  reset(subject: RateLimitSubject): Promise<void>;
+  consume(inputs: readonly ConsumeRateLimitInput[]): Promise<readonly StoredRateLimit[]>;
+  reset(subjects: readonly RateLimitSubject[]): Promise<void>;
 }
 
 type ThrottleSettings = Partial<Record<AuthThrottleScope, {
@@ -96,18 +96,23 @@ export function createAuthenticationThrottle({
       }
       const accountSubject = subject(scope, 'account', identity);
       const ipSubject = subject(scope, 'ip', await clientAddress());
-      const accountLimit = await repository.consume({
-        ...accountSubject,
-        limit: configuration.limit,
-        windowMs: configuration.windowMs,
-        now: timestamp,
-      });
-      const ipLimit = await repository.consume({
-        ...ipSubject,
-        limit: configuration.ipLimit ?? configuration.limit,
-        windowMs: configuration.windowMs,
-        now: timestamp,
-      });
+      const [accountLimit, ipLimit] = await repository.consume([
+        {
+          ...accountSubject,
+          limit: configuration.limit,
+          windowMs: configuration.windowMs,
+          now: timestamp,
+        },
+        {
+          ...ipSubject,
+          limit: configuration.ipLimit ?? configuration.limit,
+          windowMs: configuration.windowMs,
+          now: timestamp,
+        },
+      ]);
+      if (!accountLimit || !ipLimit) {
+        throw new Error('Authentication rate-limit repository returned an incomplete decision');
+      }
       const accountAllowed = accountLimit.attempts <= configuration.limit;
       const ipAllowed = ipLimit.attempts <= (configuration.ipLimit ?? configuration.limit);
       const retryAfterSeconds = Math.max(
@@ -124,7 +129,7 @@ export function createAuthenticationThrottle({
     },
 
     async release(scope: AuthThrottleScope, identity: string) {
-      await repository.reset(subject(scope, 'account', identity));
+      await repository.reset([subject(scope, 'account', identity)]);
     },
   };
 }

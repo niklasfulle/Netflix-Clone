@@ -64,6 +64,29 @@ and actor-filtered rows that use `getMoviesWithWatchTime`.
 - Thumbnail and video payloads are not copied into Redis. Catalog responses
   continue to use the dedicated thumbnail resource URL.
 
+## Authentication throttling
+
+Authentication attempts use Redis as an atomic first-line limiter while the
+existing PostgreSQL `AuthRateLimit` table remains authoritative.
+
+- Account and shared-IP counters are incremented together by one bounded Lua
+  command. Every key uses the environment namespace, an explicit schema
+  version, hashed identities, and the configured fixed-window TTL.
+- An exhausted Redis budget is rejected immediately, which keeps repeated
+  abusive attempts away from PostgreSQL after the limit has been reached.
+- Every attempt still allowed by Redis is recorded and decided atomically in
+  PostgreSQL. This preserves effective limits across rolling deployments,
+  Redis eviction, an empty cache, and Redis restarts.
+- A Redis timeout, unavailable connection, disabled adapter, or open circuit
+  falls back to the same PostgreSQL decision. PostgreSQL failure is fail-closed;
+  a Redis result alone never authorizes authentication.
+- Successful authentication resets only the account budget in both stores.
+  The shared-IP budget remains in place, matching the existing policy.
+
+The Redis counters contain neither raw email addresses nor client addresses.
+The authentication throttle hashes both subjects with the authentication
+secret before the Redis runtime applies its environment-scoped key hash.
+
 ## Security and resource contract
 
 - Redis has no published host or LAN port and joins only the internal Compose
