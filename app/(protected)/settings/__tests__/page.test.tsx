@@ -87,6 +87,9 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("Signed in with profile Jane.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Scan QR code" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("settings-form")).toBeInTheDocument();
     expect(screen.getByTestId("certificate-trust-panel")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();

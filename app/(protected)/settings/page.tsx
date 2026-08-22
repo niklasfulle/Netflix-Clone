@@ -12,8 +12,9 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
 import getUser from "@/hooks/useUser";
 
-import { SettingsForm } from "./_components/settings-form";
 import { CertificateTrustPanel } from "./_components/certificate-trust-panel";
+import { QrDeviceScanner } from "./_components/qr-device-scanner";
+import { SettingsForm } from "./_components/settings-form";
 
 const SettingsSkeleton = () => (
   <div className="mx-auto grid min-w-0 w-full max-w-6xl grid-cols-[minmax(0,1fr)] animate-pulse gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -148,6 +149,7 @@ export default function SettingsPage() {
               </aside>
 
               <div className="min-w-0">
+                <QrDeviceScanner />
                 <SettingsForm user={user} />
                 <CertificateTrustPanel />
               </div>
