@@ -5,29 +5,19 @@ import { accounts, authStatePaths, createBrowserFailureMonitor } from './support
 async function warmLocalQrRoutes(request: APIRequestContext) {
   if (process.env.PLAYWRIGHT_EXTERNAL_SERVER === 'true') return;
 
-  const pairingResponse = await request.post('/api/auth/qr');
-  expect(pairingResponse.ok()).toBe(true);
-  const pairing = await pairingResponse.json() as {
-    exchangeSecret: string;
-    pollSecret: string;
-  };
+  // Rejected requests still compile the route modules, but cannot create,
+  // approve, consume, or cancel a pairing without valid browser input.
+  const responses = await Promise.all([
+    request.post('/api/auth/qr', { data: {} }),
+    request.post('/api/auth/qr/status', { data: {} }),
+    request.post('/api/auth/qr/approve', { data: {} }),
+    request.post('/api/auth/qr/exchange', { data: {} }),
+    request.post('/api/auth/qr/cancel', { data: {} }),
+  ]);
 
-  const statusResponse = await request.post('/api/auth/qr/status', {
-    data: { pollSecret: pairing.pollSecret },
-  });
-  expect(statusResponse.ok()).toBe(true);
-
-  // Invalid requests still compile these route modules without approving or
-  // consuming the disposable pairing.
-  await request.post('/api/auth/qr/approve', { data: {} });
-  await request.post('/api/auth/qr/exchange', {
-    data: { exchangeSecret: pairing.exchangeSecret },
-  });
-
-  const cancelResponse = await request.post('/api/auth/qr/cancel', {
-    data: { pollSecret: pairing.pollSecret },
-  });
-  expect(cancelResponse.ok()).toBe(true);
+  for (const response of responses) {
+    expect(response.status()).toBeLessThan(500);
+  }
 }
 
 test.describe('QR-assisted device login', () => {
