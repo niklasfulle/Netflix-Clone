@@ -60,3 +60,4 @@ IMPLEMENTATION_CHECKPOINT.md
 /.deployment-receipts/
 /ansible/.env.staging
 /ansible/hosts.staging
+e2e.env
