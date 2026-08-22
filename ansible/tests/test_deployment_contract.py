@@ -239,6 +239,16 @@ class DeploymentContractTests(unittest.TestCase):
             playbook.index("Remove dangling Docker layers after successful start"),
         )
 
+    def test_deployment_forces_a_fresh_monitor_snapshot_after_health_checks(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        refresh_start = playbook.index("- name: Refresh deployed system metrics")
+        refresh_end = playbook.index("- name: Read deployed system metrics", refresh_start)
+        refresh_task = playbook[refresh_start:refresh_end]
+
+        self.assertIn("state: restarted", refresh_task)
+
     def test_compose_applies_runtime_limits(self):
         compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(encoding="utf-8")
         for setting in (

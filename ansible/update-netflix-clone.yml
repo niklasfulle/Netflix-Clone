@@ -1056,7 +1056,7 @@
         - name: Refresh deployed system metrics
           systemd:
             name: netflix-monitor.service
-            state: started
+            state: restarted
 
         - name: Read deployed system metrics
           slurp:
