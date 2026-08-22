@@ -3,12 +3,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QrDeviceApproval } from '@/components/auth/qr-device-approval';
 import { useSearchParams } from 'next/navigation';
 
-jest.mock('next/navigation', () => ({ useSearchParams: jest.fn() }));
 jest.mock('@/components/providers/LanguageProvider', () => ({
   useLanguage: () => ({ t: (key: string) => key }),
 }));
 
 const mockUseSearchParams = jest.mocked(useSearchParams);
+const mockReplace = jest.fn();
+
+jest.mock('next/navigation', () => ({
+  useSearchParams: jest.fn(),
+  useRouter: () => ({ replace: mockReplace }),
+}));
 
 describe('QrDeviceApproval', () => {
   beforeEach(() => {
@@ -27,7 +32,7 @@ describe('QrDeviceApproval', () => {
       method: 'POST',
       body: JSON.stringify({ approvalSecret: 'approval-secret', password: 'password' }),
     })));
-    expect(await screen.findByText('The sign-in request was approved. You can return to the other device.')).toBeInTheDocument();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/settings'));
   });
 
   it('allows the accessible manual-code fallback', async () => {
@@ -41,5 +46,19 @@ describe('QrDeviceApproval', () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/auth/qr/approve', expect.objectContaining({
       body: JSON.stringify({ manualCode: 'ABCD-EFGH-JKLM-NPQR', password: 'password' }),
     })));
+    expect(mockReplace).toHaveBeenCalledWith('/settings');
+  });
+
+  it('stays on the approval page when the request is rejected', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 400 }) as jest.Mock;
+    render(<QrDeviceApproval />);
+
+    fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'password' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve sign-in' }));
+
+    expect(await screen.findByText(
+      'This sign-in request could not be approved. Check the code and your recent authentication.',
+    )).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

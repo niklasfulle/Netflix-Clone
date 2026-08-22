@@ -1,17 +1,17 @@
 "use client";
 
 import { FormEvent, useState, useTransition } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { FormError } from '@/components/form-error';
-import { FormSuccess } from '@/components/form-success';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
-type ApprovalResult = 'approved' | 'rejected' | 'unauthenticated';
+type ApprovalResult = 'rejected' | 'unauthenticated';
 
 export const QrDeviceApproval = () => {
   const { t } = useLanguage();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [approvalSecret] = useState(() => searchParams.get('pair') ?? '');
   const [manualCode, setManualCode] = useState('');
@@ -37,7 +37,13 @@ export const QrDeviceApproval = () => {
           if (response.status === 401) return 'unauthenticated' as const;
           return response.ok ? 'approved' as const : 'rejected' as const;
         })
-        .then(setResult)
+        .then((approvalResult) => {
+          if (approvalResult === 'approved') {
+            router.replace('/settings');
+            return;
+          }
+          setResult(approvalResult);
+        })
         .catch(() => setResult('rejected'));
     });
   };
@@ -88,7 +94,6 @@ export const QrDeviceApproval = () => {
           {isPending ? t('Approving…') : t('Approve sign-in')}
         </Button>
       </form>
-      <FormSuccess message={result === 'approved' ? t('The sign-in request was approved. You can return to the other device.') : undefined} />
       <FormError message={result === 'unauthenticated'
         ? t('Sign in on this phone first, then return to approve the other device.')
         : result === 'rejected'
