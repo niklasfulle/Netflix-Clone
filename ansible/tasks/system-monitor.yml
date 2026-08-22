@@ -11,8 +11,6 @@
       mode: "0755"
     - path: /var/lib/netflix-monitor
       mode: "0755"
-    - path: /var/lib/netflix-backup-status
-      mode: "0750"
 
 - name: Install read-only system metrics collector
   copy:

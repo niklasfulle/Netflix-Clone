@@ -51,6 +51,22 @@ describe("admin system API", () => {
       docker: null,
       backup: null,
       database: { status: "ok", latencyMs: 20 },
+      redis: {
+        status: "ok",
+        configured: true,
+        connected: true,
+        circuit: "closed",
+        metrics: {
+          commands: 1,
+          hits: 0,
+          misses: 0,
+          errors: 0,
+          timeouts: 0,
+          reconnects: 0,
+          fallbacks: 0,
+          totalLatencyMs: 2,
+        },
+      },
       alerts: [],
     });
 
@@ -62,6 +78,7 @@ describe("admin system API", () => {
       status: "healthy",
       version: "1.10.1",
       database: { status: "ok" },
+      redis: { status: "ok", connected: true },
     });
   });
 });

@@ -45,6 +45,12 @@ export function QrDeviceScanner() {
   const controlsRef = useRef<ScannerControls | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("closed");
   const isOpen = status !== "closed";
+  let statusMessage = t("Point the camera at the sign-in QR code on the other device.");
+  if (status === "error") {
+    statusMessage = t("Camera access failed. Allow camera access or enter the code manually.");
+  } else if (status === "invalid") {
+    statusMessage = t("This is not a valid sign-in QR code. Point the camera at the code on the other device.");
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -69,7 +75,7 @@ export function QrDeviceScanner() {
 
             const approvalPath = getQrApprovalPath(
               result.getText(),
-              window.location.origin,
+              globalThis.location.origin,
             );
             if (!approvalPath) {
               setStatus("invalid");
@@ -162,13 +168,9 @@ export function QrDeviceScanner() {
           </div>
 
           <div className="mt-4 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="min-w-0 text-sm leading-6 text-zinc-300" role="status">
-              {status === "error"
-                ? t("Camera access failed. Allow camera access or enter the code manually.")
-                : status === "invalid"
-                  ? t("This is not a valid sign-in QR code. Point the camera at the code on the other device.")
-                  : t("Point the camera at the sign-in QR code on the other device.")}
-            </p>
+            <output className="min-w-0 text-sm leading-6 text-zinc-300">
+              {statusMessage}
+            </output>
             <button
               type="button"
               onClick={closeScanner}

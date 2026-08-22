@@ -296,6 +296,60 @@ function RuntimeSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
+function redisStatusLabel(status: SystemOverview["redis"]["status"]) {
+  const labels = {
+    ok: "Operational",
+    degraded: "Degraded",
+    disabled: "Disabled",
+    closed: "Closed",
+  };
+  return labels[status];
+}
+
+function RedisSection({ data }: Readonly<{ data: SystemOverview }>) {
+  const { redis } = data;
+  const averageLatency = redis.metrics.commands > 0
+    ? `${(redis.metrics.totalLatencyMs / redis.metrics.commands).toFixed(1)} ms`
+    : "—";
+
+  return (
+    <section
+      aria-label="Redis runtime monitoring"
+      className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
+    >
+      <div className="flex items-center gap-2">
+        <Database className="h-5 w-5 text-red-400" />
+        <h2 className="font-semibold text-white">Redis Runtime</h2>
+      </div>
+      <dl className="mt-5 divide-y divide-zinc-800">
+        <DetailRow label="Status" value={redisStatusLabel(redis.status)} />
+        <DetailRow
+          label="Connection"
+          value={redis.connected ? "Connected" : "Disconnected"}
+        />
+        <DetailRow
+          label="Circuit breaker"
+          value={redis.circuit === "closed" ? "Closed" : "Open"}
+        />
+        <DetailRow label="Commands" value={String(redis.metrics.commands)} />
+        <DetailRow
+          label="Cache hits / misses"
+          value={`${redis.metrics.hits} / ${redis.metrics.misses}`}
+        />
+        <DetailRow label="Average latency" value={averageLatency} />
+        <DetailRow
+          label="Errors / timeouts"
+          value={`${redis.metrics.errors} / ${redis.metrics.timeouts}`}
+        />
+        <DetailRow
+          label="Reconnects / fallbacks"
+          value={`${redis.metrics.reconnects} / ${redis.metrics.fallbacks}`}
+        />
+      </dl>
+    </section>
+  );
+}
+
 function RecoverySection({ data }: Readonly<{ data: SystemOverview }>) {
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
@@ -374,7 +428,7 @@ export default function AdminSystemPage() {
     <div>
       <AdminPageHeader
         title="System Overview"
-        description="Live host, container, database, storage, and backup health for this deployment."
+        description="Live host, container, database, Redis, storage, and backup health for this deployment."
         actions={
           <>
             {data && (
@@ -426,8 +480,9 @@ export default function AdminSystemPage() {
         <>
           <MetricsSection data={data} />
           <StorageSection data={data} />
-          <div className="mt-8 grid gap-6 xl:grid-cols-2">
+          <div className="mt-8 grid gap-6 xl:grid-cols-3">
             <RuntimeSection data={data} />
+            <RedisSection data={data} />
             <RecoverySection data={data} />
           </div>
           <DeploymentStatusPanel />

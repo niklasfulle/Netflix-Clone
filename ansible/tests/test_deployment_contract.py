@@ -6,6 +6,28 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class DeploymentContractTests(unittest.TestCase):
+    def test_backup_status_permissions_survive_monitoring_setup(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        monitor_tasks = (
+            ROOT / "ansible" / "tasks" / "system-monitor.yml"
+        ).read_text(encoding="utf-8")
+
+        task_start = playbook.index(
+            "- name: Ensure backup status root is readable by the app"
+        )
+        task_end = playbook.index(
+            "- name: Inspect backup status root access boundary", task_start
+        )
+        permissions_task = playbook[task_start:task_end]
+
+        self.assertIn("path: /var/lib/netflix-backup-status", permissions_task)
+        self.assertIn("owner: root", permissions_task)
+        self.assertIn("group: '10001'", permissions_task)
+        self.assertIn("mode: '0750'", permissions_task)
+        self.assertNotIn("/var/lib/netflix-backup-status", monitor_tasks)
+
     def test_staging_is_the_default_and_production_requires_promotion(self):
         deploy_script = (ROOT / "deploy.ps1").read_text(encoding="utf-8")
         self.assertIn('[string]$Environment = "Staging"', deploy_script)

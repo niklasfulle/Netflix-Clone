@@ -1,6 +1,6 @@
 {
   "name": "netflix",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,7 @@
     "test:auth-integration": "node --env-file=.env.e2e.local scripts/run-auth-integration-tests.mjs",
     "test:admin-audit-integration": "node --env-file=.env.e2e.local scripts/run-admin-audit-integration-tests.mjs",
     "test:media-integrity-integration": "node --env-file=.env.e2e.local scripts/run-media-integrity-integration-tests.mjs",
+    "test:redis-integration": "node scripts/run-redis-runtime-integration-tests.mjs",
     "test:e2e": "playwright test",
     "test:e2e:desktop": "playwright test --project=desktop",
     "test:e2e:mobile": "playwright test --project=mobile"
@@ -70,6 +71,7 @@
     "react-icons": "^5.3.0",
     "react-spinners": "^0.17.0",
     "recharts": "^3.6.0",
+    "redis": "6.2.1",
     "sharp": "0.35.3",
     "sonner": "^2.0.7",
     "swr": "^2.3.8",

@@ -292,6 +292,43 @@ describe("system monitor status evaluation", () => {
     );
   });
 
+  it("warns when the configured Redis runtime is degraded", () => {
+    const overview = buildSystemOverview(
+      snapshot(),
+      { status: "ok", latencyMs: 20 },
+      now,
+      {
+        status: "degraded",
+        configured: true,
+        connected: false,
+        circuit: "open",
+        metrics: {
+          commands: 12,
+          hits: 7,
+          misses: 3,
+          errors: 2,
+          timeouts: 1,
+          reconnects: 3,
+          fallbacks: 4,
+          totalLatencyMs: 30,
+        },
+      },
+    );
+
+    expect(overview.status).toBe("warning");
+    expect(overview.redis).toMatchObject({
+      status: "degraded",
+      connected: false,
+      circuit: "open",
+    });
+    expect(overview.alerts).toContainEqual(
+      expect.objectContaining({
+        id: "redis-degraded",
+        severity: "warning",
+      }),
+    );
+  });
+
   it("reads valid snapshots and rejects invalid snapshot files", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "netflix-monitor-"));
     const validPath = path.join(directory, "valid.json");

@@ -4,6 +4,7 @@ services:
     container_name: netflix-clone
     env_file:
       - /root/netflix-secrets/app.env
+      - /root/netflix-secrets/redis-app.env
     environment:
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-production}
       DEPLOYMENT_STATUS_APPROVED_PEERS: ${DEPLOYMENT_STATUS_APPROVED_PEERS:-staging}
@@ -17,6 +18,9 @@ services:
       PUBLIC_CA_OVERLAP_DAYS: ${PUBLIC_CA_OVERLAP_DAYS:-30}
     ports:
       - "127.0.0.1:3000:3000"
+    networks:
+      - frontend
+      - backend
     user: "10001:10001"
     read_only: true
     security_opt:
@@ -44,6 +48,47 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  redis-runtime:
+    image: redis:7.2.15-alpine@sha256:05a97a479bc73de66f087dc05b569010772880f778cc8671fa6b8aadee32e5c6
+    container_name: netflix-redis-runtime
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+    env_file:
+      - /root/netflix-secrets/redis-health.env
+    labels:
+      com.netflix-clone.environment: ${DEPLOYMENT_ENVIRONMENT:-production}
+      com.netflix-clone.role: redis-runtime
+    networks:
+      - backend
+    user: "999:1000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 256m
+    tmpfs:
+      - /data:size=32m,mode=0700,uid=999,gid=1000
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - ./ansible/files/redis-runtime.conf:/usr/local/etc/redis/redis.conf:ro
+      - /root/netflix-secrets/redis-users.acl:/usr/local/etc/redis/users.acl:ro
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --user health --no-auth-warning ping | grep -qx PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
   proxy:
     image: caddy:2.10.2-alpine
     container_name: netflix-proxy
@@ -51,6 +96,8 @@ services:
       HTTPS_HOST: ${HTTPS_HOST:-netflix}
     depends_on:
       - app
+    networks:
+      - frontend
     ports:
       - "80:80"
       - "443:443"
@@ -76,6 +123,11 @@ services:
         max-size: "10m"
         max-file: "3"
     restart: unless-stopped
+
+networks:
+  frontend:
+  backend:
+    internal: true
 
 volumes:
   caddy_data:

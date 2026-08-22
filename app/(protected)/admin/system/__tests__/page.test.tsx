@@ -70,6 +70,22 @@ const healthyOverview = {
       pids: 20,
     },
   },
+  redis: {
+    status: "ok",
+    configured: true,
+    connected: true,
+    circuit: "closed",
+    metrics: {
+      commands: 12,
+      hits: 8,
+      misses: 4,
+      errors: 0,
+      timeouts: 0,
+      reconnects: 1,
+      fallbacks: 0,
+      totalLatencyMs: 30,
+    },
+  },
   backup: {
     createdAt: "2026-07-29T10:00:00.000Z",
     sizeBytes: 2048,
@@ -102,6 +118,14 @@ describe("admin system page", () => {
     expect(screen.getByText("18 ms")).toBeInTheDocument();
     expect(screen.getByText("/movies")).toBeInTheDocument();
     expect(screen.getByText("salkin263/netflix-clone:1.11.0")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Redis Runtime" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Operational")).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Cache hits / misses")).toBeInTheDocument();
+    expect(screen.getByText("8 / 4")).toBeInTheDocument();
     expect(screen.getByText("Signed deployment evidence")).toBeInTheDocument();
     expect(screen.getByText("No active alerts.")).toBeInTheDocument();
   });
@@ -189,6 +213,12 @@ describe("admin system page", () => {
           },
         ],
         docker: { available: false, container: null },
+        redis: {
+          ...healthyOverview.redis,
+          status: "degraded",
+          connected: false,
+          circuit: "open",
+        },
         backup: null,
         database: { status: "error", latencyMs: null },
         alerts: [
@@ -216,6 +246,9 @@ describe("admin system page", () => {
     expect(screen.getByText("Critical issues detected")).toBeInTheDocument();
     expect(screen.getByText("Critical alert")).toBeInTheDocument();
     expect(screen.getByText("Warning alert")).toBeInTheDocument();
+    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.getByText("Disconnected")).toBeInTheDocument();
+    expect(screen.getByText("Open")).toBeInTheDocument();
     expect(screen.getByText("No backup recorded")).toBeInTheDocument();
     expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
   });

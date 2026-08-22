@@ -87,12 +87,12 @@ export const QrDeviceLogin = () => {
     };
     updateTimer();
     void poll();
-    const pollInterval = window.setInterval(() => void poll(), 2_000);
-    const timerInterval = window.setInterval(updateTimer, 1_000);
+    const pollInterval = globalThis.setInterval(() => void poll(), 2_000);
+    const timerInterval = globalThis.setInterval(updateTimer, 1_000);
     return () => {
       stopped = true;
-      window.clearInterval(pollInterval);
-      window.clearInterval(timerInterval);
+      globalThis.clearInterval(pollInterval);
+      globalThis.clearInterval(timerInterval);
     };
   }, [pairing, router, t]);
 
@@ -101,7 +101,9 @@ export const QrDeviceLogin = () => {
     exchangeStartedRef.current = false;
     startTransition(() => {
       fetch('/api/auth/qr', { method: 'POST', cache: 'no-store' })
-        .then(async (response) => response.ok ? response.json() as Promise<Pairing> : Promise.reject())
+        .then(async (response) => response.ok
+          ? response.json() as Promise<Pairing>
+          : Promise.reject(new Error('QR pairing request failed')))
         .then((nextPairing) => {
           setPairing(nextPairing);
           setRemainingSeconds(secondsUntil(nextPairing.expiresAt));
@@ -125,13 +127,14 @@ export const QrDeviceLogin = () => {
     });
   };
 
-  const stateText = status === 'exchanging'
-    ? t('Signing this device in…')
-    : status === 'pending'
-      ? t('Waiting for approval…')
-      : status === 'terminal' && pairing
-        ? t('This QR sign-in request is no longer available.')
-        : undefined;
+  let stateText: string | undefined;
+  if (status === 'exchanging') {
+    stateText = t('Signing this device in…');
+  } else if (status === 'pending') {
+    stateText = t('Waiting for approval…');
+  } else if (status === 'terminal' && pairing) {
+    stateText = t('This QR sign-in request is no longer available.');
+  }
 
   return (
     <section className="space-y-4 pt-1" aria-labelledby="qr-login-heading">
@@ -140,19 +143,7 @@ export const QrDeviceLogin = () => {
         <span className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">{t('or')}</span>
         <span className="h-px flex-1 bg-white/10" />
       </div>
-      {!pairing ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="h-12 w-full rounded-xl border-white/15 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.09] hover:text-white"
-          disabled={isPending}
-          onClick={start}
-        >
-          <QrCode aria-hidden="true" className="mr-2 size-4" />
-          {t('Sign in with QR code')}
-        </Button>
-      ) : (
+      {pairing ? (
         <div className="space-y-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-center">
           <h2 id="qr-login-heading" className="font-medium text-zinc-100">{t('Show a QR code')}</h2>
           <p className="text-sm text-zinc-400">{t('Scan this code with a signed-in phone or use the manual code.')}</p>
@@ -171,6 +162,18 @@ export const QrDeviceLogin = () => {
             {t('Cancel QR sign-in')}
           </Button>
         </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="h-12 w-full rounded-xl border-white/15 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.09] hover:text-white"
+          disabled={isPending}
+          onClick={start}
+        >
+          <QrCode aria-hidden="true" className="mr-2 size-4" />
+          {t('Sign in with QR code')}
+        </Button>
       )}
       <FormError message={error} />
     </section>

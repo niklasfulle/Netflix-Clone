@@ -4,6 +4,7 @@ services:
     container_name: netflix-clone
     env_file:
       - /root/netflix-secrets/app.env
+      - /root/netflix-secrets/redis-app.env
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
       DEPLOYMENT_STATUS_APPROVED_PEERS: {{ ('production' if deployment_environment == 'staging' else 'staging') | quote }}
@@ -19,6 +20,9 @@ services:
       com.netflix-clone.environment: {{ deployment_environment | quote }}
     ports:
       - "127.0.0.1:3000:3000"
+    networks:
+      - frontend
+      - backend
     user: "10001:10001"
     read_only: true
     security_opt:
@@ -46,11 +50,54 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  redis-runtime:
+    image: {{ redis_image }}
+    container_name: netflix-redis-runtime
+    command:
+      - redis-server
+      - /usr/local/etc/redis/redis.conf
+    env_file:
+      - /root/netflix-secrets/redis-health.env
+    labels:
+      com.netflix-clone.environment: {{ deployment_environment | quote }}
+      com.netflix-clone.role: redis-runtime
+    networks:
+      - backend
+    user: "999:1000"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 100
+    cpus: 0.50
+    mem_limit: 256m
+    tmpfs:
+      - /data:size=32m,mode=0700,uid=999,gid=1000
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - {{ redis_config_path }}:/usr/local/etc/redis/redis.conf:ro
+      - /root/netflix-secrets/redis-users.acl:/usr/local/etc/redis/users.acl:ro
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --user health --no-auth-warning ping | grep -qx PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
   proxy:
     image: {{ caddy_image }}
     container_name: netflix-proxy
     depends_on:
       - app
+    networks:
+      - frontend
     labels:
       com.netflix-clone.environment: {{ deployment_environment | quote }}
     ports:
@@ -78,6 +125,11 @@ services:
         max-size: "10m"
         max-file: "3"
     restart: unless-stopped
+
+networks:
+  frontend:
+  backend:
+    internal: true
 
 volumes:
   caddy_data:

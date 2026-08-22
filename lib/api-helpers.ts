@@ -1,6 +1,7 @@
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logBackendAction } from '@/lib/logger';
+import { getRedisRuntime, type RedisKey, type RedisRuntime } from '@/lib/redis/runtime';
 import { Movie, MovieWatchTime, Prisma, Profil } from '@prisma/client';
 import {
   CATALOG_ACTOR_ROW_LIMIT,
@@ -37,10 +38,96 @@ export function apiErrorResponse(code: ApiErrorCode, message: string): Response 
 }
 
 type TransformableMovie = Pick<Movie, 'id' | 'title'> &
-  Partial<Omit<Movie, 'id' | 'title'>> & {
+  Partial<Omit<Movie, 'id' | 'title' | 'createdAt'>> & {
+    createdAt?: Date | string;
     actors: Array<{ actor: { name: string } }>;
   };
 type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof currentUser>>> & { id: string };
+
+const CATALOG_CACHE_TTL_SECONDS = 300;
+
+type CatalogCache = {
+  runtime: RedisRuntime;
+  key: RedisKey;
+  writable: boolean;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function decodeCatalogMovies(value: unknown): TransformableMovie[] {
+  if (!Array.isArray(value)) throw new Error('Cached catalog must be an array');
+
+  for (const movie of value) {
+    if (
+      !isRecord(movie)
+      || typeof movie.id !== 'string'
+      || typeof movie.title !== 'string'
+      || (movie.createdAt !== undefined && typeof movie.createdAt !== 'string')
+      || !Array.isArray(movie.actors)
+      || movie.actors.some(movieActor => (
+        !isRecord(movieActor)
+        || !isRecord(movieActor.actor)
+        || typeof movieActor.actor.name !== 'string'
+      ))
+    ) {
+      throw new Error('Cached catalog contains invalid movie metadata');
+    }
+  }
+
+  return value as TransformableMovie[];
+}
+
+function catalogCacheIdentity(
+  type: 'Movie' | 'Serie',
+  options: {
+    take: number;
+    orderBy: Prisma.MovieOrderByWithRelationInput | Prisma.MovieOrderByWithRelationInput[];
+    where: Prisma.MovieWhereInput;
+    reverse: boolean;
+  },
+): string {
+  return JSON.stringify({ type, ...options });
+}
+
+async function readCatalogCache(identity: string): Promise<
+  { movies: TransformableMovie[] | null; cache?: CatalogCache }
+> {
+  try {
+    const runtime = getRedisRuntime();
+    const key = runtime.key('catalog-metadata', 1, [identity]);
+    const result = await runtime.get(key, decodeCatalogMovies);
+    if (result.status === 'ok') {
+      return {
+        movies: result.value,
+        cache: { runtime, key, writable: result.value === null },
+      };
+    }
+    return {
+      movies: null,
+      cache: {
+        runtime,
+        key,
+        writable: result.status === 'error' && result.reason === 'invalid-data',
+      },
+    };
+  } catch {
+    return { movies: null };
+  }
+}
+
+async function writeCatalogCache(
+  cache: CatalogCache | undefined,
+  movies: TransformableMovie[],
+): Promise<void> {
+  if (!cache?.writable) return;
+  try {
+    await cache.runtime.set(cache.key, movies, { ttlSeconds: CATALOG_CACHE_TTL_SECONDS });
+  } catch {
+    // PostgreSQL remains the source of truth when Redis is unavailable.
+  }
+}
 
 export const CATALOG_CARD_SELECT = {
   id: true,
@@ -113,18 +200,25 @@ export async function getMoviesWithWatchTime(
 ) {
   const { take = 20, orderBy = { createdAt: 'asc' }, where = {}, reverse = true } = options;
 
-  const movies = await db.movie.findMany({
-    where: {
-      type,
-      ...where,
-    },
-    take,
-    orderBy,
-    select: CATALOG_CARD_SELECT,
-  });
+  const cacheIdentity = catalogCacheIdentity(type, { take, orderBy, where, reverse });
+  const cached = await readCatalogCache(cacheIdentity);
+  let movies = cached.movies;
 
-  if (reverse) {
-    movies.reverse();
+  if (movies === null) {
+    movies = await db.movie.findMany({
+      where: {
+        type,
+        ...where,
+      },
+      take,
+      orderBy,
+      select: CATALOG_CARD_SELECT,
+    });
+
+    if (reverse) {
+      movies.reverse();
+    }
+    await writeCatalogCache(cached.cache, movies);
   }
 
   const watchTime = await db.movieWatchTime.findMany({

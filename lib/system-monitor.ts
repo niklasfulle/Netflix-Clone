@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import packageJson from "@/package.json";
 import { db } from "@/lib/db";
+import { getRedisRuntime, type RedisHealth } from "@/lib/redis/runtime";
 
 const nonNegativeNumber = z.number().nonnegative();
 
@@ -105,7 +106,25 @@ export type SystemOverview = {
   docker: SystemSnapshot["docker"] | null;
   backup: SystemSnapshot["backup"];
   database: DatabaseHealth;
+  redis: RedisHealth;
   alerts: SystemAlert[];
+};
+
+const disabledRedisHealth: RedisHealth = {
+  status: "disabled",
+  configured: false,
+  connected: false,
+  circuit: "closed",
+  metrics: {
+    commands: 0,
+    hits: 0,
+    misses: 0,
+    errors: 0,
+    timeouts: 0,
+    reconnects: 0,
+    fallbacks: 0,
+    totalLatencyMs: 0,
+  },
 };
 
 const DEFAULT_SNAPSHOT_PATH = "/monitor/status.json";
@@ -372,15 +391,38 @@ function evaluateDatabaseAlerts(database: DatabaseHealth): SystemAlert[] {
   return [];
 }
 
+function evaluateRedisAlerts(redis: RedisHealth): SystemAlert[] {
+  if (!redis.configured || redis.status === "disabled") {
+    return [];
+  }
+  if (
+    redis.status === "ok"
+    && redis.connected
+    && redis.circuit === "closed"
+  ) {
+    return [];
+  }
+  return [
+    {
+      id: "redis-degraded",
+      severity: "warning",
+      title: "Redis runtime degraded",
+      message: "Redis cache operations are using safe fallbacks.",
+    },
+  ];
+}
+
 function evaluateSnapshot(
   snapshot: SystemSnapshot | null,
   database: DatabaseHealth,
+  redis: RedisHealth,
   now: Date,
 ): { alerts: SystemAlert[]; ageSeconds: number | null } {
   const ageSeconds = snapshotAgeSeconds(snapshot, now);
   const alerts = [
     ...evaluateAgentAlerts(snapshot, ageSeconds),
     ...evaluateDatabaseAlerts(database),
+    ...evaluateRedisAlerts(redis),
   ];
   if (snapshot !== null) {
     alerts.push(
@@ -420,8 +462,14 @@ export function buildSystemOverview(
   snapshot: SystemSnapshot | null,
   database: DatabaseHealth,
   now = new Date(),
+  redis: RedisHealth = disabledRedisHealth,
 ): SystemOverview {
-  const { alerts, ageSeconds } = evaluateSnapshot(snapshot, database, now);
+  const { alerts, ageSeconds } = evaluateSnapshot(
+    snapshot,
+    database,
+    redis,
+    now,
+  );
 
   return {
     status: overallStatus(alerts),
@@ -440,6 +488,7 @@ export function buildSystemOverview(
     docker: snapshot?.docker ?? null,
     backup: snapshot?.backup ?? null,
     database,
+    redis,
     alerts,
   };
 }
@@ -472,9 +521,10 @@ async function checkDatabase(): Promise<DatabaseHealth> {
 }
 
 export async function getSystemOverview(): Promise<SystemOverview> {
-  const [snapshot, database] = await Promise.all([
+  const [snapshot, database, redis] = await Promise.all([
     readSystemSnapshot(),
     checkDatabase(),
+    getRedisRuntime().health(),
   ]);
-  return buildSystemOverview(snapshot, database);
+  return buildSystemOverview(snapshot, database, new Date(), redis);
 }

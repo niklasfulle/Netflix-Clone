@@ -95,6 +95,7 @@ ansible-playbook update.yml -v
 14. Ein persistenter systemd-Timer erstellt täglich einen atomaren PostgreSQL-Dump, verifiziert ihn per isoliertem Restore und wendet die sichere Retention an
 15. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
 16. Volumes (`/movies`, `/series`, Caddy-PKI, Monitoring-, Deployment- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
+17. Ein digest-gepinnter, flüchtiger Redis-7.2-Dienst startet ausschließlich im internen Backend-Netz; ACL, Umgebung und Speichergrenzen werden vor der Promotion geprüft
 
 ## Dateien
 
@@ -109,12 +110,15 @@ ansible-playbook update.yml -v
 - `files/run-postgres-backup-verification.sh` - Host-Lock und gehärteter Docker-Aufruf
 - `files/run-postgres-backup.sh` - geplanter Dump, Checksumme, Restore-Prüfung und Status
 - `files/manage-postgres-backups.py` - pfadgebundene tägliche/wöchentliche/monatliche Retention
+- `files/provision-redis-secrets.sh` - atomare, umgebungsgebundene Redis-ACL- und Client-Credentials
+- `files/redis-runtime.conf` - flüchtige Cache-, Speicher- und Eviction-Konfiguration
 - `files/publish_deployment_status.py` - atomarer, host-signierter Deployment Record
 - `tasks/publish-deployment-status.yml` - wiederverwendbare Lifecycle-Publikation
 - `tasks/system-monitor.yml` - Installation und Validierung des Monitoring-Agenten
 - `templates/netflix-monitor.*.j2` - systemd-Service und Timer
 - `templates/netflix-backup-verification.*.j2` - manueller Admin-Trigger über systemd
 - `templates/netflix-postgres-backup.*.j2` - persistenter Backup-Service und Timer
+- `docs/operations/redis-runtime.md` - First/Repeat Deploy, Ausfallübung, Upgrade und Rollback des Redis-Dienstes
 
 ## Troubleshooting
 

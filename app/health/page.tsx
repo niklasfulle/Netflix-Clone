@@ -31,6 +31,7 @@ export default async function HealthPage() {
           <StatusCard label="Application" value={health.checks.application} />
           <StatusCard label="Database" value={health.checks.database} />
           <StatusCard label="Media storage" value={health.checks.storage} />
+          <StatusCard label="Redis" value={health.checks.redis} />
           <InfoCard label="Version" value={health.version} />
           <InfoCard label="Environment" value={health.environment} />
           <InfoCard
@@ -46,16 +47,24 @@ export default async function HealthPage() {
 function StatusCard({
   label,
   value,
-}: Readonly<{ label: string; value: "ok" | "error" }>) {
+}: Readonly<{
+  label: string;
+  value: "ok" | "error" | "disabled" | "degraded";
+}>) {
+  const presentation = {
+    ok: { className: "text-emerald-300", label: "Operational" },
+    error: { className: "text-red-300", label: "Unavailable" },
+    disabled: { className: "text-zinc-300", label: "Disabled" },
+    degraded: { className: "text-amber-300", label: "Degraded" },
+  }[value];
+
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
       <dt className="text-sm text-zinc-400">{label}</dt>
       <dd
-        className={`mt-2 text-lg font-medium ${
-          value === "ok" ? "text-emerald-300" : "text-red-300"
-        }`}
+        className={`mt-2 text-lg font-medium ${presentation.className}`}
       >
-        {value === "ok" ? "Operational" : "Unavailable"}
+        {presentation.label}
       </dd>
     </div>
   );

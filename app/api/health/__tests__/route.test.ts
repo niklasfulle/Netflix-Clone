@@ -10,14 +10,22 @@ jest.mock("node:fs/promises", () => ({
   access: jest.fn(),
 }));
 
+jest.mock("@/lib/redis/runtime", () => ({
+  getRedisRuntime: jest.fn(),
+}));
+
+const mockedRedisHealth = jest.fn();
+
 import { access } from "node:fs/promises";
 import { db } from "@/lib/db";
+import { getRedisRuntime } from "@/lib/redis/runtime";
 import { GET } from "@/app/api/health/route";
 import { publicRoutes } from "@/routes";
 import packageJson from "@/package.json";
 
 const mockedQueryRaw = db.$queryRaw as jest.Mock;
 const mockedAccess = access as jest.Mock;
+const mockedGetRedisRuntime = getRedisRuntime as jest.Mock;
 
 describe("health endpoint", () => {
   const originalDeploymentEnvironment = process.env.DEPLOYMENT_ENVIRONMENT;
@@ -25,6 +33,8 @@ describe("health endpoint", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     process.env.DEPLOYMENT_ENVIRONMENT = "staging";
+    mockedGetRedisRuntime.mockReturnValue({ health: mockedRedisHealth });
+    mockedRedisHealth.mockResolvedValue({ status: "disabled" });
   });
 
   afterAll(() => {
@@ -52,9 +62,24 @@ describe("health endpoint", () => {
         application: "ok",
         database: "ok",
         storage: "ok",
+        redis: "disabled",
       },
     });
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
+  });
+
+  it("reports optional Redis degradation without taking the application offline", async () => {
+    mockedQueryRaw.mockResolvedValue([{ "?column?": 1 }]);
+    mockedRedisHealth.mockResolvedValue({ status: "degraded" });
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: "ok",
+      checks: { redis: "degraded" },
+    });
   });
 
   it("returns 503 without exposing paths when media storage is not writable", async () => {

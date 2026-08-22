@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from 'react';
+import { SyntheticEvent, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { FormError } from '@/components/form-error';
@@ -20,7 +20,7 @@ export const QrDeviceApproval = () => {
   const [result, setResult] = useState<ApprovalResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: SyntheticEvent<HTMLFormElement, SubmitEvent>) => {
     event.preventDefault();
     setResult(null);
     startTransition(() => {
@@ -47,6 +47,13 @@ export const QrDeviceApproval = () => {
         .catch(() => setResult('rejected'));
     });
   };
+
+  let resultMessage: string | undefined;
+  if (result === 'unauthenticated') {
+    resultMessage = t('Sign in on this phone first, then return to approve the other device.');
+  } else if (result === 'rejected') {
+    resultMessage = t('This sign-in request could not be approved. Check the code and your recent authentication.');
+  }
 
   return (
     <section className="mx-auto w-full max-w-md space-y-6 rounded-2xl border border-white/10 bg-zinc-950/80 p-6 shadow-2xl">
@@ -94,12 +101,7 @@ export const QrDeviceApproval = () => {
           {isPending ? t('Approving…') : t('Approve sign-in')}
         </Button>
       </form>
-      <FormError message={result === 'unauthenticated'
-        ? t('Sign in on this phone first, then return to approve the other device.')
-        : result === 'rejected'
-          ? t('This sign-in request could not be approved. Check the code and your recent authentication.')
-          : undefined}
-      />
+      <FormError message={resultMessage} />
     </section>
   );
 };

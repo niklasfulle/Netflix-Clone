@@ -18,6 +18,22 @@
     postgres_backup_retention_weekly_weeks: 4
     postgres_backup_retention_monthly_months: 6
     caddy_image: "caddy:2.10.2-alpine"
+    redis_image: "redis:7.2.15-alpine@sha256:05a97a479bc73de66f087dc05b569010772880f778cc8671fa6b8aadee32e5c6"
+    redis_config_path: "{{ docker_compose_path }}/redis-runtime.conf"
+    redis_secret_provisioner_path: /usr/local/lib/netflix-deploy/provision-redis-secrets.sh
+    redis_secret_files:
+      - path: /root/netflix-secrets/redis-users.acl
+        uid: 0
+        gid: 1000
+        mode: '0640'
+      - path: /root/netflix-secrets/redis-app.env
+        uid: 0
+        gid: 0
+        mode: '0600'
+      - path: /root/netflix-secrets/redis-health.env
+        uid: 0
+        gid: 0
+        mode: '0600'
     canonical_url: "https://{{ https_hostname }}"
     caddy_root_certificate_path: "{{ docker_compose_path }}/caddy-local-root.crt"
     public_ca_root: /var/lib/netflix-public-certificates
@@ -338,6 +354,50 @@
         group: root
         mode: '0755'
 
+    - name: Install Redis secret provisioner
+      copy:
+        src: files/provision-redis-secrets.sh
+        dest: "{{ redis_secret_provisioner_path }}"
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Provision protected Redis credentials
+      command:
+        argv:
+          - "{{ redis_secret_provisioner_path }}"
+          - "{{ deployment_environment }}"
+          - /root/netflix-secrets
+      register: redis_secret_provisioning
+      changed_when: >-
+        (redis_secret_provisioning.stdout | trim) in ['created', 'updated']
+      failed_when: >-
+        redis_secret_provisioning.rc != 0 or
+        (redis_secret_provisioning.stdout | trim) not in ['created', 'updated', 'unchanged']
+
+    - name: Inspect protected Redis credential files
+      stat:
+        path: "{{ item.path }}"
+      register: redis_secret_file
+      loop: "{{ redis_secret_files }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Verify protected Redis credential files
+      assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+          - item.stat.uid == item.item.uid
+          - item.stat.gid == item.item.gid
+          - item.stat.mode == item.item.mode
+        fail_msg: >-
+          Redis credential files must match their required runtime-readable
+          ownership and least-privilege mode.
+      loop: "{{ redis_secret_file.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+
     - name: Install PostgreSQL backup helper
       copy:
         src: files/backup-postgres.sh
@@ -434,6 +494,11 @@
         path: "{{ docker_compose_path }}/Caddyfile"
       register: previous_caddyfile
 
+    - name: Check for an existing Redis runtime configuration
+      stat:
+        path: "{{ redis_config_path }}"
+      register: previous_redis_config
+
     - name: Preserve the previous compose definition for rollback
       copy:
         src: "{{ docker_compose_path }}/docker-compose.yml"
@@ -449,6 +514,22 @@
         remote_src: true
         mode: '0600'
       when: previous_caddyfile.stat.exists
+
+    - name: Preserve the previous Redis runtime configuration for rollback
+      copy:
+        src: "{{ redis_config_path }}"
+        dest: "{{ redis_config_path }}.previous"
+        remote_src: true
+        mode: '0600'
+      when: previous_redis_config.stat.exists
+
+    - name: Install Redis runtime configuration
+      copy:
+        src: files/redis-runtime.conf
+        dest: "{{ redis_config_path }}"
+        owner: root
+        group: root
+        mode: '0644'
 
     - name: Record the previously running image
       command:
@@ -509,6 +590,27 @@
       retries: "{{ docker_pull_retries }}"
       delay: "{{ docker_pull_delay }}"
       until: caddy_image_pull.rc == 0
+
+    - name: Pull pinned Redis runtime
+      command:
+        argv:
+          - docker
+          - pull
+          - "{{ redis_image }}"
+      register: redis_image_pull
+      changed_when: "'Image is up to date' not in redis_image_pull.stdout"
+      retries: "{{ docker_pull_retries }}"
+      delay: "{{ docker_pull_delay }}"
+      until: redis_image_pull.rc == 0
+
+    - name: Verify pinned Redis runtime image
+      command:
+        argv:
+          - docker
+          - image
+          - inspect
+          - "{{ redis_image }}"
+      changed_when: false
 
     - name: Verify new Docker image
       command:
@@ -958,6 +1060,74 @@
               - --pull
               - never
 
+        - name: Wait for healthy Redis runtime
+          command:
+            argv:
+              - docker
+              - inspect
+              - --format={{ '{{' }}.State.Health.Status{{ '}}' }}
+              - netflix-redis-runtime
+          register: redis_runtime_health
+          changed_when: false
+          retries: 18
+          delay: 5
+          until: redis_runtime_health.stdout | trim == 'healthy'
+
+        - name: Read Redis deployment environment identity
+          command:
+            argv:
+              - docker
+              - inspect
+              - --format={{ '{{' }}index .Config.Labels "com.netflix-clone.environment"{{ '}}' }}
+              - netflix-redis-runtime
+          register: redis_runtime_identity
+          changed_when: false
+
+        - name: Verify Redis deployment environment identity
+          assert:
+            that:
+              - redis_runtime_identity.stdout | trim == deployment_environment
+            fail_msg: >-
+              Redis runtime environment identity does not match the target LXC.
+
+        - name: Verify authenticated Redis health user
+          command:
+            argv:
+              - docker
+              - exec
+              - netflix-redis-runtime
+              - redis-cli
+              - --user
+              - health
+              - --no-auth-warning
+              - ACL
+              - WHOAMI
+          register: redis_health_identity
+          changed_when: false
+          failed_when: >-
+            redis_health_identity.rc != 0 or
+            (redis_health_identity.stdout | trim) != 'health'
+
+        - name: Read bounded Redis memory state
+          command:
+            argv:
+              - docker
+              - exec
+              - netflix-redis-runtime
+              - redis-cli
+              - --user
+              - health
+              - --no-auth-warning
+              - --raw
+              - INFO
+              - memory
+          register: redis_memory_state
+          changed_when: false
+          failed_when: >-
+            redis_memory_state.rc != 0 or
+            'maxmemory:167772160' not in redis_memory_state.stdout or
+            'maxmemory_policy:allkeys-lfu' not in redis_memory_state.stdout
+
         - name: Wait for healthy application version
           uri:
             url: http://127.0.0.1:3000/api/health
@@ -1114,7 +1284,9 @@
             docker inspect netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-inspect.json 2>&1 || true;
             docker logs netflix-clone > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-container.log 2>&1 || true;
             docker inspect netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy-inspect.json 2>&1 || true;
-            docker logs netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy.log 2>&1 || true
+            docker logs netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy.log 2>&1 || true;
+            docker inspect netflix-redis-runtime > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-redis-inspect.json 2>&1 || true;
+            docker logs netflix-redis-runtime > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-redis.log 2>&1 || true
           args:
             executable: /bin/bash
           changed_when: true
@@ -1140,6 +1312,20 @@
             remote_src: true
             mode: '0644'
           when: previous_caddyfile.stat.exists
+
+        - name: Restore the previous Redis runtime configuration
+          copy:
+            src: "{{ redis_config_path }}.previous"
+            dest: "{{ redis_config_path }}"
+            remote_src: true
+            mode: '0644'
+          when: previous_redis_config.stat.exists
+
+        - name: Remove the new Redis configuration after a first-deployment failure
+          file:
+            path: "{{ redis_config_path }}"
+            state: absent
+          when: not previous_redis_config.stat.exists
 
         - name: Remove the new reverse-proxy definition after a first-deployment failure
           file:

@@ -14,7 +14,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      expect(container.querySelector('div[role="button"]')).toBeTruthy();
+      expect(container.querySelector('button[data-multi-select-trigger]')).toBeTruthy();
     });
 
     test('should display placeholder text when no value selected', () => {
@@ -66,7 +66,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
@@ -77,7 +77,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
@@ -95,7 +95,7 @@ describe('MultiSelect Component', () => {
           <div data-testid="outside">Outside</div>
         </div>
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
@@ -116,7 +116,7 @@ describe('MultiSelect Component', () => {
           disabled
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       expect(screen.queryByPlaceholderText('Search...')).toBeFalsy();
     });
@@ -128,11 +128,11 @@ describe('MultiSelect Component', () => {
       render(
         <MultiSelect options={mockOptions} value={[]} onChange={onChange} />
       );
-      const button = document.querySelector('div[role="button"]');
+      const button = document.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const option = screen.getByText('Option 1');
-        fireEvent.click(option.closest('div')!);
+        fireEvent.click(option.closest('label')!);
       });
       expect(onChange).toHaveBeenCalledWith(['opt1']);
     });
@@ -146,7 +146,7 @@ describe('MultiSelect Component', () => {
           onChange={onChange}
         />
       );
-      const removeButtons = container.querySelectorAll('button[type="button"]');
+      const removeButtons = container.querySelectorAll('button[aria-label="Remove"]');
       fireEvent.click(removeButtons[0]);
       expect(onChange).toHaveBeenCalledWith([]);
     });
@@ -174,7 +174,7 @@ describe('MultiSelect Component', () => {
           onChange={onChange}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -189,7 +189,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'Option 1' } });
@@ -201,7 +201,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'option 1' } });
@@ -212,7 +212,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
@@ -223,7 +223,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'Option 1' } });
@@ -244,7 +244,7 @@ describe('MultiSelect Component', () => {
           disabled
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       expect(button?.className).toContain('opacity-50');
       expect(button?.className).toContain('cursor-not-allowed');
     });
@@ -259,7 +259,7 @@ describe('MultiSelect Component', () => {
           disabled
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       expect(screen.queryByPlaceholderText('Search...')).toBeFalsy();
     });
@@ -274,7 +274,7 @@ describe('MultiSelect Component', () => {
           onChange={jest.fn()}
         />
       );
-      const removeButtons = container.querySelectorAll('button[type="button"]');
+      const removeButtons = container.querySelectorAll('button[aria-label="Remove"]');
       expect(removeButtons.length).toBe(2);
     });
 
@@ -287,7 +287,7 @@ describe('MultiSelect Component', () => {
           onChange={onChange}
         />
       );
-      const removeButton = container.querySelector('button[type="button"]');
+      const removeButton = container.querySelector('button[aria-label="Remove"]');
       fireEvent.click(removeButton!);
       expect(onChange).toHaveBeenCalledWith([]);
     });
@@ -315,7 +315,7 @@ describe('MultiSelect Component', () => {
           onChange={jest.fn()}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -333,7 +333,7 @@ describe('MultiSelect Component', () => {
           onChange={jest.fn()}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const checkIcons = container.querySelectorAll('svg[class*="w-4"]');
@@ -347,7 +347,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      expect(container.querySelector('div[role="button"]')).toBeTruthy();
+      expect(container.querySelector('button[data-multi-select-trigger]')).toBeTruthy();
     });
 
     test('should accept value prop', () => {
@@ -366,11 +366,11 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={onChange} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const option = screen.getByText('Option 1');
-        fireEvent.click(option.closest('div')!);
+        fireEvent.click(option.closest('label')!);
       });
       expect(onChange).toHaveBeenCalled();
     });
@@ -379,7 +379,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={[]} value={[]} onChange={jest.fn()} />
       );
-      expect(container.querySelector('div[role="button"]')).toBeTruthy();
+      expect(container.querySelector('button[data-multi-select-trigger]')).toBeTruthy();
     });
   });
 
@@ -388,7 +388,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const searchInput = screen.getByPlaceholderText('Search...') as HTMLInputElement;
@@ -400,18 +400,18 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
-      expect(button?.getAttribute('tabIndex')).toBe('0');
+      const button = container.querySelector<HTMLButtonElement>('button[data-multi-select-trigger]');
+      expect(button?.tabIndex).toBe(0);
     });
   });
 
   describe('Accessibility', () => {
-    test('should have proper role for button', () => {
+    test('should use a native button for the trigger', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
-      expect(button?.getAttribute('role')).toBe('button');
+      const button = container.querySelector('button[data-multi-select-trigger]');
+      expect(button?.tagName).toBe('BUTTON');
     });
 
     test('should have aria-label on remove buttons', () => {
@@ -426,15 +426,15 @@ describe('MultiSelect Component', () => {
       expect(removeButton).toBeTruthy();
     });
 
-    test('should have readonly checkboxes', async () => {
+    test('should use native enabled checkboxes', async () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-        expect((checkboxes[0] as HTMLInputElement).readOnly).toBe(true);
+        expect((checkboxes[0] as HTMLInputElement).disabled).toBe(false);
       });
     });
   });
@@ -444,7 +444,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       expect(button?.className).toContain('bg-zinc-800');
       expect(button?.className).toContain('border');
       expect(button?.className).toContain('rounded');
@@ -454,7 +454,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       expect(button?.className).toContain('hover:border-red-500');
     });
 
@@ -462,7 +462,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const dropdown = container.querySelector('div[class*="z-50"]');
@@ -479,10 +479,10 @@ describe('MultiSelect Component', () => {
           onChange={jest.fn()}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
-        const allOptions = container.querySelectorAll('div[class*="px-2"][class*="py-2"]');
+        const allOptions = container.querySelectorAll('label[class*="px-2"][class*="py-2"]');
         const optionArray = Array.from(allOptions);
         expect(optionArray.length).toBeGreaterThan(0);
         const firstOptionElement = optionArray[0];
@@ -510,7 +510,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       // First click opens
       fireEvent.click(button!);
       expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
@@ -543,7 +543,7 @@ describe('MultiSelect Component', () => {
           onChange={jest.fn()}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'Option' } });
@@ -554,7 +554,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       const searchInput = await screen.findByPlaceholderText('Search...');
       fireEvent.change(searchInput, { target: { value: 'xyz' } });
@@ -569,7 +569,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={manyOptions} value={[]} onChange={jest.fn()} />
       );
-      expect(container.querySelector('div[role="button"]')).toBeTruthy();
+      expect(container.querySelector('button[data-multi-select-trigger]')).toBeTruthy();
     });
   });
 
@@ -579,11 +579,11 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={onChange} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const option = screen.getByText('Option 1');
-        fireEvent.click(option.closest('div')!);
+        fireEvent.click(option.closest('label')!);
       });
       expect(onChange).toHaveBeenCalledWith(expect.arrayContaining(['opt1']));
     });
@@ -597,12 +597,12 @@ describe('MultiSelect Component', () => {
           onChange={onChange}
         />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
       });
-      const options = container.querySelectorAll('div[class*="cursor-pointer"][class*="hover:bg"]');
+      const options = container.querySelectorAll('label[class*="cursor-pointer"][class*="hover:bg"]');
       const firstOption = Array.from(options)[0];
       fireEvent.click(firstOption);
       expect(onChange).toHaveBeenCalledWith([]);
@@ -612,11 +612,11 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const option = screen.getByText('Option 1');
-        fireEvent.click(option.closest('div')!);
+        fireEvent.click(option.closest('label')!);
       });
       expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
     });
@@ -642,11 +642,11 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={onChange} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       fireEvent.click(button!);
       await waitFor(() => {
         const option = screen.getByText('Option 1');
-        fireEvent.click(option.closest('div')!);
+        fireEvent.click(option.closest('label')!);
       });
     });
   });
@@ -701,7 +701,7 @@ describe('MultiSelect Component', () => {
       const { container } = render(
         <MultiSelect options={mockOptions} value={[]} onChange={jest.fn()} />
       );
-      const button = container.querySelector('div[role="button"]');
+      const button = container.querySelector('button[data-multi-select-trigger]');
       for (let i = 0; i < 10; i++) {
         fireEvent.click(button!);
         await waitFor(() => {

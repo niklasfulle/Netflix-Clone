@@ -8,6 +8,39 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- An isolated, non-durable Redis runtime now provides environment-scoped caching with ACL credentials, bounded timeouts, LFU eviction, and a circuit breaker
+- The administrator System Overview now reports Redis connectivity, command latency, errors, reconnects, fallbacks, and cache hits and misses
+- Shared movie and series catalog metadata is cached in Redis for five minutes while profile watch progress remains current in PostgreSQL
+- Catalog cache misses, invalid values, timeouts, disabled Redis, and write failures fall back safely to PostgreSQL without failing the user request
+
+## 1.12.1
+
+- QR-assisted device login now lets an authenticated phone scan and explicitly approve a separate target-device session
+- Pairing requests use short-lived hashed one-time secrets, bounded polling, cancellation, expiration, and independent session revocation
+- Device approval requires recent password authentication and returns the approver to Settings after a successful confirmation
+- Settings now includes the QR scanner alongside account and security controls with mobile-safe sizing and overflow behavior
+- Authentication events can be reviewed separately from general application and container logs in the administration log page
+- Desktop and mobile browser coverage verifies pairing approval, target-session exchange, protected access, and responsive Settings behavior
+
+## 1.12.0
+
+- Administrator operations now have a typed, privacy-safe, append-only PostgreSQL audit foundation with bounded retention and isolated integration coverage
+- Existing content, actor, user-security, and backup mutations now record correlated success, denial, and controlled-failure audit outcomes without changing their public results
+- Administrators can now search, filter, paginate, inspect, and safely export the retained audit history from a responsive bilingual management page
+- A read-only media integrity engine now validates published videos and thumbnails, probes streams and codecs with bounded ffprobe workers, detects duplicates and orphaned videos, and persists privacy-safe scan findings with bounded retention
+- The production image now includes a pinned static ffprobe runtime with roughly 55 MB of uncompressed overhead instead of the substantially larger Debian FFmpeg dependency tree
+- Administrators can now review media-health summaries, stale or unavailable scanner states, filtered findings, remediation guidance, and direct content-editing links from a responsive bilingual dashboard
+- Full-catalog and single-content scans can be started from the administration area, are correlated with audit outcomes, and only report success after findings have been persisted
+- A PostgreSQL-backed active-scan lock rejects duplicate concurrent catalog scans, while bounded runtime file access keeps media inspection out of the production bundle trace
+- Every deployment PostgreSQL dump is now restored into a disposable network-isolated PostgreSQL instance before migrations can run, with explicit archive and version compatibility checks
+- Backup verification publishes only bounded checksum, version, timing, schema, and representative-record evidence while keeping dumps, database URLs, credentials, and raw diagnostics outside the application container
+- Administrators can inspect the last recovery verification and request a serialized recheck of the latest host dump from the backup page without browser access to Docker or PostgreSQL
+- Every deployment attempt now publishes a bounded Ed25519-signed Deployment Record covering image identity, migrations, health checks, rollback, and its verified backup reference
+- The admin System Overview distinguishes current, stale, unavailable, and tampered local or explicitly approved peer records without receiving Docker, SSH, or signing-key access
+- Failed and partially completed deployments remain visible after Ansible exits, while successful rollbacks replace them with signed recovery evidence
+
+## 1.11.0
+
 - Login, registration, password reset, password renewal, verification, and authentication errors now share a responsive visual system
 - The authentication experience now includes a large-screen product overview while remaining compact and overflow-safe on mobile devices
 - Authentication forms now provide consistent field icons, password-manager metadata, localized validation, pending states, and live status announcements
@@ -44,20 +77,6 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - The Changelog is now reachable without signing in and no longer inherits the protected application layout
 - A sticky, keyboard-accessible version index now links directly to every release in the Changelog
 - A floating, keyboard-accessible Back to top shortcut now returns readers to the Changelog heading without client-side JavaScript
-- Administrator operations now have a typed, privacy-safe, append-only PostgreSQL audit foundation with bounded retention and isolated integration coverage
-- Existing content, actor, user-security, and backup mutations now record correlated success, denial, and controlled-failure audit outcomes without changing their public results
-- Administrators can now search, filter, paginate, inspect, and safely export the retained audit history from a responsive bilingual management page
-- A read-only media integrity engine now validates published videos and thumbnails, probes streams and codecs with bounded ffprobe workers, detects duplicates and orphaned videos, and persists privacy-safe scan findings with bounded retention
-- The production image now includes a pinned static ffprobe runtime with roughly 55 MB of uncompressed overhead instead of the substantially larger Debian FFmpeg dependency tree
-- Administrators can now review media-health summaries, stale or unavailable scanner states, filtered findings, remediation guidance, and direct content-editing links from a responsive bilingual dashboard
-- Full-catalog and single-content scans can be started from the administration area, are correlated with audit outcomes, and only report success after findings have been persisted
-- A PostgreSQL-backed active-scan lock rejects duplicate concurrent catalog scans, while bounded runtime file access keeps media inspection out of the production bundle trace
-- Every deployment PostgreSQL dump is now restored into a disposable network-isolated PostgreSQL instance before migrations can run, with explicit archive and version compatibility checks
-- Backup verification publishes only bounded checksum, version, timing, schema, and representative-record evidence while keeping dumps, database URLs, credentials, and raw diagnostics outside the application container
-- Administrators can inspect the last recovery verification and request a serialized recheck of the latest host dump from the backup page without browser access to Docker or PostgreSQL
-- Every deployment attempt now publishes a bounded Ed25519-signed Deployment Record covering image identity, migrations, health checks, rollback, and its verified backup reference
-- The admin System Overview distinguishes current, stale, unavailable, and tampered local or explicitly approved peer records without receiving Docker, SSH, or signing-key access
-- Failed and partially completed deployments remain visible after Ansible exits, while successful rollbacks replace them with signed recovery evidence
 
 ## 1.10.1
 
