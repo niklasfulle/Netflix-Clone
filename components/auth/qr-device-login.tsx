@@ -2,7 +2,7 @@
 
 import { QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { FormError } from '@/components/form-error';
@@ -32,6 +32,7 @@ export const QrDeviceLogin = () => {
   const [status, setStatus] = useState<PublicPairingStatus | 'exchanging' | 'cancelled'>('terminal');
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
+  const exchangeStartedRef = useRef(false);
 
   useEffect(() => {
     if (!pairing) return;
@@ -39,6 +40,7 @@ export const QrDeviceLogin = () => {
     const stopAt = new Date(pairing.expiresAt).getTime();
 
     const poll = async () => {
+      if (exchangeStartedRef.current) return;
       try {
         const response = await fetch('/api/auth/qr/status', {
           method: 'POST',
@@ -53,7 +55,9 @@ export const QrDeviceLogin = () => {
           setStatus('terminal');
           return;
         }
+        if (stopped || exchangeStartedRef.current) return;
 
+        exchangeStartedRef.current = true;
         setStatus('exchanging');
         const exchange = await fetch('/api/auth/qr/exchange', {
           method: 'POST',
@@ -94,6 +98,7 @@ export const QrDeviceLogin = () => {
 
   const start = () => {
     setError(undefined);
+    exchangeStartedRef.current = false;
     startTransition(() => {
       fetch('/api/auth/qr', { method: 'POST', cache: 'no-store' })
         .then(async (response) => response.ok ? response.json() as Promise<Pairing> : Promise.reject())
@@ -108,6 +113,7 @@ export const QrDeviceLogin = () => {
 
   const cancel = () => {
     if (!pairing) return;
+    exchangeStartedRef.current = true;
     fetch('/api/auth/qr/cancel', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
