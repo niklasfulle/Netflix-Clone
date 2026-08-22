@@ -11,6 +11,10 @@ import { useDialogFocus } from "@/hooks/useDialogFocus";
 type LogEntry = {
   timestamp?: string;
   action?: string;
+  category?: string;
+  flow?: string;
+  outcome?: string;
+  reasonCode?: string;
   userId?: string;
   level?: string;
   message?: string;
@@ -18,7 +22,7 @@ type LogEntry = {
   [key: string]: unknown;
 };
 
-type LogSource = "application" | "container";
+type LogSource = "application" | "authentication" | "container";
 
 const fetcher = (url: string) => fetch(url).then(async (response) => {
   const data = await response.json();
@@ -41,6 +45,14 @@ const sourceDetails = {
     fourthHeader: "Benutzer-ID",
     detailWidth: "max-w-[220px]",
     canClear: true,
+  },
+  authentication: {
+    endpoint: "/api/logs",
+    filterGrid: "xl:grid-cols-[minmax(280px,1fr)_150px_200px_160px_160px]",
+    thirdHeader: "Flow",
+    fourthHeader: "Ergebnis",
+    detailWidth: "max-w-[320px]",
+    canClear: false,
   },
   container: {
     endpoint: "/api/admin/container-logs",
@@ -66,11 +78,17 @@ function messageStyle(message: string) {
 }
 
 function logSourceValue(source: LogSource, log: LogEntry) {
-  return source === "container" ? "netflix-clone" : (log.action || "–");
+  if (source === "container") return "netflix-clone";
+  if (source === "authentication") return log.flow || log.action || "–";
+  return log.action || "–";
 }
 
 function logDetailValue(source: LogSource, log: LogEntry) {
-  return source === "container" ? (log.message || "–") : (log.userId || "–");
+  if (source === "container") return log.message || "–";
+  if (source === "authentication") {
+    return [log.outcome, log.reasonCode].filter(Boolean).join(" · ") || "–";
+  }
+  return log.userId || "–";
 }
 
 export default function AdminLogsPage() {
@@ -103,9 +121,13 @@ export default function AdminLogsPage() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const params = useMemo(() => new URLSearchParams({
-    page: String(page), pageSize: String(pageSize), search, level, action, userId, from, to,
-  }).toString(), [page, pageSize, search, level, action, userId, from, to]);
+  const params = useMemo(() => {
+    const nextParams = new URLSearchParams({
+      page: String(page), pageSize: String(pageSize), search, level, action, userId, from, to,
+    });
+    if (source !== "container") nextParams.set("category", source);
+    return nextParams.toString();
+  }, [page, pageSize, search, level, action, userId, from, to, source]);
   const sourceDetail = sourceDetails[source];
   const logEndpoint = sourceDetail.endpoint;
   const { data, error, isLoading, mutate, isValidating } = useSWR(`${logEndpoint}?${params}`, fetcher, { refreshInterval: autoRefresh ? 10_000 : 0, keepPreviousData: true });
@@ -134,7 +156,7 @@ export default function AdminLogsPage() {
   };
 
   const selectSource = (nextSource: LogSource) => {
-    setSource(nextSource); setPage(1); setDetail(null); setClearOpen(false); setMessage("");
+    setSource(nextSource); setAction(""); setUserId(""); setPage(1); setDetail(null); setClearOpen(false); setMessage("");
   };
 
   return (
@@ -153,9 +175,10 @@ export default function AdminLogsPage() {
         }
       />
 
-      <div className="mb-5 inline-flex rounded-xl border border-zinc-800 bg-zinc-950 p-1" aria-label="Log-Quelle">
-        <button type="button" onClick={() => selectSource("application")} aria-pressed={source === "application"} className={`rounded-lg px-4 py-2 text-sm ${source === "application" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Anwendungs-Logs</button>
-        <button type="button" onClick={() => selectSource("container")} aria-pressed={source === "container"} className={`rounded-lg px-4 py-2 text-sm ${source === "container" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Docker-Container</button>
+      <div role="tablist" className="mb-5 inline-flex max-w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-950 p-1" aria-label="Log-Quelle">
+        <button role="tab" type="button" onClick={() => selectSource("application")} aria-selected={source === "application"} className={`shrink-0 rounded-lg px-4 py-2 text-sm ${source === "application" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Anwendungs-Logs</button>
+        <button role="tab" type="button" onClick={() => selectSource("authentication")} aria-selected={source === "authentication"} className={`shrink-0 rounded-lg px-4 py-2 text-sm ${source === "authentication" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Authentifizierungs-Logs</button>
+        <button role="tab" type="button" onClick={() => selectSource("container")} aria-selected={source === "container"} className={`shrink-0 rounded-lg px-4 py-2 text-sm ${source === "container" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>Docker-Container</button>
       </div>
 
       {visibleData?.counts && (
@@ -168,7 +191,7 @@ export default function AdminLogsPage() {
         <div className={`grid gap-3 border-b border-zinc-800 p-4 ${sourceDetail.filterGrid}`}>
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" /><span className="sr-only">Logs durchsuchen</span><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Volltextsuche …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" /></label>
           <select aria-label="Nach Log-Level filtern" value={level} onChange={(event) => { setLevel(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Level</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option></select>
-          {source === "application" ? <input aria-label="Nach Aktion filtern" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" /> : null}
+          {source !== "container" ? <input aria-label="Nach Aktion filtern" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }} placeholder="Aktion …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" /> : null}
           {source === "application" ? <input aria-label="Nach Benutzer-ID filtern" value={userId} onChange={(event) => { setUserId(event.target.value); setPage(1); }} placeholder="Benutzer-ID …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white" /> : null}
           <input type="date" aria-label="Von Datum" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
           <input type="date" aria-label="Bis Datum" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-300" />
@@ -218,7 +241,7 @@ export default function AdminLogsPage() {
       {clearOpen && (
         <dialog ref={clearDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Logs endgültig leeren">
           <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-zinc-950 p-6">
-            <h2 className="text-xl font-bold text-white">Logs endgültig leeren?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Diese Aktion kann nicht rückgängig gemacht werden. Es wird ausschließlich die Backend-Logdatei geleert.</p>
+            <h2 className="text-xl font-bold text-white">Logs endgültig leeren?</h2><p className="mt-2 text-sm leading-6 text-zinc-400">Diese Aktion kann nicht rückgängig gemacht werden. Anwendungs- und Authentifizierungs-Logs werden aus der gemeinsamen Backend-Logdatei entfernt.</p>
             <label className="mt-5 block text-sm text-zinc-300">Gib <strong className="text-white">LOGS LÖSCHEN</strong> ein<input autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-white outline-none focus:border-red-500" /></label>
             <div className="mt-5 flex gap-3"><button type="button" onClick={() => setClearOpen(false)} className="flex-1 rounded-lg border border-zinc-700 py-2.5 text-sm text-zinc-200">Abbrechen</button><button type="button" onClick={clearLogs} disabled={confirmation !== "LOGS LÖSCHEN"} className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white disabled:opacity-40">Endgültig leeren</button></div>
           </div>

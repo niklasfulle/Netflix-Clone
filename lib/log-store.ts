@@ -5,6 +5,7 @@ import readline from 'node:readline';
 export type LogRecord = {
   timestamp?: string;
   action?: string;
+  category?: string;
   userId?: string;
   level?: string;
   raw?: string;
@@ -17,6 +18,7 @@ type LogQuery = {
   level?: string;
   search?: string;
   action?: string;
+  category?: string;
   userId?: string;
   from?: Date | null;
   to?: Date | null;
@@ -90,6 +92,12 @@ function normalizeEntry(entry: LogRecord, maxEntryBytes: number): string {
   return `${bounded}\n`;
 }
 
+function matchesCategory(record: LogRecord, category?: string): boolean {
+  if (!category) return true;
+  if (category === 'application') return record.category !== 'authentication';
+  return record.category === category;
+}
+
 function matchesQuery(record: LogRecord, query: LogQuery): boolean {
   const normalizedLevel = record.level === 'warning' ? 'warn' : record.level;
   const locale = 'en';
@@ -98,6 +106,7 @@ function matchesQuery(record: LogRecord, query: LogQuery): boolean {
   const search = query.search?.trim().toLocaleLowerCase(locale) ?? '';
   const timestamp = record.timestamp ? new Date(record.timestamp) : null;
 
+  if (!matchesCategory(record, query.category)) return false;
   if (query.level && query.level !== 'all' && normalizedLevel !== query.level) return false;
   if (action && !String(record.action ?? '').toLocaleLowerCase(locale).includes(action)) return false;
   if (userId && !String(record.userId ?? '').toLocaleLowerCase(locale).includes(userId)) return false;
@@ -225,6 +234,7 @@ export function createLogStore({
     let total = 0;
 
     for await (const record of readRecords()) {
+      if (!matchesCategory(record, queryOptions.category)) continue;
       const level = record.level === 'warning' ? 'warn' : record.level ?? 'unknown';
       counts[level] = (counts[level] ?? 0) + 1;
       if (!matchesQuery(record, queryOptions)) continue;

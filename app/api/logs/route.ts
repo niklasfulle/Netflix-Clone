@@ -36,10 +36,14 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
   const level = searchParams.get("level") || "all";
   const search = searchParams.get("search")?.trim().toLocaleLowerCase("de") || "";
   const action = searchParams.get("action")?.trim().toLocaleLowerCase("de") || "";
+  const requestedCategory = searchParams.get("category");
+  const category = requestedCategory === "authentication" || requestedCategory === "application"
+    ? requestedCategory
+    : undefined;
   const userId = searchParams.get("userId")?.trim().toLocaleLowerCase("de") || "";
   const from = searchParams.get("from") ? new Date(searchParams.get("from") as string) : null;
   const to = searchParams.get("to") ? new Date(`${searchParams.get("to")}T23:59:59.999`) : null;
-  const query = { page, pageSize, level, search, action, userId, from, to };
+  const query = { page, pageSize, level, search, action, category, userId, from, to };
 
   if (searchParams.get("format") === "csv") {
     const encoder = new TextEncoder();
@@ -66,7 +70,7 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
     return new NextResponse(stream, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="system-logs.csv"',
+        "Content-Disposition": `attachment; filename="${category === "authentication" ? "authentication" : "system"}-logs.csv"`,
       },
     });
   }
@@ -74,7 +78,7 @@ export async function GET(request: NextRequest | Request = new NextRequest("http
   const result = await backendLogStore.query(query);
 
   return NextResponse.json({
-    source: "application",
+    source: category === "authentication" ? "authentication" : "application",
     logs: result.logs,
     total: result.total,
     page,
