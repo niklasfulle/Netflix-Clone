@@ -1,9 +1,39 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 
 import { accounts, authStatePaths, createBrowserFailureMonitor } from './support';
 
+async function warmLocalQrRoutes(request: APIRequestContext) {
+  if (process.env.PLAYWRIGHT_EXTERNAL_SERVER === 'true') return;
+
+  const pairingResponse = await request.post('/api/auth/qr');
+  expect(pairingResponse.ok()).toBe(true);
+  const pairing = await pairingResponse.json() as {
+    exchangeSecret: string;
+    pollSecret: string;
+  };
+
+  const statusResponse = await request.post('/api/auth/qr/status', {
+    data: { pollSecret: pairing.pollSecret },
+  });
+  expect(statusResponse.ok()).toBe(true);
+
+  // Invalid requests still compile these route modules without approving or
+  // consuming the disposable pairing.
+  await request.post('/api/auth/qr/approve', { data: {} });
+  await request.post('/api/auth/qr/exchange', {
+    data: { exchangeSecret: pairing.exchangeSecret },
+  });
+
+  const cancelResponse = await request.post('/api/auth/qr/cancel', {
+    data: { pollSecret: pairing.pollSecret },
+  });
+  expect(cancelResponse.ok()).toBe(true);
+}
+
 test.describe('QR-assisted device login', () => {
-  test('an already signed-in phone approves a separate target-device session', async ({ browser }) => {
+  test('an already signed-in phone approves a separate target-device session', async ({ browser, request }) => {
+    await warmLocalQrRoutes(request);
+
     const targetContext = await browser.newContext();
     const targetPage = await targetContext.newPage();
     const targetFailures = createBrowserFailureMonitor(targetPage);
