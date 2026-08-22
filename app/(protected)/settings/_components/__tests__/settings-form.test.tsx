@@ -95,6 +95,17 @@ describe("SettingsForm", () => {
     expect(screen.getByText("Member")).toBeInTheDocument();
   });
 
+  it("keeps form controls and panels shrinkable on narrow screens", () => {
+    render(<SettingsForm user={passwordAccount} />);
+
+    const form = screen.getByLabelText("Name").closest("form");
+    expect(form).toHaveClass("min-w-0", "w-full");
+    expect(screen.getByLabelText("Name")).toHaveClass("min-w-0");
+    expect(
+      screen.getByRole("heading", { name: "Personal information" }).closest("section"),
+    ).toHaveClass("min-w-0", "max-w-full");
+  });
+
   it("renders account controls in German at render time", () => {
     render(
       <LanguageProvider initialLocale="de">

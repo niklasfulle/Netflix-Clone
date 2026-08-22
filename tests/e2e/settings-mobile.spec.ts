@@ -19,6 +19,19 @@ test.describe('mobile settings', () => {
       await expect(page.locator('nav > div').first()).toHaveClass(/bg-zinc-900/);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
         .toBe(true);
+      const clippedSettingsElements = await page.locator(
+        'main aside, main form, main section, main input, main button',
+      ).evaluateAll((elements) => elements.flatMap((element) => {
+        const rect = element.getBoundingClientRect();
+        if (rect.left >= -1 && rect.right <= window.innerWidth + 1) return [];
+        return [{
+          element: element.tagName.toLowerCase(),
+          id: element.id,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+        }];
+      }));
+      expect(clippedSettingsElements).toEqual([]);
       browserFailures.assertNone();
     } finally {
       await context.close();
