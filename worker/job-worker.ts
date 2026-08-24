@@ -4,6 +4,16 @@ import { z } from 'zod';
 import { mediaIntegrityScanner } from '@/lib/media-integrity';
 import { db } from '@/lib/db';
 import {
+  readBackupVerificationStatus,
+  requestBackupVerification,
+} from '@/lib/backup-verification';
+import {
+  readBackupRetentionStatus,
+  requestBackupRetention,
+} from '@/lib/backup-retention';
+import { createBackupRetentionJobHandler } from '@/lib/jobs/backup-retention-job';
+import { createBackupVerificationJobHandler } from '@/lib/jobs/backup-verification-job';
+import {
   createCoordinatedJobExecutionRepository,
   createRedisJobCoordination,
 } from '@/lib/jobs/coordination';
@@ -50,6 +60,14 @@ const runs = createCoordinatedJobExecutionRepository(
 const operationalLeases = createOperationalLeaseCoordinator({
   store: createPostgresOperationalLeaseStore(db),
 });
+const backupVerificationJob = createBackupVerificationJobHandler({
+  submitRequest: requestBackupVerification,
+  readStatus: readBackupVerificationStatus,
+});
+const backupRetentionJob = createBackupRetentionJobHandler({
+  submitRequest: requestBackupRetention,
+  readStatus: readBackupRetentionStatus,
+});
 
 boss.on('error', (error) => {
   console.error('background_worker_error', error);
@@ -62,8 +80,16 @@ const workOptions = {
   localConcurrency: 1,
 } as const;
 
-async function registerWork() {
-  await boss.work<QueuedJob, unknown, typeof workOptions>(JOB_NAMES.mediaIntegrityScan, workOptions, async (jobs) => Promise.all(jobs.map(async (job) => {
+type WorkerDelivery = {
+  id: string;
+  data: QueuedJob;
+  retryCount: number;
+  retryLimit: number;
+  signal?: AbortSignal;
+};
+
+async function processJobs(jobs: WorkerDelivery[]) {
+  return Promise.all(jobs.map(async (job) => {
   try {
     const outcome = await executeQueuedJob({
       envelope: job.data,
@@ -97,6 +123,20 @@ async function registerWork() {
             };
           });
         },
+        async backupVerification(payload, context) {
+          return operationalLeases.execute({
+            operation: 'backup.verify',
+            targetId: 'backup-verification:latest',
+            ttlMs: 15 * 60_000,
+          }, async () => backupVerificationJob(payload, context));
+        },
+        async backupRetention(payload, context) {
+          return operationalLeases.execute({
+            operation: 'backup.cleanup',
+            targetId: `backup-retention:${payload.environment}`,
+            ttlMs: 15 * 60_000,
+          }, async () => backupRetentionJob(payload, context));
+        },
       },
     });
     return { id: job.id, status: 'completed' as const, output: outcome };
@@ -107,7 +147,27 @@ async function registerWork() {
     }
     return { id: job.id, status: 'failed' as const, output: failureDetails(error) };
   }
-  })));
+  }));
+}
+
+async function registerWork() {
+  await Promise.all([
+    boss.work<QueuedJob, unknown, typeof workOptions>(
+      JOB_NAMES.mediaIntegrityScan,
+      workOptions,
+      processJobs,
+    ),
+    boss.work<QueuedJob, unknown, typeof workOptions>(
+      JOB_NAMES.backupVerification,
+      workOptions,
+      processJobs,
+    ),
+    boss.work<QueuedJob, unknown, typeof workOptions>(
+      JOB_NAMES.backupRetentionCleanup,
+      workOptions,
+      processJobs,
+    ),
+  ]);
 }
 
 const lifecycle = createWorkerLifecycle({

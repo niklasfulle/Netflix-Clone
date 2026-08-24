@@ -23,6 +23,39 @@ function submission() {
   };
 }
 
+function backupVerificationSubmission() {
+  return {
+    name: 'backup.verification.request' as const,
+    version: 1 as const,
+    payload: {
+      scope: 'latest' as const,
+      requestId: '550e8400-e29b-41d4-a716-446655440000',
+      requestedAt: '2026-08-23T10:00:00.000Z',
+    },
+    actor: { userId: 'admin-user-123', role: 'ADMIN' as const },
+    target: { type: 'backup' as const, id: 'latest' as const },
+    idempotencyKey: 'backup-verify-request-123',
+    correlationId: 'request-correlation-123',
+  };
+}
+
+function backupRetentionSubmission() {
+  return {
+    name: 'backup.retention.cleanup' as const,
+    version: 1 as const,
+    payload: {
+      scope: 'scheduled' as const,
+      environment: 'staging' as const,
+      requestId: '750e8400-e29b-41d4-a716-446655440000',
+      requestedAt: '2026-08-23T10:00:00.000Z',
+    },
+    actor: { userId: 'admin-user-123', role: 'ADMIN' as const },
+    target: { type: 'backup_retention' as const, id: 'staging' as const },
+    idempotencyKey: 'backup-retention-request-123',
+    correlationId: 'request-correlation-123',
+  };
+}
+
 function transactionalDatabase() {
   const committed = new Map<string, StoredJob>();
   const database: JobSubmissionDatabase = {
@@ -78,6 +111,48 @@ describe('background job submission', () => {
       correlationId: 'request-correlation-123',
     });
     expect(committed.size).toBe(1);
+  });
+
+  it('publishes backup verification failures to their dedicated dead-letter queue', async () => {
+    const { database } = transactionalDatabase();
+    const publisher = {
+      send: jest.fn().mockResolvedValue('550e8400-e29b-41d4-a716-446655440000'),
+    };
+    const service = createJobSubmissionService({
+      database,
+      publisher,
+      now: () => new Date('2026-08-23T10:00:00.000Z'),
+      createQueueJobId: () => '550e8400-e29b-41d4-a716-446655440000',
+    });
+
+    await service.submit(backupVerificationSubmission());
+
+    expect(publisher.send).toHaveBeenCalledWith(
+      'backup.verification.request',
+      expect.any(Object),
+      expect.objectContaining({ deadLetter: 'backup.verification.request.dead' }),
+    );
+  });
+
+  it('publishes backup retention failures to their dedicated dead-letter queue', async () => {
+    const { database } = transactionalDatabase();
+    const publisher = {
+      send: jest.fn().mockResolvedValue('850e8400-e29b-41d4-a716-446655440000'),
+    };
+    const service = createJobSubmissionService({
+      database,
+      publisher,
+      now: () => new Date('2026-08-23T10:00:00.000Z'),
+      createQueueJobId: () => '850e8400-e29b-41d4-a716-446655440000',
+    });
+
+    await service.submit(backupRetentionSubmission());
+
+    expect(publisher.send).toHaveBeenCalledWith(
+      'backup.retention.cleanup',
+      expect.any(Object),
+      expect.objectContaining({ deadLetter: 'backup.retention.cleanup.dead' }),
+    );
   });
 
   it('rolls back the durable job when queue publication fails', async () => {

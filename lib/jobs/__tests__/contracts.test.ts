@@ -23,6 +23,83 @@ describe('background job contracts', () => {
     });
   });
 
+  it('accepts a versioned latest-backup verification request', () => {
+    expect(parseJobSubmission({
+      name: 'backup.verification.request',
+      version: 1,
+      payload: {
+        scope: 'latest',
+        requestId: '550e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-24T18:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup', id: 'latest' },
+      idempotencyKey: 'backup-verify-request-123',
+      correlationId: 'request-correlation-123',
+    })).toEqual({
+      name: 'backup.verification.request',
+      version: 1,
+      payload: {
+        scope: 'latest',
+        requestId: '550e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-24T18:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup', id: 'latest' },
+      idempotencyKey: 'backup-verify-request-123',
+      correlationId: 'request-correlation-123',
+    });
+  });
+
+  it('accepts a bounded scheduled-backup retention request without host paths', () => {
+    expect(parseJobSubmission({
+      name: 'backup.retention.cleanup',
+      version: 1,
+      payload: {
+        scope: 'scheduled',
+        environment: 'staging',
+        requestId: '750e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-24T19:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup_retention', id: 'staging' },
+      idempotencyKey: 'backup-retention-request-123',
+      correlationId: 'request-correlation-123',
+    })).toEqual({
+      name: 'backup.retention.cleanup',
+      version: 1,
+      payload: {
+        scope: 'scheduled',
+        environment: 'staging',
+        requestId: '750e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-24T19:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup_retention', id: 'staging' },
+      idempotencyKey: 'backup-retention-request-123',
+      correlationId: 'request-correlation-123',
+    });
+  });
+
+  it('accepts a current scheduled-backup retention queue envelope', () => {
+    expect(parseQueuedJob({
+      name: 'backup.retention.cleanup',
+      version: 1,
+      payload: {
+        scope: 'scheduled',
+        environment: 'production',
+        requestId: '750e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-24T19:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup_retention', id: 'production' },
+      idempotencyKey: 'backup-retention-request-123',
+      correlationId: 'request-correlation-123',
+      jobRunId: 'retention-job-run-123',
+      acceptedAt: '2026-08-24T19:00:00.000Z',
+    }, new Date('2026-08-24T19:01:00.000Z')).name).toBe('backup.retention.cleanup');
+  });
+
   it('rejects unsupported contract versions instead of guessing compatibility', () => {
     expect(() => parseJobSubmission({
       name: 'media.integrity.scan',

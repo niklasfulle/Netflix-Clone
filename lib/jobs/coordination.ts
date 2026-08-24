@@ -21,13 +21,29 @@ const coordinationSnapshot = z.object({
   progress: z.number().int().min(0).max(100).optional(),
   progressMessage: z.string().trim().min(1).max(160).optional(),
   attemptCount: z.number().int().min(0).max(100).optional(),
-  result: z.object({
-    scanRunId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/),
-    contentCount: z.number().int().nonnegative().max(1_000_000),
-    findingCount: z.number().int().nonnegative().max(1_000_000),
-    criticalCount: z.number().int().nonnegative().max(1_000_000),
-    warningCount: z.number().int().nonnegative().max(1_000_000),
-  }).strict().optional(),
+  result: z.union([
+    z.object({
+      scanRunId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/),
+      contentCount: z.number().int().nonnegative().max(1_000_000),
+      findingCount: z.number().int().nonnegative().max(1_000_000),
+      criticalCount: z.number().int().nonnegative().max(1_000_000),
+      warningCount: z.number().int().nonnegative().max(1_000_000),
+    }).strict(),
+    z.object({
+      verificationRequestId: z.uuid(),
+      status: z.literal('VERIFIED'),
+      diagnosticCode: z.literal('VERIFICATION_SUCCEEDED'),
+      backupName: z.string().min(6).max(191)
+        .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
+    }).strict(),
+    z.object({
+      cleanupRequestId: z.uuid(),
+      status: z.literal('COMPLETED'),
+      environment: z.enum(['staging', 'production']),
+      retainedCount: z.number().int().nonnegative().max(1_000_000),
+      removedCount: z.number().int().nonnegative().max(1_000_000),
+    }).strict(),
+  ]).optional(),
   errorCode: z.string().min(1).max(80).optional(),
   errorMessage: z.string().min(1).max(512).optional(),
   updatedAt: z.iso.datetime({ offset: true }),

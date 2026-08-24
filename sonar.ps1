@@ -72,6 +72,24 @@ Installiere zuerst die Projektabhängigkeiten.
 "@
 }
 
+$nodeCommand = Get-Command "node" -ErrorAction SilentlyContinue
+if ($null -eq $nodeCommand) {
+    throw "Node.js wurde nicht gefunden. Installiere zuerst die Projektabhängigkeiten."
+}
+
+$baselineCheckScript = Join-Path $PSScriptRoot "scripts\check-baseline-browser-mapping.mjs"
+if (-not (Test-Path -LiteralPath $baselineCheckScript -PathType Leaf)) {
+    throw "Das Skript für den Baseline-Browserdaten-Check wurde nicht gefunden: $baselineCheckScript"
+}
+
+Write-Host "Prüfe Aktualität der Baseline-Browserdaten ..."
+& $nodeCommand.Source $baselineCheckScript
+$baselineCheckExitCode = $LASTEXITCODE
+if ($baselineCheckExitCode -ne 0) {
+    Write-Error "Der Baseline-Browserdaten-Check ist mit Code $baselineCheckExitCode fehlgeschlagen."
+    exit $baselineCheckExitCode
+}
+
 Write-Host "Erzeuge einen aktuellen LCOV-Coverage-Bericht ..."
 & $jestPath "--coverage" "--coverageReporters=lcov"
 
@@ -92,6 +110,17 @@ try {
         "-Dsonar.projectKey=$ProjectKey"
 
     $scannerExitCode = $LASTEXITCODE
+
+    $summaryScript = Join-Path $PSScriptRoot "scripts\sonar-summary.mjs"
+    if (-not (Test-Path -LiteralPath $summaryScript -PathType Leaf)) {
+        Write-Warning "Das Skript für die SonarQube-Übersicht wurde nicht gefunden: $summaryScript"
+    }
+    else {
+        & $nodeCommand.Source $summaryScript $SonarHostUrl $ProjectKey
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Die SonarQube-Übersicht konnte nicht vollständig ausgegeben werden."
+        }
+    }
 }
 finally {
     if ($null -eq $previousSonarToken) {

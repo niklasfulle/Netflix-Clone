@@ -14,6 +14,39 @@ const envelope = {
   acceptedAt: '2026-08-23T10:00:00.000Z',
 };
 
+const backupVerificationEnvelope = {
+  name: 'backup.verification.request' as const,
+  version: 1 as const,
+  payload: {
+    scope: 'latest' as const,
+    requestId: '550e8400-e29b-41d4-a716-446655440000',
+    requestedAt: '2026-08-23T10:00:00.000Z',
+  },
+  actor: { userId: 'admin-user-123', role: 'ADMIN' as const },
+  target: { type: 'backup' as const, id: 'latest' as const },
+  idempotencyKey: 'backup-verify-request-123',
+  correlationId: 'request-correlation-123',
+  jobRunId: 'backup-job-run-123',
+  acceptedAt: '2026-08-23T10:00:00.000Z',
+};
+
+const backupRetentionEnvelope = {
+  name: 'backup.retention.cleanup' as const,
+  version: 1 as const,
+  payload: {
+    scope: 'scheduled' as const,
+    environment: 'staging' as const,
+    requestId: '750e8400-e29b-41d4-a716-446655440000',
+    requestedAt: '2026-08-23T10:00:00.000Z',
+  },
+  actor: { userId: 'admin-user-123', role: 'ADMIN' as const },
+  target: { type: 'backup_retention' as const, id: 'staging' as const },
+  idempotencyKey: 'backup-retention-request-123',
+  correlationId: 'request-correlation-123',
+  jobRunId: 'retention-job-run-123',
+  acceptedAt: '2026-08-23T10:00:00.000Z',
+};
+
 function runRepository(claim: 'CLAIMED' | 'SUCCEEDED' | 'CANCELLED' | 'REJECTED' = 'CLAIMED') {
   return {
     claim: jest.fn().mockResolvedValue(claim),
@@ -27,6 +60,64 @@ function runRepository(claim: 'CLAIMED' | 'SUCCEEDED' | 'CANCELLED' | 'REJECTED'
 }
 
 describe('background job worker', () => {
+  it('persists a bounded backup retention result from its dedicated handler', async () => {
+    const runs = runRepository();
+    const backupRetention = jest.fn().mockResolvedValue({
+      cleanupRequestId: '750e8400-e29b-41d4-a716-446655440000',
+      status: 'COMPLETED',
+      environment: 'staging',
+      retainedCount: 9,
+      removedCount: 2,
+    });
+
+    await expect(executeQueuedJob({
+      envelope: backupRetentionEnvelope,
+      queue: { id: '850e8400-e29b-41d4-a716-446655440000', retryCount: 0, retryLimit: 3 },
+      runs,
+      handlers: {
+        mediaIntegrityScan: jest.fn(),
+        backupRetention,
+      },
+      now: () => new Date('2026-08-23T10:01:00.000Z'),
+    })).resolves.toEqual({ status: 'SUCCEEDED', duplicate: false });
+
+    expect(runs.succeed).toHaveBeenCalledWith('retention-job-run-123', {
+      cleanupRequestId: '750e8400-e29b-41d4-a716-446655440000',
+      status: 'COMPLETED',
+      environment: 'staging',
+      retainedCount: 9,
+      removedCount: 2,
+    }, new Date('2026-08-23T10:01:00.000Z'));
+  });
+
+  it('persists a bounded backup verification result from its dedicated handler', async () => {
+    const runs = runRepository();
+    const backupVerification = jest.fn().mockResolvedValue({
+      verificationRequestId: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'VERIFIED',
+      diagnosticCode: 'VERIFICATION_SUCCEEDED',
+      backupName: 'scheduled-staging-20260823T031500Z.dump',
+    });
+
+    await expect(executeQueuedJob({
+      envelope: backupVerificationEnvelope,
+      queue: { id: '650e8400-e29b-41d4-a716-446655440000', retryCount: 0, retryLimit: 3 },
+      runs,
+      handlers: {
+        mediaIntegrityScan: jest.fn(),
+        backupVerification,
+      },
+      now: () => new Date('2026-08-23T10:01:00.000Z'),
+    })).resolves.toEqual({ status: 'SUCCEEDED', duplicate: false });
+
+    expect(runs.succeed).toHaveBeenCalledWith('backup-job-run-123', {
+      verificationRequestId: '550e8400-e29b-41d4-a716-446655440000',
+      status: 'VERIFIED',
+      diagnosticCode: 'VERIFICATION_SUCCEEDED',
+      backupName: 'scheduled-staging-20260823T031500Z.dump',
+    }, new Date('2026-08-23T10:01:00.000Z'));
+  });
+
   it('persists a bounded result before reporting successful execution', async () => {
     const runs = runRepository();
     const handler = jest.fn().mockResolvedValue({
@@ -201,6 +292,34 @@ describe('background job worker', () => {
       new Date('2026-08-23T10:01:00.000Z'),
     );
     expect(runs.succeed).not.toHaveBeenCalled();
+  });
+
+  it('persists cancellation when the queue aborts an active handler', async () => {
+    const runs = runRepository();
+    const abortController = new AbortController();
+    const handler = jest.fn(async () => {
+      abortController.abort();
+      throw new DOMException('The operation was aborted', 'AbortError');
+    });
+
+    await expect(executeQueuedJob({
+      envelope,
+      queue: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        retryCount: 0,
+        retryLimit: 3,
+        signal: abortController.signal,
+      },
+      runs,
+      handlers: { mediaIntegrityScan: handler },
+      now: () => new Date('2026-08-23T10:01:00.000Z'),
+    })).resolves.toEqual({ status: 'CANCELLED', duplicate: false });
+
+    expect(runs.cancel).toHaveBeenCalledWith(
+      'job-run-123',
+      new Date('2026-08-23T10:01:00.000Z'),
+    );
+    expect(runs.failAttempt).not.toHaveBeenCalled();
   });
 
   it('reports cancellation when durable completion loses a cancellation race', async () => {

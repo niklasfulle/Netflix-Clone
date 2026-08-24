@@ -2,13 +2,18 @@ import { randomUUID } from 'node:crypto';
 
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
+import { currentUser } from '@/lib/auth';
 import {
-  BackupVerificationBusyError,
   BackupVerificationStatusError,
   readBackupVerificationStatus,
   readScheduledBackupStatus,
-  requestBackupVerification,
 } from '@/lib/backup-verification';
+import { backgroundJobSubmission } from '@/lib/jobs/runtime';
+import {
+  OperationalLeaseLostError,
+  OperationalLeaseUnavailableError,
+} from '@/lib/operations/lease';
+import { operationalLeases } from '@/lib/operations/runtime';
 
 export const runtime = 'nodejs';
 
@@ -48,30 +53,54 @@ export async function POST() {
 
   const requestId = randomUUID();
   try {
-    await requestBackupVerification({
-      schemaVersion: 1,
-      requestId,
-      requestedAt: new Date().toISOString(),
-    });
-    await audit.succeeded({
-      target: { type: 'backup', id: requestId },
-      metadata: { source: 'manual' },
-    });
-    return Response.json({ accepted: true, requestId }, {
-      status: 202,
-      headers: noStoreHeaders,
+    return await operationalLeases.execute({
+      operation: 'backup.verify',
+      targetId: 'backup-verification:latest',
+      ttlMs: 30_000,
+    }, async () => {
+      const user = await currentUser();
+      if (!user || user.role !== 'ADMIN') {
+        throw new Error('Authenticated administrator context is unavailable');
+      }
+      const requestedAt = new Date().toISOString();
+      const result = await backgroundJobSubmission.submit({
+        name: 'backup.verification.request',
+        version: 1,
+        payload: { scope: 'latest', requestId, requestedAt },
+        actor: { userId: user.id, role: 'ADMIN' },
+        target: { type: 'backup', id: 'latest' },
+        idempotencyKey: requestId,
+        correlationId: audit.correlationId,
+      });
+      await audit.succeeded({
+        target: { type: 'background_job', id: result.id },
+        metadata: { source: 'manual' },
+      });
+      return Response.json({
+        jobRunId: result.id,
+        queueJobId: result.queueJobId,
+        status: result.status,
+        duplicate: result.duplicate,
+        correlationId: audit.correlationId,
+      }, {
+        status: result.duplicate ? 200 : 202,
+        headers: noStoreHeaders,
+      });
     });
   } catch (error) {
     await audit.failed({ target: { type: 'backup', id: requestId } });
-    if (error instanceof BackupVerificationBusyError) {
+    if (
+      error instanceof OperationalLeaseUnavailableError
+      || error instanceof OperationalLeaseLostError
+    ) {
       return Response.json(
         { error: 'A backup verification is already pending.' },
         { status: 409, headers: noStoreHeaders },
       );
     }
     return Response.json(
-      { error: 'Backup verification could not be requested.' },
-      { status: 500, headers: noStoreHeaders },
+      { error: 'Backup verification could not be queued.' },
+      { status: 503, headers: noStoreHeaders },
     );
   }
 }

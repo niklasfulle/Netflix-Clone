@@ -627,6 +627,7 @@ export const germanTranslations = {
   'Created backup': 'Backup erstellt',
   'Restored backup': 'Backup wiederhergestellt',
   'Verified backup': 'Backup verifiziert',
+  'Cleaned up backup retention': 'Backup-Aufbewahrung bereinigt',
   'Scanned media': 'Medien geprüft',
   'Managed deployment': 'Deployment verwaltet',
   'Changed security settings': 'Sicherheitseinstellungen geändert',

@@ -108,6 +108,7 @@ services:
     volumes:
       - /movies:/movies
       - /series:/series
+      - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
     healthcheck:
       test: ["CMD", "node", "-e", "process.kill(1, 0)"]

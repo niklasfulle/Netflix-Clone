@@ -451,6 +451,37 @@
         group: root
         mode: '0750'
 
+    - name: Install manual PostgreSQL backup retention runner
+      copy:
+        src: files/run-postgres-backup-retention.sh
+        dest: /usr/local/lib/netflix-deploy/run-postgres-backup-retention.sh
+        owner: root
+        group: root
+        mode: '0750'
+
+    - name: Install manual PostgreSQL backup retention service
+      template:
+        src: templates/netflix-backup-retention.service.j2
+        dest: /etc/systemd/system/netflix-backup-retention.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install manual PostgreSQL backup retention path
+      template:
+        src: templates/netflix-backup-retention.path.j2
+        dest: /etc/systemd/system/netflix-backup-retention.path
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable manual PostgreSQL backup retention requests
+      systemd:
+        name: netflix-backup-retention.path
+        daemon_reload: true
+        enabled: true
+        state: started
+
     - name: Install scheduled PostgreSQL backup service
       template:
         src: templates/netflix-postgres-backup.service.j2

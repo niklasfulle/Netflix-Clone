@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHash } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
 import { createClient } from 'redis';
 
 import { logBackendAction } from '@/lib/logger';
@@ -217,7 +217,7 @@ export function createRedisRuntime(options: RedisRuntimeOptions): RedisRuntime {
         reconnectStrategy: retries => {
           const cappedRetries = Math.min(retries, 5);
           const delay = Math.min(50 * (2 ** cappedRetries), 1_000);
-          return delay + Math.floor(Math.random() * 100);
+          return delay + randomInt(100);
         },
       },
     });

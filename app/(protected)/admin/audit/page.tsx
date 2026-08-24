@@ -56,6 +56,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'backup.create': 'Created backup',
   'backup.restore': 'Restored backup',
   'backup.verify': 'Verified backup',
+  'backup.cleanup': 'Cleaned up backup retention',
   'media.scan': 'Scanned media',
   'job.cancel': 'Cancelled background job',
   'deployment.manage': 'Managed deployment',

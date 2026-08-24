@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const JOB_NAMES = {
   mediaIntegrityScan: 'media.integrity.scan',
   mediaIntegrityScanDeadLetter: 'media.integrity.scan.dead',
+  backupVerification: 'backup.verification.request',
+  backupVerificationDeadLetter: 'backup.verification.request.dead',
+  backupRetentionCleanup: 'backup.retention.cleanup',
+  backupRetentionCleanupDeadLetter: 'backup.retention.cleanup.dead',
 } as const;
 
 export const MAX_JOB_ENVELOPE_BYTES = 8 * 1024;
@@ -50,7 +54,66 @@ const mediaIntegrityScanSubmission = z.object(mediaIntegrityScanFields).strict()
   message: 'Job target does not match its payload scope',
 });
 
-export type JobSubmission = z.infer<typeof mediaIntegrityScanSubmission>;
+const backupVerificationFields = {
+  name: z.literal(JOB_NAMES.backupVerification),
+  version: z.literal(1),
+  payload: z.object({
+    scope: z.literal('latest'),
+    requestId: z.uuid(),
+    requestedAt: z.iso.datetime({ offset: true }),
+  }).strict(),
+  actor: z.object({
+    userId: boundedIdentifier,
+    role: z.literal('ADMIN'),
+  }).strict(),
+  target: z.object({
+    type: z.literal('backup'),
+    id: z.literal('latest'),
+  }).strict(),
+  idempotencyKey: boundedIdentifier,
+  correlationId: boundedIdentifier,
+};
+
+const backupVerificationSubmission = z.object(backupVerificationFields).strict();
+const backupRetentionFields = {
+  name: z.literal(JOB_NAMES.backupRetentionCleanup),
+  version: z.literal(1),
+  payload: z.object({
+    scope: z.literal('scheduled'),
+    environment: z.enum(['staging', 'production']),
+    requestId: z.uuid(),
+    requestedAt: z.iso.datetime({ offset: true }),
+  }).strict(),
+  actor: z.object({
+    userId: boundedIdentifier,
+    role: z.literal('ADMIN'),
+  }).strict(),
+  target: z.object({
+    type: z.literal('backup_retention'),
+    id: z.enum(['staging', 'production']),
+  }).strict(),
+  idempotencyKey: boundedIdentifier,
+  correlationId: boundedIdentifier,
+};
+
+function matchingRetentionEnvironment(value: {
+  payload: { environment: 'staging' | 'production' };
+  target: { id: 'staging' | 'production' };
+}): boolean {
+  return value.payload.environment === value.target.id;
+}
+
+const backupRetentionSubmission = z.object(backupRetentionFields).strict()
+  .refine(matchingRetentionEnvironment, {
+    message: 'Backup retention target does not match its environment',
+  });
+const jobSubmission = z.union([
+  mediaIntegrityScanSubmission,
+  backupVerificationSubmission,
+  backupRetentionSubmission,
+]);
+
+export type JobSubmission = z.infer<typeof jobSubmission>;
 
 const queuedJob = z.object({
   ...mediaIntegrityScanFields,
@@ -60,6 +123,26 @@ const queuedJob = z.object({
   message: 'Job target does not match its payload scope',
 });
 
+const queuedBackupVerificationJob = z.object({
+  ...backupVerificationFields,
+  jobRunId: boundedIdentifier,
+  acceptedAt: z.iso.datetime({ offset: true }),
+}).strict();
+
+const queuedBackupRetentionJob = z.object({
+  ...backupRetentionFields,
+  jobRunId: boundedIdentifier,
+  acceptedAt: z.iso.datetime({ offset: true }),
+}).strict().refine(matchingRetentionEnvironment, {
+  message: 'Backup retention target does not match its environment',
+});
+
+const queuedJobs = z.union([
+  queuedJob,
+  queuedBackupVerificationJob,
+  queuedBackupRetentionJob,
+]);
+
 const mediaIntegrityScanResult = z.object({
   scanRunId: boundedIdentifier,
   contentCount: z.number().int().nonnegative().max(1_000_000),
@@ -68,17 +151,41 @@ const mediaIntegrityScanResult = z.object({
   warningCount: z.number().int().nonnegative().max(1_000_000),
 }).strict();
 
+const backupVerificationResult = z.object({
+  verificationRequestId: z.uuid(),
+  status: z.literal('VERIFIED'),
+  diagnosticCode: z.literal('VERIFICATION_SUCCEEDED'),
+  backupName: z.string()
+    .min(6)
+    .max(191)
+    .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
+}).strict();
+
+const backupRetentionResult = z.object({
+  cleanupRequestId: z.uuid(),
+  status: z.literal('COMPLETED'),
+  environment: z.enum(['staging', 'production']),
+  retainedCount: z.number().int().nonnegative().max(1_000_000),
+  removedCount: z.number().int().nonnegative().max(1_000_000),
+}).strict();
+
+const jobResult = z.union([
+  mediaIntegrityScanResult,
+  backupVerificationResult,
+  backupRetentionResult,
+]);
+
 const jobProgress = z.object({
   percent: z.number().int().min(0).max(100),
   message: z.string().trim().min(1).max(160),
 }).strict();
 
-export type QueuedJob = z.infer<typeof queuedJob>;
-export type JobResult = z.infer<typeof mediaIntegrityScanResult>;
+export type QueuedJob = z.infer<typeof queuedJobs>;
+export type JobResult = z.infer<typeof jobResult>;
 export type JobProgress = z.infer<typeof jobProgress>;
 
 export function parseJobSubmission(value: unknown): JobSubmission {
-  return mediaIntegrityScanSubmission.parse(value);
+  return jobSubmission.parse(value);
 }
 
 function assertBoundedJson(value: unknown): void {
@@ -90,7 +197,7 @@ function assertBoundedJson(value: unknown): void {
 
 export function parseQueuedJob(value: unknown, now = new Date()): QueuedJob {
   assertBoundedJson(value);
-  const parsed = queuedJob.parse(value);
+  const parsed = queuedJobs.parse(value);
   const acceptedAt = new Date(parsed.acceptedAt).getTime();
   if (acceptedAt > now.getTime() + 60_000 || now.getTime() - acceptedAt > MAX_JOB_AGE_MS) {
     throw new Error('Job envelope is stale');
@@ -99,7 +206,7 @@ export function parseQueuedJob(value: unknown, now = new Date()): QueuedJob {
 }
 
 export function parseJobResult(value: unknown): JobResult {
-  return mediaIntegrityScanResult.parse(value);
+  return jobResult.parse(value);
 }
 
 export function parseJobProgress(value: unknown): JobProgress {

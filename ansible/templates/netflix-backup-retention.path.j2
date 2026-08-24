@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch for Netflix Clone backup retention requests
+
+[Path]
+PathChanged=/var/lib/netflix-backup-status/retention/request.json
+Unit=netflix-backup-retention.service
+MakeDirectory=true
+DirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target

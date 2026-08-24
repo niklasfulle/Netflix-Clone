@@ -4,25 +4,39 @@ jest.mock('@/lib/admin-auth', () => ({ isCurrentUserAdmin: jest.fn() }));
 jest.mock('@/lib/auth', () => ({ currentUser: jest.fn() }));
 jest.mock('@/lib/db', () => ({ db: { adminAuditEvent: { create: jest.fn() } } }));
 jest.mock('@/lib/logger', () => ({ logBackendAction: jest.fn() }));
+jest.mock('@/lib/jobs/runtime', () => ({
+  backgroundJobSubmission: { submit: jest.fn() },
+}));
+jest.mock('@/lib/operations/runtime', () => ({
+  operationalLeases: {
+    execute: jest.fn(async (_options, work) => work({
+      fencingToken: BigInt(1),
+      resourceKey: 'resource:test',
+      expiresAt: () => new Date('2026-08-24T18:00:30.000Z'),
+      renew: jest.fn(),
+      assertCurrent: jest.fn(),
+    })),
+  },
+}));
 jest.mock('@/lib/backup-verification', () => {
   const actual = jest.requireActual('@/lib/backup-verification');
   return {
     ...actual,
     readBackupVerificationStatus: jest.fn(),
     readScheduledBackupStatus: jest.fn(),
-    requestBackupVerification: jest.fn(),
   };
 });
 
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { currentUser } from '@/lib/auth';
 import {
-  BackupVerificationBusyError,
   readBackupVerificationStatus,
   readScheduledBackupStatus,
-  requestBackupVerification,
 } from '@/lib/backup-verification';
 import { db } from '@/lib/db';
+import { backgroundJobSubmission } from '@/lib/jobs/runtime';
+import { OperationalLeaseUnavailableError } from '@/lib/operations/lease';
+import { operationalLeases } from '@/lib/operations/runtime';
 import { GET, POST } from '../route';
 
 const mockedIsAdmin = isCurrentUserAdmin as jest.MockedFunction<typeof isCurrentUserAdmin>;
@@ -32,8 +46,11 @@ const mockedReadStatus = readBackupVerificationStatus as jest.MockedFunction<
 const mockedReadScheduledStatus = readScheduledBackupStatus as jest.MockedFunction<
   typeof readScheduledBackupStatus
 >;
-const mockedRequestVerification = requestBackupVerification as jest.MockedFunction<
-  typeof requestBackupVerification
+const mockedExecute = operationalLeases.execute as jest.MockedFunction<
+  typeof operationalLeases.execute
+>;
+const mockedSubmit = backgroundJobSubmission.submit as jest.MockedFunction<
+  typeof backgroundJobSubmission.submit
 >;
 
 const verifiedStatus = {
@@ -58,6 +75,13 @@ describe('administrator PostgreSQL backup verification API', () => {
     jest.resetAllMocks();
     (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
     mockedReadScheduledStatus.mockResolvedValue(null);
+    mockedExecute.mockImplementation(async (_options, work) => work({
+      fencingToken: BigInt(1),
+      resourceKey: 'resource:test',
+      expiresAt: () => new Date('2026-08-24T18:00:30.000Z'),
+      renew: jest.fn(),
+      assertCurrent: jest.fn(),
+    }));
   });
 
   it('does not disclose verification state to a regular user', async () => {
@@ -66,7 +90,7 @@ describe('administrator PostgreSQL backup verification API', () => {
     expect((await GET()).status).toBe(403);
     expect((await POST()).status).toBe(403);
     expect(mockedReadStatus).not.toHaveBeenCalled();
-    expect(mockedRequestVerification).not.toHaveBeenCalled();
+    expect(mockedSubmit).not.toHaveBeenCalled();
   });
 
   it('returns the bounded last-known verification state to an administrator', async () => {
@@ -103,42 +127,65 @@ describe('administrator PostgreSQL backup verification API', () => {
     });
   });
 
-  it('accepts one manual verification request and audits the request identifier', async () => {
+  it('accepts one durable verification job and audits the job identifier', async () => {
     mockedIsAdmin.mockResolvedValue(true);
+    mockedSubmit.mockResolvedValue({
+      id: 'backup-job-run-123',
+      queueJobId: '650e8400-e29b-41d4-a716-446655440000',
+      status: 'QUEUED',
+      duplicate: false,
+      correlationId: 'request-correlation-123',
+    });
 
     const response = await POST();
     const body = await response.json();
 
     expect(response.status).toBe(202);
-    expect(body).toEqual({ accepted: true, requestId: expect.any(String) });
-    expect(mockedRequestVerification).toHaveBeenCalledWith({
-      schemaVersion: 1,
-      requestId: body.requestId,
-      requestedAt: expect.any(String),
-    });
+    expect(body).toMatchObject({ jobRunId: 'backup-job-run-123', status: 'QUEUED' });
+    expect(mockedSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'backup.verification.request',
+      version: 1,
+      payload: expect.objectContaining({ scope: 'latest', requestId: expect.any(String) }),
+      actor: { userId: 'admin-1', role: 'ADMIN' },
+      target: { type: 'backup', id: 'latest' },
+    }));
     expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: 'backup.verify',
-        targetType: 'backup',
-        targetId: body.requestId,
+        targetType: 'background_job',
+        targetId: 'backup-job-run-123',
         outcome: 'SUCCEEDED',
         metadata: { source: 'manual' },
       }),
     });
   });
 
-  it('rejects a concurrent request with a controlled conflict', async () => {
+  it('returns an already accepted verification job for an idempotent retry', async () => {
     mockedIsAdmin.mockResolvedValue(true);
-    mockedRequestVerification.mockRejectedValue(new BackupVerificationBusyError());
+    mockedSubmit.mockResolvedValue({
+      id: 'backup-job-run-123',
+      queueJobId: '650e8400-e29b-41d4-a716-446655440000',
+      status: 'RUNNING',
+      duplicate: true,
+      correlationId: 'request-correlation-123',
+    });
+
+    const response = await POST();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      jobRunId: 'backup-job-run-123',
+      duplicate: true,
+    });
+  });
+
+  it('rejects a verification request while the protected resource is leased', async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedExecute.mockRejectedValueOnce(new OperationalLeaseUnavailableError('backup.verify'));
 
     const response = await POST();
 
     expect(response.status).toBe(409);
-    expect(await response.json()).toEqual({
-      error: 'A backup verification is already pending.',
-    });
-    expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ action: 'backup.verify', outcome: 'FAILED' }),
-    });
+    expect(mockedSubmit).not.toHaveBeenCalled();
   });
 });

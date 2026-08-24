@@ -6,6 +6,32 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class ScheduledBackupContractTests(unittest.TestCase):
+    def test_manual_retention_requests_use_the_managed_backup_lock_and_hardened_service(self):
+        runner = (
+            ROOT / "ansible" / "files" / "run-postgres-backup-retention.sh"
+        ).read_text(encoding="utf-8")
+        service = (
+            ROOT / "ansible" / "templates" / "netflix-backup-retention.service.j2"
+        ).read_text(encoding="utf-8")
+        path_unit = (
+            ROOT / "ansible" / "templates" / "netflix-backup-retention.path.j2"
+        ).read_text(encoding="utf-8")
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("/root/netflix-database-backups", runner)
+        self.assertIn("/run/lock/netflix-postgres-backup.lock", runner)
+        self.assertIn('flock -w "$lock_wait_seconds" 9', runner)
+        self.assertIn("/usr/local/lib/netflix-deploy/manage-postgres-backups.py", runner)
+        self.assertNotIn("eval ", runner)
+        self.assertIn("ExecStart=/usr/local/lib/netflix-deploy/run-postgres-backup-retention.sh", service)
+        self.assertIn("NoNewPrivileges=true", service)
+        self.assertIn("ReadWritePaths=/root/netflix-database-backups", service)
+        self.assertIn("PathChanged=/var/lib/netflix-backup-status/retention/request.json", path_unit)
+        self.assertIn("run-postgres-backup-retention.sh", playbook)
+        self.assertIn("netflix-backup-retention.path", playbook)
+
     def test_systemd_timer_is_persistent_and_uses_protected_host_configuration(self):
         service = (
             ROOT / "ansible" / "templates" / "netflix-postgres-backup.service.j2"

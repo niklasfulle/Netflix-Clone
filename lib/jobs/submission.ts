@@ -116,6 +116,16 @@ function acceptance(record: JobRunRecord, duplicate: boolean): JobAcceptance {
   };
 }
 
+function deadLetterName(submission: JobSubmission): string {
+  if (submission.name === JOB_NAMES.backupVerification) {
+    return JOB_NAMES.backupVerificationDeadLetter;
+  }
+  if (submission.name === JOB_NAMES.backupRetentionCleanup) {
+    return JOB_NAMES.backupRetentionCleanupDeadLetter;
+  }
+  return JOB_NAMES.mediaIntegrityScanDeadLetter;
+}
+
 export function createJobSubmissionService({
   database,
   publisher,
@@ -167,7 +177,7 @@ export function createJobSubmissionService({
             deleteAfterSeconds: 7 * 24 * 60 * 60,
             heartbeatSeconds: 30,
             singletonKey: submission.idempotencyKey,
-            deadLetter: JOB_NAMES.mediaIntegrityScanDeadLetter,
+            deadLetter: deadLetterName(submission),
             db: {
               async executeSql(text, values = []) {
                 const rows = await transaction.$queryRawUnsafe<unknown[]>(text, ...values);

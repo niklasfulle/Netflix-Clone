@@ -1,5 +1,5 @@
 import type { JobProgress, JobResult, QueuedJob } from '@/lib/jobs/contracts';
-import { parseJobProgress, parseJobResult, parseQueuedJob } from '@/lib/jobs/contracts';
+import { JOB_NAMES, parseJobProgress, parseJobResult, parseQueuedJob } from '@/lib/jobs/contracts';
 
 export type JobClaim = 'CLAIMED' | 'SUCCEEDED' | 'CANCELLED' | 'REJECTED';
 
@@ -36,6 +36,25 @@ type WorkerHandlers = {
       reportProgress(progress: JobProgress): Promise<void>;
     },
   ): Promise<unknown>;
+  backupVerification?(
+    payload: { scope: 'latest'; requestId: string; requestedAt: string },
+    context: {
+      signal?: AbortSignal;
+      reportProgress(progress: JobProgress): Promise<void>;
+    },
+  ): Promise<unknown>;
+  backupRetention?(
+    payload: {
+      scope: 'scheduled';
+      environment: 'staging' | 'production';
+      requestId: string;
+      requestedAt: string;
+    },
+    context: {
+      signal?: AbortSignal;
+      reportProgress(progress: JobProgress): Promise<void>;
+    },
+  ): Promise<unknown>;
 };
 
 type QueueDelivery = {
@@ -53,6 +72,11 @@ type ExecuteDependencies = {
   now?: () => Date;
 };
 
+type HandlerContext = {
+  signal?: AbortSignal;
+  reportProgress(progress: JobProgress): Promise<void>;
+};
+
 export class PermanentJobError extends Error {
   constructor(message: string) {
     super(message);
@@ -67,6 +91,26 @@ function failureDetails(error: unknown) {
     errorCode: errorName.slice(0, 80),
     errorMessage: errorMessage.slice(0, 512),
   };
+}
+
+async function dispatchJob(
+  job: QueuedJob,
+  handlers: WorkerHandlers,
+  context: HandlerContext,
+): Promise<unknown> {
+  if (job.name === JOB_NAMES.mediaIntegrityScan) {
+    return handlers.mediaIntegrityScan(job.payload, context);
+  }
+  if (job.name === JOB_NAMES.backupVerification) {
+    if (!handlers.backupVerification) {
+      throw new PermanentJobError('No handler is registered for this job contract');
+    }
+    return handlers.backupVerification(job.payload, context);
+  }
+  if (!handlers.backupRetention) {
+    throw new PermanentJobError('No handler is registered for this job contract');
+  }
+  return handlers.backupRetention(job.payload, context);
 }
 
 export async function executeQueuedJob({
@@ -104,13 +148,15 @@ export async function executeQueuedJob({
   }
 
   try {
-    const result = parseJobResult(await handlers.mediaIntegrityScan(job.payload, {
+    const handlerContext = {
       signal: queue.signal,
-      async reportProgress(value) {
+      async reportProgress(value: JobProgress) {
         const progress = parseJobProgress(value);
         await runs.reportProgress(job.jobRunId, progress, now());
       },
-    }));
+    };
+    const output = await dispatchJob(job, handlers, handlerContext);
+    const result = parseJobResult(output);
     if (await runs.cancellationRequested(job.jobRunId)) {
       await runs.cancel(job.jobRunId, now());
       return { status: 'CANCELLED', duplicate: false };
@@ -121,6 +167,10 @@ export async function executeQueuedJob({
     }
     return { status: 'SUCCEEDED', duplicate: false };
   } catch (error) {
+    if (queue.signal?.aborted || await runs.cancellationRequested(job.jobRunId)) {
+      await runs.cancel(job.jobRunId, now());
+      return { status: 'CANCELLED', duplicate: false };
+    }
     await runs.failAttempt(job.jobRunId, {
       attemptCount,
       deadLetter: queue.retryCount >= queue.retryLimit,

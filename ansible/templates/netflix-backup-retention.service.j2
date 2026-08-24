@@ -1,0 +1,21 @@
+[Unit]
+Description=Apply Netflix Clone scheduled PostgreSQL backup retention
+After=local-fs.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/root/netflix-secrets/app.env
+Environment=POSTGRES_BACKUP_LOCK_WAIT_SECONDS={{ postgres_backup_lock_wait_seconds }}
+Environment=POSTGRES_BACKUP_MINIMUM_COPIES={{ postgres_backup_minimum_copies }}
+Environment=POSTGRES_BACKUP_RETENTION_DAILY_DAYS={{ postgres_backup_retention_daily_days }}
+Environment=POSTGRES_BACKUP_RETENTION_WEEKLY_WEEKS={{ postgres_backup_retention_weekly_weeks }}
+Environment=POSTGRES_BACKUP_RETENTION_MONTHLY_MONTHS={{ postgres_backup_retention_monthly_months }}
+ExecStart=/usr/local/lib/netflix-deploy/run-postgres-backup-retention.sh
+TimeoutStartSec=600
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadOnlyPaths=/root/netflix-secrets/app.env /usr/local/lib/netflix-deploy
+ReadWritePaths=/root/netflix-database-backups /var/lib/netflix-backup-status /run/lock

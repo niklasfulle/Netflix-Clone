@@ -15,6 +15,7 @@ import { useRef, useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { BackupVerificationPanel } from "@/components/admin/BackupVerificationPanel";
+import { BackupRetentionPanel } from "@/components/admin/BackupRetentionPanel";
 
 const MIN_PASSPHRASE_LENGTH = 12;
 const RESTORE_CONFIRMATION = "RESTORE";
@@ -154,6 +155,8 @@ export default function AdminBackupsPage() {
       )}
 
       <BackupVerificationPanel />
+
+      <BackupRetentionPanel />
 
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
