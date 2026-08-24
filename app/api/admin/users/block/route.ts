@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
+import { invalidateAdminSummaries } from "@/lib/administration/admin-summary-runtime";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 import { currentSecurityContext, sessionSecurity } from "@/lib/session-security";
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
         hasExpiry: Boolean(validation.until),
       } : undefined,
     });
+    await invalidateAdminSummaries();
     return Response.json({ success: true, user });
   } catch (error) {
     await audit.failed({ target: { type: 'user', id: command.userId } });

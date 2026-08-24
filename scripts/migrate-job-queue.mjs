@@ -14,28 +14,45 @@ const boss = new PgBoss({
 
 await boss.start();
 try {
-  if (!await boss.getQueue('media.integrity.scan.dead')) {
-    await boss.createQueue('media.integrity.scan.dead', {
-      retentionSeconds: 30 * 24 * 60 * 60,
-      deleteAfterSeconds: 30 * 24 * 60 * 60,
-    });
-  }
+  const queueDefinitions = [
+    {
+      name: 'media.integrity.scan',
+      deadLetter: 'media.integrity.scan.dead',
+    },
+    {
+      name: 'backup.verification.request',
+      deadLetter: 'backup.verification.request.dead',
+    },
+    {
+      name: 'backup.retention.cleanup',
+      deadLetter: 'backup.retention.cleanup.dead',
+    },
+  ];
 
-  const queueOptions = {
-    retryLimit: 3,
-    retryDelay: 5,
-    retryBackoff: true,
-    retryDelayMax: 60,
-    expireInSeconds: 15 * 60,
-    retentionSeconds: 24 * 60 * 60,
-    deleteAfterSeconds: 7 * 24 * 60 * 60,
-    heartbeatSeconds: 30,
-    deadLetter: 'media.integrity.scan.dead',
-  };
-  if (await boss.getQueue('media.integrity.scan')) {
-    await boss.updateQueue('media.integrity.scan', queueOptions);
-  } else {
-    await boss.createQueue('media.integrity.scan', queueOptions);
+  for (const definition of queueDefinitions) {
+    if (!await boss.getQueue(definition.deadLetter)) {
+      await boss.createQueue(definition.deadLetter, {
+        retentionSeconds: 30 * 24 * 60 * 60,
+        deleteAfterSeconds: 30 * 24 * 60 * 60,
+      });
+    }
+
+    const queueOptions = {
+      retryLimit: 3,
+      retryDelay: 5,
+      retryBackoff: true,
+      retryDelayMax: 60,
+      expireInSeconds: 15 * 60,
+      retentionSeconds: 24 * 60 * 60,
+      deleteAfterSeconds: 7 * 24 * 60 * 60,
+      heartbeatSeconds: 30,
+      deadLetter: definition.deadLetter,
+    };
+    if (await boss.getQueue(definition.name)) {
+      await boss.updateQueue(definition.name, queueOptions);
+    } else {
+      await boss.createQueue(definition.name, queueOptions);
+    }
   }
 } finally {
   await boss.stop({ graceful: true, timeout: 30_000 });

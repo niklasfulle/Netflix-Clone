@@ -3,6 +3,7 @@ import type { Prisma, UserRole } from "@prisma/client";
 import { currentUser } from "@/lib/auth";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
+import { invalidateAdminSummaries } from "@/lib/administration/admin-summary-runtime";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 
@@ -129,6 +130,7 @@ export async function PATCH(request: Request) {
       target: { type: 'user', id: userId },
       metadata: { previousRole: target.role, nextRole: role },
     });
+    await invalidateAdminSummaries();
     return Response.json({ success: true, user });
   } catch (error) {
     await audit.failed({ target: { type: 'user', id: userId } });

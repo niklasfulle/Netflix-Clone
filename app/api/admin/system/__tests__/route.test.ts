@@ -74,11 +74,61 @@ describe("admin system API", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-request-deduplicated")).toBe("false");
     expect(await response.json()).toMatchObject({
       status: "healthy",
       version: "1.10.1",
       database: { status: "ok" },
       redis: { status: "ok", connected: true },
     });
+  });
+
+  it("deduplicates concurrent live system reads after authorization", async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    let resolveOverview: ((value: Awaited<ReturnType<typeof getSystemOverview>>) => void) | undefined;
+    mockedGetOverview.mockImplementation(() => new Promise(resolve => {
+      resolveOverview = resolve;
+    }));
+
+    const first = GET();
+    const second = GET();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockedGetOverview).toHaveBeenCalledTimes(1);
+
+    resolveOverview?.({
+      status: "healthy",
+      version: "1.13.0",
+      checkedAt: "2026-08-24T19:00:00.000Z",
+      agent: { status: "ok", lastSeenAt: "2026-08-24T19:00:00.000Z", ageSeconds: 0, version: "1.0.0" },
+      host: null,
+      cpu: null,
+      memory: null,
+      filesystems: [],
+      docker: null,
+      backup: null,
+      database: { status: "ok", latencyMs: 3 },
+      redis: {
+        status: "ok",
+        configured: true,
+        connected: true,
+        circuit: "closed",
+        metrics: {
+          commands: 1,
+          hits: 0,
+          misses: 0,
+          errors: 0,
+          timeouts: 0,
+          reconnects: 0,
+          fallbacks: 0,
+          totalLatencyMs: 1,
+        },
+      },
+      alerts: [],
+    });
+    const responses = await Promise.all([first, second]);
+
+    expect(responses.map(response => response.headers.get("x-request-deduplicated")).sort())
+      .toEqual(["false", "true"]);
   });
 });

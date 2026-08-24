@@ -5,6 +5,7 @@ import * as z from 'zod';
 
 import { currentRole, currentUser } from '@/lib/auth';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
+import { invalidateAdminSummaries } from '@/lib/administration/admin-summary-runtime';
 import { db } from '@/lib/db';
 import { isGenreAllowed } from '@/lib/genres';
 import { logBackendAction } from '@/lib/logger';
@@ -153,5 +154,6 @@ export const updateMovie = async (
       ],
     },
   });
+  await invalidateAdminSummaries();
   return { success: "Movie updated!" };
 }

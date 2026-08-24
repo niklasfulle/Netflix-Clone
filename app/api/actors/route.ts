@@ -1,5 +1,6 @@
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
+import { invalidateAdminSummaries } from "@/lib/administration/admin-summary-runtime";
 import { ApiError, handleApiError } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
     const actor = await db.actor.create({ data: { name } });
     logBackendAction("actor_created", { actorId: actor.id }, "info");
     await audit.succeeded({ target: { type: 'actor', id: actor.id } });
+    await invalidateAdminSummaries();
     return Response.json(actor, { status: 201 });
   }, audit);
 }
@@ -123,6 +125,7 @@ export async function PATCH(request: Request) {
       target: { type: 'actor', id },
       metadata: { changedFields: ['name'] },
     });
+    await invalidateAdminSummaries();
     return Response.json(actor);
   }, audit);
 }
@@ -144,6 +147,7 @@ export async function DELETE(request: Request) {
       target: { type: 'actor', id },
       metadata: { associatedContentCount: actor.movies.length },
     });
+    await invalidateAdminSummaries();
     return Response.json({ success: true });
   }, audit);
 }

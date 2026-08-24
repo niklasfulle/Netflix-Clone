@@ -1,5 +1,6 @@
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
+import { invalidateAdminSummaries } from "@/lib/administration/admin-summary-runtime";
 import { db } from "@/lib/db";
 import { logBackendAction } from "@/lib/logger";
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
       target: { type: 'actor', id: targetId },
       metadata: { mergedCount: source.movies.length },
     });
+    await invalidateAdminSummaries();
     return Response.json({ success: true });
   } catch (error) {
     await audit.failed();

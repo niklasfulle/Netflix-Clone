@@ -8,6 +8,7 @@ import { UserRole } from '@prisma/client';
 import { logBackendAction } from '@/lib/logger';
 import { isGenreAllowed } from '@/lib/genres';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
+import { invalidateAdminSummaries } from '@/lib/administration/admin-summary-runtime';
 
 export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl: string) => {
   const audit = adminMutationAudit.begin('content.create');
@@ -84,6 +85,7 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
     target: { type: 'content', id: createdMovie.id },
     metadata: { contentType: movieType, initialStatus: 'PUBLISHED' },
   });
+  await invalidateAdminSummaries();
 
   return { success: "Movie added!" }
 }

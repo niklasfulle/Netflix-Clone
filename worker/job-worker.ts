@@ -151,6 +151,17 @@ async function processJobs(jobs: WorkerDelivery[]) {
 }
 
 async function registerWork() {
+  const requiredQueues = [
+    JOB_NAMES.mediaIntegrityScan,
+    JOB_NAMES.backupVerification,
+    JOB_NAMES.backupRetentionCleanup,
+  ];
+  const queues = await Promise.all(requiredQueues.map((name) => boss.getQueue(name)));
+  const missingQueue = requiredQueues.find((_name, index) => !queues[index]);
+  if (missingQueue) {
+    throw new Error(`Required background job queue is missing: ${missingQueue}`);
+  }
+
   await Promise.all([
     boss.work<QueuedJob, unknown, typeof workOptions>(
       JOB_NAMES.mediaIntegrityScan,

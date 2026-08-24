@@ -1,6 +1,7 @@
 "use server"
 import { logBackendAction } from '@/lib/logger';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
+import { invalidateAdminSummaries } from '@/lib/administration/admin-summary-runtime';
 
 import { currentRole, currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -103,6 +104,7 @@ export const deleteMovie = async (movieId: string) => {
       target: { type: 'content', id: movieId },
       metadata: { contentType: movie.type, previousStatus: movie.status },
     });
+    await invalidateAdminSummaries();
     return { success: "Movie deleted successfully!" }
   } catch (error) {
     logBackendAction('deleteMovie_error', { userId: user?.id, movieId, error: String(error) }, 'error');

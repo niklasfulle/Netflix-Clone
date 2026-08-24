@@ -122,7 +122,7 @@ export default function AdminNav() {
           <LanguageSwitcher compact />
         </div>
         <Link
-          href="/browse"
+          href="/"
           className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white"
         >
           <Home className="h-4 w-4" aria-hidden="true" />
@@ -202,7 +202,7 @@ export default function AdminNav() {
             </div>
             <div className="border-t border-zinc-800 p-4">
               <Link
-                href="/browse"
+                href="/"
                 onClick={closeMobileNavigation}
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white"
               >

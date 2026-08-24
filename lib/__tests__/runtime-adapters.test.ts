@@ -10,7 +10,12 @@ const mockCreateExistingPasskeyUserResolver = jest.fn();
 const mockCreatePasskeyProvider = jest.fn();
 const mockCreateJobSubmissionService = jest.fn();
 const mockCreateJobControlService = jest.fn();
-const mockPublisher = { send: jest.fn(), cancel: jest.fn() };
+const mockPublisher = {
+  start: jest.fn().mockResolvedValue(undefined),
+  stop: jest.fn().mockResolvedValue(undefined),
+  send: jest.fn().mockResolvedValue('queue-job-123'),
+  cancel: jest.fn().mockResolvedValue(undefined),
+};
 const mockPgBoss = jest.fn((options: unknown) => {
   if (!options) throw new Error('PgBoss options are required');
   return mockPublisher;
@@ -95,11 +100,20 @@ describe('production runtime adapters', () => {
 
   it('constructs PostgreSQL-backed submission and control services', async () => {
     process.env.POSTGRESQL_URL = 'postgresql://database.example/netflix';
-    const submit = jest.fn().mockResolvedValue({ kind: 'accepted-job' });
     const get = jest.fn().mockResolvedValue({ kind: 'job-status' });
-    const cancel = jest.fn().mockResolvedValue({ kind: 'cancelled-job' });
-    mockCreateJobSubmissionService.mockReturnValue({ submit });
-    mockCreateJobControlService.mockReturnValue({ get, cancel });
+    mockCreateJobSubmissionService.mockImplementation(({ publisher }) => ({
+      async submit(value: unknown) {
+        await publisher.send('runtime-adapter-test', value, {});
+        return { kind: 'accepted-job' };
+      },
+    }));
+    mockCreateJobControlService.mockImplementation(({ queue }) => ({
+      get,
+      async cancel() {
+        await queue.cancel('queue-job-123');
+        return { kind: 'cancelled-job' };
+      },
+    }));
 
     const runtime = await import('@/lib/jobs/runtime');
 
@@ -120,10 +134,17 @@ describe('production runtime adapters', () => {
       migrate: false,
     }));
     expect(mockPgBoss).toHaveBeenCalledTimes(1);
+    expect(mockPublisher.start).toHaveBeenCalledTimes(1);
   });
 
   it('defers the missing background-job database URL failure until runtime use', async () => {
     delete process.env.POSTGRESQL_URL;
+    mockCreateJobSubmissionService.mockImplementation(({ publisher }) => ({
+      async submit(value: unknown) {
+        await publisher.send('runtime-adapter-test', value, {});
+        return { kind: 'accepted-job' };
+      },
+    }));
 
     const runtime = await import('@/lib/jobs/runtime');
 

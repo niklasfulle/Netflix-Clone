@@ -1,7 +1,41 @@
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import {
+  ADMIN_ANALYTICS_DAYS,
+  ADMIN_SUMMARY_MAX_BYTES,
+  adminAnalyticsCacheIdentity,
+  adminSummaryCache,
+} from "@/lib/administration/admin-summary-runtime";
+import { cacheTelemetryHeaders } from "@/lib/administration/summary-cache";
 import { db } from "@/lib/db";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+const analyticsSchema = z.object({
+  days: z.number().int(),
+  totalViews: z.number().int().nonnegative(),
+  periodViews: z.number().int().nonnegative(),
+  previousPeriodViews: z.number().int().nonnegative(),
+  changePercent: z.number().int(),
+  activeUsers: z.number().int().nonnegative(),
+  users: z.number().int().nonnegative(),
+  profiles: z.number().int().nonnegative(),
+  movies: z.number().int().nonnegative(),
+  series: z.number().int().nonnegative(),
+  averageProgress: z.number().int().min(0).max(100),
+  viewsTimeline: z.array(z.object({ day: z.iso.date(), views: z.number().int().nonnegative() }).strict()).max(365),
+  monthly: z.array(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), movies: z.number().int().nonnegative(), series: z.number().int().nonnegative() }).strict()).length(12),
+  topContent: z.array(z.object({
+    id: z.string().min(1).max(191),
+    views: z.number().int().nonnegative(),
+    title: z.string().max(512).optional(),
+    type: z.string().max(64).optional(),
+    genre: z.string().max(191).optional(),
+    duration: z.string().max(64).optional(),
+    createdAt: z.iso.datetime().optional(),
+  }).strict()).max(10),
+  genreDistribution: z.array(z.object({ genre: z.string().max(191), views: z.number().int().nonnegative() }).strict()).max(500),
+}).strict();
 
 function dayKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -23,9 +57,17 @@ export async function GET(request: Request = new Request("http://localhost/api/s
   if (!(await isCurrentUserAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const requestedDays = Number.parseInt(new URL(request.url).searchParams.get("days") || "30", 10);
-  const days = [7, 30, 90, 365].includes(requestedDays) ? requestedDays : 30;
-  const now = new Date();
-  const from = new Date(now);
+  const days = ADMIN_ANALYTICS_DAYS.includes(requestedDays as typeof ADMIN_ANALYTICS_DAYS[number])
+    ? requestedDays
+    : 30;
+  const result = await adminSummaryCache.read({
+    ...adminAnalyticsCacheIdentity(days),
+    ttlSeconds: 60,
+    maxValueBytes: ADMIN_SUMMARY_MAX_BYTES,
+    decode: value => analyticsSchema.parse(value),
+    async load() {
+      const now = new Date();
+      const from = new Date(now);
   from.setDate(from.getDate() - days + 1);
   from.setHours(0, 0, 0, 0);
   const previousFrom = new Date(from);
@@ -103,21 +145,27 @@ export async function GET(request: Request = new Request("http://localhost/api/s
     );
   }
 
-  return Response.json({
-    days,
-    totalViews,
-    periodViews: periodTotal,
-    previousPeriodViews: previousViews,
-    changePercent,
-    activeUsers: new Set(periodViews.map((view) => view.userId)).size,
-    users,
-    profiles,
-    movies: movies.filter((movie) => movie.type === "Movie").length,
-    series: movies.filter((movie) => movie.type === "Serie").length,
-    averageProgress: progressCount ? Math.round(progressTotal / progressCount) : 0,
-    viewsTimeline,
-    monthly,
-    topContent,
-    genreDistribution,
+      return {
+        days,
+        totalViews,
+        periodViews: periodTotal,
+        previousPeriodViews: previousViews,
+        changePercent,
+        activeUsers: new Set(periodViews.map((view) => view.userId)).size,
+        users,
+        profiles,
+        movies: movies.filter((movie) => movie.type === "Movie").length,
+        series: movies.filter((movie) => movie.type === "Serie").length,
+        averageProgress: progressCount ? Math.round(progressTotal / progressCount) : 0,
+        viewsTimeline,
+        monthly,
+        topContent: topContent.map(item => ({
+          ...item,
+          createdAt: item.createdAt?.toISOString(),
+        })),
+        genreDistribution,
+      };
+    },
   });
+  return Response.json(result.value, { headers: cacheTelemetryHeaders(result) });
 }

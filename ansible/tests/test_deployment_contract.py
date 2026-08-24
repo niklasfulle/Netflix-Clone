@@ -308,19 +308,35 @@ class DeploymentContractTests(unittest.TestCase):
             playbook.index("Wait for healthy application version"),
         )
 
-    def test_job_queue_migration_creates_dead_letter_queue_first(self):
+    def test_job_queue_migration_provisions_every_worker_queue(self):
         migration_script = (ROOT / "scripts" / "migrate-job-queue.mjs").read_text(
             encoding="utf-8"
         )
 
-        dead_letter_queue = migration_script.index(
-            "await boss.createQueue('media.integrity.scan.dead'"
-        )
-        primary_queue = migration_script.index(
-            "await boss.createQueue('media.integrity.scan', queueOptions)"
-        )
+        for queue_name, dead_letter_name in (
+            ("media.integrity.scan", "media.integrity.scan.dead"),
+            ("backup.verification.request", "backup.verification.request.dead"),
+            ("backup.retention.cleanup", "backup.retention.cleanup.dead"),
+        ):
+            self.assertIn(f"name: '{queue_name}'", migration_script)
+            self.assertIn(f"deadLetter: '{dead_letter_name}'", migration_script)
 
-        self.assertLess(dead_letter_queue, primary_queue)
+        dead_letter_create = migration_script.index(
+            "await boss.createQueue(definition.deadLetter"
+        )
+        primary_create = migration_script.index(
+            "await boss.createQueue(definition.name, queueOptions)"
+        )
+        self.assertLess(dead_letter_create, primary_create)
+        self.assertIn("await boss.updateQueue(definition.name, queueOptions)", migration_script)
+
+    def test_worker_refuses_to_start_without_required_job_queues(self):
+        worker = (ROOT / "worker" / "job-worker.ts").read_text(encoding="utf-8")
+
+        self.assertIn("JOB_NAMES.mediaIntegrityScan", worker)
+        self.assertIn("JOB_NAMES.backupVerification", worker)
+        self.assertIn("JOB_NAMES.backupRetentionCleanup", worker)
+        self.assertIn("Required background job queue is missing", worker)
 
     def test_compose_applies_runtime_limits(self):
         compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(encoding="utf-8")

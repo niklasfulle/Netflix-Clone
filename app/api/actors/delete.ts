@@ -1,5 +1,6 @@
 import { logBackendAction } from '@/lib/logger';
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
+import { invalidateAdminSummaries } from '@/lib/administration/admin-summary-runtime';
 import { db } from '@/lib/db';
 
 export const dynamic = "force-dynamic";
@@ -30,5 +31,6 @@ export async function DELETE(request: Request) {
   }
     logBackendAction('api_actors_delete_success', { id }, 'info');
   await db.actor.delete({ where: { id } });
+  await invalidateAdminSummaries();
   return Response.json({ success: true });
 }

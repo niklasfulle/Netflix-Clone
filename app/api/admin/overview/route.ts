@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import { z } from "zod";
 
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
+import {
+  ADMIN_SUMMARY_MAX_BYTES,
+  adminOverviewCacheIdentity,
+  adminSummaryCache,
+} from "@/lib/administration/admin-summary-runtime";
+import { cacheTelemetryHeaders } from "@/lib/administration/summary-cache";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +19,43 @@ type StoredLog = {
   action?: string;
   userId?: string;
 };
+
+const storedLogSchema = z.object({
+  timestamp: z.string().max(64).optional(),
+  level: z.string().max(16).optional(),
+  action: z.string().max(160).optional(),
+  userId: z.string().max(191).optional(),
+}).strict();
+
+const adminOverviewSchema = z.object({
+  counts: z.object({
+    users: z.number().int().nonnegative(),
+    blockedUsers: z.number().int().nonnegative(),
+    newUsers: z.number().int().nonnegative(),
+    actors: z.number().int().nonnegative(),
+    movies: z.number().int().nonnegative(),
+    series: z.number().int().nonnegative(),
+    newContent: z.number().int().nonnegative(),
+    views: z.number().int().nonnegative(),
+    activeProfiles: z.number().int().nonnegative(),
+    errors24h: z.number().int().nonnegative(),
+  }).strict(),
+  topContent: z.array(z.object({
+    id: z.string().min(1).max(191),
+    title: z.string().max(512).optional(),
+    type: z.string().max(64).optional(),
+    views: z.number().int().nonnegative(),
+  }).strict()).max(5),
+  recentContent: z.array(z.object({
+    id: z.string().min(1).max(191),
+    title: z.string().max(512),
+    type: z.string().max(64),
+    status: z.string().max(64),
+    createdAt: z.iso.datetime(),
+    thumbnailUrl: z.string().max(4096).nullable(),
+  }).strict()).max(5),
+  recentActivity: z.array(storedLogSchema).max(6),
+}).strict();
 
 function readRecentLogs(): StoredLog[] {
   const logPath = path.join(process.cwd(), "logs", "backend.log");
@@ -42,8 +86,14 @@ export async function GET() {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
+  const result = await adminSummaryCache.read({
+    ...adminOverviewCacheIdentity,
+    ttlSeconds: 30,
+    maxValueBytes: ADMIN_SUMMARY_MAX_BYTES,
+    decode: value => adminOverviewSchema.parse(value),
+    async load() {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
 
   const [
     users,
@@ -100,10 +150,14 @@ export async function GET() {
     return Date.now() - new Date(entry.timestamp).getTime() <= 86_400_000;
   }).length;
 
-  return Response.json({
-    counts: { users, blockedUsers, newUsers, actors, movies, series, newContent, views, activeProfiles, errors24h },
-    topContent,
-    recentContent,
-    recentActivity: logs.slice(0, 6),
+      return {
+        counts: { users, blockedUsers, newUsers, actors, movies, series, newContent, views, activeProfiles, errors24h },
+        topContent,
+        recentContent: recentContent.map(item => ({ ...item, createdAt: item.createdAt.toISOString() })),
+        recentActivity: logs.slice(0, 6),
+      };
+    },
   });
+
+  return Response.json(result.value, { headers: cacheTelemetryHeaders(result) });
 }
