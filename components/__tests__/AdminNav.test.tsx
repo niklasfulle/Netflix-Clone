@@ -67,6 +67,18 @@ it("provides an accessible mobile dialog that closes with Escape and restores fo
   expect(openButton).toHaveFocus();
 });
 
+it("lets mobile administrators return to the regular browse area", () => {
+  render(<AdminNav />);
+  fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+  const dialog = screen.getByRole("dialog", { name: "Admin Area" });
+  expect(within(dialog).getByRole("link", { name: "Back to Netflix" })).toHaveAttribute("href", "/browse");
+  expect(within(dialog).getByRole("navigation", { name: "Admin Area" }).parentElement).toHaveClass(
+    "min-h-0",
+    "overflow-y-auto",
+  );
+});
+
 it("switches the complete admin navigation between German and English", async () => {
   render(
     <LanguageProvider>

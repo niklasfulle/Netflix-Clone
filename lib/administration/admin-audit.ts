@@ -15,6 +15,7 @@ export const ADMIN_AUDIT_ACTIONS = [
   'backup.restore',
   'backup.verify',
   'media.scan',
+  'job.cancel',
   'deployment.manage',
   'security.settings_change',
 ] as const;
@@ -26,6 +27,7 @@ export type AdminAuditTargetType =
   | 'actor'
   | 'user'
   | 'backup'
+  | 'background_job'
   | 'media_scan'
   | 'deployment'
   | 'security_settings';
@@ -109,6 +111,7 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'backup.restore': new Set(['verificationStatus']),
   'backup.verify': new Set(['source']),
   'media.scan': new Set(['scope', 'itemCount']),
+  'job.cancel': new Set(['status']),
   'deployment.manage': new Set(['environment', 'version', 'operation']),
   'security.settings_change': new Set(['changedFields']),
 };

@@ -5,6 +5,17 @@ jest.mock("@/lib/auth", () => ({ currentUser: jest.fn() }));
 jest.mock("@/lib/logger", () => ({ logBackendAction: jest.fn() }));
 jest.mock("@/lib/db", () => ({ db: { adminAuditEvent: { create: jest.fn() } } }));
 jest.mock("@/lib/backup-status", () => ({ recordBackupStatus: jest.fn() }));
+jest.mock("@/lib/operations/runtime", () => ({
+  operationalLeases: {
+    execute: jest.fn(async (_options, work) => work({
+      fencingToken: BigInt(1),
+      resourceKey: "operation:test",
+      expiresAt: () => new Date("2026-08-24T12:05:00.000Z"),
+      renew: jest.fn(),
+      assertCurrent: jest.fn(),
+    })),
+  },
+}));
 jest.mock("@/lib/admin-backup", () => ({
   BackupValidationError: class BackupValidationError extends Error {},
   MAX_BACKUP_FILE_SIZE: 100 * 1024 * 1024,
@@ -28,6 +39,8 @@ import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { recordBackupStatus } from "@/lib/backup-status";
+import { operationalLeases } from "@/lib/operations/runtime";
+import { OperationalLeaseUnavailableError } from "@/lib/operations/lease";
 import type { DatabaseBackup } from "@/lib/admin-backup";
 import { POST, PUT } from "../route";
 
@@ -39,6 +52,9 @@ const mockedDecrypt = decryptDatabaseBackup as jest.MockedFunction<typeof decryp
 const mockedRestore = restoreDatabaseBackup as jest.MockedFunction<typeof restoreDatabaseBackup>;
 const mockedRecordBackupStatus = recordBackupStatus as jest.MockedFunction<
   typeof recordBackupStatus
+>;
+const mockedExecute = operationalLeases.execute as jest.MockedFunction<
+  typeof operationalLeases.execute
 >;
 
 const storedBackup = {
@@ -52,6 +68,13 @@ describe("admin backup API", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    mockedExecute.mockImplementation(async (_options, work) => work({
+      fencingToken: BigInt(1),
+      resourceKey: "operation:test",
+      expiresAt: () => new Date("2026-08-24T12:05:00.000Z"),
+      renew: jest.fn(),
+      assertCurrent: jest.fn(),
+    }));
   });
 
   it("rejects non-admin requests", async () => {
@@ -80,6 +103,11 @@ describe("admin backup API", () => {
       sizeBytes: 3,
       records: 42,
     });
+    expect(mockedExecute).toHaveBeenCalledWith({
+      operation: "backup.create",
+      targetId: "database",
+      ttlMs: 300_000,
+    }, expect.any(Function));
     expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: 'backup.create',
@@ -99,6 +127,18 @@ describe("admin backup API", () => {
     } as never);
 
     expect(response.status).toBe(400);
+    expect(mockedCollect).not.toHaveBeenCalled();
+  });
+
+  it("rejects a concurrent backup without reading the database", async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedExecute.mockRejectedValueOnce(new OperationalLeaseUnavailableError("backup.create"));
+
+    const response = await POST({
+      json: jest.fn().mockResolvedValue({ passphrase: "secure-backup-password" }),
+    } as never);
+
+    expect(response.status).toBe(409);
     expect(mockedCollect).not.toHaveBeenCalled();
   });
 
@@ -130,6 +170,11 @@ describe("admin backup API", () => {
     expect(await response.json()).toMatchObject({ success: true, records: 42 });
     expect(mockedDecrypt).toHaveBeenCalledWith(expect.any(Uint8Array), "secure-backup-password");
     expect(mockedRestore).toHaveBeenCalledWith(storedBackup);
+    expect(mockedExecute).toHaveBeenCalledWith({
+      operation: "restore.verify",
+      targetId: "database",
+      ttlMs: 300_000,
+    }, expect.any(Function));
     expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: 'backup.restore',

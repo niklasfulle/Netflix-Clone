@@ -16,6 +16,9 @@ services:
       AUTH_WEBAUTHN_RP_ID: ${HTTPS_HOST:-netflix}
       AUTH_WEBAUTHN_ORIGIN: https://${HTTPS_HOST:-netflix}
       PUBLIC_CA_OVERLAP_DAYS: ${PUBLIC_CA_OVERLAP_DAYS:-30}
+    depends_on:
+      jobs-migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -41,6 +44,76 @@ services:
       - /var/lib/netflix-public-certificates:/public-certificates:ro
       - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  jobs-migrate:
+    image: salkin263/netflix-clone:${APP_VERSION:-latest}
+    container_name: netflix-jobs-migrate
+    command: ["node", "scripts/migrate-job-queue.mjs"]
+    env_file:
+      - /root/netflix-secrets/app.env
+    networks:
+      - egress
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 100
+    cpus: 0.25
+    mem_limit: 256m
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      disable: true
+    restart: "no"
+
+  jobs-worker:
+    image: salkin263/netflix-clone:${APP_VERSION:-latest}
+    container_name: netflix-jobs-worker
+    command: ["node", ".worker/job-worker.mjs"]
+    env_file:
+      - /root/netflix-secrets/app.env
+      - /root/netflix-secrets/redis-app.env
+    environment:
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-production}
+    depends_on:
+      jobs-migrate:
+        condition: service_completed_successfully
+    labels:
+      com.netflix-clone.environment: ${DEPLOYMENT_ENVIRONMENT:-production}
+      com.netflix-clone.role: jobs-worker
+    networks:
+      - egress
+      - backend
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 150
+    cpus: 1.0
+    mem_limit: 768m
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    volumes:
+      - /movies:/movies
+      - /series:/series
+      - /var/lib/netflix-logs:/netflix-clone/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.kill(1, 0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 105s
     logging:
       driver: json-file
       options:
@@ -128,6 +201,7 @@ networks:
   frontend:
   backend:
     internal: true
+  egress:
 
 volumes:
   caddy_data:

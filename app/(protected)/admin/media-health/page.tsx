@@ -11,7 +11,7 @@ import {
   ScanSearch,
   ShieldAlert,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -35,6 +35,21 @@ type ScanDto = {
   criticalCount: number;
   warningCount: number;
 };
+
+type JobStatusDto = {
+  id: string;
+  status: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCEL_REQUESTED' | 'CANCELLED' | 'DEAD_LETTER';
+  progress: number;
+  progressMessage: string | null;
+  errorMessage: string | null;
+};
+
+const TERMINAL_JOB_STATUSES = new Set<JobStatusDto['status']>([
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED',
+  'DEAD_LETTER',
+]);
 
 type MediaHealthDto = {
   availability: 'AVAILABLE' | 'UNAVAILABLE';
@@ -68,6 +83,13 @@ const fetcher = async (url: string): Promise<MediaHealthDto> => {
   const response = await fetch(url);
   const body = await response.json();
   if (!response.ok) throw new Error(body.error || 'Media health could not be loaded.');
+  return body;
+};
+
+const jobStatusFetcher = async (url: string): Promise<JobStatusDto> => {
+  const response = await fetch(url);
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || 'Background job status could not be loaded.');
   return body;
 };
 
@@ -259,6 +281,8 @@ export default function AdminMediaHealthPage() {
   const [scanMessage, setScanMessage] = useState('');
   const [scanError, setScanError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   const requestUrl = useMemo(() => buildMediaHealthUrl({
     severity,
@@ -271,7 +295,30 @@ export default function AdminMediaHealthPage() {
     keepPreviousData: true,
     refreshInterval: (latest: MediaHealthDto | undefined) => latest?.runningScan ? 3_000 : 0,
   });
-  const scanActive = submitting || Boolean(data?.runningScan);
+  const { data: activeJob, mutate: mutateActiveJob } = useSWR<JobStatusDto>(
+    activeJobId ? `/api/admin/jobs/${encodeURIComponent(activeJobId)}` : null,
+    jobStatusFetcher,
+    {
+      refreshInterval: (latest) => latest && !TERMINAL_JOB_STATUSES.has(latest.status) ? 2_000 : 0,
+    },
+  );
+  const scanActive = submitting || Boolean(activeJobId) || Boolean(data?.runningScan);
+
+  useEffect(() => {
+    if (!activeJobId || !activeJob || !TERMINAL_JOB_STATUSES.has(activeJob.status)) return;
+    setActiveJobId(null);
+    if (activeJob.status === 'SUCCEEDED') {
+      setScanMessage(t('Scan completed and results persisted.'));
+      setScanError('');
+    } else if (activeJob.status === 'CANCELLED') {
+      setScanMessage(t('Scan cancelled.'));
+      setScanError('');
+    } else {
+      setScanMessage('');
+      setScanError(activeJob.errorMessage || t('Background scan failed.'));
+    }
+    void mutate();
+  }, [activeJob, activeJobId, mutate, t]);
 
   const startScan = async (selectedContentId?: string) => {
     setSubmitting(true);
@@ -285,13 +332,33 @@ export default function AdminMediaHealthPage() {
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || 'Media scan failed.');
-      await mutate();
-      setScanMessage(t('Scan completed and results persisted.'));
+      if (typeof body.jobRunId !== 'string') throw new Error('Media scan job was not accepted.');
+      setActiveJobId(body.jobRunId);
+      setScanMessage(t('Scan queued.'));
     } catch (error_) {
       setScanMessage('');
       setScanError(error_ instanceof Error ? error_.message : 'Media scan failed.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const cancelScan = async () => {
+    if (!activeJobId) return;
+    setCancelling(true);
+    setScanError('');
+    try {
+      const response = await fetch(`/api/admin/jobs/${encodeURIComponent(activeJobId)}`, {
+        method: 'DELETE',
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Unable to cancel background job.');
+      await mutateActiveJob(body, { revalidate: false });
+      setScanMessage(t('Cancellation requested.'));
+    } catch (error_) {
+      setScanError(error_ instanceof Error ? error_.message : 'Unable to cancel background job.');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -340,6 +407,22 @@ export default function AdminMediaHealthPage() {
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-blue-200">
           <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
           <span>{t(runningScanLabel)}</span>
+        </div>
+      ) : null}
+      {activeJob ? (
+        <div className="mb-5 flex flex-col gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-blue-200 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
+            <span>{activeJob.progressMessage || t('Scan in progress')} · {activeJob.progress}%</span>
+          </div>
+          <button
+            type="button"
+            onClick={cancelScan}
+            disabled={cancelling || activeJob.status === 'CANCEL_REQUESTED'}
+            className="h-9 rounded-lg border border-blue-300/30 px-3 text-sm font-medium hover:bg-blue-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t('Cancel scan')}
+          </button>
         </div>
       ) : null}
       {scanMessage ? <output aria-live="polite" className="mb-5 block rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-sm text-blue-200">{scanMessage}</output> : null}

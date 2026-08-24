@@ -3,7 +3,10 @@ import type {
   MediaScanResult,
   MediaScanRunRepository,
 } from './media-integrity-scanner';
-import { MediaScanAlreadyRunningError } from './media-integrity-scanner';
+import {
+  MediaScanAlreadyRunningError,
+  MediaScanRunSupersededError,
+} from './media-integrity-scanner';
 
 type ScanRunCreateInput = Parameters<MediaScanRunRepository['start']>[0];
 type ScanCompletion = Omit<MediaScanResult, 'id'>;
@@ -15,13 +18,9 @@ type ScanRunOperations = {
   }): Promise<{ id: string }>;
   update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
   updateMany(args: {
-    where: {
-      lockKey: string;
-      status: 'RUNNING';
-      startedAt: { lt: Date };
-    };
-    data: { status: 'FAILED'; completedAt: Date };
-  }): Promise<unknown>;
+    where: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }): Promise<{ count: number }>;
   findMany(args: {
     where: { status: { in: Array<'COMPLETED' | 'FAILED'> } };
     orderBy: { startedAt: 'desc' };
@@ -48,7 +47,7 @@ type Transaction = {
 };
 
 export type MediaScanDatabase = {
-  mediaIntegrityScanRun: Pick<ScanRunOperations, 'update'>;
+  mediaIntegrityScanRun: Pick<ScanRunOperations, 'updateMany'>;
   $transaction<T>(callback: (transaction: Transaction) => Promise<T>): Promise<T>;
 };
 
@@ -99,14 +98,8 @@ export function createPrismaMediaScanRunRepository(
 
     async complete(scanRunId: string, result: ScanCompletion) {
       await database.$transaction(async (transaction) => {
-        await transaction.mediaIntegrityFinding.deleteMany({ where: { scanRunId } });
-        if (result.findings.length > 0) {
-          await transaction.mediaIntegrityFinding.createMany({
-            data: result.findings.map((entry) => findingData(scanRunId, entry)),
-          });
-        }
-        await transaction.mediaIntegrityScanRun.update({
-          where: { id: scanRunId },
+        const completed = await transaction.mediaIntegrityScanRun.updateMany({
+          where: { id: scanRunId, status: 'RUNNING' },
           data: {
             status: result.status,
             completedAt: result.completedAt,
@@ -116,7 +109,14 @@ export function createPrismaMediaScanRunRepository(
             warningCount: result.warningCount,
           },
         });
+        if (completed.count !== 1) throw new MediaScanRunSupersededError();
 
+        await transaction.mediaIntegrityFinding.deleteMany({ where: { scanRunId } });
+        if (result.findings.length > 0) {
+          await transaction.mediaIntegrityFinding.createMany({
+            data: result.findings.map((entry) => findingData(scanRunId, entry)),
+          });
+        }
         const expired = await transaction.mediaIntegrityScanRun.findMany({
           where: { status: { in: ['COMPLETED', 'FAILED'] } },
           orderBy: { startedAt: 'desc' },
@@ -133,8 +133,8 @@ export function createPrismaMediaScanRunRepository(
     },
 
     async fail(scanRunId, completedAt) {
-      await database.mediaIntegrityScanRun.update({
-        where: { id: scanRunId },
+      await database.mediaIntegrityScanRun.updateMany({
+        where: { id: scanRunId, status: 'RUNNING' },
         data: { status: 'FAILED', completedAt },
       });
     },

@@ -242,6 +242,10 @@ class DeploymentContractTests(unittest.TestCase):
         playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")
         self.assertIn("rescue:", playbook)
         self.assertIn("Preserve failed-container diagnostics", playbook)
+        self.assertIn("docker inspect netflix-jobs-migrate", playbook)
+        self.assertIn("docker logs netflix-jobs-migrate", playbook)
+        self.assertIn("docker inspect netflix-jobs-worker", playbook)
+        self.assertIn("docker logs netflix-jobs-worker", playbook)
         self.assertIn("Restore the previous compose definition", playbook)
         self.assertIn("Restart the previous working image", playbook)
         self.assertIn(
@@ -270,6 +274,53 @@ class DeploymentContractTests(unittest.TestCase):
         refresh_task = playbook[refresh_start:refresh_end]
 
         self.assertIn("state: restarted", refresh_task)
+
+    def test_deployment_waits_for_background_worker_health(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("jobs-migrate:", compose)
+        self.assertIn("jobs-worker:", compose)
+        self.assertIn("container_name: netflix-jobs-worker", compose)
+        self.assertIn("stop_grace_period: 105s", compose)
+        migration = compose[
+            compose.index("\n  jobs-migrate:\n"):compose.index("\n  jobs-worker:\n")
+        ]
+        worker = compose[
+            compose.index("\n  jobs-worker:\n"):compose.index("\n  redis-runtime:\n")
+        ]
+        network_definitions = compose[compose.rindex("\nnetworks:"):]
+        self.assertIn("- egress", migration)
+        self.assertNotIn("- backend", migration)
+        self.assertIn("- egress", worker)
+        self.assertIn("- backend", worker)
+        self.assertIn("  egress:\n", network_definitions)
+        self.assertIn("/root/netflix-secrets/redis-app.env", worker)
+        self.assertIn("DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}", worker)
+        self.assertIn("Wait for healthy background job worker", playbook)
+        self.assertIn("- netflix-jobs-worker", playbook)
+        self.assertLess(
+            playbook.index("Wait for healthy background job worker"),
+            playbook.index("Wait for healthy application version"),
+        )
+
+    def test_job_queue_migration_creates_dead_letter_queue_first(self):
+        migration_script = (ROOT / "scripts" / "migrate-job-queue.mjs").read_text(
+            encoding="utf-8"
+        )
+
+        dead_letter_queue = migration_script.index(
+            "await boss.createQueue('media.integrity.scan.dead'"
+        )
+        primary_queue = migration_script.index(
+            "await boss.createQueue('media.integrity.scan', queueOptions)"
+        )
+
+        self.assertLess(dead_letter_queue, primary_queue)
 
     def test_compose_applies_runtime_limits(self):
         compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(encoding="utf-8")

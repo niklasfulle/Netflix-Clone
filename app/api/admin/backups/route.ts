@@ -13,6 +13,11 @@ import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { recordBackupStatus } from "@/lib/backup-status";
 import { logBackendAction } from "@/lib/logger";
+import {
+  OperationalLeaseLostError,
+  OperationalLeaseUnavailableError,
+} from "@/lib/operations/lease";
+import { operationalLeases } from "@/lib/operations/runtime";
 
 export const runtime = "nodejs";
 
@@ -24,6 +29,15 @@ function backupFileName(createdAt: string) {
 function errorResponse(error: unknown) {
   if (error instanceof BackupValidationError) {
     return Response.json({ error: error.message }, { status: 400 });
+  }
+  if (
+    error instanceof OperationalLeaseUnavailableError
+    || error instanceof OperationalLeaseLostError
+  ) {
+    return Response.json(
+      { error: "Eine andere Backup-Aktion läuft bereits. Versuche es später erneut." },
+      { status: 409 },
+    );
   }
   return Response.json({ error: "Die Backup-Aktion ist fehlgeschlagen." }, { status: 500 });
 }
@@ -45,43 +59,49 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const backup = await collectDatabaseBackup();
-    const archive = encryptDatabaseBackup(backup, passphrase);
-    const records = countBackupRecords(backup);
-    try {
-      await recordBackupStatus({
-        createdAt: backup.createdAt,
-        sizeBytes: archive.byteLength,
-        records,
-      });
-    } catch {
-      logBackendAction(
-        "admin_backup_status_write_failed",
-        { createdAt: backup.createdAt },
-        "warn",
-      );
-    }
-    const responseBody = new ArrayBuffer(archive.byteLength);
-    new Uint8Array(responseBody).set(archive);
+    return await operationalLeases.execute({
+      operation: "backup.create",
+      targetId: "database",
+      ttlMs: 5 * 60_000,
+    }, async () => {
+      const backup = await collectDatabaseBackup();
+      const archive = encryptDatabaseBackup(backup, passphrase);
+      const records = countBackupRecords(backup);
+      try {
+        await recordBackupStatus({
+          createdAt: backup.createdAt,
+          sizeBytes: archive.byteLength,
+          records,
+        });
+      } catch {
+        logBackendAction(
+          "admin_backup_status_write_failed",
+          { createdAt: backup.createdAt },
+          "warn",
+        );
+      }
+      const responseBody = new ArrayBuffer(archive.byteLength);
+      new Uint8Array(responseBody).set(archive);
 
-    logBackendAction(
-      "admin_backup_created",
-      { records, bytes: archive.byteLength, createdAt: backup.createdAt },
-      "info",
-    );
-    await audit.succeeded({
-      target: { type: 'backup', id: backup.createdAt },
-      metadata: { source: 'manual', scheduled: false },
-    });
-    return new Response(responseBody, {
-      status: 200,
-      headers: {
-        "Cache-Control": "no-store",
-        "Content-Disposition": `attachment; filename="${backupFileName(backup.createdAt)}"`,
-        "Content-Length": String(archive.byteLength),
-        "Content-Type": "application/octet-stream",
-        "X-Backup-Records": String(records),
-      },
+      logBackendAction(
+        "admin_backup_created",
+        { records, bytes: archive.byteLength, createdAt: backup.createdAt },
+        "info",
+      );
+      await audit.succeeded({
+        target: { type: 'backup', id: backup.createdAt },
+        metadata: { source: 'manual', scheduled: false },
+      });
+      return new Response(responseBody, {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Disposition": `attachment; filename="${backupFileName(backup.createdAt)}"`,
+          "Content-Length": String(archive.byteLength),
+          "Content-Type": "application/octet-stream",
+          "X-Backup-Records": String(records),
+        },
+      });
     });
   } catch (error) {
     await audit.failed();
@@ -124,22 +144,30 @@ export async function PUT(request: Request) {
 
     const archive = new Uint8Array(await file.arrayBuffer());
     const backup = decryptDatabaseBackup(archive, passphrase);
-    const records = await restoreDatabaseBackup(backup);
+    return await operationalLeases.execute({
+      operation: "restore.verify",
+      targetId: "database",
+      ttlMs: 5 * 60_000,
+    }, async ({ assertCurrent }) => {
+      await assertCurrent();
+      const records = await restoreDatabaseBackup(backup);
+      await assertCurrent();
 
-    logBackendAction(
-      "admin_backup_restored",
-      { records, backupCreatedAt: backup.createdAt },
-      "warn",
-    );
-    await audit.succeeded({
-      target: { type: 'backup', id: backup.createdAt },
-      metadata: { verificationStatus: 'accepted' },
-    });
-    return Response.json({
-      success: true,
-      records,
-      backupCreatedAt: backup.createdAt,
-      message: "Das Datenbank-Backup wurde vollständig wiederhergestellt.",
+      logBackendAction(
+        "admin_backup_restored",
+        { records, backupCreatedAt: backup.createdAt },
+        "warn",
+      );
+      await audit.succeeded({
+        target: { type: 'backup', id: backup.createdAt },
+        metadata: { verificationStatus: 'accepted' },
+      });
+      return Response.json({
+        success: true,
+        records,
+        backupCreatedAt: backup.createdAt,
+        message: "Das Datenbank-Backup wurde vollständig wiederhergestellt.",
+      });
     });
   } catch (error) {
     await audit.failed();

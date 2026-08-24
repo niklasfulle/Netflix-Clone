@@ -1,15 +1,18 @@
+import { randomUUID } from 'node:crypto';
+
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
-import { MediaScanAlreadyRunningError } from '@/lib/administration/media-integrity-scanner';
 import type { MediaHealthQuery } from '@/lib/administration/media-health';
+import { currentUser } from '@/lib/auth';
+import { backgroundJobSubmission } from '@/lib/jobs/runtime';
 import { mediaHealthReader } from '@/lib/media-health';
-import { mediaIntegrityScanner } from '@/lib/media-integrity';
 import { logBackendAction } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const CONTENT_ID = /^[A-Za-z0-9_-]{1,191}$/;
+const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{8,128}$/;
 
 function privateJson(body: unknown, status = 200) {
   return Response.json(body, {
@@ -59,7 +62,8 @@ async function requestContentId(request: Request): Promise<string | undefined | 
 
 export async function POST(request: Request) {
   const audit = adminMutationAudit.begin('media.scan');
-  if (!(await isCurrentUserAdmin())) {
+  const user = await currentUser();
+  if (!user || user.role !== 'ADMIN') {
     await audit.denied();
     return privateJson({ error: 'Forbidden', correlationId: audit.correlationId }, 403);
   }
@@ -71,25 +75,48 @@ export async function POST(request: Request) {
     return privateJson({ error: 'Invalid content ID.', correlationId: audit.correlationId }, 400);
   }
 
+  const suppliedIdempotencyKey = request.headers.get('idempotency-key');
+  if (suppliedIdempotencyKey && !IDEMPOTENCY_KEY.test(suppliedIdempotencyKey)) {
+    await audit.failed({ metadata: { scope, itemCount: 0 } });
+    return privateJson({ error: 'Invalid idempotency key.', correlationId: audit.correlationId }, 400);
+  }
+  const idempotencyKey = suppliedIdempotencyKey ?? randomUUID();
+
   try {
-    const result = await mediaIntegrityScanner.scan(contentId ? { contentId } : {});
-    await audit.succeeded({
-      target: { type: 'media_scan', id: result.id },
-      metadata: { scope: result.scope, itemCount: result.contentCount },
+    const result = await backgroundJobSubmission.submit(contentId ? {
+      name: 'media.integrity.scan',
+      version: 1,
+      payload: { scope: 'content', contentId },
+      actor: { userId: user.id, role: 'ADMIN' },
+      target: { type: 'content', id: contentId },
+      idempotencyKey,
+      correlationId: audit.correlationId,
+    } : {
+      name: 'media.integrity.scan',
+      version: 1,
+      payload: { scope: 'catalog' },
+      actor: { userId: user.id, role: 'ADMIN' },
+      target: { type: 'catalog', id: 'published' },
+      idempotencyKey,
+      correlationId: audit.correlationId,
     });
-    return privateJson({ ...result, correlationId: audit.correlationId }, 201);
+    await audit.succeeded({
+      target: { type: 'background_job', id: result.id },
+      metadata: { scope, itemCount: 0 },
+    });
+    return privateJson({
+      jobRunId: result.id,
+      queueJobId: result.queueJobId,
+      status: result.status,
+      duplicate: result.duplicate,
+      correlationId: audit.correlationId,
+    }, result.duplicate ? 200 : 202);
   } catch (error) {
     await audit.failed({ metadata: { scope, itemCount: 0 } });
-    if (error instanceof MediaScanAlreadyRunningError) {
-      return privateJson({
-        error: 'A matching media scan is already running.',
-        correlationId: audit.correlationId,
-      }, 409);
-    }
-    logBackendAction('admin_media_scan_failed', {
+    logBackendAction('admin_media_scan_enqueue_failed', {
       correlationId: audit.correlationId,
       errorName: error instanceof Error ? error.name : typeof error,
     }, 'error');
-    return privateJson({ error: 'Media scan failed.', correlationId: audit.correlationId }, 500);
+    return privateJson({ error: 'Unable to queue media scan.', correlationId: audit.correlationId }, 503);
   }
 }

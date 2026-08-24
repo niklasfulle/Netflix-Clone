@@ -13,6 +13,8 @@ jest.mock('next/link', () => ({
 
 const mockedUseSWR = useSWR as jest.Mock;
 const mutate = jest.fn();
+const mutateJob = jest.fn();
+let activeJob: Record<string, unknown> | undefined;
 const overview = {
   availability: 'AVAILABLE',
   stale: false,
@@ -45,7 +47,10 @@ const overview = {
 
 beforeEach(() => {
   jest.resetAllMocks();
-  mockedUseSWR.mockReturnValue({ data: overview, error: undefined, isLoading: false, mutate });
+  activeJob = undefined;
+  mockedUseSWR.mockImplementation((key: string | null) => key?.startsWith('/api/admin/jobs/')
+    ? { data: activeJob, error: undefined, isLoading: false, mutate: mutateJob }
+    : { data: overview, error: undefined, isLoading: false, mutate });
   global.fetch = jest.fn();
 });
 
@@ -80,19 +85,22 @@ it('applies severity, resource, content, and scan-status filters', () => {
     target: { value: 'FAILED' },
   });
 
-  const requestUrl = mockedUseSWR.mock.calls.at(-1)[0] as string;
+  const requestUrl = mockedUseSWR.mock.calls
+    .map(([key]: [string | null]) => key)
+    .filter((key: string | null): key is string => key?.startsWith('/api/admin/media-health') === true)
+    .at(-1) as string;
   expect(requestUrl).toContain('severity=CRITICAL');
   expect(requestUrl).toContain('resourceKind=VIDEO');
   expect(requestUrl).toContain('contentType=Movie');
   expect(requestUrl).toContain('scanStatus=FAILED');
 });
 
-it('announces progress and refreshes only after a full scan is persisted', async () => {
+it('announces queued work and refreshes results only after the background job succeeds', async () => {
   let finishRequest: ((response: Response) => void) | undefined;
   (global.fetch as jest.Mock).mockReturnValue(new Promise<Response>((resolve) => {
     finishRequest = resolve;
   }));
-  render(<AdminMediaHealthPage />);
+  const { rerender } = render(<AdminMediaHealthPage />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Scan full catalog' }));
 
@@ -102,10 +110,47 @@ it('announces progress and refreshes only after a full scan is persisted', async
 
   finishRequest?.({
     ok: true,
-    json: async () => ({ id: 'scan-2', status: 'COMPLETED' }),
+    json: async () => ({ jobRunId: 'job-run-123', status: 'QUEUED' }),
   } as Response);
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Scan queued.'));
+  expect(mutate).not.toHaveBeenCalled();
+
+  activeJob = { id: 'job-run-123', status: 'SUCCEEDED', progress: 100, progressMessage: 'Completed' };
+  rerender(<AdminMediaHealthPage />);
+
   await waitFor(() => expect(mutate).toHaveBeenCalled());
   expect(screen.getByRole('status')).toHaveTextContent('Scan completed and results persisted.');
+});
+
+it('shows durable progress and lets an administrator request cancellation', async () => {
+  activeJob = {
+    id: 'job-run-123',
+    status: 'RUNNING',
+    progress: 40,
+    progressMessage: 'Scanning catalog media',
+    errorMessage: null,
+  };
+  (global.fetch as jest.Mock)
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ jobRunId: 'job-run-123', status: 'QUEUED' }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 'job-run-123', status: 'CANCEL_REQUESTED' }),
+    });
+  render(<AdminMediaHealthPage />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Scan full catalog' }));
+  await waitFor(() => expect(screen.getByText('Scanning catalog media · 40%')).toBeInTheDocument());
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel scan' }));
+
+  await waitFor(() => expect(global.fetch).toHaveBeenLastCalledWith(
+    '/api/admin/jobs/job-run-123',
+    { method: 'DELETE' },
+  ));
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Cancellation requested.'));
 });
 
 it('shows unavailable, stale, running, empty, and request-error states', () => {

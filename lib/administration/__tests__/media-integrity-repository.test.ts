@@ -8,7 +8,7 @@ function database() {
     mediaIntegrityScanRun: {
       create: jest.fn().mockResolvedValue({ id: 'scan-1' }),
       update: jest.fn().mockResolvedValue(undefined),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findMany: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
@@ -69,8 +69,8 @@ describe('Prisma media scan run repository', () => {
     expect(tx.mediaIntegrityFinding.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ scanRunId: 'scan-1', code: 'VIDEO_MISSING' })],
     });
-    expect(tx.mediaIntegrityScanRun.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'scan-1' },
+    expect(tx.mediaIntegrityScanRun.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'scan-1', status: 'RUNNING' },
       data: expect.objectContaining({ status: 'COMPLETED', findingCount: 1 }),
     }));
     expect(tx.mediaIntegrityFinding.deleteMany.mock.invocationCallOrder[0])
@@ -96,8 +96,8 @@ describe('Prisma media scan run repository', () => {
       findings: [],
     });
 
-    expect(tx.mediaIntegrityScanRun.update).toHaveBeenCalledWith({
-      where: { id: 'scan-1' },
+    expect(tx.mediaIntegrityScanRun.updateMany).toHaveBeenCalledWith({
+      where: { id: 'scan-1', status: 'RUNNING' },
       data: { status: 'FAILED', completedAt: new Date('2026-08-14T12:00:02.000Z') },
     });
     expect(tx.mediaIntegrityScanRun.findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -123,5 +123,27 @@ describe('Prisma media scan run repository', () => {
       requestedContentId: null,
       startedAt: new Date('2026-08-14T12:00:00.000Z'),
     })).rejects.toEqual(new MediaScanAlreadyRunningError('CATALOG'));
+  });
+
+  it('rejects a stale worker before it can replace findings or report success', async () => {
+    const { db, tx } = database();
+    tx.mediaIntegrityScanRun.updateMany.mockResolvedValue({ count: 0 });
+    const repository = createPrismaMediaScanRunRepository(db);
+
+    await expect(repository.complete('superseded-scan', {
+      scope: 'CATALOG',
+      requestedContentId: null,
+      status: 'COMPLETED',
+      startedAt: new Date('2026-08-14T12:00:00.000Z'),
+      completedAt: new Date('2026-08-14T12:31:00.000Z'),
+      contentCount: 1,
+      findingCount: 1,
+      criticalCount: 1,
+      warningCount: 0,
+      findings: [finding],
+    })).rejects.toThrow('Media scan run was superseded by a newer owner');
+
+    expect(tx.mediaIntegrityFinding.deleteMany).not.toHaveBeenCalled();
+    expect(tx.mediaIntegrityFinding.createMany).not.toHaveBeenCalled();
   });
 });

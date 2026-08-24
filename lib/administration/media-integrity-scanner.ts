@@ -43,6 +43,13 @@ export class MediaScanAlreadyRunningError extends Error {
   }
 }
 
+export class MediaScanRunSupersededError extends Error {
+  constructor() {
+    super('Media scan run was superseded by a newer owner');
+    this.name = 'MediaScanRunSupersededError';
+  }
+}
+
 export type MediaFinding = {
   contentId: string | null;
   resourceKind: MediaResourceKind;

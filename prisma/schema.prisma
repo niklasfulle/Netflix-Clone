@@ -27,6 +27,16 @@ enum QrDevicePairingStatus {
   EXPIRED
 }
 
+enum JobRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCEL_REQUESTED
+  CANCELLED
+  DEAD_LETTER
+}
+
 model User {
   id                         String                      @id @unique @default(cuid())
   name                       String
@@ -275,6 +285,50 @@ model AdminAuditEvent {
   @@index([actorUserId, createdAt])
   @@index([action, outcome, createdAt])
   @@index([targetType, targetId, createdAt])
+}
+
+model JobRun {
+  id                String       @id @default(cuid())
+  jobType           String
+  contractVersion   Int
+  idempotencyKey    String
+  queueJobId        String       @unique
+  actorUserId       String
+  actorRole         String
+  targetType        String
+  targetId          String
+  correlationId     String
+  status            JobRunStatus @default(QUEUED)
+  payload           Json
+  progress          Int          @default(0)
+  progressMessage   String?
+  attemptCount      Int          @default(0)
+  result            Json?
+  errorCode         String?
+  errorMessage      String?
+  acceptedAt        DateTime     @default(now())
+  startedAt         DateTime?
+  completedAt       DateTime?
+  cancelRequestedAt DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([jobType, idempotencyKey])
+  @@index([status, acceptedAt])
+  @@index([actorUserId, acceptedAt])
+  @@index([correlationId])
+  @@index([completedAt])
+}
+
+model OperationalLease {
+  resourceKey    String   @id
+  ownerTokenHash String?
+  fencingToken   BigInt   @default(0)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model MediaIntegrityScanRun {

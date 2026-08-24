@@ -57,6 +57,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'backup.restore': 'Restored backup',
   'backup.verify': 'Verified backup',
   'media.scan': 'Scanned media',
+  'job.cancel': 'Cancelled background job',
   'deployment.manage': 'Managed deployment',
   'security.settings_change': 'Changed security settings',
 };
@@ -66,6 +67,7 @@ const TARGET_TYPES: AdminAuditTargetType[] = [
   'actor',
   'user',
   'backup',
+  'background_job',
   'media_scan',
   'deployment',
   'security_settings',
@@ -76,6 +78,7 @@ const TARGET_TYPE_LABELS: Record<AdminAuditTargetType, TranslationKey> = {
   actor: 'Actor target',
   user: 'User target',
   backup: 'Backup target',
+  background_job: 'Background job target',
   media_scan: 'Media scan target',
   deployment: 'Deployment target',
   security_settings: 'Security settings target',

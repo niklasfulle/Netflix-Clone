@@ -1128,6 +1128,19 @@
             'maxmemory:167772160' not in redis_memory_state.stdout or
             'maxmemory_policy:allkeys-lfu' not in redis_memory_state.stdout
 
+        - name: Wait for healthy background job worker
+          command:
+            argv:
+              - docker
+              - inspect
+              - --format={{ '{{' }}.State.Health.Status{{ '}}' }}
+              - netflix-jobs-worker
+          register: background_job_worker_health
+          changed_when: false
+          retries: 18
+          delay: 5
+          until: background_job_worker_health.stdout | trim == 'healthy'
+
         - name: Wait for healthy application version
           uri:
             url: http://127.0.0.1:3000/api/health
@@ -1286,7 +1299,11 @@
             docker inspect netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy-inspect.json 2>&1 || true;
             docker logs netflix-proxy > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-proxy.log 2>&1 || true;
             docker inspect netflix-redis-runtime > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-redis-inspect.json 2>&1 || true;
-            docker logs netflix-redis-runtime > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-redis.log 2>&1 || true
+            docker logs netflix-redis-runtime > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-redis.log 2>&1 || true;
+            docker inspect netflix-jobs-migrate > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-jobs-migrate-inspect.json 2>&1 || true;
+            docker logs netflix-jobs-migrate > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-jobs-migrate.log 2>&1 || true;
+            docker inspect netflix-jobs-worker > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-jobs-worker-inspect.json 2>&1 || true;
+            docker logs netflix-jobs-worker > /root/netflix-deploy-failures/{{ deployment_environment }}-{{ app_version }}-jobs-worker.log 2>&1 || true
           args:
             executable: /bin/bash
           changed_when: true

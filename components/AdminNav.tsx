@@ -122,11 +122,11 @@ export default function AdminNav() {
           <LanguageSwitcher compact />
         </div>
         <Link
-          href="/"
+          href="/browse"
           className="mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white"
         >
-          <Home className="h-4 w-4" />
-          {t("Back to Platform")}
+          <Home className="h-4 w-4" aria-hidden="true" />
+          {t("Back to Netflix")}
         </Link>
         <div className="relative">
           <button
@@ -197,12 +197,16 @@ export default function AdminNav() {
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>
-            <div className="flex-1 px-4 py-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
               <NavLinks onNavigate={() => setMobileOpen(false)} />
             </div>
             <div className="border-t border-zinc-800 p-4">
-              <Link href="/" className="flex items-center gap-3 rounded-xl px-3 py-3 text-zinc-300">
-                <Home className="h-4 w-4" /> {t("Back to Platform")}
+              <Link
+                href="/browse"
+                onClick={closeMobileNavigation}
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+              >
+                <Home className="h-4 w-4" aria-hidden="true" /> {t("Back to Netflix")}
               </Link>
             </div>
           </dialog>

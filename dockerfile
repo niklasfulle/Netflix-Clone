@@ -27,6 +27,7 @@ COPY --from=dependencies /netflix-clone/node_modules ./node_modules
 COPY . .
 
 RUN ./node_modules/.bin/prisma generate \
+    && yarn build:worker \
     && ./node_modules/.bin/next build
 
 FROM base AS production-dependencies
@@ -51,10 +52,12 @@ RUN groupadd --gid 10001 netflix \
 COPY --chown=10001:10001 --from=production-dependencies /netflix-clone/node_modules ./node_modules
 COPY --chown=10001:10001 --from=builder /netflix-clone/node_modules/.prisma ./node_modules/.prisma
 COPY --chown=10001:10001 --from=builder /netflix-clone/.next ./.next
+COPY --chown=10001:10001 --from=builder /netflix-clone/.worker ./.worker
 COPY --chown=10001:10001 --from=builder /netflix-clone/public ./public
 COPY --chown=10001:10001 --from=builder /netflix-clone/prisma ./prisma
 COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-staging-catalog.js ./scripts/seed-staging-catalog.js
 COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-staging-users.js ./scripts/seed-staging-users.js
+COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/migrate-job-queue.mjs ./scripts/migrate-job-queue.mjs
 COPY --chown=10001:10001 --from=builder /netflix-clone/package.json ./package.json
 COPY --chown=10001:10001 --from=builder /netflix-clone/CHANGELOG.md ./CHANGELOG.md
 COPY --chown=10001:10001 --from=builder /netflix-clone/next.config.js ./next.config.js
