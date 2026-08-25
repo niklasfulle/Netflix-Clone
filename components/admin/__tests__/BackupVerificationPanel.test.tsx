@@ -31,6 +31,7 @@ function renderPanel() {
 describe('PostgreSQL backup verification panel', () => {
   beforeEach(() => {
     globalThis.fetch = jest.fn();
+    globalThis.sessionStorage.clear();
   });
 
   it('shows the last isolated restore result with bounded recovery evidence', async () => {
@@ -63,15 +64,26 @@ describe('PostgreSQL backup verification panel', () => {
   });
 
   it('requests verification of the latest host backup and refreshes its state', async () => {
-    (globalThis.fetch as jest.Mock)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: null }) })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ accepted: true, requestId: 'request-2' }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+    let verificationReads = 0;
+    globalThis.fetch = jest.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/admin/backups/verification' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({
+            jobRunId: 'verification-job-run-request-2',
+            queueJobId: 'verification-queue-request-2',
+            status: 'QUEUED',
+            duplicate: false,
+            correlationId: 'verification-correlation-request-2',
+          }),
+        } as Response;
+      }
+      if (url === '/api/admin/backups/verification') {
+        verificationReads += 1;
+        return {
+          ok: true,
+          json: async () => verificationReads === 1 ? { status: null, scheduled: null } : ({
           status: {
             ...verifiedStatus,
             requestId: 'request-2',
@@ -80,8 +92,24 @@ describe('PostgreSQL backup verification panel', () => {
             diagnosticCode: 'VERIFICATION_RUNNING',
             checks: null,
           },
-        }),
-      });
+          scheduled: null,
+          }),
+        } as Response;
+      }
+      if (url === '/api/admin/jobs/verification-job-run-request-2') {
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'verification-job-run-request-2',
+            status: 'RUNNING',
+            progress: 25,
+            progressMessage: 'Restoring backup',
+            errorMessage: null,
+          }),
+        } as Response;
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
 
     renderPanel();
     expect(await screen.findByText('No verification result is available yet.')).toBeInTheDocument();
@@ -93,7 +121,7 @@ describe('PostgreSQL backup verification panel', () => {
       { method: 'POST' },
     ));
     expect(await screen.findByText('Running')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Verification request accepted');
+    expect(await screen.findByRole('status')).toHaveTextContent('Restoring backup · 25%');
   });
 
   it('presents unavailable state without claiming the backup is healthy', async () => {
@@ -106,5 +134,58 @@ describe('PostgreSQL backup verification panel', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('currently unavailable');
     expect(screen.queryByText('Verified')).not.toBeInTheDocument();
+  });
+
+  it('shows and cancels the accepted verification background job', async () => {
+    globalThis.fetch = jest.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/admin/backups/verification' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({ jobRunId: 'verification-job-run-123', status: 'QUEUED' }),
+        } as Response;
+      }
+      if (url === '/api/admin/backups/verification') {
+        return { ok: true, json: async () => ({ status: null, scheduled: null }) } as Response;
+      }
+      if (url === '/api/admin/jobs/verification-job-run-123' && init?.method === 'DELETE') {
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'verification-job-run-123',
+            status: 'CANCELLED',
+            progress: 60,
+            progressMessage: 'Cancelled',
+            errorMessage: null,
+          }),
+        } as Response;
+      }
+      if (url === '/api/admin/jobs/verification-job-run-123') {
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'verification-job-run-123',
+            status: 'RUNNING',
+            progress: 60,
+            progressMessage: 'Restoring backup',
+            errorMessage: null,
+          }),
+        } as Response;
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    renderPanel();
+    await screen.findByText('No verification result is available yet.');
+    fireEvent.click(screen.getByRole('button', { name: 'Verify Latest PostgreSQL Backup' }));
+
+    expect(await screen.findByText('Restoring backup · 60%')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel backup verification' }));
+
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/admin/jobs/verification-job-run-123',
+      expect.objectContaining({ method: 'DELETE' }),
+    ));
+    expect(await screen.findByRole('status')).toHaveTextContent('Backup verification cancelled.');
   });
 });

@@ -72,7 +72,7 @@ it("lets mobile administrators return to the regular browse area", () => {
   fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
 
   const dialog = screen.getByRole("dialog", { name: "Admin Area" });
-  expect(within(dialog).getByRole("link", { name: "Back to Netflix" })).toHaveAttribute("href", "/browse");
+  expect(within(dialog).getByRole("link", { name: "Back to Netflix" })).toHaveAttribute("href", "/");
   expect(within(dialog).getByRole("navigation", { name: "Admin Area" }).parentElement).toHaveClass(
     "min-h-0",
     "overflow-y-auto",

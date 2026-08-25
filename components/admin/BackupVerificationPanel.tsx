@@ -8,7 +8,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
 import type {
@@ -18,6 +18,22 @@ import type {
 } from '@/lib/backup-verification';
 
 const endpoint = '/api/admin/backups/verification';
+const activeJobStorageKey = 'admin:backup-verification:active-job';
+
+type JobStatusDto = {
+  id: string;
+  status: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCEL_REQUESTED' | 'CANCELLED' | 'DEAD_LETTER';
+  progress: number;
+  progressMessage: string | null;
+  errorMessage: string | null;
+};
+
+const terminalJobStatuses = new Set<JobStatusDto['status']>([
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED',
+  'DEAD_LETTER',
+]);
 
 const statusPresentation: Record<BackupVerificationStatusName, {
   label: string;
@@ -48,6 +64,20 @@ async function verificationFetcher(): Promise<{
   scheduled: ScheduledBackupStatus | null;
 }> {
   return responseJson(await fetch(endpoint, { cache: 'no-store' }));
+}
+
+async function jobStatusFetcher(url: string): Promise<JobStatusDto> {
+  return responseJson(await fetch(url, { cache: 'no-store' }));
+}
+
+function jobMessage(job: JobStatusDto): string {
+  if (job.status === 'QUEUED') return 'Backup verification queued.';
+  if (job.status === 'SUCCEEDED') return 'Backup verification completed.';
+  if (job.status === 'CANCELLED') return 'Backup verification cancelled.';
+  if (job.status === 'CANCEL_REQUESTED') return 'Cancellation requested.';
+  if (job.status === 'FAILED') return 'Backup verification failed.';
+  if (job.status === 'DEAD_LETTER') return 'Backup verification exhausted its retries.';
+  return `${job.progressMessage || 'Backup verification in progress'} · ${job.progress}%`;
 }
 
 function ScheduledBackupEvidence({ status }: Readonly<{ status: ScheduledBackupStatus }>) {
@@ -152,15 +182,42 @@ export function BackupVerificationPanel() {
     revalidateOnFocus: true,
   });
   const [requesting, setRequesting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [requestMessage, setRequestMessage] = useState('');
   const [requestError, setRequestError] = useState('');
+
+  useEffect(() => {
+    const rememberedJobId = globalThis.sessionStorage.getItem(activeJobStorageKey);
+    if (rememberedJobId) setActiveJobId(rememberedJobId);
+  }, []);
+
+  const {
+    data: activeJob,
+    error: activeJobError,
+    mutate: mutateActiveJob,
+  } = useSWR<JobStatusDto>(
+    activeJobId ? `/api/admin/jobs/${encodeURIComponent(activeJobId)}` : null,
+    jobStatusFetcher,
+    {
+      refreshInterval: latest => latest && !terminalJobStatuses.has(latest.status) ? 2_000 : 0,
+    },
+  );
+  const jobActive = Boolean(
+    activeJobId && (!activeJob || !terminalJobStatuses.has(activeJob.status)),
+  );
 
   const requestVerification = async () => {
     setRequesting(true);
     setRequestMessage('');
     setRequestError('');
     try {
-      await responseJson(await fetch(endpoint, { method: 'POST' }));
+      const accepted = await responseJson(await fetch(endpoint, { method: 'POST' }));
+      if (typeof accepted?.jobRunId !== 'string') {
+        throw new Error('Backup verification job was not accepted.');
+      }
+      globalThis.sessionStorage.setItem(activeJobStorageKey, accepted.jobRunId);
+      setActiveJobId(accepted.jobRunId);
       setRequestMessage('Verification request accepted. The isolated restore is starting.');
       await mutate();
     } catch (error_) {
@@ -173,6 +230,33 @@ export function BackupVerificationPanel() {
       setRequesting(false);
     }
   };
+
+  const cancelVerification = async () => {
+    if (!activeJobId) return;
+    setCancelling(true);
+    setRequestError('');
+    try {
+      const cancelled = await responseJson(await fetch(
+        `/api/admin/jobs/${encodeURIComponent(activeJobId)}`,
+        { method: 'DELETE' },
+      ));
+      await mutateActiveJob(cancelled, { revalidate: false });
+      setRequestMessage('Backup verification cancelled.');
+    } catch (error_) {
+      setRequestError(error_ instanceof Error
+        ? error_.message
+        : 'Backup verification could not be cancelled.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const visibleRequestMessage = activeJob ? jobMessage(activeJob) : requestMessage;
+  const visibleRequestError = requestError
+    || activeJobError?.message
+    || activeJob?.errorMessage
+    || '';
+  const jobFailed = activeJob?.status === 'FAILED' || activeJob?.status === 'DEAD_LETTER';
 
   return (
     <section className="overflow-hidden rounded-2xl border border-sky-500/20 bg-zinc-900/50">
@@ -191,7 +275,7 @@ export function BackupVerificationPanel() {
         <button
           type="button"
           onClick={requestVerification}
-          disabled={requesting}
+          disabled={requesting || jobActive}
           className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
         >
           {requesting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
@@ -217,16 +301,28 @@ export function BackupVerificationPanel() {
         ) : null}
         {data?.scheduled ? <ScheduledBackupEvidence status={data.scheduled} /> : null}
         {data?.status ? <RecoveryEvidence status={data.status} /> : null}
-        {requestMessage ? (
-          <output className="flex items-center gap-2 text-sm text-emerald-400">
-            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-            {requestMessage}
+        {visibleRequestMessage ? (
+          <output className={`flex items-center gap-2 text-sm ${jobFailed ? 'text-red-300' : 'text-emerald-400'}`}>
+            {jobFailed
+              ? <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
+            {visibleRequestMessage}
           </output>
         ) : null}
-        {requestError ? (
+        {jobActive && activeJob ? (
+          <button
+            type="button"
+            onClick={cancelVerification}
+            disabled={cancelling || activeJob.status === 'CANCEL_REQUESTED'}
+            className="min-h-10 rounded-lg border border-sky-300/30 px-3 text-sm font-medium text-sky-200 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel backup verification'}
+          </button>
+        ) : null}
+        {visibleRequestError ? (
           <div role="alert" className="flex items-start gap-2 text-sm text-red-300">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {requestError}
+            {visibleRequestError}
           </div>
         ) : null}
         <div className="flex items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs leading-5 text-zinc-500">
