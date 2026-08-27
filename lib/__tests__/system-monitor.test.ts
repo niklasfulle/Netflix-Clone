@@ -83,6 +83,11 @@ describe("system monitor status evaluation", () => {
       snapshot(),
       { status: "ok", latencyMs: 20 },
       now,
+      undefined,
+      {
+        worker: { status: "healthy", state: "ACTIVE", heartbeatAgeMs: 5_000 },
+        queue: { depth: 0, oldestQueuedAgeMs: null },
+      },
     );
 
     expect(overview.status).toBe("healthy");

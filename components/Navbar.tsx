@@ -113,6 +113,7 @@ const Navbar = () => {
                   alt="Profile"
                   width={320}
                   height={320}
+                  loading="eager"
                 />
               </div>
               <FaChevronDown

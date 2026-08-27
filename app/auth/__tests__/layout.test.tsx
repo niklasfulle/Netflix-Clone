@@ -16,6 +16,9 @@ describe('AuthLayout', () => {
     expect(source).toContain('width={256}');
     expect(source).toContain('height={78}');
     expect(source).toMatch(/<Image[\s\S]*?priority[\s\S]*?\/>/);
+    expect(source).toMatch(
+      /src="\/images\/hero\.jpg"[\s\S]*?loading="eager"[\s\S]*?\/>/
+    );
   });
 
   it('provides language switching, a skip link, and the desktop showcase', () => {

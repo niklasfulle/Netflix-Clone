@@ -7,9 +7,9 @@ jest.mock("@/hooks/series/useBillboradSeries");
 
 // Mock BillboardBase component
 jest.mock("@/components/BillboardBase", () => {
-  return function MockBillboardBase({ data, isLoading }: any) {
+  return function MockBillboardBase({ data, isLoading, priority }: any) {
     return (
-      <div data-testid="billboard-base">
+      <div data-testid="billboard-base" data-priority={String(Boolean(priority))}>
         <span>Data ID: {data?.id || "none"}</span>
         <span>Loading: {String(isLoading)}</span>
       </div>
@@ -45,6 +45,12 @@ describe("BillboardSeries", () => {
   });
 
   describe("Basic Rendering", () => {
+    it("prioritizes the above-the-fold billboard poster", () => {
+      render(<BillboardSeries />);
+
+      expect(screen.getByTestId("billboard-base")).toHaveAttribute("data-priority", "true");
+    });
+
     it("renders without crashing", () => {
       const { container } = render(<BillboardSeries />);
       expect(container).toBeTruthy();

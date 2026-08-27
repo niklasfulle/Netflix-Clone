@@ -29,8 +29,13 @@ const WatchList: React.FC<WatchListProps> = ({ title }) => {
           {title}
         </p>
         <div className="grid grid-cols-2 gap-4 mt-4 lg:grid-cols-4 md:gap-4">
-          {watchlist.map((movie) => (
-            <MovieCard key={movie.id} data={movie} isLoading={loading} />
+          {watchlist.map((movie, index) => (
+            <MovieCard
+              key={movie.id}
+              data={movie}
+              isLoading={loading}
+              eager={index === 0}
+            />
           ))}
         </div>
       </div>

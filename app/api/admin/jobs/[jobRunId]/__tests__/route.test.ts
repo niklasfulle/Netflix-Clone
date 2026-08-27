@@ -6,16 +6,18 @@ jest.mock('@/lib/admin-mutation-audit', () => ({
 }));
 jest.mock('@/lib/jobs/runtime', () => ({
   backgroundJobControl: { get: jest.fn(), cancel: jest.fn() },
+  backgroundJobRetry: { retry: jest.fn() },
 }));
 
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 import { currentUser } from '@/lib/auth';
-import { backgroundJobControl } from '@/lib/jobs/runtime';
-import { DELETE, GET } from '../route';
+import { backgroundJobControl, backgroundJobRetry } from '@/lib/jobs/runtime';
+import { DELETE, GET, POST } from '../route';
 
 const mockedCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 const mockedGet = backgroundJobControl.get as jest.MockedFunction<typeof backgroundJobControl.get>;
 const mockedCancel = backgroundJobControl.cancel as jest.MockedFunction<typeof backgroundJobControl.cancel>;
+const mockedRetry = backgroundJobRetry.retry as jest.MockedFunction<typeof backgroundJobRetry.retry>;
 const mockedBeginAudit = adminMutationAudit.begin as jest.MockedFunction<typeof adminMutationAudit.begin>;
 
 const context = { params: Promise.resolve({ jobRunId: 'job-run-123' }) };
@@ -82,5 +84,27 @@ it('requests cancellation and records the administrator mutation', async () => {
   expect(audit.succeeded).toHaveBeenCalledWith({
     target: { type: 'background_job', id: 'job-run-123' },
     metadata: { status: 'CANCEL_REQUESTED' },
+  });
+});
+
+it('retries failed work and records an idempotent administrator mutation', async () => {
+  const audit = auditAttempt();
+  mockedBeginAudit.mockReturnValue(audit);
+  mockedRetry.mockResolvedValue({
+    id: 'job-run-123',
+    queueJobId: 'new-queue-job-id',
+    status: 'QUEUED',
+    duplicate: false,
+  } as Awaited<ReturnType<typeof backgroundJobRetry.retry>>);
+
+  const response = await POST(new Request('http://localhost/api/admin/jobs/job-run-123', {
+    method: 'POST',
+  }), context);
+
+  expect(response.status).toBe(202);
+  expect(await response.json()).toMatchObject({ status: 'QUEUED', duplicate: false });
+  expect(audit.succeeded).toHaveBeenCalledWith({
+    target: { type: 'background_job', id: 'job-run-123' },
+    metadata: { status: 'QUEUED', duplicate: false },
   });
 });

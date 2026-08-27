@@ -47,7 +47,7 @@ export type JobSubmissionDatabase = {
   $transaction<T>(callback: (transaction: JobTransaction) => Promise<T>): Promise<T>;
 };
 
-type QueueSendOptions = {
+export type QueueSendOptions = {
   id: string;
   retryLimit: number;
   retryDelay: number;
@@ -116,14 +116,41 @@ function acceptance(record: JobRunRecord, duplicate: boolean): JobAcceptance {
   };
 }
 
-function deadLetterName(submission: JobSubmission): string {
-  if (submission.name === JOB_NAMES.backupVerification) {
+function deadLetterName(jobName: JobSubmission['name']): string {
+  if (jobName === JOB_NAMES.backupVerification) {
     return JOB_NAMES.backupVerificationDeadLetter;
   }
-  if (submission.name === JOB_NAMES.backupRetentionCleanup) {
+  if (jobName === JOB_NAMES.backupRetentionCleanup) {
     return JOB_NAMES.backupRetentionCleanupDeadLetter;
   }
   return JOB_NAMES.mediaIntegrityScanDeadLetter;
+}
+
+export function jobQueueOptions({
+  jobName,
+  queueJobId,
+  singletonKey,
+  database,
+}: {
+  jobName: JobSubmission['name'];
+  queueJobId: string;
+  singletonKey: string;
+  database: QueueSendOptions['db'];
+}): QueueSendOptions {
+  return {
+    id: queueJobId,
+    retryLimit: 3,
+    retryDelay: 5,
+    retryBackoff: true,
+    retryDelayMax: 60,
+    expireInSeconds: 15 * 60,
+    retentionSeconds: 24 * 60 * 60,
+    deleteAfterSeconds: 7 * 24 * 60 * 60,
+    heartbeatSeconds: 30,
+    singletonKey,
+    deadLetter: deadLetterName(jobName),
+    db: database,
+  };
 }
 
 export function createJobSubmissionService({
@@ -166,25 +193,21 @@ export function createJobSubmissionService({
             jobRunId: record.id,
             acceptedAt: acceptedAt.toISOString(),
           };
-          const publishedId = await publisher.send(submission.name, envelope, {
-            id: queueJobId,
-            retryLimit: 3,
-            retryDelay: 5,
-            retryBackoff: true,
-            retryDelayMax: 60,
-            expireInSeconds: 15 * 60,
-            retentionSeconds: 24 * 60 * 60,
-            deleteAfterSeconds: 7 * 24 * 60 * 60,
-            heartbeatSeconds: 30,
-            singletonKey: submission.idempotencyKey,
-            deadLetter: deadLetterName(submission),
-            db: {
+          const publishedId = await publisher.send(
+            submission.name,
+            envelope,
+            jobQueueOptions({
+              jobName: submission.name,
+              queueJobId,
+              singletonKey: submission.idempotencyKey,
+              database: {
               async executeSql(text, values = []) {
                 const rows = await transaction.$queryRawUnsafe<unknown[]>(text, ...values);
                 return { rows };
               },
-            },
-          });
+              },
+            }),
+          );
           if (publishedId !== queueJobId) throw new Error('Queue rejected the accepted job');
           return acceptance(record, false);
         });

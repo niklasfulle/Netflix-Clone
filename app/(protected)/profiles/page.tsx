@@ -135,6 +135,7 @@ const ProfilesPage = () => {
                           alt={profil.name ?? t('Profile')}
                           width={320}
                           height={320}
+                          loading="eager"
                         />
                       </button>
                       <div className="flex flex-row items-center justify-center gap-4">
@@ -230,6 +231,7 @@ const ProfilesPage = () => {
                           alt=""
                           width={320}
                           height={320}
+                          loading="eager"
                         />
                         <FaPen
                           className="absolute z-10 transition-all ease-in right-2 top-2"
@@ -303,6 +305,7 @@ const ProfilesPage = () => {
                           alt=""
                           width={320}
                           height={320}
+                          loading="eager"
                         />
                         <FaPen
                           className="absolute z-10 transition-all ease-in right-2 top-2 "

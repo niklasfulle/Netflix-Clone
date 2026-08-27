@@ -27,8 +27,13 @@ const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading }) => {
               className="col-span-2 h-48 animate-pulse rounded-lg bg-zinc-900 lg:col-span-4"
             />
           ) : (
-            data.map((movie) => (
-              <MovieCard key={movie.id} data={movie} isLoading={isLoading} />
+            data.map((movie, index) => (
+              <MovieCard
+                key={movie.id}
+                data={movie}
+                isLoading={isLoading}
+                eager={index < 4}
+              />
             ))
           )}
         </div>

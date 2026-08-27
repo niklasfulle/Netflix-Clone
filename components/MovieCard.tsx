@@ -11,6 +11,7 @@ import type { CatalogCardDto } from "@/lib/catalog";
 interface MovieCardProps {
   data: CatalogCardDto;
   isLoading?: boolean;
+  eager?: boolean;
 }
 
 function calculateBarWidth(duration: string, watchTime: number): number {
@@ -27,7 +28,7 @@ function calculateBarWidth(duration: string, watchTime: number): number {
   return Math.floor(watchTime / (sec! / 100));
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false }) => {
+const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = false }) => {
   const barWidth: string =
     calculateBarWidth(data.duration ?? "0", data.watchTime ?? 0) + "%";
   const { openModal } = useInfoModal();
@@ -135,6 +136,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false }) => {
               width={1920}
               height={1080}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              loading={eager ? 'eager' : 'lazy'}
             />
           )}
         </button>
@@ -164,6 +166,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false }) => {
             width={1920}
             height={1080}
             sizes="(max-width: 1024px) 50vw, 20vw"
+            loading="lazy"
           />
         </button>
         <div className="absolute z-10 w-full p-2 transition shadow-md max-h-52 lg:h-auto bg-zinc-800 lg:p-4 rounded-b-md">

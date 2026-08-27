@@ -123,14 +123,25 @@ export async function selectFirstProfile(page: Page) {
   await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
 }
 
-export function createBrowserFailureMonitor(page: Page) {
+interface BrowserFailureMonitorOptions {
+  allowedApiFailures?: Readonly<Record<string, readonly number[]>>;
+}
+
+export function createBrowserFailureMonitor(
+  page: Page,
+  options: BrowserFailureMonitorOptions = {},
+) {
   const consoleErrors: string[] = [];
   const failedApiResponses: string[] = [];
+  const allowedApiFailures = options.allowedApiFailures ?? {};
 
   page.on('console', (message) => {
     if (message.type() === 'error') {
       const location = message.location().url;
-      consoleErrors.push(`${message.text()}${location ? ` (${location})` : ''}`);
+      const pathname = location ? new URL(location).pathname : '';
+      if (!(pathname in allowedApiFailures)) {
+        consoleErrors.push(`${message.text()}${location ? ` (${location})` : ''}`);
+      }
     }
   });
   page.on('pageerror', (error) => {
@@ -139,7 +150,10 @@ export function createBrowserFailureMonitor(page: Page) {
   page.on('response', (response) => {
     const url = new URL(response.url());
     if (url.pathname.startsWith('/api/') && response.status() >= 400) {
-      failedApiResponses.push(`${response.status()} ${url.pathname}`);
+      const allowedStatuses = allowedApiFailures[url.pathname] ?? [];
+      if (!allowedStatuses.includes(response.status())) {
+        failedApiResponses.push(`${response.status()} ${url.pathname}`);
+      }
     }
   });
 

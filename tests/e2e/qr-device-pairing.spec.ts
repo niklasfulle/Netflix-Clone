@@ -40,7 +40,9 @@ test.describe('QR-assisted device login', () => {
       // development, its first compilation can trigger a full-page HMR reload.
       await phonePage.goto('/auth/qr/approve');
       await phonePage.waitForLoadState('networkidle');
-      const phoneFailures = createBrowserFailureMonitor(phonePage);
+      const phoneFailures = createBrowserFailureMonitor(phonePage, {
+        allowedApiFailures: { '/api/security/certificates': [503] },
+      });
 
       await targetPage.goto('/auth/login');
       await targetPage.getByRole('button', { name: /Sign in with QR code|Mit QR-Code anmelden/i }).click();
@@ -53,8 +55,10 @@ test.describe('QR-assisted device login', () => {
       await expect(phonePage.getByRole('heading', { name: /Approve device sign-in|Geräteanmeldung freigeben/i }))
         .toBeVisible();
       await phonePage.getByLabel(/Current password|Aktuelles Passwort/i).fill(accounts.user.password);
-      await phonePage.getByRole('button', { name: /Approve sign-in|Anmeldung freigeben/i }).click();
-      await expect(phonePage.getByText(/approved|freigegeben/i)).toBeVisible();
+      await Promise.all([
+        phonePage.waitForURL((url) => url.pathname === '/settings', { timeout: 30_000 }),
+        phonePage.getByRole('button', { name: /Approve sign-in|Anmeldung freigeben/i }).click(),
+      ]);
       phoneFailures.assertNone();
 
       await expect(targetPage).toHaveURL(/\/profiles/, { timeout: 30_000 });

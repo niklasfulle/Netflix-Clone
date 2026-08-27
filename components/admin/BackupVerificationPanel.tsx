@@ -80,6 +80,29 @@ function jobMessage(job: JobStatusDto): string {
   return `${job.progressMessage || 'Backup verification in progress'} · ${job.progress}%`;
 }
 
+function jobStatusUrl(jobRunId: string | null) {
+  return jobRunId ? `/api/admin/jobs/${encodeURIComponent(jobRunId)}` : null;
+}
+
+function jobPollingInterval(latest: JobStatusDto | undefined) {
+  return latest && !terminalJobStatuses.has(latest.status) ? 2_000 : 0;
+}
+
+function verificationPollingInterval(latest: {
+  status: BackupVerificationStatus | null;
+} | undefined) {
+  const state = latest?.status?.status;
+  return state === 'PENDING' || state === 'RUNNING' ? 3_000 : 0;
+}
+
+function isActiveJob(jobRunId: string | null, job: JobStatusDto | undefined) {
+  return Boolean(jobRunId && (!job || !terminalJobStatuses.has(job.status)));
+}
+
+function isFailedJob(job: JobStatusDto | undefined) {
+  return job?.status === 'FAILED' || job?.status === 'DEAD_LETTER';
+}
+
 function ScheduledBackupEvidence({ status }: Readonly<{ status: ScheduledBackupStatus }>) {
   const labels = { RUNNING: 'Running', VERIFIED: 'Verified', FAILED: 'Failed' } as const;
   const healthy = status.status === 'VERIFIED';
@@ -173,12 +196,94 @@ function RecoveryEvidence({ status }: Readonly<{ status: BackupVerificationStatu
   );
 }
 
+type VerificationStatusContentProps = Readonly<{
+  errorMessage: string;
+  isLoading: boolean;
+  scheduled: ScheduledBackupStatus | null | undefined;
+  status: BackupVerificationStatus | null | undefined;
+}>;
+
+function VerificationStatusContent({
+  errorMessage,
+  isLoading,
+  scheduled,
+  status,
+}: VerificationStatusContentProps) {
+  return (
+    <>
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-zinc-400">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Loading verification status…
+        </div>
+      ) : null}
+      {errorMessage ? (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          {errorMessage}
+        </div>
+      ) : null}
+      {!isLoading && !errorMessage && !status ? (
+        <p className="text-sm text-zinc-500">No verification result is available yet.</p>
+      ) : null}
+      {scheduled ? <ScheduledBackupEvidence status={scheduled} /> : null}
+      {status ? <RecoveryEvidence status={status} /> : null}
+    </>
+  );
+}
+
+type VerificationJobFeedbackProps = Readonly<{
+  active: boolean;
+  cancelling: boolean;
+  error: string;
+  failed: boolean;
+  job: JobStatusDto | undefined;
+  message: string;
+  onCancel: () => void;
+}>;
+
+function VerificationJobFeedback({
+  active,
+  cancelling,
+  error,
+  failed,
+  job,
+  message,
+  onCancel,
+}: VerificationJobFeedbackProps) {
+  return (
+    <>
+      {message ? (
+        <output className={`flex items-center gap-2 text-sm ${failed ? 'text-red-300' : 'text-emerald-400'}`}>
+          {failed
+            ? <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
+          {message}
+        </output>
+      ) : null}
+      {active && job ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={cancelling || job.status === 'CANCEL_REQUESTED'}
+          className="min-h-10 rounded-lg border border-sky-300/30 px-3 text-sm font-medium text-sky-200 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cancelling ? 'Cancelling…' : 'Cancel backup verification'}
+        </button>
+      ) : null}
+      {error ? (
+        <div role="alert" className="flex items-start gap-2 text-sm text-red-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function BackupVerificationPanel() {
   const { data, error, isLoading, mutate } = useSWR(endpoint, verificationFetcher, {
-    refreshInterval: (latest) => {
-      const state = latest?.status?.status;
-      return state === 'PENDING' || state === 'RUNNING' ? 3_000 : 0;
-    },
+    refreshInterval: verificationPollingInterval,
     revalidateOnFocus: true,
   });
   const [requesting, setRequesting] = useState(false);
@@ -197,15 +302,11 @@ export function BackupVerificationPanel() {
     error: activeJobError,
     mutate: mutateActiveJob,
   } = useSWR<JobStatusDto>(
-    activeJobId ? `/api/admin/jobs/${encodeURIComponent(activeJobId)}` : null,
+    jobStatusUrl(activeJobId),
     jobStatusFetcher,
-    {
-      refreshInterval: latest => latest && !terminalJobStatuses.has(latest.status) ? 2_000 : 0,
-    },
+    { refreshInterval: jobPollingInterval },
   );
-  const jobActive = Boolean(
-    activeJobId && (!activeJob || !terminalJobStatuses.has(activeJob.status)),
-  );
+  const jobActive = isActiveJob(activeJobId, activeJob);
 
   const requestVerification = async () => {
     setRequesting(true);
@@ -214,7 +315,7 @@ export function BackupVerificationPanel() {
     try {
       const accepted = await responseJson(await fetch(endpoint, { method: 'POST' }));
       if (typeof accepted?.jobRunId !== 'string') {
-        throw new Error('Backup verification job was not accepted.');
+        throw new TypeError('Backup verification job was not accepted.');
       }
       globalThis.sessionStorage.setItem(activeJobStorageKey, accepted.jobRunId);
       setActiveJobId(accepted.jobRunId);
@@ -256,7 +357,7 @@ export function BackupVerificationPanel() {
     || activeJobError?.message
     || activeJob?.errorMessage
     || '';
-  const jobFailed = activeJob?.status === 'FAILED' || activeJob?.status === 'DEAD_LETTER';
+  const jobFailed = isFailedJob(activeJob);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-sky-500/20 bg-zinc-900/50">
@@ -284,47 +385,21 @@ export function BackupVerificationPanel() {
       </div>
 
       <div className="space-y-4 p-5 sm:p-6">
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            Loading verification status…
-          </div>
-        ) : null}
-        {error ? (
-          <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {error.message}
-          </div>
-        ) : null}
-        {!isLoading && !error && !data?.status ? (
-          <p className="text-sm text-zinc-500">No verification result is available yet.</p>
-        ) : null}
-        {data?.scheduled ? <ScheduledBackupEvidence status={data.scheduled} /> : null}
-        {data?.status ? <RecoveryEvidence status={data.status} /> : null}
-        {visibleRequestMessage ? (
-          <output className={`flex items-center gap-2 text-sm ${jobFailed ? 'text-red-300' : 'text-emerald-400'}`}>
-            {jobFailed
-              ? <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-              : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-            {visibleRequestMessage}
-          </output>
-        ) : null}
-        {jobActive && activeJob ? (
-          <button
-            type="button"
-            onClick={cancelVerification}
-            disabled={cancelling || activeJob.status === 'CANCEL_REQUESTED'}
-            className="min-h-10 rounded-lg border border-sky-300/30 px-3 text-sm font-medium text-sky-200 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {cancelling ? 'Cancelling…' : 'Cancel backup verification'}
-          </button>
-        ) : null}
-        {visibleRequestError ? (
-          <div role="alert" className="flex items-start gap-2 text-sm text-red-300">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            {visibleRequestError}
-          </div>
-        ) : null}
+        <VerificationStatusContent
+          errorMessage={error?.message || ''}
+          isLoading={isLoading}
+          scheduled={data?.scheduled}
+          status={data?.status}
+        />
+        <VerificationJobFeedback
+          active={jobActive}
+          cancelling={cancelling}
+          error={visibleRequestError}
+          failed={jobFailed}
+          job={activeJob}
+          message={visibleRequestMessage}
+          onCancel={cancelVerification}
+        />
         <div className="flex items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs leading-5 text-zinc-500">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" aria-hidden="true" />
           The application receives only bounded verification metadata. Database URLs, credentials, raw PostgreSQL output, and backup contents remain on the host.

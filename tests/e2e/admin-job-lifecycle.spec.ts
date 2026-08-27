@@ -53,9 +53,9 @@ test.describe('administrator background-job lifecycle', () => {
     await page.goto('/admin/backups');
     await page.getByRole('button', { name: 'Run Backup Retention Cleanup' }).click();
 
-    await expect(page.getByRole('status')).toContainText('Removing expired backups · 40%');
+    await expect(page.getByText('Removing expired backups · 40%', { exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('status')).toContainText('Retention cleanup completed.');
+    await expect(page.getByText('Retention cleanup completed.', { exact: true })).toBeVisible();
   });
 
   test('allows an administrator to cancel an active retention job', async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe('administrator background-job lifecycle', () => {
     await expect(page.getByRole('button', { name: 'Cancel retention cleanup' })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel retention cleanup' }).click();
 
-    await expect(page.getByRole('status')).toContainText('Retention cleanup cancelled.');
+    await expect(page.getByText('Retention cleanup cancelled.', { exact: true })).toBeVisible();
   });
 
   test('reports a worker outage and permits a successful retry', async ({ page }) => {
@@ -121,9 +121,9 @@ test.describe('administrator background-job lifecycle', () => {
     await page.goto('/admin/backups');
     const runButton = page.getByRole('button', { name: 'Run Backup Retention Cleanup' });
     await runButton.click();
-    await expect(page.getByRole('alert')).toContainText('Background worker is unavailable.');
+    await expect(page.getByText('Background worker is unavailable.', { exact: true })).toBeVisible();
 
     await runButton.click();
-    await expect(page.getByRole('status')).toContainText('Retention cleanup completed.');
+    await expect(page.getByText('Retention cleanup completed.', { exact: true })).toBeVisible();
   });
 });

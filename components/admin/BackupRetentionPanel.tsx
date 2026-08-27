@@ -46,6 +46,73 @@ function jobMessage(job: JobStatusDto): string {
   return `${job.progressMessage || 'Retention cleanup in progress'} · ${job.progress}%`;
 }
 
+function jobStatusUrl(jobRunId: string | null) {
+  return jobRunId ? `/api/admin/jobs/${encodeURIComponent(jobRunId)}` : null;
+}
+
+function pollingInterval(latest: JobStatusDto | undefined) {
+  return latest && !terminalStatuses.has(latest.status) ? 2_000 : 0;
+}
+
+function isActiveJob(jobRunId: string | null, job: JobStatusDto | undefined) {
+  return Boolean(jobRunId && (!job || !terminalStatuses.has(job.status)));
+}
+
+function isFailedJob(job: JobStatusDto | undefined) {
+  return job?.status === 'FAILED' || job?.status === 'DEAD_LETTER';
+}
+
+type RetentionJobFeedbackProps = Readonly<{
+  active: boolean;
+  cancelling: boolean;
+  error: string;
+  failed: boolean;
+  job: JobStatusDto | undefined;
+  message: string;
+  onCancel: () => void;
+}>;
+
+function RetentionJobFeedback({
+  active,
+  cancelling,
+  error,
+  failed,
+  job,
+  message,
+  onCancel,
+}: RetentionJobFeedbackProps) {
+  if (!message && !error) return null;
+
+  return (
+    <div className="border-t border-zinc-800 px-5 py-4 sm:px-6">
+      {message ? (
+        <output className={`flex items-start gap-2 text-sm ${failed ? 'text-red-300' : 'text-emerald-400'}`}>
+          {failed
+            ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+          {message}
+        </output>
+      ) : null}
+      {active && job ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={cancelling || job.status === 'CANCEL_REQUESTED'}
+          className="mt-3 min-h-10 rounded-lg border border-amber-300/30 px-3 text-sm font-medium text-amber-200 hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cancelling ? 'Cancelling…' : 'Cancel retention cleanup'}
+        </button>
+      ) : null}
+      {error ? (
+        <div role="alert" className="flex items-start gap-2 text-sm text-red-300">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function BackupRetentionPanel() {
   const [requesting, setRequesting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -63,13 +130,11 @@ export function BackupRetentionPanel() {
     error: activeJobError,
     mutate: mutateActiveJob,
   } = useSWR<JobStatusDto>(
-    activeJobId ? `/api/admin/jobs/${encodeURIComponent(activeJobId)}` : null,
+    jobStatusUrl(activeJobId),
     jobStatusFetcher,
-    {
-      refreshInterval: latest => latest && !terminalStatuses.has(latest.status) ? 2_000 : 0,
-    },
+    { refreshInterval: pollingInterval },
   );
-  const active = Boolean(activeJobId && (!activeJob || !terminalStatuses.has(activeJob.status)));
+  const active = isActiveJob(activeJobId, activeJob);
 
   const requestCleanup = async () => {
     setRequesting(true);
@@ -82,7 +147,7 @@ export function BackupRetentionPanel() {
         headers: { 'idempotency-key': idempotencyKey },
       }));
       if (typeof accepted?.jobRunId !== 'string') {
-        throw new Error('Retention cleanup job was not accepted.');
+        throw new TypeError('Retention cleanup job was not accepted.');
       }
       globalThis.sessionStorage.setItem(activeJobStorageKey, accepted.jobRunId);
       setActiveJobId(accepted.jobRunId);
@@ -118,7 +183,7 @@ export function BackupRetentionPanel() {
 
   const visibleError = error || activeJobError?.message || activeJob?.errorMessage || '';
   const visibleMessage = activeJob ? jobMessage(activeJob) : message;
-  const jobFailed = activeJob?.status === 'FAILED' || activeJob?.status === 'DEAD_LETTER';
+  const jobFailed = isFailedJob(activeJob);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-amber-500/20 bg-zinc-900/50">
@@ -144,34 +209,15 @@ export function BackupRetentionPanel() {
           Run Backup Retention Cleanup
         </button>
       </div>
-      {visibleMessage || visibleError ? (
-        <div className="border-t border-zinc-800 px-5 py-4 sm:px-6">
-          {visibleMessage ? (
-            <output className={`flex items-start gap-2 text-sm ${jobFailed ? 'text-red-300' : 'text-emerald-400'}`}>
-              {jobFailed
-                ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-              {visibleMessage}
-            </output>
-          ) : null}
-          {active && activeJob ? (
-            <button
-              type="button"
-              onClick={cancelCleanup}
-              disabled={cancelling || activeJob.status === 'CANCEL_REQUESTED'}
-              className="mt-3 min-h-10 rounded-lg border border-amber-300/30 px-3 text-sm font-medium text-amber-200 hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {cancelling ? 'Cancelling…' : 'Cancel retention cleanup'}
-            </button>
-          ) : null}
-          {visibleError ? (
-            <div role="alert" className="flex items-start gap-2 text-sm text-red-300">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              {visibleError}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <RetentionJobFeedback
+        active={active}
+        cancelling={cancelling}
+        error={visibleError}
+        failed={jobFailed}
+        job={activeJob}
+        message={visibleMessage}
+        onCancel={cancelCleanup}
+      />
     </section>
   );
 }

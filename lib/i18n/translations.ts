@@ -554,6 +554,8 @@ export const germanTranslations = {
   'System': 'System',
   'System Logs': 'System-Logs',
   'Audit Log': 'Audit-Protokoll',
+  'Job Operations': 'Hintergrundaufträge',
+  'Retried background job': 'Hintergrundauftrag erneut gestartet',
   'Media Health': 'Medienzustand',
   'Inspect catalog media without modifying files or records.': 'Katalogmedien prüfen, ohne Dateien oder Datensätze zu verändern.',
   'Scanner available': 'Scanner verfügbar',

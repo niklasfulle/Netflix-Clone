@@ -81,7 +81,7 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
           height={1080}
           width={1920}
           alt="Thumbnail"
-          priority={priority}
+          loading={priority ? 'eager' : 'lazy'}
         />
       )}
       {!isLoading && !showVideo && !showPoster && (

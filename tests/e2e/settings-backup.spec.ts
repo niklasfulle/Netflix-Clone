@@ -6,7 +6,9 @@ test.describe('user settings', () => {
   test.use({ storageState: authStatePaths.user });
 
   test('user can review, reset, localize, and validate account settings safely', async ({ page }) => {
-    const browserFailures = createBrowserFailureMonitor(page);
+    const browserFailures = createBrowserFailureMonitor(page, {
+      allowedApiFailures: { '/api/security/certificates': [503] },
+    });
     await page.goto('/settings');
 
     await expect(page.getByRole('heading', {

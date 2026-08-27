@@ -6,7 +6,7 @@ import { LanguageProvider } from '@/components/providers/LanguageProvider';
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => (
+  default: ({ priority: _priority, ...props }: any) => (
     <img
       {...props}
       src={props.src}
@@ -337,6 +337,13 @@ describe('Navbar Component', () => {
       render(<Navbar />);
       const profileImage = screen.getByTestId('image-Profile') as HTMLImageElement;
       expect(profileImage.src).toContain('placeholder.png');
+    });
+
+    test('loads the above-the-fold profile placeholder eagerly', () => {
+      mockUseCurrentProfil.mockReturnValue({ data: undefined } as any);
+      render(<Navbar />);
+
+      expect(screen.getByTestId('image-Profile')).toHaveAttribute('loading', 'eager');
     });
 
     test('should toggle account menu on click', () => {

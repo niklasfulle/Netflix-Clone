@@ -17,6 +17,7 @@ export const ADMIN_AUDIT_ACTIONS = [
   'backup.cleanup',
   'media.scan',
   'job.cancel',
+  'job.retry',
   'deployment.manage',
   'security.settings_change',
 ] as const;
@@ -114,6 +115,7 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'backup.cleanup': new Set(['environment']),
   'media.scan': new Set(['scope', 'itemCount']),
   'job.cancel': new Set(['status']),
+  'job.retry': new Set(['status', 'duplicate']),
   'deployment.manage': new Set(['environment', 'version', 'operation']),
   'security.settings_change': new Set(['changedFields']),
 };

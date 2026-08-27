@@ -4,14 +4,14 @@ import '@testing-library/jest-dom';
 // Mock next/image before importing component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ src, alt, width, height, className, priority }: any) => (
+  default: ({ src, alt, width, height, className, loading }: any) => (
     <img
       src={src}
       alt={alt}
       width={width}
       height={height}
       className={className}
-      data-priority={priority}
+      data-loading={loading}
       data-testid="next-image"
     />
   ),
@@ -363,30 +363,26 @@ describe('BillboardBase', () => {
       expect(notLoadingContainer.querySelector('svg')).not.toBeInTheDocument();
     });
 
-    it('should accept priority prop', () => {
+    it('should translate the priority prop to eager image loading', () => {
       Object.defineProperty(globalThis.window, 'innerWidth', {
         writable: true,
         configurable: true,
         value: 375,
       });
       render(<BillboardBase data={mockData} isLoading={false} priority={true} />);
-      waitFor(() => {
-        const image = screen.getByTestId('next-image');
-        expect(image).toHaveAttribute('data-priority', 'true');
-      });
+
+      expect(screen.getByTestId('next-image')).toHaveAttribute('data-loading', 'eager');
     });
 
-    it('should handle missing priority prop', () => {
+    it('should lazily load the image when the priority prop is missing', () => {
       Object.defineProperty(globalThis.window, 'innerWidth', {
         writable: true,
         configurable: true,
         value: 375,
       });
       render(<BillboardBase data={mockData} isLoading={false} />);
-      waitFor(() => {
-        const image = screen.getByTestId('next-image');
-        expect(image).toHaveAttribute('data-priority');
-      });
+
+      expect(screen.getByTestId('next-image')).toHaveAttribute('data-loading', 'lazy');
     });
   });
 

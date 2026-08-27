@@ -8,9 +8,9 @@ jest.mock("@/hooks/useWatchlist");
 
 // Mock MovieCard component
 jest.mock("@/components/MovieCard", () => {
-  return function MockMovieCard({ data, isLoading }: any) {
+  return function MockMovieCard({ data, isLoading, eager }: any) {
     return (
-      <div data-testid={`movie-card-${data.id}`}>
+      <div data-testid={`movie-card-${data.id}`} data-eager={String(Boolean(eager))}>
         <span>Movie: {data.title}</span>
         <span>Loading: {isLoading ? "true" : "false"}</span>
       </div>
@@ -262,6 +262,22 @@ describe("WatchList Component", () => {
       expect(screen.getByTestId("movie-card-1")).toBeInTheDocument();
       expect(screen.getByTestId("movie-card-2")).toBeInTheDocument();
       expect(screen.getByTestId("movie-card-3")).toBeInTheDocument();
+    });
+
+    it("should load only the first above-the-fold card eagerly", () => {
+      mockUseWatchlist.mockReturnValue({
+        watchlist: [
+          { id: "1", title: "Movie 1" },
+          { id: "2", title: "Movie 2" },
+        ],
+        loading: false,
+        error: null,
+      });
+
+      render(<WatchList title="My Watchlist" />);
+
+      expect(screen.getByTestId("movie-card-1")).toHaveAttribute("data-eager", "true");
+      expect(screen.getByTestId("movie-card-2")).toHaveAttribute("data-eager", "false");
     });
 
     it("should pass correct data prop to MovieCard", () => {

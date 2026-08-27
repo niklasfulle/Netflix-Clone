@@ -87,6 +87,14 @@ describe("MovieCard", () => {
     });
   });
 
+  it("loads the primary thumbnail eagerly when the card is above the fold", () => {
+    const { container } = render(<MovieCard data={movie} eager />);
+
+    const images = container.querySelectorAll("img");
+    expect(images[0]).toHaveAttribute("loading", "eager");
+    expect(images[1]).toHaveAttribute("loading", "lazy");
+  });
+
   it("navigates to an actor without opening the movie dialog", () => {
     render(<MovieCard data={movie} />);
 

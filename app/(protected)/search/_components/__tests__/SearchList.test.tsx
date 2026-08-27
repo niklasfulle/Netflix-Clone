@@ -9,9 +9,9 @@ jest.mock("lodash", () => ({
 
 // Mock MovieCard
 jest.mock("@/components/MovieCard", () => {
-  return function MockMovieCard({ data, isLoading }: any) {
+  return function MockMovieCard({ data, isLoading, eager }: any) {
     return (
-      <div data-testid={`movie-card-${data.id}`}>
+      <div data-testid={`movie-card-${data.id}`} data-eager={String(Boolean(eager))}>
         <span>Movie: {data.title}</span>
         <span>Loading: {isLoading.toString()}</span>
       </div>
@@ -241,6 +241,20 @@ describe("SearchList", () => {
 
       const loadingElements = screen.getAllByText("Loading: false");
       expect(loadingElements).toHaveLength(2);
+    });
+
+    it("loads only the first above-the-fold card eagerly", () => {
+      render(
+        <SearchList
+          data={mockMovies}
+          title="Search Results for"
+          isLoading={false}
+          searchItem="action"
+        />
+      );
+
+      expect(screen.getByTestId("movie-card-1")).toHaveAttribute("data-eager", "true");
+      expect(screen.getByTestId("movie-card-2")).toHaveAttribute("data-eager", "false");
     });
 
     it("uses movie id as key for MovieCard", () => {

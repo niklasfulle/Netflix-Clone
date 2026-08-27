@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from 'next/navigation';
-import React, { ChangeEvent, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { FaSearch } from 'react-icons/fa';
 
 const SearchItem = () => {
@@ -12,21 +12,23 @@ const SearchItem = () => {
     setValue(target.value);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      if (value != "") router.push(`/search/${value}`);
-    }
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = value.trim();
+    if (query) router.push(`/search/${encodeURIComponent(query)}`);
   };
 
   return (
-    <div className="relative flex flex-row w-full text-gray-600">
+    <form
+      className="relative flex flex-row w-full text-gray-600"
+      onSubmit={submitSearch}
+    >
       <input
         type="search"
         name="search"
         placeholder={"Search"}
         className="opacity-100 cursor-text w-full h-10 px-5 pr-10 text-sm bg-[transparent] rounded-full border-2 border-white focus:outline-none text-white placeholder:text-neutral-300"
         onChange={(event) => searchHandler(event)}
-        onKeyDown={handleKeyDown}
         value={value}
       />
       <button
@@ -37,12 +39,9 @@ const SearchItem = () => {
         <FaSearch
           size={18}
           className="text-white"
-          onClick={() => {
-            if (value != "") router?.push(`/search/${value}`);
-          }}
         />
       </button>
-    </div>
+    </form>
   );
 };
 

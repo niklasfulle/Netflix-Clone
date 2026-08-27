@@ -27,7 +27,10 @@ async function navigateFromCatalogMenu(
     visibleLink = await findVisibleLink();
   }
   await expect(visibleLink, `No visible catalog link matched ${name}`).not.toBeNull();
-  await visibleLink!.click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === href, { timeout: 30_000 }),
+    visibleLink!.click(),
+  ]);
 }
 
 test('normal user can navigate the primary catalog journey and sign out', async ({ page }) => {

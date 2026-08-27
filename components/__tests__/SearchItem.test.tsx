@@ -216,9 +216,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'test movie' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/test movie');
+      expect(mockPush).toHaveBeenCalledWith('/search/test%20movie');
     });
 
     it('should not navigate on Enter key with empty value', () => {
@@ -226,7 +226,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: '' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).not.toHaveBeenCalled();
     });
@@ -246,7 +246,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'movie-2023!' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).toHaveBeenCalledWith('/search/movie-2023!');
     });
@@ -256,7 +256,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: '123' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).toHaveBeenCalledWith('/search/123');
     });
@@ -266,9 +266,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'the dark knight' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/the dark knight');
+      expect(mockPush).toHaveBeenCalledWith('/search/the%20dark%20knight');
     });
 
     it('should handle ArrowUp key without navigation', () => {
@@ -301,7 +301,7 @@ describe('SearchItem', () => {
       fireEvent.change(input, { target: { value: 'test movie' } });
       fireEvent.click(icon);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/test movie');
+      expect(mockPush).toHaveBeenCalledWith('/search/test%20movie');
     });
 
     it('should not navigate on button click with empty value', () => {
@@ -348,14 +348,14 @@ describe('SearchItem', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle whitespace-only input', () => {
+    it('should not navigate for whitespace-only input', () => {
       render(<SearchItem />);
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: '   ' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/   ');
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
     it('should handle very long search query', () => {
@@ -364,7 +364,7 @@ describe('SearchItem', () => {
       const longQuery = 'a'.repeat(500);
       
       fireEvent.change(input, { target: { value: longQuery } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).toHaveBeenCalledWith(`/search/${longQuery}`);
     });
@@ -374,9 +374,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: '日本映画' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/日本映画');
+      expect(mockPush).toHaveBeenCalledWith('/search/%E6%97%A5%E6%9C%AC%E6%98%A0%E7%94%BB');
     });
 
     it('should handle HTML-like input', () => {
@@ -384,9 +384,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: '<script>alert("xss")</script>' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/<script>alert("xss")</script>');
+      expect(mockPush).toHaveBeenCalledWith('/search/%3Cscript%3Ealert(%22xss%22)%3C%2Fscript%3E');
     });
 
     it('should handle slashes in input', () => {
@@ -394,9 +394,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'movie/series' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/movie/series');
+      expect(mockPush).toHaveBeenCalledWith('/search/movie%2Fseries');
     });
 
     it('should handle query parameters in input', () => {
@@ -404,9 +404,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'movie?filter=2023' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/movie?filter=2023');
+      expect(mockPush).toHaveBeenCalledWith('/search/movie%3Ffilter%3D2023');
     });
   });
 
@@ -447,7 +447,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'inception' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).toHaveBeenCalledWith('/search/inception');
     });
@@ -470,11 +470,11 @@ describe('SearchItem', () => {
       
       // First search
       fireEvent.change(input, { target: { value: 'movie1' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       // Clear and second search
       fireEvent.change(input, { target: { value: 'movie2' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       // Third search with button click
       fireEvent.change(input, { target: { value: 'movie3' } });
@@ -491,7 +491,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'test' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       // Component should still have value due to state
       expect(input.value).toBe('test');
@@ -535,7 +535,7 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'testquery' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
       expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/search/'));
     });
@@ -545,9 +545,9 @@ describe('SearchItem', () => {
       const input = screen.getByRole('searchbox') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'test query' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.submit(input.closest('form')!);
       
-      expect(mockPush).toHaveBeenCalledWith('/search/test query');
+      expect(mockPush).toHaveBeenCalledWith('/search/test%20query');
     });
   });
 

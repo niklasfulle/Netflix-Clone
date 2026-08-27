@@ -59,6 +59,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'backup.cleanup': 'Cleaned up backup retention',
   'media.scan': 'Scanned media',
   'job.cancel': 'Cancelled background job',
+  'job.retry': 'Retried background job',
   'deployment.manage': 'Managed deployment',
   'security.settings_change': 'Changed security settings',
 };

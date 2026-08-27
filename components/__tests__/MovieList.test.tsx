@@ -4,9 +4,9 @@ import MovieList from '../MovieList';
 
 // Mock MovieCard component
 jest.mock('@/components/MovieCard', () => {
-  return function MockMovieCard({ data, isLoading }: any) {
+  return function MockMovieCard({ data, isLoading, eager }: any) {
     return (
-      <div data-testid={`movie-card-${data.id}`}>
+      <div data-testid={`movie-card-${data.id}`} data-eager={String(Boolean(eager))}>
         Movie: {data.title} - Loading: {isLoading ? 'true' : 'false'}
       </div>
     );
@@ -101,6 +101,31 @@ describe('MovieList Component', () => {
   });
 
   describe('Props Handling', () => {
+    test('loads the first desktop row eagerly and leaves later rows lazy', () => {
+      const moviesAcrossTwoRows = [
+        ...mockMovieData,
+        { id: '5', title: 'Movie 5', genre: 'Science Fiction' },
+        { id: '6', title: 'Movie 6', genre: 'Documentary' },
+      ];
+
+      render(
+        <MovieList data={moviesAcrossTwoRows} title={mockTitle} isLoading={false} />
+      );
+
+      moviesAcrossTwoRows.slice(0, 4).forEach((movie) => {
+        expect(screen.getByTestId(`movie-card-${movie.id}`)).toHaveAttribute(
+          'data-eager',
+          'true'
+        );
+      });
+      moviesAcrossTwoRows.slice(4).forEach((movie) => {
+        expect(screen.getByTestId(`movie-card-${movie.id}`)).toHaveAttribute(
+          'data-eager',
+          'false'
+        );
+      });
+    });
+
     test('should pass data to MovieCard components', () => {
       render(
         <MovieList data={mockMovieData} title={mockTitle} isLoading={false} />

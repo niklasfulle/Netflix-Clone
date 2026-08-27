@@ -15,6 +15,7 @@ import {
   Server,
   ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import useSWR from "swr";
 
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
@@ -350,6 +351,48 @@ function RedisSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
+function BackgroundJobsSection({ data }: Readonly<{ data: SystemOverview }>) {
+  const backgroundJobs = data.backgroundJobs ?? {
+    worker: { status: "unavailable", state: "UNKNOWN", heartbeatAgeMs: null },
+    queue: { depth: 0, oldestQueuedAgeMs: null },
+  };
+  const healthy = backgroundJobs.worker.status === "healthy";
+  return (
+    <section
+      aria-label="Background job monitoring"
+      className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
+    >
+      <div className="flex items-center gap-2">
+        <Activity className={`h-5 w-5 ${healthy ? "text-emerald-400" : "text-amber-400"}`} />
+        <h2 className="font-semibold text-white">Background Jobs</h2>
+      </div>
+      <dl className="mt-5 divide-y divide-zinc-800">
+        <DetailRow label="Worker" value={backgroundJobs.worker.status} />
+        <DetailRow label="Worker state" value={backgroundJobs.worker.state} />
+        <DetailRow
+          label="Heartbeat age"
+          value={backgroundJobs.worker.heartbeatAgeMs === null
+            ? "—"
+            : formatDuration(backgroundJobs.worker.heartbeatAgeMs / 1_000)}
+        />
+        <DetailRow label="Active queue depth" value={String(backgroundJobs.queue.depth)} />
+        <DetailRow
+          label="Oldest queued"
+          value={backgroundJobs.queue.oldestQueuedAgeMs === null
+            ? "—"
+            : formatDuration(backgroundJobs.queue.oldestQueuedAgeMs / 1_000)}
+        />
+      </dl>
+      <Link
+        href="/admin/jobs"
+        className="mt-5 inline-flex min-h-10 items-center rounded-lg border border-zinc-700 px-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800"
+      >
+        Open Job Operations
+      </Link>
+    </section>
+  );
+}
+
 function RecoverySection({ data }: Readonly<{ data: SystemOverview }>) {
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
@@ -428,7 +471,7 @@ export default function AdminSystemPage() {
     <div>
       <AdminPageHeader
         title="System Overview"
-        description="Live host, container, database, Redis, storage, and backup health for this deployment."
+        description="Live host, container, database, Redis, background worker, storage, and backup health for this deployment."
         actions={
           <>
             {data && (
@@ -480,9 +523,10 @@ export default function AdminSystemPage() {
         <>
           <MetricsSection data={data} />
           <StorageSection data={data} />
-          <div className="mt-8 grid gap-6 xl:grid-cols-3">
+          <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             <RuntimeSection data={data} />
             <RedisSection data={data} />
+            <BackgroundJobsSection data={data} />
             <RecoverySection data={data} />
           </div>
           <DeploymentStatusPanel />

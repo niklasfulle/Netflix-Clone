@@ -29,8 +29,13 @@ const SearchList: React.FC<SearchListProps> = ({
           <span className="pl-3 font-thin italic">{searchItem.replaceAll('%20', ' ')}</span>
         </p>
         <div className="grid grid-cols-2 gap-4 mt-4 lg:grid-cols-4 md:gap-4">
-          {data.map((movie) => (
-            <MovieCard key={movie.id} data={movie} isLoading={isLoading} />
+          {data.map((movie, index) => (
+            <MovieCard
+              key={movie.id}
+              data={movie}
+              isLoading={isLoading}
+              eager={index === 0}
+            />
           ))}
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { PgBoss } from 'pg-boss';
 import { z } from 'zod';
 
@@ -19,7 +20,15 @@ import {
 } from '@/lib/jobs/coordination';
 import { JOB_NAMES, type QueuedJob } from '@/lib/jobs/contracts';
 import { createPrismaJobExecutionRepository } from '@/lib/jobs/repository';
+import {
+  createJobRunRetention,
+  type JobRunRetentionDatabase,
+} from '@/lib/jobs/retention';
 import { executeQueuedJob, PermanentJobError } from '@/lib/jobs/worker';
+import {
+  createWorkerHeartbeat,
+  type WorkerHeartbeatDatabase,
+} from '@/lib/jobs/worker-heartbeat';
 import { createWorkerLifecycle } from '@/lib/jobs/worker-lifecycle';
 import { createOperationalLeaseCoordinator } from '@/lib/operations/lease';
 import { createPostgresOperationalLeaseStore } from '@/lib/operations/postgres-lease-store';
@@ -181,21 +190,73 @@ async function registerWork() {
   ]);
 }
 
+const heartbeat = createWorkerHeartbeat({
+  database: db as unknown as WorkerHeartbeatDatabase,
+  instanceToken: randomUUID(),
+});
+const jobRunRetention = createJobRunRetention({
+  database: db as unknown as JobRunRetentionDatabase,
+});
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let retentionTimer: ReturnType<typeof setInterval> | null = null;
+
+function removeExpiredJobRuns() {
+  void jobRunRetention.removeExpired()
+    .catch((error) => console.error('background_job_retention_failed', error));
+}
+
 const lifecycle = createWorkerLifecycle({
   queue: boss,
   registerWork,
   async disconnect() {
+    await heartbeat.markStopped();
     await Promise.all([db.$disconnect(), redis.close()]);
   },
 });
-await lifecycle.start();
+
+async function startWorker() {
+  await heartbeat.markStarting();
+  try {
+    await lifecycle.start();
+    await heartbeat.markActive();
+    heartbeatTimer = setInterval(() => {
+      void heartbeat.beat()
+        .then((stillOwner) => {
+          if (!stillOwner && heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+          }
+        })
+        .catch((error) => console.error('background_worker_heartbeat_failed', error));
+    }, 15_000);
+    heartbeatTimer.unref();
+    removeExpiredJobRuns();
+    retentionTimer = setInterval(removeExpiredJobRuns, 60 * 60_000);
+    retentionTimer.unref();
+  } catch (error) {
+    await heartbeat.markFailed().catch(() => undefined);
+    throw error;
+  }
+}
+
+await startWorker();
 
 async function stopWorker(signal: string) {
   console.info('background_worker_draining', { signal });
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  if (retentionTimer) {
+    clearInterval(retentionTimer);
+    retentionTimer = null;
+  }
   try {
+    await heartbeat.markDraining();
     await lifecycle.stop();
     console.info('background_worker_stopped');
   } catch (error) {
+    await heartbeat.markFailed().catch(() => undefined);
     process.exitCode = 1;
     console.error('background_worker_stop_failed', error);
   }

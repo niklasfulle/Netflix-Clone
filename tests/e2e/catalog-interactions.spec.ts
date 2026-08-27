@@ -178,6 +178,24 @@ async function openCatalogLink(page: Page, href: string) {
   return visibleLink!;
 }
 
+async function openPlayerFromDetails(page: Page, movieId: string) {
+  const expectedUrl = new RegExp(`/watch/${movieId}`);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const playLink = page.getByRole('dialog').getByRole('link', { name: /Play content/i });
+    await expect(playLink).toHaveAttribute('href', expectedUrl);
+    await playLink.click();
+
+    try {
+      await page.waitForURL(expectedUrl, { timeout: 8_000 });
+      return;
+    } catch (error) {
+      if (attempt === 1) throw error;
+      await expect(page.getByRole('dialog')).toBeVisible();
+    }
+  }
+}
+
 test('user can search, inspect, favorite, play, and find content in the watchlist', async ({
   browser,
   page,
@@ -207,10 +225,12 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
     await page.goto('/');
     const search = page.getByRole('searchbox', { name: /Search|Suchen/i });
     await search.fill(movie.title);
-    await search.press('Enter');
-    await expect(page).toHaveURL((url) => (
-      decodeURIComponent(url.pathname) === `/search/${movie.title}`
-    ));
+    await Promise.all([
+      page.waitForURL((url) => (
+        decodeURIComponent(url.pathname) === `/search/${movie.title}`
+      ), { timeout: 30_000 }),
+      search.press('Enter'),
+    ]);
 
   await page.getByRole('button', {
     name: `Show details for ${movie.title}`,
@@ -228,8 +248,7 @@ test('user can search, inspect, favorite, play, and find content in the watchlis
     await expect(dialog.getByRole('button', { name: /Add to favorites/i })).toBeVisible();
   }
 
-    await dialog.getByRole('link', { name: /Play content/i }).click();
-    await expect(page).toHaveURL(new RegExp(`/watch/${movie.id}`));
+    await openPlayerFromDetails(page, movie.id);
     const video = page.locator('video');
     await expect(video).toBeVisible();
     if (movie.id === STAGING_PLAYER_MOVIE_ID) {

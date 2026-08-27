@@ -6,7 +6,7 @@ import useBillboradSeries from '@/hooks/series/useBillboradSeries';
 const BillboardSeries = () => {
   const { data, isLoading } = useBillboradSeries();
 
-  return <BillboardBase data={data} isLoading={isLoading} />;
+  return <BillboardBase data={data} isLoading={isLoading} priority />;
 };
 
 export default BillboardSeries;

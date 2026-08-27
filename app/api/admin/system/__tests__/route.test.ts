@@ -67,6 +67,10 @@ describe("admin system API", () => {
           totalLatencyMs: 2,
         },
       },
+      backgroundJobs: {
+        worker: { status: "healthy", state: "ACTIVE", heartbeatAgeMs: 2_000 },
+        queue: { depth: 0, oldestQueuedAgeMs: null },
+      },
       alerts: [],
     });
 
@@ -123,6 +127,10 @@ describe("admin system API", () => {
           fallbacks: 0,
           totalLatencyMs: 1,
         },
+      },
+      backgroundJobs: {
+        worker: { status: "healthy", state: "ACTIVE", heartbeatAgeMs: 1_000 },
+        queue: { depth: 0, oldestQueuedAgeMs: null },
       },
       alerts: [],
     });

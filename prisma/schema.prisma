@@ -320,6 +320,18 @@ model JobRun {
   @@index([completedAt])
 }
 
+model JobWorkerHeartbeat {
+  id            String   @id
+  instanceToken String
+  state         String
+  startedAt     DateTime
+  heartbeatAt   DateTime
+  stoppedAt     DateTime?
+  updatedAt     DateTime @updatedAt
+
+  @@index([heartbeatAt])
+}
+
 model OperationalLease {
   resourceKey    String   @id
   ownerTokenHash String?

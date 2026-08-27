@@ -4,6 +4,7 @@ import { PgBoss } from 'pg-boss';
 
 import { db } from '@/lib/db';
 import { createJobControlService, type JobControlDatabase } from '@/lib/jobs/control';
+import { createJobRetryService, type JobRetryDatabase } from '@/lib/jobs/retry';
 import {
   createJobSubmissionService,
   type JobQueuePublisher,
@@ -18,8 +19,13 @@ function databaseUrl(): string {
 
 type SubmissionService = ReturnType<typeof createJobSubmissionService>;
 type ControlService = ReturnType<typeof createJobControlService>;
+type RetryService = ReturnType<typeof createJobRetryService>;
 
-let runtime: { submission: SubmissionService; control: ControlService } | undefined;
+let runtime: {
+  submission: SubmissionService;
+  control: ControlService;
+  retry: RetryService;
+} | undefined;
 let publisher: PgBoss | undefined;
 let publisherStart: Promise<PgBoss> | undefined;
 
@@ -70,6 +76,10 @@ function jobRuntime() {
       database: db as unknown as JobControlDatabase,
       queue: queuePublisher,
     }),
+    retry: createJobRetryService({
+      database: db as unknown as JobRetryDatabase,
+      publisher: queuePublisher,
+    }),
   };
   return runtime;
 }
@@ -86,5 +96,11 @@ export const backgroundJobControl: ControlService = {
   },
   async cancel(jobRunId, actor) {
     return jobRuntime().control.cancel(jobRunId, actor);
+  },
+};
+
+export const backgroundJobRetry: RetryService = {
+  async retry(jobRunId, actor) {
+    return jobRuntime().retry.retry(jobRunId, actor);
   },
 };

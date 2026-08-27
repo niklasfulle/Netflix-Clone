@@ -86,6 +86,10 @@ const healthyOverview = {
       totalLatencyMs: 30,
     },
   },
+  backgroundJobs: {
+    worker: { status: "healthy", state: "ACTIVE", heartbeatAgeMs: 5_000 },
+    queue: { depth: 2, oldestQueuedAgeMs: 60_000 },
+  },
   backup: {
     createdAt: "2026-07-29T10:00:00.000Z",
     sizeBytes: 2048,
@@ -126,6 +130,13 @@ describe("admin system page", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("Cache hits / misses")).toBeInTheDocument();
     expect(screen.getByText("8 / 4")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Background Jobs" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Job Operations" })).toHaveAttribute(
+      "href",
+      "/admin/jobs",
+    );
     expect(screen.getByText("Signed deployment evidence")).toBeInTheDocument();
     expect(screen.getByText("No active alerts.")).toBeInTheDocument();
   });
@@ -158,6 +169,22 @@ describe("admin system page", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "The system overview could not be loaded.",
     );
+  });
+
+  it("treats legacy responses without job health as unavailable", () => {
+    const legacyOverview = { ...healthyOverview, backgroundJobs: undefined };
+    mockedUseSWR.mockReturnValue({
+      data: legacyOverview,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    });
+
+    render(<AdminSystemPage />);
+
+    expect(screen.getByRole("heading", { name: "Background Jobs" })).toBeInTheDocument();
+    expect(screen.getByText("unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("Worker healthy")).not.toBeInTheDocument();
   });
 
   it("renders a loading state", () => {

@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import packageJson from "@/package.json";
 import { db } from "@/lib/db";
+import { backgroundJobAdministration } from "@/lib/jobs/administration-runtime";
 import { getRedisRuntime, type RedisHealth } from "@/lib/redis/runtime";
 
 const nonNegativeNumber = z.number().nonnegative();
@@ -89,6 +90,17 @@ export type DatabaseHealth = {
   status: "ok" | "error";
   latencyMs: number | null;
 };
+export type BackgroundJobHealth = {
+  worker: {
+    status: string;
+    state: string;
+    heartbeatAgeMs: number | null;
+  };
+  queue: {
+    depth: number;
+    oldestQueuedAgeMs: number | null;
+  };
+};
 export type SystemOverview = {
   status: SystemSeverity;
   version: string;
@@ -107,6 +119,7 @@ export type SystemOverview = {
   backup: SystemSnapshot["backup"];
   database: DatabaseHealth;
   redis: RedisHealth;
+  backgroundJobs: BackgroundJobHealth;
   alerts: SystemAlert[];
 };
 
@@ -125,6 +138,11 @@ const disabledRedisHealth: RedisHealth = {
     fallbacks: 0,
     totalLatencyMs: 0,
   },
+};
+
+const unavailableBackgroundJobHealth: BackgroundJobHealth = {
+  worker: { status: "unavailable", state: "UNKNOWN", heartbeatAgeMs: null },
+  queue: { depth: 0, oldestQueuedAgeMs: null },
 };
 
 const DEFAULT_SNAPSHOT_PATH = "/monitor/status.json";
@@ -412,10 +430,35 @@ function evaluateRedisAlerts(redis: RedisHealth): SystemAlert[] {
   ];
 }
 
+function evaluateBackgroundJobAlerts(backgroundJobs: BackgroundJobHealth): SystemAlert[] {
+  const alerts: SystemAlert[] = [];
+  if (backgroundJobs.worker.status !== "healthy") {
+    alerts.push({
+      id: "background-worker-unhealthy",
+      severity: "warning",
+      title: "Background worker unavailable",
+      message: `Worker state is ${backgroundJobs.worker.status}.`,
+    });
+  }
+  if (
+    backgroundJobs.queue.oldestQueuedAgeMs !== null
+    && backgroundJobs.queue.oldestQueuedAgeMs > 5 * 60_000
+  ) {
+    alerts.push({
+      id: "background-queue-stale",
+      severity: "warning",
+      title: "Background queue is delayed",
+      message: "The oldest queued operation has waited longer than five minutes.",
+    });
+  }
+  return alerts;
+}
+
 function evaluateSnapshot(
   snapshot: SystemSnapshot | null,
   database: DatabaseHealth,
   redis: RedisHealth,
+  backgroundJobs: BackgroundJobHealth,
   now: Date,
 ): { alerts: SystemAlert[]; ageSeconds: number | null } {
   const ageSeconds = snapshotAgeSeconds(snapshot, now);
@@ -423,6 +466,7 @@ function evaluateSnapshot(
     ...evaluateAgentAlerts(snapshot, ageSeconds),
     ...evaluateDatabaseAlerts(database),
     ...evaluateRedisAlerts(redis),
+    ...evaluateBackgroundJobAlerts(backgroundJobs),
   ];
   if (snapshot !== null) {
     alerts.push(
@@ -463,11 +507,13 @@ export function buildSystemOverview(
   database: DatabaseHealth,
   now = new Date(),
   redis: RedisHealth = disabledRedisHealth,
+  backgroundJobs: BackgroundJobHealth = unavailableBackgroundJobHealth,
 ): SystemOverview {
   const { alerts, ageSeconds } = evaluateSnapshot(
     snapshot,
     database,
     redis,
+    backgroundJobs,
     now,
   );
 
@@ -489,6 +535,7 @@ export function buildSystemOverview(
     backup: snapshot?.backup ?? null,
     database,
     redis,
+    backgroundJobs,
     alerts,
   };
 }
@@ -521,10 +568,24 @@ async function checkDatabase(): Promise<DatabaseHealth> {
 }
 
 export async function getSystemOverview(): Promise<SystemOverview> {
-  const [snapshot, database, redis] = await Promise.all([
+  const [snapshot, database, redis, backgroundJobs] = await Promise.all([
     readSystemSnapshot(),
     checkDatabase(),
     getRedisRuntime().health(),
+    backgroundJobAdministration
+      .health({ userId: "system-monitor", role: "ADMIN" })
+      .catch(() => null),
   ]);
-  return buildSystemOverview(snapshot, database, new Date(), redis);
+  const normalizedBackgroundJobs = backgroundJobs ? {
+    worker: {
+      status: backgroundJobs.worker.status,
+      state: backgroundJobs.worker.state,
+      heartbeatAgeMs: backgroundJobs.worker.heartbeatAgeMs,
+    },
+    queue: {
+      depth: backgroundJobs.queue.depth,
+      oldestQueuedAgeMs: backgroundJobs.queue.oldestQueuedAgeMs,
+    },
+  } : unavailableBackgroundJobHealth;
+  return buildSystemOverview(snapshot, database, new Date(), redis, normalizedBackgroundJobs);
 }

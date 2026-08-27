@@ -1251,6 +1251,18 @@ describe("ProfilesPage", () => {
   });
 
   describe("Accessible profile controls", () => {
+    it("loads the above-the-fold profile images eagerly", () => {
+      render(<ProfilesPage />);
+
+      const profileImages = [
+        screen.getByRole("button", { name: "Select profile User 1" }).querySelector("img"),
+        screen.getByRole("button", { name: "Select profile User 2" }).querySelector("img"),
+      ];
+      profileImages.forEach((image) => {
+        expect(image).toHaveAttribute("loading", "eager");
+      });
+    });
+
     it("exposes unique accessible names for profile selection and editing", () => {
       render(<ProfilesPage />);
 

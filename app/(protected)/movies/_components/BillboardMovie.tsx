@@ -6,7 +6,7 @@ import useBillboradMovie from '@/hooks/movies/useBillboradMovie';
 const BillboardMovie = () => {
   const { data, isLoading } = useBillboradMovie();
 
-  return <BillboardBase data={data} isLoading={isLoading} />;
+  return <BillboardBase data={data} isLoading={isLoading} priority />;
 };
 
 export default BillboardMovie;

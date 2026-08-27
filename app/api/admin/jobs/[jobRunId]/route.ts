@@ -1,7 +1,8 @@
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 import { currentUser } from '@/lib/auth';
 import { JobRunNotFoundError } from '@/lib/jobs/control';
-import { backgroundJobControl } from '@/lib/jobs/runtime';
+import { JobRetryNotAllowedError } from '@/lib/jobs/retry';
+import { backgroundJobControl, backgroundJobRetry } from '@/lib/jobs/runtime';
 import { logBackendAction } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -83,5 +84,51 @@ export async function DELETE(
       errorName: error instanceof Error ? error.name : typeof error,
     }, 'error');
     return privateJson({ error: 'Unable to cancel background job.', correlationId: audit.correlationId }, 503);
+  }
+}
+
+export async function POST(
+  _request: Request,
+  context: { params: Promise<{ jobRunId: string }> },
+) {
+  const audit = adminMutationAudit.begin('job.retry');
+  const actor = await adminActor();
+  if (!actor) {
+    await audit.denied();
+    return privateJson({ error: 'Forbidden', correlationId: audit.correlationId }, 403);
+  }
+  const jobRunId = await requestedJobRunId(context);
+  if (!jobRunId) {
+    await audit.failed();
+    return privateJson({ error: 'Not found', correlationId: audit.correlationId }, 404);
+  }
+
+  try {
+    const result = await backgroundJobRetry.retry(jobRunId, actor);
+    await audit.succeeded({
+      target: { type: 'background_job', id: jobRunId },
+      metadata: { status: result.status, duplicate: result.duplicate },
+    });
+    return privateJson(result, 202);
+  } catch (error) {
+    await audit.failed({ target: { type: 'background_job', id: jobRunId } });
+    if (error instanceof JobRunNotFoundError) {
+      return privateJson({ error: 'Not found', correlationId: audit.correlationId }, 404);
+    }
+    if (error instanceof JobRetryNotAllowedError) {
+      return privateJson({
+        error: 'Background job cannot be retried from its current state.',
+        correlationId: audit.correlationId,
+      }, 409);
+    }
+    logBackendAction('admin_background_job_retry_failed', {
+      jobRunId,
+      correlationId: audit.correlationId,
+      errorName: error instanceof Error ? error.name : typeof error,
+    }, 'error');
+    return privateJson({
+      error: 'Unable to retry background job.',
+      correlationId: audit.correlationId,
+    }, 503);
   }
 }

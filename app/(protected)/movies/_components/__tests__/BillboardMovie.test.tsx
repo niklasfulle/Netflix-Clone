@@ -8,7 +8,7 @@ jest.mock("@/hooks/movies/useBillboradMovie");
 
 // Mock the BillboardBase component
 jest.mock("@/components/BillboardBase", () => {
-  return function MockBillboardBase({ data, isLoading }: any) {
+  return function MockBillboardBase({ data, isLoading, priority }: any) {
     if (isLoading) {
       return <div data-testid="billboard-loading">Loading...</div>;
     }
@@ -16,7 +16,7 @@ jest.mock("@/components/BillboardBase", () => {
       return <div data-testid="billboard-no-data">No data</div>;
     }
     return (
-      <div data-testid="billboard-base">
+      <div data-testid="billboard-base" data-priority={String(Boolean(priority))}>
         <h1>{data.title}</h1>
         <p>{data.description}</p>
       </div>
@@ -40,6 +40,17 @@ describe("BillboardMovie", () => {
   });
 
   describe("Rendering", () => {
+    it("prioritizes the above-the-fold billboard poster", () => {
+      (useBillboradMovie as jest.Mock).mockReturnValue({
+        data: mockMovieData,
+        isLoading: false,
+      });
+
+      render(<BillboardMovie />);
+
+      expect(screen.getByTestId("billboard-base")).toHaveAttribute("data-priority", "true");
+    });
+
     it("renders BillboardBase component", () => {
       (useBillboradMovie as jest.Mock).mockReturnValue({
         data: mockMovieData,

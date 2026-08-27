@@ -21,7 +21,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           fill
           sizes="100vw"
           className="-z-30 object-cover object-center opacity-50"
-          priority
+          loading="eager"
         />
         <div className="absolute inset-0 -z-20 bg-zinc-950/55" aria-hidden="true" />
         <div
