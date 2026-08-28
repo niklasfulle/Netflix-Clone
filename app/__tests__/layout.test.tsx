@@ -91,6 +91,10 @@ describe("RootLayout (layout.tsx)", () => {
       expect(source).toContain("<EnvironmentBadge environment={deploymentEnvironment}");
     });
 
+    it("should watch for a newer healthy deployment", () => {
+      expect(source).toContain("<DeploymentUpdateNotice currentVersion={APP_VERSION}");
+    });
+
     it("Toaster should be at bottom-right", () => {
       expect(source).toContain('position="bottom-right"');
     });

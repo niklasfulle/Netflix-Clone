@@ -181,7 +181,7 @@ export default function AdminNav() {
       </header>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 bg-black/70 pt-16 backdrop-blur-sm lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 top-16 z-30 bg-black/70 backdrop-blur-sm lg:hidden">
           <dialog
             ref={drawerRef}
             open

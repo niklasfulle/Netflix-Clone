@@ -14,16 +14,23 @@ jest.mock("@/lib/redis/runtime", () => ({
   getRedisRuntime: jest.fn(),
 }));
 
+jest.mock("@/lib/deployment-update-policy", () => ({
+  DEFAULT_DEPLOYMENT_UPDATE_POLICY: { automaticReloadEnabled: true },
+  deploymentUpdatePolicy: { read: jest.fn() },
+}));
+
 const mockedRedisHealth = jest.fn();
 
 import { access } from "node:fs/promises";
 import { db } from "@/lib/db";
+import { deploymentUpdatePolicy } from "@/lib/deployment-update-policy";
 import { getRedisRuntime } from "@/lib/redis/runtime";
 import { GET } from "@/app/api/health/route";
 import { publicRoutes } from "@/routes";
 import packageJson from "@/package.json";
 
 const mockedQueryRaw = db.$queryRaw as jest.Mock;
+const mockedReadUpdatePolicy = deploymentUpdatePolicy.read as jest.Mock;
 const mockedAccess = access as jest.Mock;
 const mockedGetRedisRuntime = getRedisRuntime as jest.Mock;
 
@@ -35,6 +42,7 @@ describe("health endpoint", () => {
     process.env.DEPLOYMENT_ENVIRONMENT = "staging";
     mockedGetRedisRuntime.mockReturnValue({ health: mockedRedisHealth });
     mockedRedisHealth.mockResolvedValue({ status: "disabled" });
+    mockedReadUpdatePolicy.mockResolvedValue({ automaticReloadEnabled: true });
   });
 
   afterAll(() => {
@@ -58,6 +66,7 @@ describe("health endpoint", () => {
       service: "netflix-clone",
       version: packageJson.version,
       environment: "staging",
+      deploymentUpdates: { automaticReloadEnabled: true },
       checks: {
         application: "ok",
         database: "ok",
@@ -66,6 +75,17 @@ describe("health endpoint", () => {
       },
     });
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
+  });
+
+  it("publishes a globally disabled automatic reload policy", async () => {
+    mockedQueryRaw.mockResolvedValue([{ "?column?": 1 }]);
+    mockedReadUpdatePolicy.mockResolvedValue({ automaticReloadEnabled: false });
+
+    const response = await GET();
+
+    expect(await response.json()).toMatchObject({
+      deploymentUpdates: { automaticReloadEnabled: false },
+    });
   });
 
   it("reports optional Redis degradation without taking the application offline", async () => {

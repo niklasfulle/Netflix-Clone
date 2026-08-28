@@ -1,11 +1,15 @@
 import Link from "next/link";
 import React from "react";
 
+import { useLanguage } from "@/components/providers/LanguageProvider";
+
 interface MobileMenuProps {
   visible?: boolean;
 }
 
 const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
+  const { t } = useLanguage();
+
   if (!visible) {
     return null;
   }
@@ -18,37 +22,37 @@ const MobileMenu: React.FC<MobileMenuProps> = ({ visible }) => {
       <div className="flex flex-col gap-4">
         <Link href={"/"}>
           <div className="px-3 text-center text-white hover:underline">
-            Home
+            {t('Home')}
           </div>
         </Link>
         <Link href={"/movies"}>
           <div className="px-3 text-center text-white hover:underline ">
-            Movies
+            {t('Movies')}
           </div>
         </Link>
         <Link href={"/series"}>
           <div className="px-3 text-center text-white hover:underline">
-            Series
+            {t('Series')}
           </div>
         </Link>
         <Link href={"/mylist"}>
           <div className="px-3 text-center text-white hover:underline">
-            My List
+            {t('Favorites')}
           </div>
         </Link>
         <Link href={"/playlists"}>
           <div className="px-3 text-center text-white hover:underline">
-            Playlists
+            {t('Playlists')}
           </div>
         </Link>
         <Link href={"/watchlist"}>
           <div className="px-3 text-center text-white hover:underline">
-            Watchlist
+            {t('Watchlist')}
           </div>
         </Link>
         <Link href={"/random"}>
           <div className="px-3 text-center text-white hover:underline">
-            Random
+            {t('Random')}
           </div>
         </Link>
       </div>

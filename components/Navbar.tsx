@@ -74,7 +74,7 @@ const Navbar = () => {
           <NavbarItem label={t('Home')} href="/" />
           <NavbarItem label={t('Movies')} href="/movies" />
           <NavbarItem label={t('Series')} href="/series" />
-          <NavbarItem label={t('My List')} href="/mylist" />
+          <NavbarItem label={t('Favorites')} href="/mylist" />
           <NavbarItem label={t('Playlists')} href="/playlists" />
           <NavbarItem label={t('Watchlist')} href="/watchlist" />
           <NavbarItem label={t('Random')} href="/random" />

@@ -62,10 +62,10 @@ describe('MobileMenu', () => {
       expect(seriesLink).toBeTruthy();
     });
 
-    test('should render My List link', () => {
+    test('should render Favorites link', () => {
       render(<MobileMenu visible={true} />);
-      const myListLink = screen.getByText('My List');
-      expect(myListLink).toBeTruthy();
+      const favoritesLink = screen.getByText('Favorites');
+      expect(favoritesLink).toBeTruthy();
     });
 
     test('should render Playlists link', () => {
@@ -112,7 +112,7 @@ describe('MobileMenu', () => {
       expect(seriesLink.getAttribute('href')).toBe('/series');
     });
 
-    test('should have correct My List link href', () => {
+    test('should have correct Favorites link href', () => {
       render(<MobileMenu visible={true} />);
       const myListLink = screen.getByTestId('link-/mylist');
       expect(myListLink.getAttribute('href')).toBe('/mylist');
@@ -342,7 +342,7 @@ describe('MobileMenu', () => {
 
     test('should render with all links when visible is true', () => {
       render(<MobileMenu visible={true} />);
-      const expectedLinks = ['Home', 'Movies', 'Series', 'My List', 'Playlists', 'Watchlist', 'Random'];
+      const expectedLinks = ['Home', 'Movies', 'Series', 'Favorites', 'Playlists', 'Watchlist', 'Random'];
       expectedLinks.forEach((linkText) => {
         expect(screen.getByText(linkText)).toBeTruthy();
       });
@@ -407,10 +407,10 @@ describe('MobileMenu', () => {
       expect(seriesLink.textContent).toBe('Series');
     });
 
-    test('should have correct text for My List link', () => {
+    test('should have correct text for Favorites link', () => {
       render(<MobileMenu visible={true} />);
       const myListLink = screen.getByTestId('link-/mylist');
-      expect(myListLink.textContent).toBe('My List');
+      expect(myListLink.textContent).toBe('Favorites');
     });
 
     test('should have correct text for Playlists link', () => {
@@ -433,7 +433,7 @@ describe('MobileMenu', () => {
 
     test('should have correct text for all links', () => {
       render(<MobileMenu visible={true} />);
-      const expectedTexts = ['Home', 'Movies', 'Series', 'My List', 'Playlists', 'Watchlist', 'Random'];
+      const expectedTexts = ['Home', 'Movies', 'Series', 'Favorites', 'Playlists', 'Watchlist', 'Random'];
       const links = screen.getAllByRole('link');
       
       links.forEach((link, index) => {

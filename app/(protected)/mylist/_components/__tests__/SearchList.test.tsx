@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import SearchList from "../SearchList";
 
 // Mock MovieCard component
@@ -76,16 +77,42 @@ describe("SearchList", () => {
   });
 
   describe("Empty State", () => {
-    it("returns null when data is empty array", () => {
+    it("shows guidance and a catalog link when the favorites list is empty", () => {
+      render(<SearchList data={[]} title="Favorites" isLoading={false} />);
+
+      expect(screen.getByText("Favorites")).toBeInTheDocument();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Browse" })).toHaveAttribute(
+        "href",
+        "/movies"
+      );
+    });
+
+    it("translates the empty favorites state into German", () => {
+      render(
+        <LanguageProvider initialLocale="de">
+          <SearchList data={[]} title="Favoriten" isLoading={false} />
+        </LanguageProvider>
+      );
+
+      expect(screen.getByText("Du hast noch keine Favoriten hinzugefügt.")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Durchsuchen" })).toHaveAttribute(
+        "href",
+        "/movies"
+      );
+    });
+
+    it("renders an empty state when data is an empty array", () => {
       const { container } = render(
         <SearchList data={[]} title="Results" isLoading={false} />
       );
-      expect(container.firstChild).toBeNull();
+      expect(container.firstChild).not.toBeNull();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
     });
 
-    it("does not render title when data is empty", () => {
+    it("keeps the title visible when data is empty", () => {
       render(<SearchList data={[]} title="Results" isLoading={false} />);
-      expect(screen.queryByText("Results")).not.toBeInTheDocument();
+      expect(screen.getByText("Results")).toBeInTheDocument();
     });
 
     it("does not render any movie cards when data is empty", () => {
@@ -96,18 +123,20 @@ describe("SearchList", () => {
       expect(movieCards).toHaveLength(0);
     });
 
-    it("returns null when data is null", () => {
+    it("renders an empty state when data is null", () => {
       const { container } = render(
         <SearchList data={null as any} title="Results" isLoading={false} />
       );
-      expect(container.firstChild).toBeNull();
+      expect(container.firstChild).not.toBeNull();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
     });
 
-    it("returns null when data is undefined", () => {
+    it("renders an empty state when data is undefined", () => {
       const { container } = render(
         <SearchList data={undefined as any} title="Results" isLoading={false} />
       );
-      expect(container.firstChild).toBeNull();
+      expect(container.firstChild).not.toBeNull();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
     });
   });
 
@@ -369,14 +398,16 @@ describe("SearchList", () => {
       expect(screen.getByText("Results")).toBeInTheDocument();
 
       rerender(<SearchList data={[]} title="Results" isLoading={false} />);
-      expect(container.firstChild).toBeNull();
+      expect(container.firstChild).not.toBeNull();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
     });
 
     it("handles switching from empty to data", () => {
       const { rerender, container } = render(
         <SearchList data={[]} title="Results" isLoading={false} />
       );
-      expect(container.firstChild).toBeNull();
+      expect(container.firstChild).not.toBeNull();
+      expect(screen.getByText("You have not added any favorites yet.")).toBeInTheDocument();
 
       rerender(<SearchList data={mockMovies} title="Results" isLoading={false} />);
       expect(screen.getByText("Results")).toBeInTheDocument();

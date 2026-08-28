@@ -56,6 +56,12 @@ _Avoid_: Host path, uploaded binary
 A supported media file inside an approved media root that is not referenced by any published Content item.
 _Avoid_: Missing file, deleted Content
 
+## Personal catalog
+
+**Favorite**:
+A Content item explicitly saved by the active Profile for later access.
+_Avoid_: My List entry, liked title, Watchlist item
+
 ## Background operations
 
 **Weekly Job Schedule**:

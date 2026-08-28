@@ -4,14 +4,14 @@ import '@testing-library/jest-dom';
 
 // Mock icons first before importing component
 jest.mock('react-icons/fa', () => ({
-  FaCheck: ({ className, size }: any) => (
-    <svg data-testid="check-icon" className={className} data-size={size}>
-      Check
+  FaHeart: ({ className, size }: any) => (
+    <svg data-testid="filled-heart-icon" className={className} data-size={size}>
+      Filled heart
     </svg>
   ),
-  FaPlus: ({ className, size }: any) => (
-    <svg data-testid="plus-icon" className={className} data-size={size}>
-      Plus
+  FaRegHeart: ({ className, size }: any) => (
+    <svg data-testid="empty-heart-icon" className={className} data-size={size}>
+      Empty heart
     </svg>
   ),
 }));
@@ -96,33 +96,33 @@ describe('FavoriteButton', () => {
   });
 
   describe('Icon Display', () => {
-    it('should display plus icon when not favorite', () => {
+    it('should display empty heart icon when not favorite', () => {
       mockUseCurrentProfil.mockReturnValue({
         ...defaultMockData,
         data: { ...defaultMockData.data, favoriteIds: [] },
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      const plusIcon = screen.getByTestId('plus-icon');
-      expect(plusIcon).toBeInTheDocument();
-      expect(screen.queryByTestId('check-icon')).not.toBeInTheDocument();
+      const emptyHeartIcon = screen.getByTestId('empty-heart-icon');
+      expect(emptyHeartIcon).toBeInTheDocument();
+      expect(screen.queryByTestId('filled-heart-icon')).not.toBeInTheDocument();
     });
 
-    it('should display check icon when is favorite', () => {
+    it('should display filled heart icon when is favorite', () => {
       mockUseCurrentProfil.mockReturnValue({
         ...defaultMockData,
         data: { ...defaultMockData.data, favoriteIds: ['movie-1'] },
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      const checkIcon = screen.getByTestId('check-icon');
-      expect(checkIcon).toBeInTheDocument();
-      expect(screen.queryByTestId('plus-icon')).not.toBeInTheDocument();
+      const filledHeartIcon = screen.getByTestId('filled-heart-icon');
+      expect(filledHeartIcon).toBeInTheDocument();
+      expect(screen.queryByTestId('empty-heart-icon')).not.toBeInTheDocument();
     });
 
     it('should toggle icon when favorite status changes', () => {
       const { rerender } = render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
 
       mockUseCurrentProfil.mockReturnValue({
         ...defaultMockData,
@@ -130,20 +130,31 @@ describe('FavoriteButton', () => {
       } as any);
 
       rerender(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
-      expect(screen.queryByTestId('plus-icon')).not.toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
+      expect(screen.queryByTestId('empty-heart-icon')).not.toBeInTheDocument();
     });
 
     it('should render icon with text-white class', () => {
       render(<FavoriteButton movieId="movie-1" />);
-      const icon = screen.getByTestId('plus-icon');
+      const icon = screen.getByTestId('empty-heart-icon');
       expect(icon).toHaveClass('text-white');
     });
 
     it('should render icon with size 20', () => {
       render(<FavoriteButton movieId="movie-1" />);
-      const icon = screen.getByTestId('plus-icon');
+      const icon = screen.getByTestId('empty-heart-icon');
       expect(icon.getAttribute('data-size')).toBe('20');
+    });
+
+    it('should render the filled heart in red', () => {
+      mockUseCurrentProfil.mockReturnValue({
+        ...defaultMockData,
+        data: { ...defaultMockData.data, favoriteIds: ['movie-1'] },
+      } as any);
+
+      render(<FavoriteButton movieId="movie-1" />);
+
+      expect(screen.getByTestId('filled-heart-icon')).toHaveClass('text-red-500');
     });
   });
 
@@ -182,6 +193,19 @@ describe('FavoriteButton', () => {
       rerender(<FavoriteButton movieId="movie-1" />);
       expect(screen.getByRole('button', { name: /Remove from favorites/ })).toBeInTheDocument();
     });
+
+    it('should expose the favorite state with aria-pressed', () => {
+      const { rerender } = render(<FavoriteButton movieId="movie-1" />);
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+
+      mockUseCurrentProfil.mockReturnValue({
+        ...defaultMockData,
+        data: { ...defaultMockData.data, favoriteIds: ['movie-1'] },
+      } as any);
+
+      rerender(<FavoriteButton movieId="movie-1" />);
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 
   describe('Props Handling', () => {
@@ -217,7 +241,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
 
     it('should detect movie as not favorite when movieId not in list', () => {
@@ -227,7 +251,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
 
     it('should detect movie as favorite when movieId in list', () => {
@@ -237,7 +261,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
     });
 
     it('should detect movie as favorite when movieId in long list', () => {
@@ -250,7 +274,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-3" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
     });
 
     it('should handle undefined favoriteIds', () => {
@@ -260,7 +284,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
 
     it('should handle null profil data', () => {
@@ -270,7 +294,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
   });
 
@@ -608,7 +632,7 @@ describe('FavoriteButton', () => {
 
     it('should handle profil data changes', async () => {
       const { rerender } = render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
 
       mockUseCurrentProfil.mockReturnValue({
         data: { id: 'profil-1', favoriteIds: ['movie-1'], name: 'Test' },
@@ -616,7 +640,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       rerender(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
     });
   });
 
@@ -645,7 +669,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-5000" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
     });
 
     it('should handle case-sensitive movieId matching', () => {
@@ -655,7 +679,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
 
     it('should update correctly when movieId changes', async () => {
@@ -665,7 +689,7 @@ describe('FavoriteButton', () => {
       } as any);
 
       const { rerender } = render(<FavoriteButton movieId="movie-1" />);
-      expect(screen.getByTestId('check-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('filled-heart-icon')).toBeInTheDocument();
 
       mockUseCurrentProfil.mockReturnValue({
         data: { id: 'profil-1', favoriteIds: ['movie-1'], name: 'Test' },
@@ -674,7 +698,7 @@ describe('FavoriteButton', () => {
       mockUseFavorites.mockReturnValue(defaultMockFavorites as any);
 
       rerender(<FavoriteButton movieId="movie-2" />);
-      expect(screen.getByTestId('plus-icon')).toBeInTheDocument();
+      expect(screen.getByTestId('empty-heart-icon')).toBeInTheDocument();
     });
   });
 

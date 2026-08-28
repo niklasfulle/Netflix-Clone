@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import InfoModal from '@/components/InfoModal';
 import Navbar from '@/components/Navbar';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 import useFavorites from '@/hooks/useFavorites';
@@ -18,6 +19,7 @@ export default function MyListPage() {
     useFavorites();
   const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
+  const { t } = useLanguage();
   const router = useRouter();
 
   if (profil == undefined) {
@@ -34,7 +36,7 @@ export default function MyListPage() {
       <Navbar />
       <div className="pt-40 pb-40 h-lvh">
         <SearchList
-          title="My List"
+          title={t('Favorites')}
           data={favoriteMovies}
           isLoading={isLoadingFavorites}
         />

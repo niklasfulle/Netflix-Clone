@@ -1,4 +1,5 @@
 #!/bin/sh
+# Keep LF line endings so Linux can execute this shebang after Ansible copies it.
 set -eu
 
 if [ "$#" -ne 2 ]; then

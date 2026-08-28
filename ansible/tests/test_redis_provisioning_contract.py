@@ -78,6 +78,21 @@ class RedisComposeContractTests(unittest.TestCase):
 
 
 class RedisAnsibleContractTests(unittest.TestCase):
+    def test_secret_provisioner_is_linux_executable(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(
+            encoding="utf-8"
+        )
+        helper = (
+            ROOT / "ansible" / "files" / "provision-redis-secrets.sh"
+        ).read_bytes()
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+
+        self.assertIn('dest: "{{ redis_secret_provisioner_path }}"', playbook)
+        self.assertIn('- "{{ redis_secret_provisioner_path }}"', playbook)
+        self.assertTrue(helper.startswith(b"#!"))
+        self.assertNotIn(b"\r\n", helper)
+        self.assertIn("ansible/files/*.sh text eol=lf", attributes)
+
     def test_template_matches_the_runtime_isolation_contract(self):
         template = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(
             encoding="utf-8"

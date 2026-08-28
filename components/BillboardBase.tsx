@@ -88,20 +88,20 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
         <div className="h-full w-full bg-zinc-900" aria-hidden="true" />
       )}
       <div
-        className="absolute top-[50%] md:top-[40%] ml-4 md:ml-16 max-w-[60%]"
+        className="absolute bottom-4 md:bottom-auto md:top-[40%] ml-4 md:ml-16 max-w-[60%]"
         data-testid="billboard-content"
       >
-         <p className="w-full font-bold text-white text-2xl md:text-5xl lg:text-6xl drop-shadow-xl overflow-hidden text-ellipsis line-clamp-2">
+         <p className="w-full overflow-hidden text-ellipsis line-clamp-1 sm:line-clamp-2 font-bold text-white text-xl sm:text-2xl md:text-5xl lg:text-6xl drop-shadow-xl">
           {data?.title}
         </p>
         {data?.description != "test" && (
-          <p className="text-white text-[8px] text-lg mt-3 md:mt-8 w-[90%] md:w-[80%] lg:w-[90%] drop-shadow-xl overflow-hidden text-ellipsis line-clamp-3 max-h-20">
+          <p className="mt-3 w-[90%] overflow-hidden text-ellipsis line-clamp-2 max-h-20 text-xs text-white drop-shadow-xl sm:text-sm md:mt-8 md:w-[80%] md:text-lg md:line-clamp-3 lg:w-[90%]">
             {data?.description?.substring(0, 250)}
             {(data?.description?.length ?? 0) >= 140 && "..."}
           </p>
         )}
         {!isLoading && data?.id && (
-          <div className="flex flex-row items-center gap-3 mt-3 md:mt-4 z-10">
+          <div className="flex shrink-0 flex-row items-center gap-3 mt-3 md:mt-4 z-10">
             <BillboardPlayButton movieId={data.id} />
             <BillboardInfoButton movieId={data.id} />
           </div>

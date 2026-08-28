@@ -179,7 +179,7 @@ describe('Navbar Component', () => {
 
       expect(screen.getByText('Startseite')).toBeInTheDocument();
       expect(screen.getByText('Filme')).toBeInTheDocument();
-      expect(screen.getByText('Meine Liste')).toBeInTheDocument();
+      expect(screen.getByText('Favoriten')).toBeInTheDocument();
       expect(screen.getByText('Durchsuchen')).toBeInTheDocument();
     });
 
@@ -188,7 +188,7 @@ describe('Navbar Component', () => {
       expect(screen.getByTestId('navbar-item-home')).toBeTruthy();
       expect(screen.getByTestId('navbar-item-movies')).toBeTruthy();
       expect(screen.getByTestId('navbar-item-series')).toBeTruthy();
-      expect(screen.getByTestId('navbar-item-my list')).toBeTruthy();
+      expect(screen.getByTestId('navbar-item-favorites')).toBeTruthy();
       expect(screen.getByTestId('navbar-item-playlists')).toBeTruthy();
       expect(screen.getByTestId('navbar-item-watchlist')).toBeTruthy();
       expect(screen.getByTestId('navbar-item-random')).toBeTruthy();
@@ -212,10 +212,10 @@ describe('Navbar Component', () => {
       expect(seriesItem.getAttribute('href')).toBe('/series');
     });
 
-    test('should have correct href for MyList item', () => {
+    test('should have correct href for Favorites item', () => {
       render(<Navbar />);
-      const myListItem = screen.getByTestId('navbar-item-my list');
-      expect(myListItem.getAttribute('href')).toBe('/mylist');
+      const favoritesItem = screen.getByTestId('navbar-item-favorites');
+      expect(favoritesItem.getAttribute('href')).toBe('/mylist');
     });
 
     test('should have correct href for Playlists item', () => {
@@ -241,7 +241,7 @@ describe('Navbar Component', () => {
       expect(screen.getByText('Home')).toBeTruthy();
       expect(screen.getByText('Movies')).toBeTruthy();
       expect(screen.getByText('Series')).toBeTruthy();
-      expect(screen.getByText('My List')).toBeTruthy();
+      expect(screen.getByText('Favorites')).toBeTruthy();
       expect(screen.getByText('Playlists')).toBeTruthy();
       expect(screen.getByText('Watchlist')).toBeTruthy();
       expect(screen.getByText('Random')).toBeTruthy();

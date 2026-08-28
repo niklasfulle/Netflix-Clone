@@ -142,10 +142,10 @@ describe("MyListPage", () => {
       expect(mainDiv).toBeInTheDocument();
     });
 
-    it("renders SearchList with 'My List' title", () => {
+    it("renders SearchList with 'Favorites' title", () => {
       render(<MyListPage />);
 
-      expect(screen.getByTestId("search-list-title")).toHaveTextContent("My List");
+      expect(screen.getByTestId("search-list-title")).toHaveTextContent("Favorites");
     });
   });
 
