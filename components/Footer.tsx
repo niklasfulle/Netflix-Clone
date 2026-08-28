@@ -3,8 +3,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { APP_VERSION } from "@/lib/version";
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 const Footer = () => {
+  const { t } = useLanguage();
   const [year, setYear] = useState(2026);
 
   useEffect(() => {
@@ -15,15 +17,15 @@ const Footer = () => {
     <div className="w-full flex flex-col md:flex-row gap-2 md:gap-10 p-2 md:p-3 justify-center items-center bg-zinc-800">
       <div className=" text-zinc-400 text-xs md:text-sm text-center md:text-left">
         <p>
-          &copy; {year} Copyright:{" "}
+          &copy; {year} {t('Copyright:')}{" "}
           <span className="text-zinc-200">Niklas Fulle</span>
         </p>
       </div>
       <div className=" text-zinc-400 text-xs md:text-sm text-center md:text-left">
-        Version: <span className="text-zinc-200">{APP_VERSION}</span>
+        {t('Version:')} <span className="text-zinc-200">{APP_VERSION}</span>
       </div>
       <div className=" text-zinc-200 text-xs md:text-sm underline hover:text-zinc-400 text-center md:text-left">
-        <Link href="/changelog">Change Log</Link>
+        <Link href="/changelog">{t('Change Log')}</Link>
       </div>
       <LanguageSwitcher />
     </div>

@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { AiOutlineInfoCircle } from 'react-icons/ai';
 
 import useInfoModal from '@/hooks/useInfoModal';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface BillboardInfoButtonProps {
   movieId: string;
@@ -11,6 +12,7 @@ const BillboardInfoButton: React.FC<BillboardInfoButtonProps> = ({
   movieId,
 }) => {
   const { openModal } = useInfoModal();
+  const { t } = useLanguage();
 
   const handleOpenModal = useCallback(() => {
     openModal(movieId);
@@ -19,6 +21,7 @@ const BillboardInfoButton: React.FC<BillboardInfoButtonProps> = ({
   return (
     <button
       onClick={handleOpenModal}
+      aria-label={t('More info')}
       className="flex flex-row items-center justify-center p-0 md:p-2 text-md h-10 md:h-auto w-10 md:w-auto text-white font-semibold transition bg-white/30 rounded-full md:rounded-md cursor-pointer lg:text-lg hover:bg-neutral-400/30"
     >
       <AiOutlineInfoCircle
@@ -29,7 +32,7 @@ const BillboardInfoButton: React.FC<BillboardInfoButtonProps> = ({
         size={30}
         className="m-1 md:m-0 md:mr-2 md:hidden block"
       />
-      <p className="hidden md:block">More info</p>
+      <p className="hidden md:block">{t('More info')}</p>
     </button>
   );
 };

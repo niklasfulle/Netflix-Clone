@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SearchItem from '../SearchItem';
 import { useRouter } from 'next/navigation';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -29,6 +30,17 @@ describe('SearchItem', () => {
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
     });
+  });
+
+  it('localizes the mobile search controls in German', () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <SearchItem />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole('searchbox')).toHaveAttribute('placeholder', 'Suchen');
+    expect(screen.getByRole('button', { name: 'Suchen' })).toBeInTheDocument();
   });
 
   describe('Rendering', () => {

@@ -58,6 +58,20 @@ describe('staging catalog seed', () => {
     ))).toBe(true);
   });
 
+  it('provides ten published movies for one actor to exercise long catalog rows', () => {
+    const catalog = buildStagingCatalog(environment);
+    const averyStone = catalog.actors.find((actor) => (
+      actor.name === '[STAGING] Avery Stone'
+    ));
+    const publishedMovies = catalog.movies.filter((movie) => (
+      movie.type === 'Movie'
+      && movie.status === 'PUBLISHED'
+      && movie.actorIds.includes(averyStone.id)
+    ));
+
+    expect(publishedMovies).toHaveLength(10);
+  });
+
   it('rejects production and databases without a staging name', async () => {
     const { db } = createDatabase();
 
@@ -79,13 +93,13 @@ describe('staging catalog seed', () => {
 
     await expect(seedStagingCatalog({ db, environment })).resolves.toEqual({
       seededActors: 4,
-      seededMovies: 6,
+      seededMovies: 14,
     });
 
     expect(transaction.actor.upsert).toHaveBeenCalledTimes(4);
-    expect(transaction.movie.upsert).toHaveBeenCalledTimes(6);
-    expect(transaction.movieActor.deleteMany).toHaveBeenCalledTimes(6);
-    expect(transaction.movieActor.createMany).toHaveBeenCalledTimes(6);
+    expect(transaction.movie.upsert).toHaveBeenCalledTimes(14);
+    expect(transaction.movieActor.deleteMany).toHaveBeenCalledTimes(14);
+    expect(transaction.movieActor.createMany).toHaveBeenCalledTimes(14);
   });
 
   it('requires at least one configured staging genre', () => {

@@ -110,7 +110,7 @@ const Navbar = () => {
               <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
                 <Image
                   src={`/images/profil/${profilImg}`}
-                  alt="Profile"
+                  alt={t('Profile')}
                   width={320}
                   height={320}
                   loading="eager"

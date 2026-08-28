@@ -12,8 +12,10 @@ import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
 import useContinueWatching from '@/hooks/useContinueWatching';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function Home() {
+  const { t } = useLanguage();
   const { isOpen, closeModal } = useInfoModal();
   const { data: newMovies = [], isLoading: isLoadingNewMovieList } =
     useNewMovieList();
@@ -34,19 +36,19 @@ export default function Home() {
       <Billboard />
       <div className="pb-12 min-h-screen">
         <MovieList
-          title="Continue Watching"
+          title={t('Continue Watching')}
           data={continueWatching}
           isLoading={isLoadingContinueWatching}
         />
         <MovieList
-          title="New"
+          title={t('New')}
           data={newMovies}
           isLoading={isLoadingNewMovieList}
         />
-        <Row title="Movies" data={movies} isLoading={isLoadingMovieList} />
-        <Row title="Series" data={series} isLoading={isLoadingSeriesList} />
+        <Row title={t('Movies')} data={movies} isLoading={isLoadingMovieList} />
+        <Row title={t('Series')} data={series} isLoading={isLoadingSeriesList} />
         <Row
-          title="Favorites"
+          title={t('Favorites')}
           data={favoriteMovies}
           isLoading={isLoadingFavorites}
         />

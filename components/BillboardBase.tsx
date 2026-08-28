@@ -5,6 +5,7 @@ import BillboardInfoButton from '@/components/BillboardInfoButton';
 import BillboardPlayButton from '@/components/BillboardPlayButton';
 import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
 import { useBillboardVideoAvailability } from '@/hooks/useBillboardVideoAvailability';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface BillboardBaseProps {
   data?: CatalogItemDto | null;
@@ -15,6 +16,7 @@ interface BillboardBaseProps {
 const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority }) => {
   const [isDesktop, setIsDesktop] = useState(true);
   const [videoFailed, setVideoFailed] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const checkWindowSize = () => {
@@ -80,7 +82,7 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
           src={data?.thumbnailUrl ?? ''}
           height={1080}
           width={1920}
-          alt="Thumbnail"
+          alt={t('Thumbnail')}
           loading={priority ? 'eager' : 'lazy'}
         />
       )}

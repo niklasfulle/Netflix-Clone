@@ -3,6 +3,7 @@ import React from 'react';
 
 import MovieCard from './MovieCard';
 import type { CatalogCardDto } from '@/lib/catalog';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface MovieListProps {
   data: CatalogCardDto[];
@@ -11,6 +12,7 @@ interface MovieListProps {
 }
 
 const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading }) => {
+  const { message } = useLanguage();
   if (isEmpty(data) && !isLoading) {
     return null;
   }
@@ -23,7 +25,7 @@ const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading }) => {
         <div className="grid grid-cols-2 gap-2 mt-4 lg:grid-cols-4 md:gap-4">
           {isEmpty(data) ? (
             <output
-              aria-label={`${title} is loading`}
+              aria-label={message('sectionLoading', { name: title })}
               className="col-span-2 h-48 animate-pulse rounded-lg bg-zinc-900 lg:col-span-4"
             />
           ) : (

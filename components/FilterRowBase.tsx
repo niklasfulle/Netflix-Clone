@@ -152,7 +152,8 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
           <div
             ref={rowRef}
             onScroll={updateScrollState}
-            className="flex items-center h-44 space-x-0.5 overflow-x-auto overscroll-x-contain touch-pan-x snap-x snap-mandatory md:space-x-2.5 md:overflow-x-hidden md:snap-none scrollbar-hide"
+            style={{ scrollbarWidth: 'none' }}
+            className="flex items-center h-44 space-x-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x snap-x snap-mandatory md:space-x-2.5 md:overflow-x-hidden md:snap-none [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0"
           >
             {movies.map((movie) => (
               <div key={movie.id} className="shrink-0 snap-start">

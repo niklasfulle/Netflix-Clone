@@ -45,6 +45,21 @@ function buildStagingCatalog(environment) {
     thumbnailUrl: '/images/hero.jpg',
     duration: '00:10',
   };
+  const averyCollection = Array.from({ length: 8 }, (_, index) => {
+    const number = index + 1;
+
+    return {
+      ...common,
+      id: `staging-avery-movie-${number}`,
+      title: `[STAGING] Avery Movie ${String(number).padStart(2, '0')}`,
+      description: 'Published fixture used to exercise long actor catalog rows and mobile scrolling.',
+      videoUrl: 'staging-player-movie.mp4',
+      type: 'Movie',
+      genre: genreAt(index),
+      status: 'PUBLISHED',
+      actorIds: [ACTORS[0].id],
+    };
+  });
 
   return {
     actors: ACTORS,
@@ -93,6 +108,7 @@ function buildStagingCatalog(environment) {
         status: 'PUBLISHED',
         actorIds: [ACTORS[0].id, ACTORS[3].id],
       },
+      ...averyCollection,
       {
         ...common,
         id: 'staging-draft-movie',

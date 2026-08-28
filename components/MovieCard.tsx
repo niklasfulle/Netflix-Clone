@@ -7,6 +7,7 @@ import MovieCardPlayButton from "./MovieCardPlayButton";
 import RestartButton from "./RestartButton";
 import { useRouter } from "next/navigation";
 import type { CatalogCardDto } from "@/lib/catalog";
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface MovieCardProps {
   data: CatalogCardDto;
@@ -33,6 +34,8 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = 
     calculateBarWidth(data.duration ?? "0", data.watchTime ?? 0) + "%";
   const { openModal } = useInfoModal();
   const router = useRouter();
+  const { message } = useLanguage();
+  const contentTitle = data.title ?? message('untitledContent', {});
 
   const linkToSearch = (actor: string) => {
     if (actor !== "") router.push(`/search/${actor}`);
@@ -113,7 +116,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = 
           type="button"
           onClick={() => data.id && openModal(data.id)}
           className="block w-full rounded-t-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-          aria-label={`Show details for ${data.title ?? 'content'}`}
+          aria-label={message('showDetails', { title: contentTitle })}
         >
           {isLoading && (
             <div className="flex items-center justify-center w-full transition shadow-xl object-cover duration max-w-64 aspect-video rounded-t-md bg-zinc-800">
@@ -132,7 +135,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = 
             <Image
               className="object-cover transition duration shadow-xl rounded-t-md sm:group-hover:opacity-90 w-full h-[24vw] lg:h-[12vw] bg-black"
               src={data.thumbnailUrl ?? '/images/Logo2.png'}
-              alt={`${data.title ?? 'Content'} thumbnail`}
+              alt={message('thumbnailAlt', { title: contentTitle })}
               width={1920}
               height={1080}
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
@@ -156,7 +159,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = 
         <button
           type="button"
           onClick={() => data.id && openModal(data.id)}
-          aria-label={`Show details for ${data.title}`}
+          aria-label={message('showDetails', { title: contentTitle })}
           className="block w-full rounded-t-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500"
         >
           <Image
@@ -182,7 +185,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ data, isLoading = false, eager = 
                   if (data.id) openModal(data.id);
                 }}
                 className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item hover:border-neutral-300"
-                aria-label={`More information about ${data.title}`}
+                aria-label={message('moreInformation', { title: contentTitle })}
               >
                 <FaChevronDown
                   className="text-white sm:group-hover/item:text-neutral-300 mt-0.5"
