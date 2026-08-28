@@ -51,6 +51,38 @@ describe('background job contracts', () => {
     });
   });
 
+  it('accepts a scheduled backup creation request scoped to its environment', () => {
+    expect(parseJobSubmission({
+      name: 'backup.creation.request',
+      version: 1,
+      payload: {
+        scope: 'scheduled',
+        environment: 'production',
+        requestId: '550e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-27T08:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup', id: 'production' },
+      idempotencyKey: 'scheduled-backup-request-123',
+      correlationId: 'request-correlation-123',
+    }).name).toBe('backup.creation.request');
+
+    expect(() => parseJobSubmission({
+      name: 'backup.creation.request',
+      version: 1,
+      payload: {
+        scope: 'scheduled',
+        environment: 'production',
+        requestId: '550e8400-e29b-41d4-a716-446655440000',
+        requestedAt: '2026-08-27T08:00:00.000Z',
+      },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: { type: 'backup', id: 'staging' },
+      idempotencyKey: 'scheduled-backup-request-123',
+      correlationId: 'request-correlation-123',
+    })).toThrow('environment');
+  });
+
   it('accepts a bounded scheduled-backup retention request without host paths', () => {
     expect(parseJobSubmission({
       name: 'backup.retention.cleanup',

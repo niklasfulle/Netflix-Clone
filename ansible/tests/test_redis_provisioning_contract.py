@@ -162,6 +162,33 @@ class RedisAnsibleContractTests(unittest.TestCase):
         self.assertIn("Redis does not require a backup", operations)
         self.assertIn("docs/operations/redis-runtime.md", ansible_readme)
 
+    def test_release_runbook_covers_resilience_and_safe_disablement(self):
+        operations = (ROOT / "docs" / "operations" / "redis-runtime.md").read_text(
+            encoding="utf-8"
+        )
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+
+        for heading in (
+            "## Capacity and alert thresholds",
+            "## Failure drill matrix",
+            "### Latency and reconnect storm",
+            "### Memory pressure and eviction",
+            "### Worker crash and duplicate delivery",
+            "### Stale leases, dead letters, and deployment drain",
+            "## Safe disablement",
+            "## Debugging and evidence collection",
+            "## Release verification",
+        ):
+            self.assertIn(heading, operations)
+
+        self.assertEqual(
+            "node scripts/run-redis-resilience-tests.mjs",
+            package["scripts"]["test:redis-resilience"],
+        )
+        self.assertIn("yarn test:redis-resilience --with-docker", operations)
+        self.assertIn("PostgreSQL", operations)
+        self.assertIn("secret-redaction", operations)
+
 
 if __name__ == "__main__":
     unittest.main()

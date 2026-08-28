@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import useSWR from 'swr';
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import type { Locale, TranslationKey } from '@/lib/i18n/translations';
+
 const statuses = [
   'QUEUED',
   'RUNNING',
@@ -22,6 +25,7 @@ const jobTypes = [
 ] as const;
 
 type JobStatus = typeof statuses[number];
+type Translator = (key: TranslationKey) => string;
 
 type JobItem = {
   id: string;
@@ -80,19 +84,57 @@ function dashboardUrl(status: string, jobType: string, cursor: string | null) {
   return `/api/admin/jobs?${query.toString()}`;
 }
 
-function formatDuration(milliseconds: number | null) {
-  if (milliseconds === null) return 'None';
-  if (milliseconds < 60_000) return `${Math.round(milliseconds / 1_000)} sec`;
-  if (milliseconds < 3_600_000) return `${Math.round(milliseconds / 60_000)} min`;
-  return `${Math.round(milliseconds / 3_600_000)} hr`;
+function formatDuration(milliseconds: number | null, t: Translator) {
+  if (milliseconds === null) return t('None');
+  if (milliseconds < 60_000) return `${Math.round(milliseconds / 1_000)} ${t('sec')}`;
+  if (milliseconds < 3_600_000) return `${Math.round(milliseconds / 60_000)} ${t('min')}`;
+  return `${Math.round(milliseconds / 3_600_000)} ${t('hr')}`;
 }
 
-function formatTimestamp(value: string | null) {
-  if (!value) return 'Not recorded';
-  return new Intl.DateTimeFormat('en', {
+function formatTimestamp(value: string | null, locale: Locale, t: Translator) {
+  if (!value) return t('Not recorded');
+  return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function jobStatusLabel(status: JobStatus, t: Translator) {
+  const labels: Record<JobStatus, TranslationKey> = {
+    QUEUED: 'Queued',
+    RUNNING: 'Running',
+    SUCCEEDED: 'Succeeded',
+    FAILED: 'Failed',
+    CANCEL_REQUESTED: 'Cancellation requested',
+    CANCELLED: 'Cancelled',
+    DEAD_LETTER: 'Dead letter',
+  };
+  return t(labels[status]);
+}
+
+function runtimeLabel(value: string, t: Translator) {
+  const labels: Partial<Record<string, TranslationKey>> = {
+    healthy: 'healthy',
+    unavailable: 'unavailable',
+    ACTIVE: 'ACTIVE',
+    DEGRADED: 'DEGRADED',
+    STOPPING: 'STOPPING',
+  };
+  const key = labels[value];
+  return key ? t(key) : value;
+}
+
+function progressMessageLabel(value: string | null, t: Translator) {
+  if (!value) return t('No progress message');
+  const labels: Partial<Record<string, TranslationKey>> = {
+    'Scanning media': 'Scanning media',
+    'Removing expired backups': 'Removing expired backups',
+    'Restoring backup': 'Restoring backup',
+    'Retry queued': 'Retry queued',
+    Cancelled: 'Cancelled',
+  };
+  const key = labels[value];
+  return key ? t(key) : value;
 }
 
 function domainLink(job: JobItem) {
@@ -111,10 +153,14 @@ const badgeClass: Record<JobStatus, string> = {
   DEAD_LETTER: 'border-red-500/40 bg-red-950/40 text-red-200',
 };
 
-function HealthSummary({ data }: Readonly<{ data: DashboardResponse['health'] }>) {
+function HealthSummary({ data, locale, t }: Readonly<{
+  data: DashboardResponse['health'];
+  locale: Locale;
+  t: Translator;
+}>) {
   const healthy = data.worker.status === 'healthy';
   return (
-    <section aria-label="Job runtime health" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label={t('Job runtime health')} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <div className={`rounded-2xl border p-4 ${healthy
         ? 'border-emerald-500/30 bg-emerald-500/10'
         : 'border-amber-500/30 bg-amber-500/10'}`}
@@ -124,31 +170,31 @@ function HealthSummary({ data }: Readonly<{ data: DashboardResponse['health'] }>
             ? <CheckCircle2 className="h-5 w-5 text-emerald-300" aria-hidden="true" />
             : <AlertTriangle className="h-5 w-5 text-amber-300" aria-hidden="true" />}
           <p className="font-semibold text-zinc-100">
-            Worker {data.worker.status}
+            {t('Worker')} {runtimeLabel(data.worker.status, t)}
           </p>
         </div>
         <p className="mt-2 text-xs text-zinc-400">
-          {data.worker.state} · heartbeat {formatDuration(data.worker.heartbeatAgeMs)} ago
+          {runtimeLabel(data.worker.state, t)} · {t('Heartbeat age')}: {formatDuration(data.worker.heartbeatAgeMs, t)}
         </p>
       </div>
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Queue depth</p>
-        <p className="mt-2 text-xl font-semibold text-white">{data.queue.depth} active jobs</p>
+        <p className="text-xs uppercase tracking-wide text-zinc-500">{t('Queue depth')}</p>
+        <p className="mt-2 text-xl font-semibold text-white">{data.queue.depth} {t('active jobs')}</p>
         <p className="mt-1 text-xs text-zinc-400">
-          Oldest queued: {formatDuration(data.queue.oldestQueuedAgeMs)}
+          {t('Oldest queued')}: {formatDuration(data.queue.oldestQueuedAgeMs, t)}
         </p>
       </div>
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Failures</p>
+        <p className="text-xs uppercase tracking-wide text-zinc-500">{t('Failures')}</p>
         <p className="mt-2 text-xl font-semibold text-white">
           {data.counts.FAILED + data.counts.DEAD_LETTER}
         </p>
-        <p className="mt-1 text-xs text-zinc-400">Failed and dead-letter jobs</p>
+        <p className="mt-1 text-xs text-zinc-400">{t('Failed and dead-letter jobs')}</p>
       </div>
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Completed</p>
+        <p className="text-xs uppercase tracking-wide text-zinc-500">{t('Completed')}</p>
         <p className="mt-2 text-xl font-semibold text-white">{data.counts.SUCCEEDED}</p>
-        <p className="mt-1 text-xs text-zinc-400">Observed {formatTimestamp(data.observedAt)}</p>
+        <p className="mt-1 text-xs text-zinc-400">{t('Observed')} {formatTimestamp(data.observedAt, locale, t)}</p>
       </div>
     </section>
   );
@@ -158,9 +204,11 @@ type JobCardProps = Readonly<{
   job: JobItem;
   pendingAction: string | null;
   onAction: (job: JobItem, method: 'DELETE' | 'POST') => void;
+  locale: Locale;
+  t: Translator;
 }>;
 
-function JobCard({ job, pendingAction, onAction }: JobCardProps) {
+function JobCard({ job, pendingAction, onAction, locale, t }: JobCardProps) {
   const pending = pendingAction === job.id;
   const cancellable = job.status === 'QUEUED' || job.status === 'RUNNING';
   const retryable = job.status === 'FAILED' || job.status === 'DEAD_LETTER';
@@ -170,12 +218,12 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass[job.status]}`}>
-              {job.status.replaceAll('_', ' ')}
+              {jobStatusLabel(job.status, t)}
             </span>
             <code className="break-all text-xs text-zinc-500">{job.id}</code>
           </div>
           <h2 className="mt-3 break-words text-base font-semibold text-zinc-100">{job.jobType}</h2>
-          <p className="mt-1 text-sm text-zinc-400">{job.progressMessage || 'No progress message'}</p>
+          <p className="mt-1 text-sm text-zinc-400">{progressMessageLabel(job.progressMessage, t)}</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {retryable ? (
@@ -183,10 +231,10 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
               type="button"
               disabled={pending}
               onClick={() => onAction(job, 'POST')}
-              aria-label={`Retry job ${job.id}`}
+              aria-label={`${t('Retry job')} ${job.id}`}
               className="min-h-10 rounded-lg border border-red-400/30 px-3 text-sm font-medium text-red-200 hover:bg-red-400/10 disabled:opacity-50"
             >
-              {pending ? 'Retrying…' : 'Retry'}
+              {pending ? t('Retrying…') : t('Retry')}
             </button>
           ) : null}
           {cancellable ? (
@@ -194,10 +242,10 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
               type="button"
               disabled={pending}
               onClick={() => onAction(job, 'DELETE')}
-              aria-label={`Cancel job ${job.id}`}
+              aria-label={`${t('Cancel job')} ${job.id}`}
               className="min-h-10 rounded-lg border border-zinc-600 px-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
             >
-              {pending ? 'Cancelling…' : 'Cancel'}
+              {pending ? t('Cancelling…') : t('Cancel')}
             </button>
           ) : null}
         </div>
@@ -205,10 +253,10 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
 
       <div className="mt-4">
         <div className="mb-1 flex justify-between text-xs text-zinc-400">
-          <span>Progress</span><span>{job.progress}%</span>
+          <span>{t('Progress')}</span><span>{job.progress}%</span>
         </div>
         <progress
-          aria-label={`Progress for job ${job.id}`}
+          aria-label={`${t('Progress for job')} ${job.id}`}
           className="h-2 w-full accent-red-500"
           max={100}
           value={job.progress}
@@ -216,10 +264,10 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
-        <div><dt className="text-xs text-zinc-500">Actor</dt><dd className="break-all text-zinc-200">{job.actor.userId}</dd></div>
-        <div><dt className="text-xs text-zinc-500">Target</dt><dd className="break-all text-zinc-200">{job.target.type}:{job.target.id}</dd></div>
-        <div><dt className="text-xs text-zinc-500">Attempts</dt><dd className="text-zinc-200">{job.attemptCount}</dd></div>
-        <div><dt className="text-xs text-zinc-500">Accepted</dt><dd className="text-zinc-200">{formatTimestamp(job.acceptedAt)}</dd></div>
+        <div><dt className="text-xs text-zinc-500">{t('Actor')}</dt><dd className="break-all text-zinc-200">{job.actor.userId}</dd></div>
+        <div><dt className="text-xs text-zinc-500">{t('Target')}</dt><dd className="break-all text-zinc-200">{job.target.type}:{job.target.id}</dd></div>
+        <div><dt className="text-xs text-zinc-500">{t('Attempts')}</dt><dd className="text-zinc-200">{job.attemptCount}</dd></div>
+        <div><dt className="text-xs text-zinc-500">{t('Accepted')}</dt><dd className="text-zinc-200">{formatTimestamp(job.acceptedAt, locale, t)}</dd></div>
       </dl>
 
       {job.failure ? (
@@ -234,10 +282,10 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
           href={`/admin/audit?correlationId=${encodeURIComponent(job.correlationId)}`}
           className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200"
         >
-          Open audit event <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          {t('Open audit event')} <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
         <Link href={domainLink(job)} className="inline-flex items-center gap-1 text-zinc-300 hover:text-white">
-          Open operation result <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          {t('Open operation result')} <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       </div>
     </article>
@@ -245,6 +293,7 @@ function JobCard({ job, pendingAction, onAction }: JobCardProps) {
 }
 
 export function JobOperationsDashboard() {
+  const { locale, t } = useLanguage();
   const [status, setStatus] = useState('');
   const [jobType, setJobType] = useState('');
   const [cursor, setCursor] = useState<string | null>(null);
@@ -277,31 +326,31 @@ export function JobOperationsDashboard() {
 
   return (
     <div className="space-y-5">
-      {data ? <HealthSummary data={data.health} /> : null}
+      {data ? <HealthSummary data={data.health} locale={locale} t={t} /> : null}
 
-      <section aria-label="Job filters" className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <section aria-label={t('Job filters')} className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:max-w-3xl">
           <label className="text-sm text-zinc-300">
-            <span className="mb-1 block text-xs text-zinc-500">Job status</span>
+            <span className="mb-1 block text-xs text-zinc-500">{t('Job status')}</span>
             <select
-              aria-label="Job status"
+              aria-label={t('Job status')}
               value={status}
               onChange={(event) => { setStatus(event.target.value); resetPagination(); }}
               className="min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
             >
-              <option value="">All statuses</option>
-              {statuses.map((value) => <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
+              <option value="">{t('All statuses')}</option>
+              {statuses.map((value) => <option key={value} value={value}>{jobStatusLabel(value, t)}</option>)}
             </select>
           </label>
           <label className="text-sm text-zinc-300">
-            <span className="mb-1 block text-xs text-zinc-500">Job type</span>
+            <span className="mb-1 block text-xs text-zinc-500">{t('Job type')}</span>
             <select
-              aria-label="Job type"
+              aria-label={t('Job type')}
               value={jobType}
               onChange={(event) => { setJobType(event.target.value); resetPagination(); }}
               className="min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
             >
-              <option value="">All job types</option>
+              <option value="">{t('All job types')}</option>
               {jobTypes.map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
@@ -310,7 +359,7 @@ export function JobOperationsDashboard() {
 
       {isLoading ? (
         <output className="flex items-center gap-2 rounded-xl border border-zinc-800 p-5 text-zinc-400">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading background jobs…
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {t('Loading background jobs…')}
         </output>
       ) : null}
       {error ? (
@@ -321,17 +370,17 @@ export function JobOperationsDashboard() {
       {actionError ? <div role="alert" className="text-sm text-red-300">{actionError}</div> : null}
       {data?.items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-700 p-8 text-center text-zinc-400">
-          No background jobs match these filters.
+          {t('No background jobs match these filters.')}
         </div>
       ) : null}
       <div className="grid gap-4">
         {data?.items.map((job) => (
-          <JobCard key={job.id} job={job} pendingAction={pendingAction} onAction={performAction} />
+          <JobCard key={job.id} job={job} pendingAction={pendingAction} onAction={performAction} locale={locale} t={t} />
         ))}
       </div>
 
       {data ? (
-        <nav aria-label="Job pages" className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-4">
+        <nav aria-label={t('Job pages')} className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-4">
           <button
             type="button"
             disabled={history.length === 0}
@@ -342,14 +391,14 @@ export function JobOperationsDashboard() {
             }}
             className="min-h-10 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-200 disabled:opacity-40"
           >
-            Previous
+            {t('Previous')}
           </button>
           <button
             type="button"
             onClick={() => void mutate()}
             className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-200"
           >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh
+            <RefreshCw className="h-4 w-4" aria-hidden="true" /> {t('Refresh')}
           </button>
           <button
             type="button"
@@ -360,7 +409,7 @@ export function JobOperationsDashboard() {
             }}
             className="min-h-10 rounded-lg border border-zinc-700 px-3 text-sm text-zinc-200 disabled:opacity-40"
           >
-            Next
+            {t('Next')}
           </button>
         </nav>
       ) : null}

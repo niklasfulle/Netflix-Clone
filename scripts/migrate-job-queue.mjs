@@ -24,8 +24,17 @@ try {
       deadLetter: 'backup.verification.request.dead',
     },
     {
+      name: 'backup.creation.request',
+      deadLetter: 'backup.creation.request.dead',
+      expireInSeconds: 30 * 60,
+    },
+    {
       name: 'backup.retention.cleanup',
       deadLetter: 'backup.retention.cleanup.dead',
+    },
+    {
+      name: 'weekly.schedule.tick',
+      deadLetter: 'weekly.schedule.tick.dead',
     },
   ];
 
@@ -42,7 +51,7 @@ try {
       retryDelay: 5,
       retryBackoff: true,
       retryDelayMax: 60,
-      expireInSeconds: 15 * 60,
+      expireInSeconds: definition.expireInSeconds ?? 15 * 60,
       retentionSeconds: 24 * 60 * 60,
       deleteAfterSeconds: 7 * 24 * 60 * 60,
       heartbeatSeconds: 30,

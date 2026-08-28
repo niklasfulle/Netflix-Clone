@@ -43,6 +43,18 @@ type WorkerHandlers = {
       reportProgress(progress: JobProgress): Promise<void>;
     },
   ): Promise<unknown>;
+  backupCreation?(
+    payload: {
+      scope: 'scheduled';
+      environment: 'staging' | 'production';
+      requestId: string;
+      requestedAt: string;
+    },
+    context: {
+      signal?: AbortSignal;
+      reportProgress(progress: JobProgress): Promise<void>;
+    },
+  ): Promise<unknown>;
   backupRetention?(
     payload: {
       scope: 'scheduled';
@@ -106,6 +118,12 @@ async function dispatchJob(
       throw new PermanentJobError('No handler is registered for this job contract');
     }
     return handlers.backupVerification(job.payload, context);
+  }
+  if (job.name === JOB_NAMES.backupCreation) {
+    if (!handlers.backupCreation) {
+      throw new PermanentJobError('No handler is registered for this job contract');
+    }
+    return handlers.backupCreation(job.payload, context);
   }
   if (!handlers.backupRetention) {
     throw new PermanentJobError('No handler is registered for this job contract');

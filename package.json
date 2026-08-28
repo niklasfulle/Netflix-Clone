@@ -18,6 +18,7 @@
     "test:admin-audit-integration": "node --env-file=.env.e2e.local scripts/run-admin-audit-integration-tests.mjs",
     "test:media-integrity-integration": "node --env-file=.env.e2e.local scripts/run-media-integrity-integration-tests.mjs",
     "test:redis-integration": "node scripts/run-redis-runtime-integration-tests.mjs",
+    "test:redis-resilience": "node scripts/run-redis-resilience-tests.mjs",
     "test:e2e": "playwright test",
     "test:e2e:desktop": "playwright test --project=desktop",
     "test:e2e:mobile": "playwright test --project=mobile"

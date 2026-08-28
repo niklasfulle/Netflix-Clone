@@ -182,4 +182,41 @@ describeIntegration('RedisRuntime with a real Redis server', () => {
       reason: 'closed',
     });
   });
+
+  it('evicts expendable keys and remains healthy under memory pressure', async () => {
+    expect(containerName).not.toBe('');
+    expect(url).not.toBe('');
+
+    const runtime = createRedisRuntime({
+      environment: 'integration',
+      url,
+      connectTimeoutMs: 500,
+      commandTimeoutMs: 500,
+    });
+    try {
+      const payload = { data: 'x'.repeat(48 * 1024) };
+      let evictedKeys = 0;
+
+      for (let index = 0; index < 256 && evictedKeys === 0; index += 1) {
+        const key = runtime.key('memory-pressure', 1, [`entry-${index}`]);
+        await expect(runtime.set(key, payload, { ttlSeconds: 60 })).resolves.toMatchObject({
+          status: 'ok',
+        });
+        if (index % 8 === 7) {
+          const stats = docker('exec', containerName, 'redis-cli', 'INFO', 'stats');
+          evictedKeys = Number(/^evicted_keys:(\d+)$/m.exec(stats)?.[1] ?? 0);
+        }
+      }
+
+      expect(evictedKeys).toBeGreaterThan(0);
+      expect(Number(docker('exec', containerName, 'redis-cli', 'DBSIZE'))).toBeLessThan(256);
+      await expect(runtime.health()).resolves.toMatchObject({
+        status: 'ok',
+        connected: true,
+        circuit: 'closed',
+      });
+    } finally {
+      await runtime.close();
+    }
+  });
 });

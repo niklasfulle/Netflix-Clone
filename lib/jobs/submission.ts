@@ -120,6 +120,9 @@ function deadLetterName(jobName: JobSubmission['name']): string {
   if (jobName === JOB_NAMES.backupVerification) {
     return JOB_NAMES.backupVerificationDeadLetter;
   }
+  if (jobName === JOB_NAMES.backupCreation) {
+    return JOB_NAMES.backupCreationDeadLetter;
+  }
   if (jobName === JOB_NAMES.backupRetentionCleanup) {
     return JOB_NAMES.backupRetentionCleanupDeadLetter;
   }
@@ -137,13 +140,14 @@ export function jobQueueOptions({
   singletonKey: string;
   database: QueueSendOptions['db'];
 }): QueueSendOptions {
+  const expireInSeconds = jobName === JOB_NAMES.backupCreation ? 30 * 60 : 15 * 60;
   return {
     id: queueJobId,
     retryLimit: 3,
     retryDelay: 5,
     retryBackoff: true,
     retryDelayMax: 60,
-    expireInSeconds: 15 * 60,
+    expireInSeconds,
     retentionSeconds: 24 * 60 * 60,
     deleteAfterSeconds: 7 * 24 * 60 * 60,
     heartbeatSeconds: 30,

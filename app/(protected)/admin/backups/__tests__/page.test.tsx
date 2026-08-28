@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import AdminBackupsPage from "../page";
 
 jest.mock("@/components/admin/BackupVerificationPanel", () => ({
@@ -23,6 +24,20 @@ describe("admin backups page", () => {
     expect(screen.getByRole("heading", { name: "Create Backup" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Restore Backup" })).toBeInTheDocument();
     expect(screen.getByText("Not Included")).toBeInTheDocument();
+  });
+
+  it("renders database backup controls in German", () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <AdminBackupsPage />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Datenbank-Backups" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Backup erstellen" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Backup wiederherstellen" })).toBeInTheDocument();
+    expect(screen.getByText("Nicht enthalten")).toBeInTheDocument();
+    expect(screen.queryByText("Database Backups")).not.toBeInTheDocument();
   });
 
   it("validates the create password before requesting an archive", () => {

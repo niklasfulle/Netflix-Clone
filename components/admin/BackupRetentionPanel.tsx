@@ -4,8 +4,12 @@ import { AlertTriangle, CheckCircle2, DatabaseBackup, Loader2 } from 'lucide-rea
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import type { TranslationKey } from '@/lib/i18n/translations';
+
 const endpoint = '/api/admin/backups/retention';
 const activeJobStorageKey = 'admin:backup-retention:active-job';
+type Translator = (key: TranslationKey) => string;
 
 type JobStatusDto = {
   id: string;
@@ -34,16 +38,26 @@ async function jobStatusFetcher(url: string): Promise<JobStatusDto> {
   return responseJson(await fetch(url, { cache: 'no-store' }));
 }
 
-function jobMessage(job: JobStatusDto): string {
+function localizedProgressMessage(message: string | null, t: Translator) {
+  if (!message) return t('Retention cleanup in progress');
+  const labels: Partial<Record<string, TranslationKey>> = {
+    'Removing expired backups': 'Removing expired backups',
+    Cancelled: 'Cancelled',
+  };
+  const key = labels[message];
+  return key ? t(key) : message;
+}
+
+function jobMessage(job: JobStatusDto, t: Translator): string {
   if (job.status === 'QUEUED') {
-    return 'Retention cleanup queued. Progress is recorded as a background job.';
+    return t('Retention cleanup queued. Progress is recorded as a background job.');
   }
-  if (job.status === 'SUCCEEDED') return 'Retention cleanup completed.';
-  if (job.status === 'CANCELLED') return 'Retention cleanup cancelled.';
-  if (job.status === 'CANCEL_REQUESTED') return 'Cancellation requested.';
-  if (job.status === 'FAILED') return 'Retention cleanup failed.';
-  if (job.status === 'DEAD_LETTER') return 'Retention cleanup exhausted its retries.';
-  return `${job.progressMessage || 'Retention cleanup in progress'} · ${job.progress}%`;
+  if (job.status === 'SUCCEEDED') return t('Retention cleanup completed.');
+  if (job.status === 'CANCELLED') return t('Retention cleanup cancelled.');
+  if (job.status === 'CANCEL_REQUESTED') return t('Cancellation requested.');
+  if (job.status === 'FAILED') return t('Retention cleanup failed.');
+  if (job.status === 'DEAD_LETTER') return t('Retention cleanup exhausted its retries.');
+  return `${localizedProgressMessage(job.progressMessage, t)} · ${job.progress}%`;
 }
 
 function jobStatusUrl(jobRunId: string | null) {
@@ -70,6 +84,7 @@ type RetentionJobFeedbackProps = Readonly<{
   job: JobStatusDto | undefined;
   message: string;
   onCancel: () => void;
+  t: Translator;
 }>;
 
 function RetentionJobFeedback({
@@ -80,6 +95,7 @@ function RetentionJobFeedback({
   job,
   message,
   onCancel,
+  t,
 }: RetentionJobFeedbackProps) {
   if (!message && !error) return null;
 
@@ -100,7 +116,7 @@ function RetentionJobFeedback({
           disabled={cancelling || job.status === 'CANCEL_REQUESTED'}
           className="mt-3 min-h-10 rounded-lg border border-amber-300/30 px-3 text-sm font-medium text-amber-200 hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {cancelling ? 'Cancelling…' : 'Cancel retention cleanup'}
+          {cancelling ? t('Cancelling…') : t('Cancel retention cleanup')}
         </button>
       ) : null}
       {error ? (
@@ -114,6 +130,7 @@ function RetentionJobFeedback({
 }
 
 export function BackupRetentionPanel() {
+  const { t } = useLanguage();
   const [requesting, setRequesting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -151,11 +168,11 @@ export function BackupRetentionPanel() {
       }
       globalThis.sessionStorage.setItem(activeJobStorageKey, accepted.jobRunId);
       setActiveJobId(accepted.jobRunId);
-      setMessage('Retention cleanup queued. Progress is recorded as a background job.');
+      setMessage(t('Retention cleanup queued. Progress is recorded as a background job.'));
     } catch (error_) {
       setError(error_ instanceof Error
         ? error_.message
-        : 'Backup retention cleanup could not be queued.');
+        : t('Backup retention cleanup could not be queued.'));
     } finally {
       setRequesting(false);
     }
@@ -171,18 +188,18 @@ export function BackupRetentionPanel() {
         { method: 'DELETE' },
       ));
       await mutateActiveJob(cancelled, { revalidate: false });
-      setMessage('Retention cleanup cancelled.');
+      setMessage(t('Retention cleanup cancelled.'));
     } catch (error_) {
       setError(error_ instanceof Error
         ? error_.message
-        : 'Retention cleanup could not be cancelled.');
+        : t('Retention cleanup could not be cancelled.'));
     } finally {
       setCancelling(false);
     }
   };
 
   const visibleError = error || activeJobError?.message || activeJob?.errorMessage || '';
-  const visibleMessage = activeJob ? jobMessage(activeJob) : message;
+  const visibleMessage = activeJob ? jobMessage(activeJob, t) : message;
   const jobFailed = isFailedJob(activeJob);
 
   return (
@@ -193,9 +210,9 @@ export function BackupRetentionPanel() {
             <DatabaseBackup className="h-5 w-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 className="font-semibold text-white">Scheduled Backup Retention</h2>
+            <h2 className="font-semibold text-white">{t('Scheduled Backup Retention')}</h2>
             <p className="mt-1 max-w-3xl text-sm text-zinc-400">
-              Applies the server-managed retention policy. Minimum copies and protected backups remain enforced on the host.
+              {t('Applies the server-managed retention policy. Minimum copies and protected backups remain enforced on the host.')}
             </p>
           </div>
         </div>
@@ -206,7 +223,7 @@ export function BackupRetentionPanel() {
           className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50 sm:w-auto"
         >
           {requesting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          Run Backup Retention Cleanup
+          {t('Run Backup Retention Cleanup')}
         </button>
       </div>
       <RetentionJobFeedback
@@ -217,6 +234,7 @@ export function BackupRetentionPanel() {
         job={activeJob}
         message={visibleMessage}
         onCancel={cancelCleanup}
+        t={t}
       />
     </section>
   );

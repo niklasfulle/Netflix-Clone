@@ -95,6 +95,7 @@ export type BackupVerificationRequest = {
 
 export type ScheduledBackupStatus = {
   schemaVersion: 1;
+  requestId: string | null;
   environment: 'staging' | 'production';
   backupName: string | null;
   status: 'RUNNING' | 'VERIFIED' | 'FAILED';
@@ -242,6 +243,7 @@ export function parseScheduledBackupStatus(value: unknown): ScheduledBackupStatu
   const backupName = nullableBackupName(value.backupName);
   const checksumSha256 = nullableChecksum(value.checksumSha256);
   const completedAt = nullableDate(value.completedAt);
+  const requestId = value.requestId === undefined ? null : nullableBoundedId(value.requestId);
   const statuses = new Set(['RUNNING', 'VERIFIED', 'FAILED']);
   const diagnosticCodes = new Set([
     'BACKUP_RUNNING',
@@ -253,6 +255,7 @@ export function parseScheduledBackupStatus(value: unknown): ScheduledBackupStatu
   ]);
   if (
     (value.environment !== 'staging' && value.environment !== 'production')
+    || requestId === undefined
     || backupName === undefined
     || checksumSha256 === undefined
     || completedAt === undefined
@@ -263,6 +266,7 @@ export function parseScheduledBackupStatus(value: unknown): ScheduledBackupStatu
   }
   return {
     schemaVersion: 1,
+    requestId,
     environment: value.environment,
     backupName,
     status: value.status as ScheduledBackupStatus['status'],

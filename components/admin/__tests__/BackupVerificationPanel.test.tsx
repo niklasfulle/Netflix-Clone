@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SWRConfig } from 'swr';
 
 import { BackupVerificationPanel } from '@/components/admin/BackupVerificationPanel';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 const verifiedStatus = {
   schemaVersion: 1,
@@ -20,11 +21,13 @@ const verifiedStatus = {
   checks: { publicTableCount: 24, migrationCount: 7, userCount: 3, contentCount: 308 },
 };
 
-function renderPanel() {
+function renderPanel(locale: 'en' | 'de' = 'en') {
   return render(
-    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <BackupVerificationPanel />
-    </SWRConfig>,
+    <LanguageProvider initialLocale={locale}>
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <BackupVerificationPanel />
+      </SWRConfig>
+    </LanguageProvider>,
   );
 }
 
@@ -61,6 +64,19 @@ describe('PostgreSQL backup verification panel', () => {
     expect(screen.getByText('Scheduled backup: Verified')).toBeInTheDocument();
     expect(screen.getByText('scheduled-staging-20260820T031500Z.dump')).toBeInTheDocument();
     expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
+  });
+
+  it('renders backup verification controls in German', async () => {
+    (globalThis.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: null, scheduled: null }),
+    });
+
+    renderPanel('de');
+
+    expect(await screen.findByRole('button', { name: 'Neuestes PostgreSQL-Backup überprüfen' })).toBeInTheDocument();
+    expect(screen.getByText('Noch kein Überprüfungsergebnis verfügbar.')).toBeInTheDocument();
+    expect(screen.queryByText('Verify Latest PostgreSQL Backup')).not.toBeInTheDocument();
   });
 
   it('requests verification of the latest host backup and refreshes its state', async () => {

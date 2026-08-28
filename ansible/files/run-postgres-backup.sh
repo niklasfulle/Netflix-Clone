@@ -6,6 +6,7 @@ set -f
 backup_directory=/root/netflix-database-backups
 status_directory=/var/lib/netflix-backup-status/scheduled
 status_path="$status_directory/latest.json"
+request_path="$status_directory/request.json"
 lock_path=/run/lock/netflix-postgres-backup.lock
 app_environment_file=/root/netflix-secrets/app.env
 backup_helper=/usr/local/lib/netflix-deploy/backup-postgres.sh
@@ -18,8 +19,44 @@ minimum_copies=${POSTGRES_BACKUP_MINIMUM_COPIES:-3}
 daily_days=${POSTGRES_BACKUP_RETENTION_DAILY_DAYS:-7}
 weekly_weeks=${POSTGRES_BACKUP_RETENTION_WEEKLY_WEEKS:-4}
 monthly_months=${POSTGRES_BACKUP_RETENTION_MONTHLY_MONTHS:-6}
+request_id=
 
 mkdir -p "$backup_directory" "$status_directory" /run/lock
+
+case "${DEPLOYMENT_ENVIRONMENT:-}" in
+  staging|production) ;;
+  *) echo "DEPLOYMENT_ENVIRONMENT must be staging or production" >&2; exit 2 ;;
+esac
+
+if [[ -e "$request_path" || -L "$request_path" ]]; then
+  if [[ ! -f "$request_path" || -L "$request_path" ]]; then
+    echo "Scheduled backup request path must be a regular file" >&2
+    exit 2
+  fi
+  if [[ $(stat -c '%s' -- "$request_path") -gt 4096 ]]; then
+    echo "Scheduled backup request is too large" >&2
+    exit 2
+  fi
+  request_id=$(python3 - "$request_path" "$DEPLOYMENT_ENVIRONMENT" <<'PY'
+import json
+import re
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as request_file:
+    request = json.load(request_file)
+request_id = request.get("requestId")
+valid_id = isinstance(request_id, str) and re.fullmatch(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+    request_id,
+    re.IGNORECASE,
+)
+if request.get("schemaVersion") != 1 or request.get("environment") != sys.argv[2] or not valid_id:
+    raise SystemExit("Invalid scheduled backup request")
+print(request_id)
+PY
+  )
+  rm -- "$request_path"
+fi
 
 write_status() {
   local result=$1
@@ -28,7 +65,8 @@ write_status() {
   local checksum=${4:-}
   local completed_at=${5:-}
   local temporary_path="${status_path}.tmp"
-  printf '{"schemaVersion":1,"environment":"%s","backupName":%s,"status":"%s","diagnosticCode":"%s","checksumSha256":%s,"completedAt":%s}\n' \
+  printf '{"schemaVersion":1,"requestId":%s,"environment":"%s","backupName":%s,"status":"%s","diagnosticCode":"%s","checksumSha256":%s,"completedAt":%s}\n' \
+    "$(if [[ -n "$request_id" ]]; then printf '"%s"' "$request_id"; else printf null; fi)" \
     "$DEPLOYMENT_ENVIRONMENT" \
     "$(if [[ -n "$backup_name" ]]; then printf '"%s"' "$backup_name"; else printf null; fi)" \
     "$result" \
@@ -41,10 +79,6 @@ write_status() {
   mv "$temporary_path" "$status_path"
 }
 
-case "${DEPLOYMENT_ENVIRONMENT:-}" in
-  staging|production) ;;
-  *) echo "DEPLOYMENT_ENVIRONMENT must be staging or production" >&2; exit 2 ;;
-esac
 for numeric_value in \
   "$lock_wait_seconds" "$backup_timeout_seconds" "$minimum_copies" \
   "$daily_days" "$weekly_weeks" "$monthly_months"; do

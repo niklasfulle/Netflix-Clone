@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { BackupVerificationPanel } from "@/components/admin/BackupVerificationPanel";
 import { BackupRetentionPanel } from "@/components/admin/BackupRetentionPanel";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const MIN_PASSPHRASE_LENGTH = 12;
 const RESTORE_CONFIRMATION = "RESTORE";
@@ -31,12 +32,13 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function readError(response: Response) {
+async function readError(response: Response, fallback: string) {
   const data = await response.json().catch(() => null);
-  return data?.error || "The backup action failed.";
+  return data?.error || fallback;
 }
 
 export default function AdminBackupsPage() {
+  const { t } = useLanguage();
   const [createPassphrase, setCreatePassphrase] = useState("");
   const [createConfirmation, setCreateConfirmation] = useState("");
   const [restorePassphrase, setRestorePassphrase] = useState("");
@@ -54,11 +56,11 @@ export default function AdminBackupsPage() {
     setError("");
     setCreateMessage("");
     if (createPassphrase.length < MIN_PASSPHRASE_LENGTH) {
-      setError(`The backup password must contain at least ${MIN_PASSPHRASE_LENGTH} characters.`);
+      setError(`${t("The backup password must contain at least")} ${MIN_PASSPHRASE_LENGTH} ${t("characters.")}`);
       return;
     }
     if (createPassphrase !== createConfirmation) {
-      setError("The backup passwords do not match.");
+      setError(t("The backup passwords do not match."));
       return;
     }
 
@@ -69,7 +71,7 @@ export default function AdminBackupsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passphrase: createPassphrase }),
       });
-      if (!response.ok) throw new Error(await readError(response));
+      if (!response.ok) throw new Error(await readError(response, t("The backup action failed.")));
 
       const archive = await response.blob();
       const url = URL.createObjectURL(archive);
@@ -82,13 +84,13 @@ export default function AdminBackupsPage() {
       const records = response.headers.get("X-Backup-Records");
       setCreateMessage(
         records
-          ? `Encrypted backup created with ${records} database records.`
-          : "Encrypted backup created successfully.",
+          ? `${t("Encrypted backup created with")} ${records} ${t("database records.")}`
+          : t("Encrypted backup created successfully."),
       );
       setCreatePassphrase("");
       setCreateConfirmation("");
     } catch (backupError) {
-      setError(backupError instanceof Error ? backupError.message : "The backup could not be created.");
+      setError(backupError instanceof Error ? backupError.message : t("The backup could not be created."));
     } finally {
       setCreating(false);
     }
@@ -98,19 +100,19 @@ export default function AdminBackupsPage() {
     setError("");
     setRestoreMessage("");
     if (!backupFile) {
-      setError("Select a .nfbak backup file.");
+      setError(t("Select a .nfbak backup file."));
       return;
     }
     if (restorePassphrase.length < MIN_PASSPHRASE_LENGTH) {
-      setError(`The backup password must contain at least ${MIN_PASSPHRASE_LENGTH} characters.`);
+      setError(`${t("The backup password must contain at least")} ${MIN_PASSPHRASE_LENGTH} ${t("characters.")}`);
       return;
     }
     if (restoreConfirmation !== RESTORE_CONFIRMATION || !restoreAcknowledged) {
-      setError(`Enter ${RESTORE_CONFIRMATION} and confirm the restore warning.`);
+      setError(`${t("Enter")} ${RESTORE_CONFIRMATION} ${t("and confirm the restore warning.")}`);
       return;
     }
     if (!globalThis.confirm(
-      "Restore this backup now? The current database content will be replaced completely.",
+      t("Restore this backup now? The current database content will be replaced completely."),
     )) {
       return;
     }
@@ -122,11 +124,11 @@ export default function AdminBackupsPage() {
       formData.set("passphrase", restorePassphrase);
       formData.set("confirmation", restoreConfirmation);
       const response = await fetch("/api/admin/backups", { method: "PUT", body: formData });
-      if (!response.ok) throw new Error(await readError(response));
+      if (!response.ok) throw new Error(await readError(response, t("The backup action failed.")));
 
       const data = await response.json();
       setRestoreMessage(
-        `Backup restored successfully. ${data.records} database records were imported.`,
+        `${t("Backup restored successfully.")} ${data.records} ${t("database records were imported.")}`,
       );
       setBackupFile(null);
       setRestorePassphrase("");
@@ -134,7 +136,7 @@ export default function AdminBackupsPage() {
       setRestoreAcknowledged(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (restoreError) {
-      setError(restoreError instanceof Error ? restoreError.message : "The backup could not be restored.");
+      setError(restoreError instanceof Error ? restoreError.message : t("The backup could not be restored."));
     } finally {
       setRestoring(false);
     }
@@ -143,8 +145,8 @@ export default function AdminBackupsPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        title="Database Backups"
-        description="Create encrypted snapshots of all application data or restore a previous state."
+        title={t("Database Backups")}
+        description={t("Create encrypted snapshots of all application data or restore a previous state.")}
       />
 
       {error && (
@@ -165,9 +167,9 @@ export default function AdminBackupsPage() {
               <Download className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="font-semibold text-white">Create Backup</h2>
+              <h2 className="font-semibold text-white">{t("Create Backup")}</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                Download all database records as an encrypted backup file.
+                {t("Download all database records as an encrypted backup file.")}
               </p>
             </div>
           </div>
@@ -175,34 +177,34 @@ export default function AdminBackupsPage() {
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-100/70">
               <div className="mb-2 flex items-center gap-2 font-medium text-emerald-300">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                AES-256 encrypted
+                {t("AES-256 encrypted")}
               </div>
-              The password is not stored. You need the same password to restore this backup.
+              {t("The password is not stored. You need the same password to restore this backup.")}
             </div>
 
             <label className="block">
               <span className="mb-2 flex items-center gap-2 text-sm font-medium text-zinc-200">
                 <KeyRound className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                Backup Password
+                {t("Backup Password")}
               </span>
               <input
                 type="password"
                 value={createPassphrase}
                 onChange={(event) => setCreatePassphrase(event.target.value)}
                 autoComplete="new-password"
-                placeholder="At least 12 characters"
+                placeholder={t("At least 12 characters")}
                 className="h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500"
               />
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-zinc-200">Repeat Password</span>
+              <span className="mb-2 block text-sm font-medium text-zinc-200">{t("Repeat Password")}</span>
               <input
                 type="password"
                 value={createConfirmation}
                 onChange={(event) => setCreateConfirmation(event.target.value)}
                 autoComplete="new-password"
-                placeholder="Repeat backup password"
+                placeholder={t("Repeat backup password")}
                 className="h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500"
               />
             </label>
@@ -214,7 +216,7 @@ export default function AdminBackupsPage() {
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Download className="h-4 w-4" aria-hidden="true" />}
-              {creating ? "Creating Backup..." : "Create and Download Backup"}
+              {creating ? t("Creating Backup...") : t("Create and Download Backup")}
             </button>
 
             {createMessage && (
@@ -232,9 +234,9 @@ export default function AdminBackupsPage() {
               <Upload className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h2 className="font-semibold text-white">Restore Backup</h2>
+              <h2 className="font-semibold text-white">{t("Restore Backup")}</h2>
               <p className="mt-1 text-sm text-zinc-400">
-                Replace the current database with a previously created backup.
+                {t("Replace the current database with a previously created backup.")}
               </p>
             </div>
           </div>
@@ -242,25 +244,25 @@ export default function AdminBackupsPage() {
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm leading-6 text-red-100/80">
               <div className="mb-1 flex items-center gap-2 font-semibold text-red-300">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                Destructive Action
+                {t("Destructive Action")}
               </div>
-              All current database records will be replaced. The restore is atomic, but cannot be undone after completion.
+              {t("All current database records will be replaced. The restore is atomic, but cannot be undone after completion.")}
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-zinc-200">Backup File</span>
+              <span className="mb-2 block text-sm font-medium text-zinc-200">{t("Backup File")}</span>
               <span className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-950/70 p-4 text-center transition hover:border-zinc-600">
                 <FileArchive className="mb-2 h-6 w-6 text-zinc-500" aria-hidden="true" />
                 <span className="text-sm font-medium text-zinc-300">
-                  {backupFile ? backupFile.name : "Select .nfbak file"}
+                  {backupFile ? backupFile.name : t("Select .nfbak file")}
                 </span>
                 <span className="mt-1 text-xs text-zinc-600">
-                  {backupFile ? formatFileSize(backupFile.size) : "Maximum file size: 100 MB"}
+                  {backupFile ? formatFileSize(backupFile.size) : t("Maximum file size: 100 MB")}
                 </span>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  aria-label="Backup File"
+                  aria-label={t("Backup File")}
                   accept=".nfbak,application/octet-stream"
                   className="sr-only"
                   onChange={(event) => setBackupFile(event.target.files?.[0] || null)}
@@ -269,20 +271,20 @@ export default function AdminBackupsPage() {
             </label>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-medium text-zinc-200">Backup Password</span>
+              <span className="mb-2 block text-sm font-medium text-zinc-200">{t("Backup Password")}</span>
               <input
                 type="password"
                 value={restorePassphrase}
                 onChange={(event) => setRestorePassphrase(event.target.value)}
                 autoComplete="current-password"
-                placeholder="Password used when creating the backup"
+                placeholder={t("Password used when creating the backup")}
                 className="h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500"
               />
             </label>
 
             <label className="block">
               <span className="mb-2 block text-sm font-medium text-zinc-200">
-                Enter {RESTORE_CONFIRMATION} to confirm
+                {t("Enter")} {RESTORE_CONFIRMATION} {t("to confirm")}
               </span>
               <input
                 value={restoreConfirmation}
@@ -301,7 +303,7 @@ export default function AdminBackupsPage() {
                 className="mt-0.5 h-4 w-4 accent-red-600"
               />
               <span className="text-sm leading-5 text-zinc-400">
-                I understand that the current database content will be replaced.
+                {t("I understand that the current database content will be replaced.")}
               </span>
             </label>
 
@@ -312,7 +314,7 @@ export default function AdminBackupsPage() {
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-50"
             >
               {restoring ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <DatabaseBackup className="h-4 w-4" aria-hidden="true" />}
-              {restoring ? "Restoring Backup..." : "Restore Database Backup"}
+              {restoring ? t("Restoring Backup...") : t("Restore Database Backup")}
             </button>
 
             {restoreMessage && (
@@ -326,24 +328,24 @@ export default function AdminBackupsPage() {
       </div>
 
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6">
-        <h2 className="font-semibold text-white">Backup Scope</h2>
+        <h2 className="font-semibold text-white">{t("Backup Scope")}</h2>
         <div className="mt-4 grid gap-4 text-sm md:grid-cols-3">
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-            <p className="font-medium text-zinc-200">Included</p>
+            <p className="font-medium text-zinc-200">{t("Included")}</p>
             <p className="mt-2 leading-6 text-zinc-500">
-              Users, profiles, movies, series, actors, playlists, watchlists, views, progress and authentication data.
+              {t("Users, profiles, movies, series, actors, playlists, watchlists, views, progress and authentication data.")}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-            <p className="font-medium text-zinc-200">Not Included</p>
+            <p className="font-medium text-zinc-200">{t("Not Included")}</p>
             <p className="mt-2 leading-6 text-zinc-500">
-              Video and image files are not embedded. Their database paths and assignments are preserved.
+              {t("Video and image files are not embedded. Their database paths and assignments are preserved.")}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-            <p className="font-medium text-zinc-200">Security</p>
+            <p className="font-medium text-zinc-200">{t("Security")}</p>
             <p className="mt-2 leading-6 text-zinc-500">
-              OAuth tokens and password hashes are included only inside the encrypted archive.
+              {t("OAuth tokens and password hashes are included only inside the encrypted archive.")}
             </p>
           </div>
         </div>

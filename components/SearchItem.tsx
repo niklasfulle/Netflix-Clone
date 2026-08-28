@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from 'next/navigation';
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { useState } from 'react';
+import type { ChangeEvent, SubmitEvent } from 'react';
 import { FaSearch } from 'react-icons/fa';
 
 const SearchItem = () => {
@@ -12,7 +13,7 @@ const SearchItem = () => {
     setValue(target.value);
   };
 
-  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+  const submitSearch = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = value.trim();
     if (query) router.push(`/search/${encodeURIComponent(query)}`);

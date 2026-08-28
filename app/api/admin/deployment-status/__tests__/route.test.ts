@@ -78,6 +78,7 @@ describe("admin deployment status API", () => {
     mockedIsAdmin.mockResolvedValue(true);
     mockedReadScheduled.mockResolvedValue({
       schemaVersion: 1,
+      requestId: null,
       environment: "staging",
       backupName: "scheduled-staging-20260820T031500Z.dump",
       status: "FAILED",

@@ -5,8 +5,12 @@ export const JOB_NAMES = {
   mediaIntegrityScanDeadLetter: 'media.integrity.scan.dead',
   backupVerification: 'backup.verification.request',
   backupVerificationDeadLetter: 'backup.verification.request.dead',
+  backupCreation: 'backup.creation.request',
+  backupCreationDeadLetter: 'backup.creation.request.dead',
   backupRetentionCleanup: 'backup.retention.cleanup',
   backupRetentionCleanupDeadLetter: 'backup.retention.cleanup.dead',
+  weeklyScheduleTick: 'weekly.schedule.tick',
+  weeklyScheduleTickDeadLetter: 'weekly.schedule.tick.dead',
 } as const;
 
 export const MAX_JOB_ENVELOPE_BYTES = 8 * 1024;
@@ -75,6 +79,38 @@ const backupVerificationFields = {
 };
 
 const backupVerificationSubmission = z.object(backupVerificationFields).strict();
+const backupCreationFields = {
+  name: z.literal(JOB_NAMES.backupCreation),
+  version: z.literal(1),
+  payload: z.object({
+    scope: z.literal('scheduled'),
+    environment: z.enum(['staging', 'production']),
+    requestId: z.uuid(),
+    requestedAt: z.iso.datetime({ offset: true }),
+  }).strict(),
+  actor: z.object({
+    userId: boundedIdentifier,
+    role: z.literal('ADMIN'),
+  }).strict(),
+  target: z.object({
+    type: z.literal('backup'),
+    id: z.enum(['staging', 'production']),
+  }).strict(),
+  idempotencyKey: boundedIdentifier,
+  correlationId: boundedIdentifier,
+};
+
+function matchingBackupEnvironment(value: {
+  payload: { environment: 'staging' | 'production' };
+  target: { id: 'staging' | 'production' };
+}): boolean {
+  return value.payload.environment === value.target.id;
+}
+
+const backupCreationSubmission = z.object(backupCreationFields).strict()
+  .refine(matchingBackupEnvironment, {
+    message: 'Backup target does not match its environment',
+  });
 const backupRetentionFields = {
   name: z.literal(JOB_NAMES.backupRetentionCleanup),
   version: z.literal(1),
@@ -110,6 +146,7 @@ const backupRetentionSubmission = z.object(backupRetentionFields).strict()
 const jobSubmission = z.union([
   mediaIntegrityScanSubmission,
   backupVerificationSubmission,
+  backupCreationSubmission,
   backupRetentionSubmission,
 ]);
 
@@ -129,6 +166,14 @@ const queuedBackupVerificationJob = z.object({
   acceptedAt: z.iso.datetime({ offset: true }),
 }).strict();
 
+const queuedBackupCreationJob = z.object({
+  ...backupCreationFields,
+  jobRunId: boundedIdentifier,
+  acceptedAt: z.iso.datetime({ offset: true }),
+}).strict().refine(matchingBackupEnvironment, {
+  message: 'Backup target does not match its environment',
+});
+
 const queuedBackupRetentionJob = z.object({
   ...backupRetentionFields,
   jobRunId: boundedIdentifier,
@@ -140,6 +185,7 @@ const queuedBackupRetentionJob = z.object({
 const queuedJobs = z.union([
   queuedJob,
   queuedBackupVerificationJob,
+  queuedBackupCreationJob,
   queuedBackupRetentionJob,
 ]);
 
@@ -161,6 +207,16 @@ const backupVerificationResult = z.object({
     .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
 }).strict();
 
+const backupCreationResult = z.object({
+  backupRequestId: z.uuid(),
+  status: z.literal('VERIFIED'),
+  environment: z.enum(['staging', 'production']),
+  backupName: z.string()
+    .min(6)
+    .max(191)
+    .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
+}).strict();
+
 const backupRetentionResult = z.object({
   cleanupRequestId: z.uuid(),
   status: z.literal('COMPLETED'),
@@ -172,6 +228,7 @@ const backupRetentionResult = z.object({
 const jobResult = z.union([
   mediaIntegrityScanResult,
   backupVerificationResult,
+  backupCreationResult,
   backupRetentionResult,
 ]);
 

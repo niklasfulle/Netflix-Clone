@@ -13,6 +13,12 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - Shared movie and series catalog metadata is cached in Redis for five minutes while profile watch progress remains current in PostgreSQL
 - Catalog cache misses, invalid values, timeouts, disabled Redis, and write failures fall back safely to PostgreSQL without failing the user request
 - Authentication throttling now atomically increments Redis account and shared-IP budgets while PostgreSQL remains the fail-closed authority across outages, eviction, restarts, and rolling deployments
+- Durable PostgreSQL-backed background jobs now support idempotent submission, bounded progress, retries, cooperative cancellation, dead letters, retention, and graceful worker drain while Redis coordination remains expendable
+- Administrators can inspect bounded job lifecycle data, retry or cancel permitted work, and distinguish healthy, stale, disconnected, and degraded Redis or worker states
+- A consolidated Redis resilience suite now covers fallback parity, latency, circuit recovery, restart data loss, memory-pressure eviction, duplicate delivery, stale leases, worker failure, and deployment drain
+- The Redis operations runbook now documents capacity signals, outage and rollback drills, safe disablement, privacy-safe evidence collection, and the complete 1.13 release gate
+- Administrators can configure persistent weekly schedules for verified PostgreSQL backups and full catalog media-health scans by weekday, time, and time zone
+- Scheduled runs use the durable job queue, remain visible in Job Operations, revalidate administrator ownership, and bridge backup creation through a hardened host-only systemd path unit
 
 ## 1.12.1
 

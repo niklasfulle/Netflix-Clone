@@ -10,6 +10,10 @@ import {
   type JobQueuePublisher,
   type JobSubmissionDatabase,
 } from '@/lib/jobs/submission';
+import {
+  createWeeklyScheduleService,
+  type WeeklyScheduleStore,
+} from '@/lib/jobs/weekly-schedules';
 
 function databaseUrl(): string {
   const value = process.env.POSTGRESQL_URL;
@@ -20,11 +24,13 @@ function databaseUrl(): string {
 type SubmissionService = ReturnType<typeof createJobSubmissionService>;
 type ControlService = ReturnType<typeof createJobControlService>;
 type RetryService = ReturnType<typeof createJobRetryService>;
+type ScheduleService = ReturnType<typeof createWeeklyScheduleService>;
 
 let runtime: {
   submission: SubmissionService;
   control: ControlService;
   retry: RetryService;
+  schedules: ScheduleService;
 } | undefined;
 let publisher: PgBoss | undefined;
 let publisherStart: Promise<PgBoss> | undefined;
@@ -64,6 +70,18 @@ const queuePublisher: RuntimeQueue = {
   },
 };
 
+const scheduleStore: WeeklyScheduleStore = {
+  async getSchedules(name, key) {
+    return (await startedPublisher()).getSchedules(name, key);
+  },
+  async schedule(name, cron, data, options) {
+    await (await startedPublisher()).schedule(name, cron, data, options);
+  },
+  async unschedule(name, key) {
+    await (await startedPublisher()).unschedule(name, key);
+  },
+};
+
 function jobRuntime() {
   if (runtime) return runtime;
 
@@ -80,6 +98,7 @@ function jobRuntime() {
       database: db as unknown as JobRetryDatabase,
       publisher: queuePublisher,
     }),
+    schedules: createWeeklyScheduleService(scheduleStore),
   };
   return runtime;
 }
@@ -102,5 +121,14 @@ export const backgroundJobControl: ControlService = {
 export const backgroundJobRetry: RetryService = {
   async retry(jobRunId, actor) {
     return jobRuntime().retry.retry(jobRunId, actor);
+  },
+};
+
+export const weeklyJobSchedules: ScheduleService = {
+  async list() {
+    return jobRuntime().schedules.list();
+  },
+  async update(input) {
+    return jobRuntime().schedules.update(input);
   },
 };

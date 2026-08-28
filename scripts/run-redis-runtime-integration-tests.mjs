@@ -70,7 +70,7 @@ try {
     'redis-server',
     '--save', '',
     '--appendonly', 'no',
-    '--maxmemory', '64mb',
+    '--maxmemory', '8mb',
     '--maxmemory-policy', 'allkeys-lfu',
     '--protected-mode', 'no',
   ], { capture: true });

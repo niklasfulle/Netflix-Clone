@@ -37,6 +37,13 @@ const coordinationSnapshot = z.object({
         .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
     }).strict(),
     z.object({
+      backupRequestId: z.uuid(),
+      status: z.literal('VERIFIED'),
+      environment: z.enum(['staging', 'production']),
+      backupName: z.string().min(6).max(191)
+        .regex(/^[0-9A-Za-z][0-9A-Za-z._-]*\.dump$/),
+    }).strict(),
+    z.object({
       cleanupRequestId: z.uuid(),
       status: z.literal('COMPLETED'),
       environment: z.enum(['staging', 'production']),

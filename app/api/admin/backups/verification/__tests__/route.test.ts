@@ -109,6 +109,7 @@ describe('administrator PostgreSQL backup verification API', () => {
     mockedReadStatus.mockResolvedValue(verifiedStatus);
     mockedReadScheduledStatus.mockResolvedValue({
       schemaVersion: 1,
+      requestId: null,
       environment: 'staging',
       backupName: 'scheduled-staging-20260820T031500Z.dump',
       status: 'VERIFIED',

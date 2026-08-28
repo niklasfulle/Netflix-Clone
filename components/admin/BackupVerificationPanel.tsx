@@ -11,14 +11,17 @@ import {
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
+import { useLanguage } from '@/components/providers/LanguageProvider';
 import type {
   BackupVerificationStatus,
   BackupVerificationStatusName,
   ScheduledBackupStatus,
 } from '@/lib/backup-verification';
+import type { Locale, TranslationKey } from '@/lib/i18n/translations';
 
 const endpoint = '/api/admin/backups/verification';
 const activeJobStorageKey = 'admin:backup-verification:active-job';
+type Translator = (key: TranslationKey) => string;
 
 type JobStatusDto = {
   id: string;
@@ -36,7 +39,7 @@ const terminalJobStatuses = new Set<JobStatusDto['status']>([
 ]);
 
 const statusPresentation: Record<BackupVerificationStatusName, {
-  label: string;
+  label: TranslationKey;
   className: string;
 }> = {
   PENDING: { label: 'Pending', className: 'border-sky-500/30 bg-sky-500/10 text-sky-300' },
@@ -70,14 +73,24 @@ async function jobStatusFetcher(url: string): Promise<JobStatusDto> {
   return responseJson(await fetch(url, { cache: 'no-store' }));
 }
 
-function jobMessage(job: JobStatusDto): string {
-  if (job.status === 'QUEUED') return 'Backup verification queued.';
-  if (job.status === 'SUCCEEDED') return 'Backup verification completed.';
-  if (job.status === 'CANCELLED') return 'Backup verification cancelled.';
-  if (job.status === 'CANCEL_REQUESTED') return 'Cancellation requested.';
-  if (job.status === 'FAILED') return 'Backup verification failed.';
-  if (job.status === 'DEAD_LETTER') return 'Backup verification exhausted its retries.';
-  return `${job.progressMessage || 'Backup verification in progress'} · ${job.progress}%`;
+function localizedProgressMessage(message: string | null, t: Translator) {
+  if (!message) return t('Backup verification in progress');
+  const labels: Partial<Record<string, TranslationKey>> = {
+    'Restoring backup': 'Restoring backup',
+    Cancelled: 'Cancelled',
+  };
+  const key = labels[message];
+  return key ? t(key) : message;
+}
+
+function jobMessage(job: JobStatusDto, t: Translator): string {
+  if (job.status === 'QUEUED') return t('Backup verification queued.');
+  if (job.status === 'SUCCEEDED') return t('Backup verification completed.');
+  if (job.status === 'CANCELLED') return t('Backup verification cancelled.');
+  if (job.status === 'CANCEL_REQUESTED') return t('Cancellation requested.');
+  if (job.status === 'FAILED') return t('Backup verification failed.');
+  if (job.status === 'DEAD_LETTER') return t('Backup verification exhausted its retries.');
+  return `${localizedProgressMessage(job.progressMessage, t)} · ${job.progress}%`;
 }
 
 function jobStatusUrl(jobRunId: string | null) {
@@ -103,8 +116,12 @@ function isFailedJob(job: JobStatusDto | undefined) {
   return job?.status === 'FAILED' || job?.status === 'DEAD_LETTER';
 }
 
-function ScheduledBackupEvidence({ status }: Readonly<{ status: ScheduledBackupStatus }>) {
-  const labels = { RUNNING: 'Running', VERIFIED: 'Verified', FAILED: 'Failed' } as const;
+function ScheduledBackupEvidence({ status, locale, t }: Readonly<{
+  status: ScheduledBackupStatus;
+  locale: Locale;
+  t: Translator;
+}>) {
+  const labels = { RUNNING: t('Running'), VERIFIED: t('Verified'), FAILED: t('Failed') } as const;
   const healthy = status.status === 'VERIFIED';
   return (
     <div className={`rounded-xl border p-4 ${healthy
@@ -113,77 +130,81 @@ function ScheduledBackupEvidence({ status }: Readonly<{ status: ScheduledBackupS
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-zinc-100">
-          Scheduled backup: {labels[status.status]}
+          {t('Scheduled backup')}: {labels[status.status]}
         </p>
         <span className="text-xs uppercase tracking-wide text-zinc-400">{status.environment}</span>
       </div>
       <p className="mt-2 break-all font-mono text-xs text-zinc-300">
-        {status.backupName ?? 'No completed scheduled backup'}
+        {status.backupName ?? t('No completed scheduled backup')}
       </p>
       <p className="mt-1 text-xs text-zinc-500">
-        {status.diagnosticCode} · {formatTimestamp(status.completedAt)}
+        {status.diagnosticCode} · {formatTimestamp(status.completedAt, locale, t)}
       </p>
     </div>
   );
 }
 
-function formatBytes(bytes: number | null) {
-  if (bytes === null) return 'Unknown size';
+function formatBytes(bytes: number | null, t: Translator) {
+  if (bytes === null) return t('Unknown size');
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatTimestamp(value: string | null) {
-  if (!value) return 'Not completed';
-  return new Intl.DateTimeFormat('en', {
+function formatTimestamp(value: string | null, locale: Locale, t: Translator) {
+  if (!value) return t('Not completed');
+  return new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : 'en-US', {
     dateStyle: 'medium',
     timeStyle: 'medium',
   }).format(new Date(value));
 }
 
-function RecoveryEvidence({ status }: Readonly<{ status: BackupVerificationStatus }>) {
+function RecoveryEvidence({ status, locale, t }: Readonly<{
+  status: BackupVerificationStatus;
+  locale: Locale;
+  t: Translator;
+}>) {
   const presentation = statusPresentation[status.status];
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${presentation.className}`}>
-          {presentation.label}
+          {t(presentation.label)}
         </span>
-        <span className="font-mono text-sm text-zinc-300">{status.backupName || 'Latest host backup'}</span>
-        <span className="text-xs text-zinc-500">{formatBytes(status.sizeBytes)}</span>
+        <span className="font-mono text-sm text-zinc-300">{status.backupName || t('Latest host backup')}</span>
+        <span className="text-xs text-zinc-500">{formatBytes(status.sizeBytes, t)}</span>
       </div>
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-          <dt className="text-xs text-zinc-500">Source</dt>
+          <dt className="text-xs text-zinc-500">{t('Source')}</dt>
           <dd className="mt-1 font-medium text-zinc-200">
-            {status.sourcePostgresVersion ? `PostgreSQL ${status.sourcePostgresVersion}` : 'Unknown'}
+            {status.sourcePostgresVersion ? `PostgreSQL ${status.sourcePostgresVersion}` : t('Unknown')}
           </dd>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-          <dt className="text-xs text-zinc-500">Restore verifier</dt>
+          <dt className="text-xs text-zinc-500">{t('Restore verifier')}</dt>
           <dd className="mt-1 font-medium text-zinc-200">
             {status.verificationPostgresVersion
               ? `PostgreSQL ${status.verificationPostgresVersion}`
-              : 'Unknown'}
+              : t('Unknown')}
           </dd>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-          <dt className="text-xs text-zinc-500">Completed</dt>
-          <dd className="mt-1 font-medium text-zinc-200">{formatTimestamp(status.completedAt)}</dd>
+          <dt className="text-xs text-zinc-500">{t('Completed')}</dt>
+          <dd className="mt-1 font-medium text-zinc-200">{formatTimestamp(status.completedAt, locale, t)}</dd>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-          <dt className="text-xs text-zinc-500">Diagnostic code</dt>
+          <dt className="text-xs text-zinc-500">{t('Diagnostic code')}</dt>
           <dd className="mt-1 break-words font-mono text-xs text-zinc-300">{status.diagnosticCode}</dd>
         </div>
       </dl>
 
       {status.checks ? (
         <div className="flex flex-wrap gap-2 text-xs text-zinc-300">
-          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.publicTableCount} tables</span>
-          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.migrationCount} migrations</span>
-          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.userCount} users</span>
-          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.contentCount} content records</span>
+          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.publicTableCount} {t('tables')}</span>
+          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.migrationCount} {t('migrations')}</span>
+          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.userCount} {t('users')}</span>
+          <span className="rounded-lg bg-zinc-800 px-2.5 py-1.5">{status.checks.contentCount} {t('content records')}</span>
         </div>
       ) : null}
 
@@ -201,6 +222,8 @@ type VerificationStatusContentProps = Readonly<{
   isLoading: boolean;
   scheduled: ScheduledBackupStatus | null | undefined;
   status: BackupVerificationStatus | null | undefined;
+  locale: Locale;
+  t: Translator;
 }>;
 
 function VerificationStatusContent({
@@ -208,13 +231,15 @@ function VerificationStatusContent({
   isLoading,
   scheduled,
   status,
+  locale,
+  t,
 }: VerificationStatusContentProps) {
   return (
     <>
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-zinc-400">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          Loading verification status…
+          {t('Loading verification status…')}
         </div>
       ) : null}
       {errorMessage ? (
@@ -224,10 +249,10 @@ function VerificationStatusContent({
         </div>
       ) : null}
       {!isLoading && !errorMessage && !status ? (
-        <p className="text-sm text-zinc-500">No verification result is available yet.</p>
+        <p className="text-sm text-zinc-500">{t('No verification result is available yet.')}</p>
       ) : null}
-      {scheduled ? <ScheduledBackupEvidence status={scheduled} /> : null}
-      {status ? <RecoveryEvidence status={status} /> : null}
+      {scheduled ? <ScheduledBackupEvidence status={scheduled} locale={locale} t={t} /> : null}
+      {status ? <RecoveryEvidence status={status} locale={locale} t={t} /> : null}
     </>
   );
 }
@@ -240,6 +265,7 @@ type VerificationJobFeedbackProps = Readonly<{
   job: JobStatusDto | undefined;
   message: string;
   onCancel: () => void;
+  t: Translator;
 }>;
 
 function VerificationJobFeedback({
@@ -250,6 +276,7 @@ function VerificationJobFeedback({
   job,
   message,
   onCancel,
+  t,
 }: VerificationJobFeedbackProps) {
   return (
     <>
@@ -268,7 +295,7 @@ function VerificationJobFeedback({
           disabled={cancelling || job.status === 'CANCEL_REQUESTED'}
           className="min-h-10 rounded-lg border border-sky-300/30 px-3 text-sm font-medium text-sky-200 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {cancelling ? 'Cancelling…' : 'Cancel backup verification'}
+          {cancelling ? t('Cancelling…') : t('Cancel backup verification')}
         </button>
       ) : null}
       {error ? (
@@ -282,6 +309,7 @@ function VerificationJobFeedback({
 }
 
 export function BackupVerificationPanel() {
+  const { locale, t } = useLanguage();
   const { data, error, isLoading, mutate } = useSWR(endpoint, verificationFetcher, {
     refreshInterval: verificationPollingInterval,
     revalidateOnFocus: true,
@@ -319,13 +347,13 @@ export function BackupVerificationPanel() {
       }
       globalThis.sessionStorage.setItem(activeJobStorageKey, accepted.jobRunId);
       setActiveJobId(accepted.jobRunId);
-      setRequestMessage('Verification request accepted. The isolated restore is starting.');
+      setRequestMessage(t('Verification request accepted. The isolated restore is starting.'));
       await mutate();
     } catch (error_) {
       setRequestError(
         error_ instanceof Error
           ? error_.message
-          : 'Backup verification could not be requested.',
+          : t('Backup verification could not be requested.'),
       );
     } finally {
       setRequesting(false);
@@ -342,17 +370,17 @@ export function BackupVerificationPanel() {
         { method: 'DELETE' },
       ));
       await mutateActiveJob(cancelled, { revalidate: false });
-      setRequestMessage('Backup verification cancelled.');
+      setRequestMessage(t('Backup verification cancelled.'));
     } catch (error_) {
       setRequestError(error_ instanceof Error
         ? error_.message
-        : 'Backup verification could not be cancelled.');
+        : t('Backup verification could not be cancelled.'));
     } finally {
       setCancelling(false);
     }
   };
 
-  const visibleRequestMessage = activeJob ? jobMessage(activeJob) : requestMessage;
+  const visibleRequestMessage = activeJob ? jobMessage(activeJob, t) : requestMessage;
   const visibleRequestError = requestError
     || activeJobError?.message
     || activeJob?.errorMessage
@@ -367,9 +395,9 @@ export function BackupVerificationPanel() {
             <DatabaseZap className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="font-semibold text-white">PostgreSQL Recovery Verification</h2>
+            <h2 className="font-semibold text-white">{t('PostgreSQL Recovery Verification')}</h2>
             <p className="mt-1 max-w-3xl text-sm text-zinc-400">
-              Restores the latest deployment dump into a disposable, network-isolated PostgreSQL instance and checks its schema and representative records.
+              {t('Restores the latest deployment dump into a disposable, network-isolated PostgreSQL instance and checks its schema and representative records.')}
             </p>
           </div>
         </div>
@@ -380,7 +408,7 @@ export function BackupVerificationPanel() {
           className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
         >
           {requesting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          Verify Latest PostgreSQL Backup
+          {t('Verify Latest PostgreSQL Backup')}
         </button>
       </div>
 
@@ -390,6 +418,8 @@ export function BackupVerificationPanel() {
           isLoading={isLoading}
           scheduled={data?.scheduled}
           status={data?.status}
+          locale={locale}
+          t={t}
         />
         <VerificationJobFeedback
           active={jobActive}
@@ -399,10 +429,11 @@ export function BackupVerificationPanel() {
           job={activeJob}
           message={visibleRequestMessage}
           onCancel={cancelVerification}
+          t={t}
         />
         <div className="flex items-start gap-2 rounded-xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs leading-5 text-zinc-500">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" aria-hidden="true" />
-          The application receives only bounded verification metadata. Database URLs, credentials, raw PostgreSQL output, and backup contents remain on the host.
+          {t('The application receives only bounded verification metadata. Database URLs, credentials, raw PostgreSQL output, and backup contents remain on the host.')}
         </div>
       </div>
     </section>

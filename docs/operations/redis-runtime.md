@@ -106,6 +106,108 @@ secret before the Redis runtime applies its environment-scoped key hash.
   private Docker bridge. Cross-host, shared-network, or published-port access
   requires certificate-validated TLS and a separate design review.
 
+## Capacity and alert thresholds
+
+Redis capacity is evaluated together with PostgreSQL job state and the worker
+heartbeat; a responding Redis process alone is never sufficient evidence of a
+healthy background-job service.
+
+- Treat an absent, stale, or superseded worker heartbeat as unavailable even
+  when queue inspection succeeds.
+- Investigate continuously increasing queue depth or oldest-job age before
+  changing concurrency. First rule out a stopped worker, a poison job, database
+  contention, and repeated delivery of the same durable run.
+- Treat sustained Redis errors, timeouts, reconnects, fallbacks, or evictions
+  as degraded. Cache misses after a restart are expected; a monotonic increase
+  while traffic is steady is not.
+- Keep Redis `maxmemory` below the 256 MiB container limit. The current 160 MiB
+  limit leaves headroom for the process, allocator fragmentation, clients, and
+  health commands. Never increase either limit without repeating the eviction
+  and rollback drills.
+- Retention removes only a bounded batch of terminal PostgreSQL job runs older
+  than 30 days. Redis TTL expiry does not count as job retention.
+
+## Failure drill matrix
+
+Run disruptive drills only in staging or in the disposable integration
+containers. Record the command, image digest, application commit, start/end
+time, observed degraded state, PostgreSQL outcome, recovery time, and redacted
+diagnostic codes.
+
+### Latency and reconnect storm
+
+`yarn test:redis-integration` pauses, stops, restarts, and reconnects a
+loopback-only disposable Redis container. It proves bounded command deadlines,
+the three-failure circuit breaker, immediate fallback while the circuit is
+open, bounded recovery attempts, transition-only telemetry, and an empty cache
+after restart. The application must remain responsive through PostgreSQL; do
+not increase timeouts merely to hide a slow cache.
+
+### Memory pressure and eviction
+
+The adapter integration starts Redis with a deliberately small memory ceiling,
+writes TTL-bound expendable values until `evicted_keys` increases, and then
+proves Redis is still connected and accepting health commands. Production uses
+the same `allkeys-lfu` policy with a larger fixed ceiling. An eviction must
+cause a cache miss and PostgreSQL reload, never an authorization bypass or a
+missing durable job.
+
+### Worker crash and duplicate delivery
+
+The consolidated unit suite stops a worker during graceful drain, rejects a
+false stopped state when drain fails, and replays duplicate queue deliveries.
+The durable PostgreSQL run identifier and ownership metadata ensure completed
+work is not executed twice. In staging, stop only the worker process, submit one
+bounded job, confirm it remains queued in PostgreSQL, restart the worker, and
+confirm exactly one terminal result and audit outcome.
+
+### Stale leases, dead letters, and deployment drain
+
+Lease tests prove expired ownership can be reclaimed without letting an old
+holder publish success. Worker tests exercise final-attempt dead letters,
+cancellation races, queue rejection, and bounded privacy-safe errors. Before a
+deployment, the worker enters `DRAINING`, stops accepting new work, finishes or
+times out bounded active handlers, and disconnects before replacement. A
+rollback reuses PostgreSQL queue state; it never restores Redis data or blindly
+replays a completed run.
+
+## Safe disablement
+
+Use this procedure when Redis itself is suspected of causing instability:
+
+1. Confirm PostgreSQL health, a recent verified backup, and durable job counts.
+2. Drain the worker and wait for active bounded work to reach a durable state.
+3. Set `REDIS_ENABLED=false` in the environment-local application configuration
+   and deploy through the normal Ansible path. Do not copy or edit credentials
+   from the other environment.
+4. Confirm the System Overview reports Redis as `disabled`, not healthy, while
+   catalog reads use PostgreSQL and authentication throttling remains fail-closed
+   through PostgreSQL.
+5. Restart the worker, verify queued work resumes from PostgreSQL, and exercise
+   login, catalog, administrator jobs, backup, and player smoke paths.
+6. Stop the Redis container only after the application is verified disabled.
+   Re-enablement requires the normal staging outage/recovery drill.
+
+Disabling Redis can increase PostgreSQL load. Watch query latency, connection
+pool use, rate-limit writes, queue age, and fallback counters throughout the
+window. Never disable PostgreSQL fallback or treat a Redis-only result as
+release evidence.
+
+## Debugging and evidence collection
+
+Collect bounded status and counters: container health/status, pinned image
+digest, Redis `INFO memory`/`INFO stats`, application Redis metrics, queue depth,
+oldest queued age, worker heartbeat age, and PostgreSQL terminal job counts.
+Use correlation IDs and allow-listed diagnostic codes when linking job and
+audit records.
+
+The release evidence must include a `secret-redaction` result. Never attach a
+full `docker inspect`, Redis URL, ACL output, environment file, raw job payload,
+authentication subject, token, password, stack trace, or database URL. Replace
+hostnames and record identifiers when they are unnecessary for diagnosis. If a
+credential appears in any output, stop collection, rotate it at the source of
+truth, remove it from the artifact, and rerun the drill.
+
 ## Local executable checks
 
 Run the rendered Compose/Ansible contract:
@@ -133,6 +235,18 @@ On Linux or in WSL, set `RUN_REDIS_INTEGRATION=1` for the same integration
 suite. It proves ACL isolation, idempotent credential generation, environment
 binding, lack of port publication, authenticated health, and cache loss after
 restart.
+
+The consolidated non-destructive parity and lifecycle suite is:
+
+```powershell
+yarn test:redis-resilience
+```
+
+Add both disposable Docker integration suites with:
+
+```powershell
+yarn test:redis-resilience --with-docker
+```
 
 ## First deployment
 
@@ -212,3 +326,26 @@ local, then run `docker compose up -d --no-build`. Do not restore Redis data:
 restart with an empty cache and verify PostgreSQL-backed paths. Do not delete or
 rotate only one credential file; rotation is a coordinated replacement of the
 ACL, application URL, and health credential followed by a full staging drill.
+
+## Release verification
+
+Before promoting 1.13, record all results in
+`docs/checkpoints/1.13-redis-release-2026-08-27.md` and require:
+
+1. `yarn test:redis-resilience --with-docker` and the PostgreSQL integration
+   suites to pass without external credentials.
+2. Full Jest coverage, ESLint with zero warnings, the production build, and a
+   green SonarQube Quality Gate from the exact commit.
+3. Desktop and mobile Playwright coverage for authentication, catalog, player,
+   administrator jobs, backups, media, and permission denial with Redis enabled.
+4. A staging safe-disablement smoke run for the same core paths, followed by
+   successful recovery with Redis enabled.
+5. Environment-isolation evidence showing staging credentials and key prefixes
+   cannot access production keys, plus rollback evidence while queued work is
+   present.
+6. A privacy review confirming logs and attached artifacts contain only
+   allow-listed, secret-redacted operational evidence.
+
+Production promotion must use the exact staging-tested application and Redis
+image digests. Any code, configuration, migration, or image change invalidates
+the recorded gate and requires the affected checks to be repeated.

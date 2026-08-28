@@ -60,6 +60,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'media.scan': 'Scanned media',
   'job.cancel': 'Cancelled background job',
   'job.retry': 'Retried background job',
+  'job.schedule_change': 'Changed weekly schedule',
   'deployment.manage': 'Managed deployment',
   'security.settings_change': 'Changed security settings',
 };

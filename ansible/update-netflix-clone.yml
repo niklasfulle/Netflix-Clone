@@ -241,6 +241,62 @@
           /var/lib/netflix-backup-status must remain root-owned, group-readable
           by application gid 10001, and non-writable to that group.
 
+    - name: Inspect backup retention request path
+      stat:
+        path: /var/lib/netflix-backup-status/retention/request.json
+        follow: false
+      register: backup_retention_request_path
+      changed_when: false
+
+    - name: Reject unsafe backup retention request path types
+      assert:
+        that:
+          - >-
+            (not backup_retention_request_path.stat.exists)
+            or (backup_retention_request_path.stat.isdir | default(false))
+            or (backup_retention_request_path.stat.isreg | default(false))
+          - not (backup_retention_request_path.stat.islnk | default(false))
+        fail_msg: >-
+          The backup retention request path must be absent or a regular file;
+          refusing to replace a link or special file.
+
+    - name: Remove invalid empty backup retention request directory
+      command:
+        argv:
+          - rmdir
+          - /var/lib/netflix-backup-status/retention/request.json
+      when:
+        - backup_retention_request_path.stat.exists
+        - backup_retention_request_path.stat.isdir | default(false)
+
+    - name: Inspect scheduled backup request path
+      stat:
+        path: /var/lib/netflix-backup-status/scheduled/request.json
+        follow: false
+      register: scheduled_backup_request_path
+      changed_when: false
+
+    - name: Reject unsafe scheduled backup request path types
+      assert:
+        that:
+          - >-
+            (not scheduled_backup_request_path.stat.exists)
+            or (scheduled_backup_request_path.stat.isdir | default(false))
+            or (scheduled_backup_request_path.stat.isreg | default(false))
+          - not (scheduled_backup_request_path.stat.islnk | default(false))
+        fail_msg: >-
+          The scheduled backup request path must be absent or a regular file;
+          refusing to replace a link or special file.
+
+    - name: Remove invalid empty scheduled backup request directory
+      command:
+        argv:
+          - rmdir
+          - /var/lib/netflix-backup-status/scheduled/request.json
+      when:
+        - scheduled_backup_request_path.stat.exists
+        - scheduled_backup_request_path.stat.isdir | default(false)
+
     - name: Ensure non-root runtime directories are writable
       file:
         path: "{{ item }}"
@@ -251,6 +307,7 @@
       loop:
         - /movies
         - /series
+        - /var/lib/netflix-backup-status/retention
         - /var/lib/netflix-backup-status/verification
         - /var/lib/netflix-backup-status/scheduled
         - /var/lib/netflix-logs
@@ -498,9 +555,24 @@
         group: root
         mode: '0644'
 
+    - name: Install on-demand PostgreSQL backup path unit
+      template:
+        src: templates/netflix-postgres-backup.path.j2
+        dest: /etc/systemd/system/netflix-postgres-backup.path
+        owner: root
+        group: root
+        mode: '0644'
+
     - name: Enable scheduled PostgreSQL backups
       systemd:
         name: netflix-postgres-backup.timer
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Enable on-demand PostgreSQL backup requests
+      systemd:
+        name: netflix-postgres-backup.path
         daemon_reload: true
         enabled: true
         state: started

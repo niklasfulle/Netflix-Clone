@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import useSWR from "swr";
 
 import { DeploymentStatusPanel } from "@/components/admin/DeploymentStatusPanel";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 jest.mock("swr");
 const mockedUseSWR = useSWR as jest.Mock;
@@ -79,6 +80,60 @@ describe("deployment status panel", () => {
     expect(screen.getByText("Status unavailable")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Scheduled backup failed");
     expect(screen.getByRole("alert")).toHaveTextContent("BACKUP_TIMEOUT");
+  });
+
+  it("renders deployment evidence in German", () => {
+    mockedUseSWR.mockReturnValue({
+      data: {
+        schemaVersion: 1,
+        checkedAt: "2026-08-15T12:05:00.000Z",
+        localEnvironment: "staging",
+        scheduledBackup: {
+          schemaVersion: 1,
+          environment: "staging",
+          backupName: "scheduled-staging-20260820T031500Z.dump",
+          status: "FAILED",
+          diagnosticCode: "BACKUP_TIMEOUT",
+          checksumSha256: null,
+          completedAt: "2026-08-20T03:30:00.000Z",
+        },
+        environments: [
+          {
+            environment: "staging",
+            trust: "verified",
+            freshness: "current",
+            failureCode: null,
+            record,
+          },
+          {
+            environment: "production",
+            trust: "unavailable",
+            freshness: "unknown",
+            failureCode: "STATUS_UNAVAILABLE",
+            record: null,
+          },
+        ],
+      },
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    });
+
+    render(
+      <LanguageProvider initialLocale="de">
+        <DeploymentStatusPanel />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Deployment-Status" })).toBeInTheDocument();
+    expect(screen.getByText("STAGING · LOKAL")).toBeInTheDocument();
+    expect(screen.getByText("Verifiziertes Deployment")).toBeInTheDocument();
+    expect(screen.getByText("PRODUCTION · GEGENSTELLE")).toBeInTheDocument();
+    expect(screen.getByText("Status nicht verfügbar")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Geplantes Backup fehlgeschlagen");
+    expect(screen.getByText("nicht erforderlich")).toBeInTheDocument();
+    expect(screen.getAllByText(/bestanden/)).toHaveLength(3);
+    expect(screen.queryByText("Deployment Status")).not.toBeInTheDocument();
   });
 
   it("never presents stale or tampered data as successful", () => {

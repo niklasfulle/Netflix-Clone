@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import useSWR from "swr";
 
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import AdminSystemPage from "../page";
 
 jest.mock("@/components/admin/DeploymentStatusPanel", () => ({
@@ -139,6 +140,34 @@ describe("admin system page", () => {
     );
     expect(screen.getByText("Signed deployment evidence")).toBeInTheDocument();
     expect(screen.getByText("No active alerts.")).toBeInTheDocument();
+  });
+
+  it("renders the system overview in German", () => {
+    mockedUseSWR.mockReturnValue({
+      data: healthyOverview,
+      error: undefined,
+      isLoading: false,
+      mutate: jest.fn(),
+    });
+
+    render(
+      <LanguageProvider initialLocale="de">
+        <AdminSystemPage />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Systemübersicht" })).toBeInTheDocument();
+    expect(screen.getByText("Alle Systeme betriebsbereit")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aktualisieren" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Speicher" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Redis-Laufzeit" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hintergrundaufträge" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Hintergrundaufträge öffnen" })).toBeInTheDocument();
+    expect(screen.getByText("in Ordnung · v1.0.0")).toBeInTheDocument();
+    expect(screen.getByText("läuft · betriebsbereit")).toBeInTheDocument();
+    expect(screen.getByText("AKTIV")).toBeInTheDocument();
+    expect(screen.getByText("Keine aktiven Warnungen.")).toBeInTheDocument();
+    expect(screen.queryByText("System Overview")).not.toBeInTheDocument();
   });
 
   it("refreshes the system data on demand", () => {

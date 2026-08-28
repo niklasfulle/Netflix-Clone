@@ -6,13 +6,16 @@ import { mediaIntegrityScanner } from '@/lib/media-integrity';
 import { db } from '@/lib/db';
 import {
   readBackupVerificationStatus,
+  readScheduledBackupStatus,
   requestBackupVerification,
 } from '@/lib/backup-verification';
+import { requestScheduledBackup } from '@/lib/scheduled-backup';
 import {
   readBackupRetentionStatus,
   requestBackupRetention,
 } from '@/lib/backup-retention';
 import { createBackupRetentionJobHandler } from '@/lib/jobs/backup-retention-job';
+import { createBackupCreationJobHandler } from '@/lib/jobs/backup-creation-job';
 import { createBackupVerificationJobHandler } from '@/lib/jobs/backup-verification-job';
 import {
   createCoordinatedJobExecutionRepository,
@@ -20,6 +23,11 @@ import {
 } from '@/lib/jobs/coordination';
 import { JOB_NAMES, type QueuedJob } from '@/lib/jobs/contracts';
 import { createPrismaJobExecutionRepository } from '@/lib/jobs/repository';
+import { createWeeklyScheduleTickHandler } from '@/lib/jobs/schedule-tick';
+import {
+  createJobSubmissionService,
+  type JobSubmissionDatabase,
+} from '@/lib/jobs/submission';
 import {
   createJobRunRetention,
   type JobRunRetentionDatabase,
@@ -58,7 +66,7 @@ const boss = new PgBoss({
   schema: 'pgboss',
   migrate: false,
   createSchema: false,
-  schedule: false,
+  schedule: true,
   supervise: true,
 });
 const redis = getRedisRuntime();
@@ -73,9 +81,30 @@ const backupVerificationJob = createBackupVerificationJobHandler({
   submitRequest: requestBackupVerification,
   readStatus: readBackupVerificationStatus,
 });
+const backupCreationJob = createBackupCreationJobHandler({
+  submitRequest: requestScheduledBackup,
+  readStatus: readScheduledBackupStatus,
+});
 const backupRetentionJob = createBackupRetentionJobHandler({
   submitRequest: requestBackupRetention,
   readStatus: readBackupRetentionStatus,
+});
+const scheduledJobSubmission = createJobSubmissionService({
+  database: db as unknown as JobSubmissionDatabase,
+  publisher: {
+    async send(name, data, options) {
+      return boss.send(name, data, options);
+    },
+  },
+});
+const weeklyScheduleTick = createWeeklyScheduleTickHandler({
+  async resolveAdministrator(userId) {
+    return db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+  },
+  submit: scheduledJobSubmission.submit,
 });
 
 boss.on('error', (error) => {
@@ -139,6 +168,13 @@ async function processJobs(jobs: WorkerDelivery[]) {
             ttlMs: 15 * 60_000,
           }, async () => backupVerificationJob(payload, context));
         },
+        async backupCreation(payload, context) {
+          return operationalLeases.execute({
+            operation: 'backup.create',
+            targetId: `scheduled-backup:${payload.environment}`,
+            ttlMs: 30 * 60_000,
+          }, async () => backupCreationJob(payload, context));
+        },
         async backupRetention(payload, context) {
           return operationalLeases.execute({
             operation: 'backup.cleanup',
@@ -159,11 +195,26 @@ async function processJobs(jobs: WorkerDelivery[]) {
   }));
 }
 
+type ScheduleDelivery = { id: string; data: unknown };
+
+async function processScheduleTicks(jobs: ScheduleDelivery[]) {
+  return Promise.all(jobs.map(async (job) => {
+    try {
+      const accepted = await weeklyScheduleTick(job.data, job.id);
+      return { id: job.id, status: 'completed' as const, output: accepted };
+    } catch (error) {
+      return { id: job.id, status: 'failed' as const, output: failureDetails(error) };
+    }
+  }));
+}
+
 async function registerWork() {
   const requiredQueues = [
     JOB_NAMES.mediaIntegrityScan,
     JOB_NAMES.backupVerification,
+    JOB_NAMES.backupCreation,
     JOB_NAMES.backupRetentionCleanup,
+    JOB_NAMES.weeklyScheduleTick,
   ];
   const queues = await Promise.all(requiredQueues.map((name) => boss.getQueue(name)));
   const missingQueue = requiredQueues.find((_name, index) => !queues[index]);
@@ -183,9 +234,19 @@ async function registerWork() {
       processJobs,
     ),
     boss.work<QueuedJob, unknown, typeof workOptions>(
+      JOB_NAMES.backupCreation,
+      workOptions,
+      processJobs,
+    ),
+    boss.work<QueuedJob, unknown, typeof workOptions>(
       JOB_NAMES.backupRetentionCleanup,
       workOptions,
       processJobs,
+    ),
+    boss.work<unknown, unknown, typeof workOptions>(
+      JOB_NAMES.weeklyScheduleTick,
+      workOptions,
+      processScheduleTicks,
     ),
   ]);
 }

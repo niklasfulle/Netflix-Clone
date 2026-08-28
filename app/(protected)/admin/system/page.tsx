@@ -21,6 +21,8 @@ import useSWR from "swr";
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DeploymentStatusPanel } from "@/components/admin/DeploymentStatusPanel";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import type { Locale, TranslationKey } from "@/lib/i18n/translations";
 import type {
   SystemAlert,
   SystemOverview,
@@ -58,38 +60,59 @@ function formatDuration(seconds: number | null | undefined) {
   return `${minutes}m`;
 }
 
-function formatDate(value: string | null | undefined) {
+type Translator = (key: TranslationKey) => string;
+
+function formatDate(value: string | null | undefined, locale: Locale) {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-US", {
+  return new Date(value).toLocaleString(locale === "de" ? "de-DE" : "en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
 }
 
-function statusPresentation(status: SystemSeverity) {
+function statusPresentation(status: SystemSeverity, t: Translator) {
   if (status === "healthy") {
     return {
-      label: "All systems operational",
+      label: t("All systems operational"),
       className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
       icon: CheckCircle2,
     };
   }
   if (status === "warning") {
     return {
-      label: "Warnings detected",
+      label: t("Warnings detected"),
       className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
       icon: AlertTriangle,
     };
   }
   return {
-    label: "Critical issues detected",
+    label: t("Critical issues detected"),
     className: "border-red-500/30 bg-red-500/10 text-red-300",
     icon: ShieldAlert,
   };
 }
 
-function AlertCard({ alert }: Readonly<{ alert: SystemAlert }>) {
+function localizedAlert(alert: SystemAlert, t: Translator) {
+  const readOnly = /^(.+) storage is read-only$/.exec(alert.title);
+  const notWritable = /^(.+) is not writable\.$/.exec(alert.message);
+  if (readOnly && notWritable) {
+    return {
+      title: `${readOnly[1]} ${t("storage is read-only")}`,
+      message: `${notWritable[1]} ${t("is not writable.")}`,
+    };
+  }
+  if (alert.id === "backup-missing") {
+    return {
+      title: t("No backup metadata available"),
+      message: t("Create an encrypted database backup to establish a recovery point."),
+    };
+  }
+  return { title: alert.title, message: alert.message };
+}
+
+function AlertCard({ alert, t }: Readonly<{ alert: SystemAlert; t: Translator }>) {
   const critical = alert.severity === "critical";
+  const localized = localizedAlert(alert, t);
   return (
     <article
       className={`rounded-xl border p-4 ${
@@ -105,8 +128,8 @@ function AlertCard({ alert }: Readonly<{ alert: SystemAlert }>) {
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
         )}
         <div>
-          <h3 className="font-medium text-zinc-100">{alert.title}</h3>
-          <p className="mt-1 text-sm text-zinc-400">{alert.message}</p>
+          <h3 className="font-medium text-zinc-100">{localized.title}</h3>
+          <p className="mt-1 text-sm text-zinc-400">{localized.message}</p>
         </div>
       </div>
     </article>
@@ -125,7 +148,11 @@ function storageTone(usedPercent: number) {
 
 function StorageCard({
   filesystem,
-}: Readonly<{ filesystem: SystemOverview["filesystems"][number] }>) {
+  t,
+}: Readonly<{
+  filesystem: SystemOverview["filesystems"][number];
+  t: Translator;
+}>) {
   const usedPercent = filesystem.usedPercent ?? 0;
   const tone = storageTone(usedPercent);
 
@@ -147,10 +174,10 @@ function StorageCard({
               <p className="text-2xl font-bold text-white">
                 {formatBytes(filesystem.freeBytes)}
               </p>
-              <p className="text-xs text-zinc-500">Available</p>
+              <p className="text-xs text-zinc-500">{t("Available")}</p>
             </div>
             <p className="text-sm text-zinc-400">
-              {usedPercent.toFixed(1)}% used
+              {usedPercent.toFixed(1)}% {t("used")}
             </p>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -160,67 +187,67 @@ function StorageCard({
             />
           </div>
           <div className="mt-3 flex justify-between text-xs text-zinc-500">
-            <span>{formatBytes(filesystem.usedBytes)} used</span>
-            <span>{formatBytes(filesystem.totalBytes)} total</span>
+            <span>{formatBytes(filesystem.usedBytes)} {t("used")}</span>
+            <span>{formatBytes(filesystem.totalBytes)} {t("total")}</span>
           </div>
         </>
       ) : (
-        <p className="mt-5 text-sm font-medium text-red-300">Unavailable</p>
+        <p className="mt-5 text-sm font-medium text-red-300">{t("Unavailable")}</p>
       )}
     </article>
   );
 }
 
-function MetricsSection({ data }: Readonly<{ data: SystemOverview }>) {
+function MetricsSection({ data, t }: Readonly<{ data: SystemOverview; t: Translator }>) {
   return (
     <section
-      aria-label="System metrics"
+      aria-label={t("System metrics")}
       className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
       <AdminMetricCard
-        label="Host CPU"
+        label={t("Host CPU")}
         value={data.cpu ? `${data.cpu.usagePercent.toFixed(1)}%` : "—"}
         hint={
           data.cpu
-            ? `${data.cpu.logicalCores} cores · load ${data.cpu.loadAverage.oneMinute}`
-            : "Monitoring agent unavailable"
+            ? `${data.cpu.logicalCores} ${t("cores")} · ${t("load")} ${data.cpu.loadAverage.oneMinute}`
+            : t("Monitoring agent unavailable")
         }
         icon={Cpu}
         tone={data.cpu && data.cpu.usagePercent >= 85 ? "amber" : "green"}
       />
       <AdminMetricCard
-        label="Host memory"
+        label={t("Host memory")}
         value={data.memory ? `${data.memory.usedPercent.toFixed(1)}%` : "—"}
         hint={
           data.memory
-            ? `${formatBytes(data.memory.usedBytes)} of ${formatBytes(data.memory.totalBytes)}`
-            : "Monitoring agent unavailable"
+            ? `${formatBytes(data.memory.usedBytes)} ${t("of")} ${formatBytes(data.memory.totalBytes)}`
+            : t("Monitoring agent unavailable")
         }
         icon={MemoryStick}
         tone={data.memory && data.memory.usedPercent >= 85 ? "amber" : "blue"}
       />
       <AdminMetricCard
-        label="Database latency"
+        label={t("Database latency")}
         value={
           data.database.latencyMs === null
-            ? "Unavailable"
+            ? t("Unavailable")
             : `${data.database.latencyMs} ms`
         }
         hint={
           data.database.status === "ok"
-            ? "Health query successful"
-            : "Database query failed"
+            ? t("Health query successful")
+            : t("Database query failed")
         }
         icon={Database}
         tone={data.database.status === "ok" ? "green" : "red"}
       />
       <AdminMetricCard
-        label="Host uptime"
+        label={t("Host uptime")}
         value={formatDuration(data.host?.uptimeSeconds)}
         hint={
           data.host
             ? `${data.host.hostname} · ${data.host.platformRelease}`
-            : "No host data"
+            : t("No host data")
         }
         icon={Clock3}
         tone="violet"
@@ -229,20 +256,20 @@ function MetricsSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
-function StorageSection({ data }: Readonly<{ data: SystemOverview }>) {
+function StorageSection({ data, t }: Readonly<{ data: SystemOverview; t: Translator }>) {
   return (
     <section className="mt-8">
       <div className="mb-4 flex items-center gap-2">
         <HardDrive className="h-5 w-5 text-red-400" />
-        <h2 className="text-lg font-semibold text-white">Storage</h2>
+        <h2 className="text-lg font-semibold text-white">{t("Storage")}</h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.filesystems.map((filesystem) => (
-          <StorageCard key={filesystem.label} filesystem={filesystem} />
+          <StorageCard key={filesystem.label} filesystem={filesystem} t={t} />
         ))}
         {data.filesystems.length === 0 && (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-sm text-zinc-400">
-            Monitoring agent unavailable
+            {t("Monitoring agent unavailable")}
           </div>
         )}
       </div>
@@ -250,46 +277,50 @@ function StorageSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
-function RuntimeSection({ data }: Readonly<{ data: SystemOverview }>) {
+function RuntimeSection({
+  data,
+  t,
+  locale,
+}: Readonly<{ data: SystemOverview; t: Translator; locale: Locale }>) {
   const container = data.docker?.container;
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="flex items-center gap-2">
         <Container className="h-5 w-5 text-sky-400" />
-        <h2 className="font-semibold text-white">Runtime</h2>
+        <h2 className="font-semibold text-white">{t("Runtime")}</h2>
       </div>
       <dl className="mt-5 divide-y divide-zinc-800">
         <DetailRow
-          label="Monitoring agent"
-          value={`${data.agent.status} · v${data.agent.version ?? "—"}`}
+          label={t("Monitoring agent")}
+          value={`${runtimeValueLabel(data.agent.status, t)} · v${data.agent.version ?? "—"}`}
         />
         <DetailRow
-          label="Last snapshot"
-          value={formatDate(data.agent.lastSeenAt)}
+          label={t("Last snapshot")}
+          value={formatDate(data.agent.lastSeenAt, locale)}
         />
         <DetailRow
-          label="Container status"
+          label={t("Container status")}
           value={
             container
-              ? `${container.status} · ${container.health}`
-              : "Unavailable"
+              ? `${runtimeValueLabel(container.status, t)} · ${runtimeValueLabel(container.health, t)}`
+              : t("Unavailable")
           }
         />
         <DetailRow
-          label="Container image"
-          value={container?.image ?? "Unavailable"}
+          label={t("Container image")}
+          value={container?.image ?? t("Unavailable")}
         />
         <DetailRow
-          label="Container restarts"
+          label={t("Container restarts")}
           value={String(container?.restartCount ?? 0)}
           icon={RotateCcw}
         />
         <DetailRow
-          label="Container memory"
+          label={t("Container memory")}
           value={
             container
               ? `${formatBytes(container.memoryUsedBytes)} · ${container.memoryPercent.toFixed(1)}%`
-              : "Unavailable"
+              : t("Unavailable")
           }
         />
       </dl>
@@ -297,17 +328,35 @@ function RuntimeSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
-function redisStatusLabel(status: SystemOverview["redis"]["status"]) {
+function redisStatusLabel(status: SystemOverview["redis"]["status"], t: Translator) {
   const labels = {
-    ok: "Operational",
-    degraded: "Degraded",
-    disabled: "Disabled",
-    closed: "Closed",
+    ok: t("Operational"),
+    degraded: t("Degraded"),
+    disabled: t("Disabled"),
+    closed: t("Closed"),
   };
   return labels[status];
 }
 
-function RedisSection({ data }: Readonly<{ data: SystemOverview }>) {
+function runtimeValueLabel(value: string, t: Translator) {
+  const labels: Partial<Record<string, TranslationKey>> = {
+    ok: "ok",
+    healthy: "healthy",
+    unhealthy: "unhealthy",
+    running: "running",
+    starting: "starting",
+    unavailable: "unavailable",
+    unknown: "unknown",
+    UNKNOWN: "unknown",
+    ACTIVE: "ACTIVE",
+    DEGRADED: "DEGRADED",
+    STOPPING: "STOPPING",
+  };
+  const key = labels[value];
+  return key ? t(key) : value;
+}
+
+function RedisSection({ data, t }: Readonly<{ data: SystemOverview; t: Translator }>) {
   const { redis } = data;
   const averageLatency = redis.metrics.commands > 0
     ? `${(redis.metrics.totalLatencyMs / redis.metrics.commands).toFixed(1)} ms`
@@ -315,35 +364,35 @@ function RedisSection({ data }: Readonly<{ data: SystemOverview }>) {
 
   return (
     <section
-      aria-label="Redis runtime monitoring"
+      aria-label={t("Redis runtime monitoring")}
       className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
     >
       <div className="flex items-center gap-2">
         <Database className="h-5 w-5 text-red-400" />
-        <h2 className="font-semibold text-white">Redis Runtime</h2>
+        <h2 className="font-semibold text-white">{t("Redis Runtime")}</h2>
       </div>
       <dl className="mt-5 divide-y divide-zinc-800">
-        <DetailRow label="Status" value={redisStatusLabel(redis.status)} />
+        <DetailRow label={t("Status")} value={redisStatusLabel(redis.status, t)} />
         <DetailRow
-          label="Connection"
-          value={redis.connected ? "Connected" : "Disconnected"}
+          label={t("Connection")}
+          value={redis.connected ? t("Connected") : t("Disconnected")}
         />
         <DetailRow
-          label="Circuit breaker"
-          value={redis.circuit === "closed" ? "Closed" : "Open"}
+          label={t("Circuit breaker")}
+          value={redis.circuit === "closed" ? t("Closed") : t("Open")}
         />
-        <DetailRow label="Commands" value={String(redis.metrics.commands)} />
+        <DetailRow label={t("Commands")} value={String(redis.metrics.commands)} />
         <DetailRow
-          label="Cache hits / misses"
+          label={t("Cache hits / misses")}
           value={`${redis.metrics.hits} / ${redis.metrics.misses}`}
         />
-        <DetailRow label="Average latency" value={averageLatency} />
+        <DetailRow label={t("Average latency")} value={averageLatency} />
         <DetailRow
-          label="Errors / timeouts"
+          label={t("Errors / timeouts")}
           value={`${redis.metrics.errors} / ${redis.metrics.timeouts}`}
         />
         <DetailRow
-          label="Reconnects / fallbacks"
+          label={t("Reconnects / fallbacks")}
           value={`${redis.metrics.reconnects} / ${redis.metrics.fallbacks}`}
         />
       </dl>
@@ -351,7 +400,7 @@ function RedisSection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
-function BackgroundJobsSection({ data }: Readonly<{ data: SystemOverview }>) {
+function BackgroundJobsSection({ data, t }: Readonly<{ data: SystemOverview; t: Translator }>) {
   const backgroundJobs = data.backgroundJobs ?? {
     worker: { status: "unavailable", state: "UNKNOWN", heartbeatAgeMs: null },
     queue: { depth: 0, oldestQueuedAgeMs: null },
@@ -359,25 +408,25 @@ function BackgroundJobsSection({ data }: Readonly<{ data: SystemOverview }>) {
   const healthy = backgroundJobs.worker.status === "healthy";
   return (
     <section
-      aria-label="Background job monitoring"
+      aria-label={t("Background job monitoring")}
       className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5"
     >
       <div className="flex items-center gap-2">
         <Activity className={`h-5 w-5 ${healthy ? "text-emerald-400" : "text-amber-400"}`} />
-        <h2 className="font-semibold text-white">Background Jobs</h2>
+        <h2 className="font-semibold text-white">{t("Background Jobs")}</h2>
       </div>
       <dl className="mt-5 divide-y divide-zinc-800">
-        <DetailRow label="Worker" value={backgroundJobs.worker.status} />
-        <DetailRow label="Worker state" value={backgroundJobs.worker.state} />
+        <DetailRow label={t("Worker")} value={runtimeValueLabel(backgroundJobs.worker.status, t)} />
+        <DetailRow label={t("Worker state")} value={runtimeValueLabel(backgroundJobs.worker.state, t)} />
         <DetailRow
-          label="Heartbeat age"
+          label={t("Heartbeat age")}
           value={backgroundJobs.worker.heartbeatAgeMs === null
             ? "—"
             : formatDuration(backgroundJobs.worker.heartbeatAgeMs / 1_000)}
         />
-        <DetailRow label="Active queue depth" value={String(backgroundJobs.queue.depth)} />
+        <DetailRow label={t("Active queue depth")} value={String(backgroundJobs.queue.depth)} />
         <DetailRow
-          label="Oldest queued"
+          label={t("Oldest queued")}
           value={backgroundJobs.queue.oldestQueuedAgeMs === null
             ? "—"
             : formatDuration(backgroundJobs.queue.oldestQueuedAgeMs / 1_000)}
@@ -387,42 +436,48 @@ function BackgroundJobsSection({ data }: Readonly<{ data: SystemOverview }>) {
         href="/admin/jobs"
         className="mt-5 inline-flex min-h-10 items-center rounded-lg border border-zinc-700 px-3 text-sm font-medium text-zinc-200 hover:bg-zinc-800"
       >
-        Open Job Operations
+        {t("Open Job Operations")}
       </Link>
     </section>
   );
 }
 
-function RecoverySection({ data }: Readonly<{ data: SystemOverview }>) {
+function RecoverySection({
+  data,
+  t,
+  locale,
+}: Readonly<{ data: SystemOverview; t: Translator; locale: Locale }>) {
+  const numberLocale = locale === "de" ? "de-DE" : "en-US";
+  const databaseRecords = data.backup
+    ? data.backup.records.toLocaleString(numberLocale)
+    : "—";
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="flex items-center gap-2">
         <Server className="h-5 w-5 text-emerald-400" />
-        <h2 className="font-semibold text-white">Recovery</h2>
+        <h2 className="font-semibold text-white">{t("Recovery")}</h2>
       </div>
       <dl className="mt-5 divide-y divide-zinc-800">
-        <DetailRow label="Application version" value={data.version} />
+        <DetailRow label={t("Application version")} value={data.version} />
         <DetailRow
-          label="Latest database backup"
+          label={t("Latest database backup")}
           value={
             data.backup
-              ? formatDate(data.backup.createdAt)
-              : "No backup recorded"
+              ? formatDate(data.backup.createdAt, locale)
+              : t("No backup recorded")
           }
         />
         <DetailRow
-          label="Backup size"
+          label={t("Backup size")}
           value={formatBytes(data.backup?.sizeBytes)}
         />
         <DetailRow
-          label="Database records"
-          value={
-            data.backup ? data.backup.records.toLocaleString("en-US") : "—"
-          }
+          label={t("Database records")}
+          value={databaseRecords}
         />
         <DetailRow
-          label="Checked at"
-          value={formatDate(data.checkedAt)}
+          label={t("Checked at")}
+          value={formatDate(data.checkedAt, locale)}
           icon={Activity}
         />
       </dl>
@@ -430,13 +485,13 @@ function RecoverySection({ data }: Readonly<{ data: SystemOverview }>) {
   );
 }
 
-function AlertsSection({ alerts }: Readonly<{ alerts: SystemAlert[] }>) {
+function AlertsSection({ alerts, t }: Readonly<{ alerts: SystemAlert[]; t: Translator }>) {
   return (
     <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-400" />
-          <h2 className="font-semibold text-white">Active alerts</h2>
+          <h2 className="font-semibold text-white">{t("Active alerts")}</h2>
         </div>
         <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-300">
           {alerts.length}
@@ -445,12 +500,12 @@ function AlertsSection({ alerts }: Readonly<{ alerts: SystemAlert[] }>) {
       {alerts.length === 0 ? (
         <div className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm text-emerald-300">
           <CheckCircle2 className="h-5 w-5" />
-          No active alerts.
+          {t("No active alerts.")}
         </div>
       ) : (
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
           {alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} />
+            <AlertCard key={alert.id} alert={alert} t={t} />
           ))}
         </div>
       )}
@@ -459,19 +514,20 @@ function AlertsSection({ alerts }: Readonly<{ alerts: SystemAlert[] }>) {
 }
 
 export default function AdminSystemPage() {
+  const { locale, t } = useLanguage();
   const { data, error, isLoading, mutate } = useSWR<SystemOverview>(
     "/api/admin/system",
     fetcher,
     { refreshInterval: 15_000 },
   );
-  const status = statusPresentation(data?.status ?? "warning");
+  const status = statusPresentation(data?.status ?? "warning", t);
   const StatusIcon = status.icon;
 
   return (
     <div>
       <AdminPageHeader
-        title="System Overview"
-        description="Live host, container, database, Redis, background worker, storage, and backup health for this deployment."
+        title={t("System Overview")}
+        description={t("Live host, container, database, Redis, background worker, storage, and backup health for this deployment.")}
         actions={
           <>
             {data && (
@@ -490,7 +546,7 @@ export default function AdminSystemPage() {
               className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm font-medium text-zinc-200 hover:bg-zinc-800"
             >
               <RefreshCw className="h-4 w-4" />
-              Refresh
+              {t("Refresh")}
             </button>
           </>
         }
@@ -499,7 +555,7 @@ export default function AdminSystemPage() {
       {isLoading && (
         <div
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-          aria-label="System metrics are loading"
+          aria-label={t("System metrics are loading")}
         >
           {Array.from({ length: 8 }, (_, index) => (
             <div
@@ -515,22 +571,24 @@ export default function AdminSystemPage() {
           role="alert"
           className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-red-200"
         >
-          {error.message || "The system overview could not be loaded."}
+          {error.message === "The system overview could not be loaded."
+            ? t("The system overview could not be loaded.")
+            : error.message}
         </div>
       )}
 
       {data && (
         <>
-          <MetricsSection data={data} />
-          <StorageSection data={data} />
+          <MetricsSection data={data} t={t} />
+          <StorageSection data={data} t={t} />
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <RuntimeSection data={data} />
-            <RedisSection data={data} />
-            <BackgroundJobsSection data={data} />
-            <RecoverySection data={data} />
+            <RuntimeSection data={data} t={t} locale={locale} />
+            <RedisSection data={data} t={t} />
+            <BackgroundJobsSection data={data} t={t} />
+            <RecoverySection data={data} t={t} locale={locale} />
           </div>
           <DeploymentStatusPanel />
-          <AlertsSection alerts={data.alerts} />
+          <AlertsSection alerts={data.alerts} t={t} />
         </>
       )}
     </div>

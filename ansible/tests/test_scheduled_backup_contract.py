@@ -28,7 +28,11 @@ class ScheduledBackupContractTests(unittest.TestCase):
         self.assertIn("ExecStart=/usr/local/lib/netflix-deploy/run-postgres-backup-retention.sh", service)
         self.assertIn("NoNewPrivileges=true", service)
         self.assertIn("ReadWritePaths=/root/netflix-database-backups", service)
-        self.assertIn("PathChanged=/var/lib/netflix-backup-status/retention/request.json", path_unit)
+        self.assertIn("PathExists=/var/lib/netflix-backup-status/retention/request.json", path_unit)
+        self.assertNotIn("MakeDirectory=true", path_unit)
+        self.assertIn("/var/lib/netflix-backup-status/retention", playbook)
+        self.assertIn("Remove invalid empty backup retention request directory", playbook)
+        self.assertIn("rmdir", playbook)
         self.assertIn("run-postgres-backup-retention.sh", playbook)
         self.assertIn("netflix-backup-retention.path", playbook)
 
@@ -39,6 +43,9 @@ class ScheduledBackupContractTests(unittest.TestCase):
         timer = (
             ROOT / "ansible" / "templates" / "netflix-postgres-backup.timer.j2"
         ).read_text(encoding="utf-8")
+        path_unit = (
+            ROOT / "ansible" / "templates" / "netflix-postgres-backup.path.j2"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("run-postgres-backup.sh", service)
         self.assertIn("EnvironmentFile=/root/netflix-secrets/app.env", service)
@@ -47,6 +54,11 @@ class ScheduledBackupContractTests(unittest.TestCase):
         self.assertIn("OnCalendar={{ postgres_backup_schedule }} {{ postgres_backup_timezone }}", timer)
         self.assertIn("Persistent=true", timer)
         self.assertIn("RandomizedDelaySec=", timer)
+        self.assertIn(
+            "PathExists=/var/lib/netflix-backup-status/scheduled/request.json",
+            path_unit,
+        )
+        self.assertIn("Unit=netflix-postgres-backup.service", path_unit)
 
     def test_runner_serializes_dump_publish_verification_and_retention(self):
         runner = (
@@ -65,6 +77,10 @@ class ScheduledBackupContractTests(unittest.TestCase):
         )
         self.assertIn("manage-postgres-backups.py", runner)
         self.assertIn("timeout --signal=TERM", runner)
+        self.assertIn('rm -- "$request_path"', runner)
+        self.assertIn('[[ ! -f "$request_path" || -L "$request_path" ]]', runner)
+        self.assertIn('request.get("environment") != sys.argv[2]', runner)
+        self.assertIn('"requestId":%s', runner)
         self.assertNotIn("docker.sock", runner)
         self.assertNotIn("eval ", runner)
 
@@ -93,8 +109,11 @@ class ScheduledBackupContractTests(unittest.TestCase):
             "Install safe PostgreSQL backup retention manager",
             "Install scheduled PostgreSQL backup service",
             "Install scheduled PostgreSQL backup timer",
+            "Install on-demand PostgreSQL backup path unit",
             "Enable scheduled PostgreSQL backups",
+            "Enable on-demand PostgreSQL backup requests",
             "netflix-postgres-backup.timer",
+            "netflix-postgres-backup.path",
         ):
             self.assertIn(value, playbook)
         self.assertIn("postgres_backup_minimum_copies", playbook)

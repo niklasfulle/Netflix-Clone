@@ -2,16 +2,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SWRConfig } from 'swr';
 
 import { BackupRetentionPanel } from '@/components/admin/BackupRetentionPanel';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 beforeEach(() => {
   globalThis.sessionStorage.clear();
 });
 
-function renderPanel() {
+function renderPanel(locale: 'en' | 'de' = 'en') {
   return render(
-    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <BackupRetentionPanel />
-    </SWRConfig>,
+    <LanguageProvider initialLocale={locale}>
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <BackupRetentionPanel />
+      </SWRConfig>
+    </LanguageProvider>,
   );
 }
 
@@ -32,6 +35,16 @@ it('queues backup retention cleanup without exposing host paths or policy values
   expect(JSON.stringify((globalThis.fetch as jest.Mock).mock.calls)).not.toContain(
     '/root/netflix-database-backups',
   );
+});
+
+it('renders backup retention controls in German', () => {
+  globalThis.fetch = jest.fn();
+
+  renderPanel('de');
+
+  expect(screen.getByRole('heading', { name: 'Geplante Backup-Aufbewahrung' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Backup-Aufbewahrung bereinigen' })).toBeInTheDocument();
+  expect(screen.queryByText('Scheduled Backup Retention')).not.toBeInTheDocument();
 });
 
 it('shows progress and lets an administrator cancel an accepted retention job', async () => {

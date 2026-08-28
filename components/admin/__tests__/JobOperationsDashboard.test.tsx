@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SWRConfig } from 'swr';
 
 import { JobOperationsDashboard } from '@/components/admin/JobOperationsDashboard';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 const responseBody = {
   items: [{
@@ -37,11 +38,13 @@ const responseBody = {
   },
 };
 
-function renderDashboard() {
+function renderDashboard(locale: 'en' | 'de' = 'en') {
   return render(
-    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <JobOperationsDashboard />
-    </SWRConfig>,
+    <LanguageProvider initialLocale={locale}>
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <JobOperationsDashboard />
+      </SWRConfig>
+    </LanguageProvider>,
   );
 }
 
@@ -66,6 +69,17 @@ describe('job operations dashboard', () => {
       'href',
       '/admin/audit?correlationId=request-correlation-123',
     );
+  });
+
+  it('renders job operations in German', async () => {
+    renderDashboard('de');
+
+    expect(await screen.findByText('Worker betriebsbereit')).toBeInTheDocument();
+    expect(screen.getByText('4 aktive Aufträge')).toBeInTheDocument();
+    expect(screen.getByLabelText('Auftragsstatus')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Auftrag erneut versuchen job-run-123' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Audit-Ereignis öffnen' })).toBeInTheDocument();
+    expect(screen.queryByText('Worker healthy')).not.toBeInTheDocument();
   });
 
   it('retries eligible failed work through the audited action endpoint', async () => {

@@ -56,6 +56,16 @@ _Avoid_: Host path, uploaded binary
 A supported media file inside an approved media root that is not referenced by any published Content item.
 _Avoid_: Missing file, deleted Content
 
+## Background operations
+
+**Weekly Job Schedule**:
+An administrator-owned recurring plan for one database backup or complete Media Scan Run on selected weekdays at one local time and time zone.
+_Avoid_: Cron job, server timer
+
+**Scheduled Run**:
+One durable background operation created from a Weekly Job Schedule that is tracked independently from later changes to that schedule.
+_Avoid_: Schedule execution, timer event
+
 ## Deployment operations
 
 **Deployment Record**:
