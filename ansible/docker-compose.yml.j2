@@ -13,9 +13,7 @@ services:
       AUTH_PUBLIC_URL: {{ canonical_url | quote }}
       AUTH_TRUST_HOST: 'true'
       AUTH_TRUSTED_PROXY_HOPS: '1'
-      AUTH_WEBAUTHN_RP_ID: {{ https_hostname | quote }}
-      AUTH_WEBAUTHN_ORIGIN: {{ canonical_url | quote }}
-      PUBLIC_CA_OVERLAP_DAYS: {{ public_ca_overlap_days | quote }}
+      AUTH_PASSKEYS_ENABLED: 'false'
     depends_on:
       jobs-migrate:
         condition: service_completed_successfully
@@ -43,7 +41,6 @@ services:
       - /series:/series
       - /var/lib/netflix-monitor:/monitor:ro
       - /var/lib/netflix-deployment-status:/deployment-status:ro
-      - /var/lib/netflix-public-certificates:/public-certificates:ro
       - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
     logging:
@@ -176,7 +173,8 @@ services:
       com.netflix-clone.environment: {{ deployment_environment | quote }}
     ports:
       - "80:80"
-      - "443:443"
+    environment:
+      LAN_HOST: {{ lan_hostname | quote }}
     read_only: true
     security_opt:
       - no-new-privileges:true

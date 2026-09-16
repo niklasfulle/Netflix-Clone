@@ -39,11 +39,7 @@ test.describe('multi-factor authentication journey', () => {
   test('user can enroll TOTP, pass a dedicated login challenge, and disable MFA', async ({ page }) => {
     test.setTimeout(180_000);
 
-    const browserFailures = createBrowserFailureMonitor(page, {
-      allowedApiFailures: {
-        '/api/security/certificates': [503],
-      },
-    });
+    const browserFailures = createBrowserFailureMonitor(page);
     await login(page, accounts.user);
     let secret = '';
 

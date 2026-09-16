@@ -129,8 +129,8 @@ Betriebsumgebung, aber niemals deren Werte in das Repository.
 
 `AUTH_URL` muss exakt der Adresse entsprechen, über die die Anwendung aufgerufen
 wird. Lokal ist das `http://localhost:3000`. Das Ansible-Deployment setzt für
-die LXCs automatisch `https://netflix` beziehungsweise
-`https://netflix-staging`; diese Namen müssen auf dem Client per lokalem DNS
+die LXCs automatisch `http://netflix` beziehungsweise
+`http://netflix-staging`; diese Namen müssen auf dem Client per lokalem DNS
 oder Hosts-Datei auflösbar sein.
 
 ### 3. Prisma vorbereiten
@@ -204,8 +204,7 @@ Der Auth-Mailer wird erst beim Versand initialisiert, validiert alle oben
 genannten Werte und wartet auf die SMTP-Bestätigung. Die früheren Variablen
 `NODEMAILER_EMAIL`, `NODEMAILER_PW` und die fest codierte Gmail-Konfiguration
 werden nicht mehr verwendet. Für Produktion muss `AUTH_PUBLIC_URL` eine stabile
-kanonische HTTPS-Adresse enthalten. Sie darf ein dauerhaft verwendeter LAN-Name
-sein, wenn der Client der internen CA vertraut.
+kanonische HTTP-Adresse enthalten.
 
 Anmelde-Limits werden in PostgreSQL gespeichert und gelten dadurch über Neustarts
 und mehrere App-Instanzen hinweg. `AUTH_TRUSTED_PROXY_HOPS` bleibt bei direktem
@@ -222,19 +221,12 @@ erlaubt ausschließlich bereits registrierten, bestätigten und nicht gesperrten
 Konten einen Passkey. Passwortanmeldung, MFA und E-Mail-Wiederherstellung bleiben
 parallel verfügbar.
 
-WebAuthn bindet einen Passkey dauerhaft an die RP-ID. Produktion und Staging
-benötigen daher jeweils einen stabilen kanonischen HTTPS-Hostnamen. `AUTH_URL`,
-`AUTH_PUBLIC_URL` und `AUTH_WEBAUTHN_ORIGIN` müssen denselben von außen sichtbaren
-Ursprung beschreiben; der Reverse-Proxy muss Host und HTTPS-Informationen korrekt
-weiterreichen. Plain HTTP ist ausschließlich für `http://localhost` in der
-lokalen Entwicklung zulässig. Ein Wechsel zwischen Hostname und IP-Adresse
-macht vorhandene Passkeys für den jeweils anderen Ursprung unbrauchbar.
-
-Im Ansible-Setup werden RP-ID und Origin automatisch aus `HTTPS_HOST` abgeleitet.
-Für Staging bleiben in `app.env` nur Feature-Flag und Anzeigename:
+WebAuthn/Passkeys bleiben im Code für spätere sichere Umgebungen vorhanden, sind
+im HTTP-LAN-Deployment aber deaktiviert. Passwortanmeldung und MFA bleiben
+verfügbar.
 
 ```dotenv
-AUTH_PASSKEYS_ENABLED=true
+AUTH_PASSKEYS_ENABLED=false
 AUTH_WEBAUTHN_RP_NAME=Netflix Clone Staging
 ```
 
@@ -412,7 +404,7 @@ Sie erwartet die externe Env-Datei und folgende Host-Verzeichnisse:
 Start mit einem konkreten Image-Tag:
 
 ```bash
-HTTPS_HOST=netflix APP_VERSION=1.11.0 docker compose up -d
+LAN_HOST=netflix APP_VERSION=1.13.1 docker compose up -d
 ```
 
 Das Image verändert die Datenbank beim Containerstart nicht selbst. Das
@@ -420,8 +412,7 @@ empfohlene Ansible-Deployment erstellt zuerst ein geprüftes Backup, führt dana
 `prisma migrate deploy` aus und startet anschließend Next.js. Bei einem manuellen
 Compose-Start müssen ausstehende Migrationen daher vorab angewendet werden. Der
 Docker-Healthcheck ruft alle 30 Sekunden `/api/health` auf. Das manuelle Compose-
-Setup verwendet ebenfalls Caddy und legt seine interne CA im persistenten
-Volume `caddy_data` ab.
+Setup verwendet ebenfalls Caddy als HTTP-Reverse-Proxy auf Port 80.
 
 ## Empfohlenes Deployment mit Ansible
 
@@ -436,8 +427,8 @@ Vor dem ersten Deployment:
 
 1. Docker Desktop starten und bei Docker Hub anmelden.
 2. Einen neuen, isolierten Staging-LXC vorbereiten.
-3. `ansible/.env.staging` mit LXC-Adresse und `HTTPS_HOST=netflix-staging`
-   anlegen; Produktion verwendet `HTTPS_HOST=netflix`.
+3. `ansible/.env.staging` mit LXC-Adresse und `LAN_HOST=netflix-staging`
+   anlegen; Produktion verwendet `LAN_HOST=netflix`.
 4. Auf jedem LXC `/etc/netflix-clone/environment` auf `staging` beziehungsweise
    `production` setzen.
 5. Für Staging eine eigene Datenbank und eine eigene
@@ -479,18 +470,12 @@ Der Image-Tag wird immer aus `package.json` gelesen. Das Playbook:
 3. lädt und verifiziert das neue Image vollständig,
 4. stoppt erst danach den alten Container,
 5. startet die erwartete Version,
-6. prüft `/api/health` zuerst lokal und danach über das kanonische HTTPS-Ziel
-   mit Zertifikatsvalidierung,
-7. validiert und veröffentlicht ausschließlich das öffentliche Root-Zertifikat
-   der internen Caddy-CA für angemeldete Nutzer,
-8. validiert Container und Image im Monitoring-Snapshot und
-9. veröffentlicht atomar den host-signierten Deployment Record und
-10. entfernt erst nach erfolgreichem Start ungenutzte Docker-Layer.
+6. prüft `/api/health` zuerst lokal und danach über das kanonische HTTP-Ziel,
+7. validiert Container und Image im Monitoring-Snapshot und
+8. veröffentlicht atomar den host-signierten Deployment Record und
+9. entfernt erst nach erfolgreichem Start ungenutzte Docker-Layer.
 
 Weitere Ansible-Details stehen in [ansible/README.md](ansible/README.md).
-Der sichere Zertifikats-Bootstrap, Gerätehinweise und die explizite Rotation
-stehen in
-[`docs/operations/certificate-trust.md`](docs/operations/certificate-trust.md).
 Das privacy-sichere Auth-Logformat, Retention und die Staging-Fehlerübungen sind
 in
 [`docs/operations/authentication-telemetry.md`](docs/operations/authentication-telemetry.md)
@@ -512,11 +497,9 @@ Lokales Diagnosebeispiel auf dem LXC:
 curl -fsS http://127.0.0.1:3000/api/health
 ```
 
-Der normale externe Aufruf erfolgt über `https://netflix/api/health` oder
-`https://netflix-staging/api/health`. Die Caddy-Root-CA liegt nach dem ersten
-Deployment unter `/root/netflix-clone/caddy-local-root.crt` und muss einmalig
-auf jedem LAN-Client als vertrauenswürdig installiert werden. Eine vollständige
-Anleitung steht in [docs/deployment/staging.md](docs/deployment/staging.md).
+Der normale externe Aufruf erfolgt über `http://netflix/api/health` oder
+`http://netflix-staging/api/health`. Port 3000 bleibt direkt auf dem LXC
+beschränkt; der LAN-Zugriff läuft über den HTTP-Reverse-Proxy auf Port 80.
 
 Er liefert HTTP `200`, wenn Anwendung und Datenbank bereit sind, andernfalls
 HTTP `503`. Ansible vergleicht zusätzlich die gemeldete Version mit dem erwarteten
@@ -668,13 +651,12 @@ getent ahosts production.cloudfront.docker.com
 Das Ansible-Playbook wiederholt DNS- und Pull-Prüfungen automatisch und stoppt den
 laufenden Container erst nach einem erfolgreichen Pull.
 
-### `https://netflix` ist nicht erreichbar oder nicht vertrauenswürdig
+### `http://netflix` ist nicht erreichbar
 
 Der Hostname `netflix` muss auf dem Client auf die Produktions-LXC-IP zeigen;
 für Staging gilt entsprechend `netflix-staging`. Prüfe lokales DNS oder die
-Hosts-Datei und installiere anschließend die passende
-`caddy-local-root.crt` als vertrauenswürdige Root-CA. Direkter LAN-Zugriff auf
-Port 3000 ist absichtlich gesperrt.
+Hosts-Datei. Direkter LAN-Zugriff auf Port 3000 ist absichtlich gesperrt; der
+Proxy muss auf Port 80 laufen.
 
 ### Changelog fehlt im Container
 

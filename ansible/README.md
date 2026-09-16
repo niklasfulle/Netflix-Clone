@@ -8,16 +8,16 @@ Diese Ansible-Konfiguration ermöglicht es, den Netflix Clone Docker Container a
 
 ## Setup
 
-### 1. Ziel und LAN-HTTPS konfigurieren
+### 1. Ziel und LAN-Host konfigurieren
 
 Lege für jede Umgebung eine lokale Konfigurationsdatei aus `.env.example` an.
-`HTTPS_HOST` enthält nur den im LAN auflösbaren Namen, ohne Schema oder Port:
+`LAN_HOST` enthält nur den im LAN auflösbaren Namen, ohne Schema oder Port:
 
 ```dotenv
 LXC_HOST=192.168.1.164
 LXC_USER=root
 LXC_PORT=22
-HTTPS_HOST=netflix-staging
+LAN_HOST=netflix-staging
 ```
 
 Ohne Angabe verwendet das Setup `netflix-staging` für Staging und `netflix`
@@ -80,7 +80,7 @@ ansible-playbook update.yml -v
 ## Was passiert beim Update?
 
 1. Version wird aus `package.json` gelesen
-2. `docker-compose.yml` und die interne Caddy-HTTPS-Konfiguration werden aktualisiert
+2. `docker-compose.yml` und die HTTP-Caddy-Konfiguration werden aktualisiert
 3. Docker-Hub- und CloudFront-DNS werden mit Wiederholungsversuchen geprüft
 4. Das neue Docker-Image wird mit Wiederholungsversuchen vollständig geladen und verifiziert
 5. Ein PostgreSQL-Dump wird erstellt und in einem temporären Container ohne Netzwerk vollständig wiederhergestellt und geprüft
@@ -88,14 +88,13 @@ ansible-playbook update.yml -v
 7. Erst danach wird der alte Container gestoppt und entfernt
 8. Ein eingeschränkter systemd-Agent erfasst LXC-, Speicher- und Docker-Metriken
 9. App und Reverse-Proxy werden gestartet; Port 3000 bleibt auf localhost beschränkt
-10. Ansible prüft `/api/health` direkt und anschließend über das echte kanonische HTTPS-Ziel
-11. Ansible exportiert die interne Root-CA nach `/root/netflix-clone/caddy-local-root.crt`
-12. Der Monitoring-Agent muss den neuen Container und Image-Tag erkennen
-13. Der LXC signiert den aktuellen Deployment-, Migrations-, Health- und Rollback-Status mit seinem privaten Ed25519-Schlüssel
-14. Ein persistenter systemd-Timer erstellt täglich einen atomaren PostgreSQL-Dump, verifiziert ihn per isoliertem Restore und wendet die sichere Retention an
-15. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
-16. Volumes (`/movies`, `/series`, Caddy-PKI, Monitoring-, Deployment- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
-17. Ein digest-gepinnter, flüchtiger Redis-7.2-Dienst startet ausschließlich im internen Backend-Netz; ACL, Umgebung und Speichergrenzen werden vor der Promotion geprüft
+10. Ansible prüft `/api/health` direkt und anschließend über das kanonische HTTP-Ziel
+11. Der Monitoring-Agent muss den neuen Container und Image-Tag erkennen
+12. Der LXC signiert den aktuellen Deployment-, Migrations-, Health- und Rollback-Status mit seinem privaten Ed25519-Schlüssel
+13. Ein persistenter systemd-Timer erstellt täglich einen atomaren PostgreSQL-Dump, verifiziert ihn per isoliertem Restore und wendet die sichere Retention an
+14. Erst nach erfolgreichem Start werden nicht mehr verwendete Layer bereinigt
+15. Volumes (`/movies`, `/series`, Monitoring-, Deployment- und Backup-Metadaten) sowie das vorherige getaggte Image für ein Rollback bleiben erhalten
+16. Ein digest-gepinnter, flüchtiger Redis-7.2-Dienst startet ausschließlich im internen Backend-Netz; ACL, Umgebung und Speichergrenzen werden vor der Promotion geprüft
 
 ## Dateien
 
@@ -104,7 +103,7 @@ ansible-playbook update.yml -v
 - `update.yml` - Einfaches Playbook (verwendet Shell-Befehle)
 - `update-netflix-clone.yml` - Erweitertes Playbook mit Migration, Health-Prüfung und Rollback
 - `docker-compose.yml.j2` - Template für docker-compose.yml
-- `Caddyfile.j2` - internes HTTPS für den kanonischen LAN-Namen
+- `Caddyfile.j2` - HTTP-Reverse-Proxy für den kanonischen LAN-Namen
 - `files/netflix_monitor.py` - Read-only LXC- und Docker-Metriksammler
 - `files/verify-postgres-backup.sh` - isolierter Restore und bounded Statusvertrag
 - `files/run-postgres-backup-verification.sh` - Host-Lock und gehärteter Docker-Aufruf
@@ -151,19 +150,10 @@ Wenn die Abfragen über den eingetragenen DNS-Server fehlschlagen, korrigiere di
 
 Das erweiterte Playbook verwendet bewusst die Docker-CLI statt der Python-Docker-SDK-Module. Dadurch ist es unabhängig von inkompatiblen Kombinationen aus `requests`, Docker SDK und `community.docker`.
 
-### Der Browser vertraut `https://netflix` noch nicht
+### `http://netflix` ist nicht erreichbar
 
-Caddy stellt für reine LAN-Namen Zertifikate aus seiner internen CA aus. Nach
-dem ersten erfolgreichen Deployment muss deren öffentliches Root-Zertifikat
-einmalig auf jedem Client als vertrauenswürdige Stammzertifizierungsstelle
-installiert werden. Die Datei liegt auf dem LXC unter
-`/var/lib/netflix-public-certificates/current.pem`. Sie wird validiert und nur
-lesbar in die Anwendung eingebunden. Produktion und Staging haben jeweils eine
-eigene CA; beide Zertifikate müssen auf Clients installiert werden, die beide
-Umgebungen verwenden. Ein unerwarteter Wechsel wird standardmäßig abgelehnt.
-Der kontrollierte Übergang mit `allow_public_ca_rotation=true` sowie die spätere
-explizite Entfernung stehen in
-[`docs/operations/certificate-trust.md`](../docs/operations/certificate-trust.md).
+Der Hostname muss auf die jeweilige LXC-IP zeigen. Caddy nimmt nur HTTP auf
+Port 80 an; Port 443 und die interne Caddy-CA werden nicht mehr verwendet.
 
 ### Chunk-Upload meldet `EACCES` für `/movies/temp`
 

@@ -19,9 +19,6 @@ const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
-  ...(process.env.ENABLE_HSTS === 'true'
-    ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
-    : []),
 ];
 
 /** @type {import('next').NextConfig} */

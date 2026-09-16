@@ -1,6 +1,6 @@
-# 0003: Internal HTTPS for LAN hostnames
+# 0003: Internal HTTPS for LAN hostnames (superseded)
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-08-13
 
 ## Context
@@ -30,7 +30,14 @@ endpoint against that root, and preserves both Compose and Caddy configuration
 during rollback. LAN clients resolve the hostnames through local DNS or a hosts
 file and install the relevant public root certificate once.
 
-## Consequences
+## Superseded by HTTP-only LAN access
+
+The internal CA and TLS proxy caused avoidable trust and connectivity problems
+on the LAN. The active deployment now keeps the Caddy reverse proxy on port 80,
+uses `http://` canonical URLs, and disables the passkey pilot. Port 443,
+certificate publication, and HSTS are no longer part of the deployment.
+
+## Consequences of the superseded decision
 
 - Every client must trust the production CA and, when needed, the separate
   staging CA before browsers accept the sites without warnings.

@@ -70,14 +70,10 @@ AUTH_PASSKEYS_ENABLED=true
 AUTH_WEBAUTHN_RP_NAME=Netflix Clone Staging
 ```
 
-The deployment derives `AUTH_URL`, `AUTH_PUBLIC_URL`, `AUTH_WEBAUTHN_ORIGIN`,
-and the RP ID from `HTTPS_HOST`, so they cannot drift apart. The RP ID is the
-hostname without scheme or port.
-Do not alternate between an IP address and a hostname: passkeys registered for
-one RP ID do not work for another. WebAuthn permits plain HTTP only on
-`http://localhost`; a LAN hostname or address therefore requires TLS through a
-reverse proxy. Forward the original host and protocol and keep staging and
-production RP IDs separate.
+The deployment derives `AUTH_URL` and `AUTH_PUBLIC_URL` from `LAN_HOST`, so the
+canonical HTTP address cannot drift from the LAN hostname. The hostname is
+specified without scheme or port. Passkeys are disabled for this HTTP-only LAN
+deployment; password login and MFA remain available.
 
 The two Playwright accounts are provisioned automatically after every
 successful schema migration. Copy the local E2E environment file to a separate,
@@ -143,7 +139,7 @@ Set the cloned LXC address:
 LXC_HOST=192.168.1.156
 LXC_USER=root
 LXC_PORT=22
-HTTPS_HOST=netflix-staging
+LAN_HOST=netflix-staging
 ```
 
 Both `.env.staging` and the generated `hosts.staging` are ignored by Git.
@@ -158,19 +154,8 @@ your router's local DNS. A hosts-file entry works as a fallback:
 192.168.1.155 netflix
 ```
 
-The deployment exposes Caddy on ports 80 and 443 and binds the direct Next.js
-port to `127.0.0.1:3000`. Caddy uses a persistent internal CA because no public
-domain exists. After the first successful deployment, copy and trust its public
-root certificate on each client:
-
-```powershell
-scp root@192.168.1.164:/root/netflix-clone/caddy-local-root.crt .\netflix-staging-root.crt
-Import-Certificate -FilePath .\netflix-staging-root.crt -CertStoreLocation Cert:\CurrentUser\Root
-```
-
-Repeat this for production. Do not copy a CA private key; only the exported
-`caddy-local-root.crt` is needed. Existing clients keep trusting future
-certificates while the persistent `caddy_data` volume remains intact.
+The deployment exposes Caddy on port 80 and binds the direct Next.js port to
+`127.0.0.1:3000`. No certificate installation or trust configuration is needed.
 
 ## 4. Deploy and promote
 
@@ -182,7 +167,7 @@ Staging is the safe default:
 
 The command builds and pushes the versioned image, deploys it to staging,
 runs migrations, verifies backup integrity, checks `/api/health` through the
-canonical HTTPS URL with certificate validation, and records a local staging
+canonical HTTP URL, and records a local staging
 receipt only after success.
 
 Promote that exact version to production without rebuilding it:
@@ -199,8 +184,7 @@ passes.
 ## 5. Acceptance checks before production
 
 - Health endpoint returns HTTP 200, the expected version, and `staging`.
-- `http://netflix-staging` redirects to `https://netflix-staging`, and the
-  browser reports a trusted certificate without warnings.
+- `http://netflix-staging` loads directly without an HTTPS redirect.
 - A clearly visible `STAGING` badge appears at the top of every application page.
 - Login, registration, verification, password reset, MFA, and logout work.
 - When the passkey pilot is enabled, enrollment, cancellation, passkey login,

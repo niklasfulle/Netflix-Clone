@@ -40,9 +40,7 @@ test.describe('QR-assisted device login', () => {
       // development, its first compilation can trigger a full-page HMR reload.
       await phonePage.goto('/auth/qr/approve');
       await phonePage.waitForLoadState('networkidle');
-      const phoneFailures = createBrowserFailureMonitor(phonePage, {
-        allowedApiFailures: { '/api/security/certificates': [503] },
-      });
+      const phoneFailures = createBrowserFailureMonitor(phonePage);
 
       await targetPage.goto('/auth/login');
       await targetPage.getByRole('button', { name: /Sign in with QR code|Mit QR-Code anmelden/i }).click();
