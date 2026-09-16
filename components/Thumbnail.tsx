@@ -2,6 +2,7 @@ import Image from 'next/image';
 
 import useInfoModal from '@/hooks/useInfoModal';
 import type { CatalogCardDto } from '@/lib/catalog';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface ThumbnailProps {
   data: CatalogCardDto;
@@ -24,6 +25,8 @@ function calculateBarWidth(duration: string, watchTime: number): number {
 
 const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
   const { openModal } = useInfoModal();
+  const { message } = useLanguage();
+  const contentTitle = data.title ?? message('untitledContent', {});
   const barWidth: string =
     calculateBarWidth(data.duration ?? "0", data.watchTime ?? 0) + "%";
 
@@ -32,7 +35,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
       type="button"
       className="relative h-28 min-w-[180px] cursor-pointer transition duration-200 ease-out md:h-36 md:min-w-[260px] md:hover:scale-105"
       onClick={() => data.id && openModal(data.id)}
-      aria-label={`Show details for ${data.title ?? 'content'}`}
+      aria-label={message('showDetails', { title: contentTitle })}
     >
       <div className="relative">
         {isLoading && (
@@ -52,7 +55,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({ data, isLoading }) => {
           <Image
             className="w-full transition shadow-xl cursor-pointer object-cover duration max-w-64 aspect-video rounded-t-md"
             src={data.thumbnailUrl ?? '/images/Logo2.png'}
-            alt={`${data.title ?? 'Content'} thumbnail`}
+            alt={message('thumbnailAlt', { title: contentTitle })}
             width={500}
             height={500}
           />

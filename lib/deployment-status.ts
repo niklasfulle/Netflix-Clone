@@ -13,7 +13,7 @@ const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const deploymentEnvironmentSchema = z.enum(["staging", "production"]);
 
 const healthCheckSchema = z.object({
-  name: z.enum(["application", "https", "monitoring"]),
+  name: z.enum(["application", "proxy", "monitoring"]),
   result: z.enum(["pending", "passed", "failed", "skipped"]),
   checkedAt: z.iso.datetime().nullable(),
 }).strict();

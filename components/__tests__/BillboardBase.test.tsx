@@ -536,7 +536,8 @@ describe('BillboardBase', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
       const contentDiv = screen.getByTestId('billboard-content');
       expect(contentDiv?.className).toMatch(/absolute/);
-      expect(contentDiv?.className).toMatch(/top-\[50%\]/);
+      expect(contentDiv?.className).toMatch(/bottom-4/);
+      expect(contentDiv?.className).toMatch(/md:bottom-auto/);
       expect(contentDiv?.className).toMatch(/md:top-\[40%\]/);
       expect(contentDiv?.className).toMatch(/ml-4/);
       expect(contentDiv?.className).toMatch(/md:ml-16/);
@@ -621,16 +622,32 @@ describe('BillboardBase', () => {
     it('should have responsive top position', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
       const contentDiv = screen.getByTestId('billboard-content');
-      expect(contentDiv?.className).toMatch(/top-\[50%\]/);
+      expect(contentDiv?.className).toMatch(/bottom-4/);
+      expect(contentDiv?.className).toMatch(/md:bottom-auto/);
       expect(contentDiv?.className).toMatch(/md:top-\[40%\]/);
     });
 
     it('should have responsive text size on title', () => {
       render(<BillboardBase data={mockData} isLoading={false} />);
       const titleElement = screen.getByText(mockData.title);
-      expect(titleElement.className).toMatch(/text-2xl/);
+      expect(titleElement.className).toMatch(/text-xl/);
+      expect(titleElement.className).toMatch(/sm:text-2xl/);
       expect(titleElement.className).toMatch(/md:text-5xl/);
       expect(titleElement.className).toMatch(/lg:text-6xl/);
+    });
+
+    it('keeps the actions stable by truncating long titles to one line on phones', () => {
+      const longTitle = 'Performers of The Year With An Even Longer Name';
+      const { container } = render(
+        <BillboardBase data={{ ...mockData, title: longTitle }} isLoading={false} />
+      );
+
+      const titleElement = screen.getByText(longTitle);
+      expect(titleElement.className).toMatch(/line-clamp-1/);
+      expect(titleElement.className).toMatch(/sm:line-clamp-2/);
+
+      const actions = container.querySelector('.flex.flex-row');
+      expect(actions?.className).toMatch(/shrink-0/);
     });
 
     it('should have responsive button spacing', () => {
@@ -722,11 +739,15 @@ describe('BillboardBase', () => {
       expect(titleElement.className).toMatch(/line-clamp-2/);
     });
 
-    it('should limit description to 3 lines', () => {
+    it('should shrink and limit descriptions before they can hide mobile actions', () => {
       const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
       const descriptions = container.querySelectorAll('p');
       const descElement = descriptions[descriptions.length - 1];
-      expect(descElement.className).toMatch(/line-clamp-3/);
+      expect(descElement.className).toMatch(/text-xs/);
+      expect(descElement.className).toMatch(/sm:text-sm/);
+      expect(descElement.className).toMatch(/md:text-lg/);
+      expect(descElement.className).toMatch(/line-clamp-2/);
+      expect(descElement.className).toMatch(/md:line-clamp-3/);
     });
   });
 

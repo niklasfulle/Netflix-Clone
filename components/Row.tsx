@@ -4,6 +4,7 @@ import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import Thumbnail from '@/components/Thumbnail';
 import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 interface RowProps {
   data: Array<Omit<CatalogItemDto, 'id' | 'title'> & {
@@ -15,6 +16,7 @@ interface RowProps {
 }
 
 const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
+  const { message } = useLanguage();
   const [isMoved, setIsMoved] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,7 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
           <button
             type="button"
             data-testid="chevron-left"
-            aria-label={`Scroll ${title} left`}
+            aria-label={message('scrollRowLeft', { name: title })}
             className={`absolute bottom-0 left-2 top-0 z-40 m-auto h-11 w-11 rounded-full text-white opacity-0 transition hover:scale-125 group-hover:opacity-100 focus-visible:opacity-100 ${
               !isMoved && "hidden"
             }`}
@@ -74,7 +76,7 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
           <button
             type="button"
             data-testid="chevron-right"
-            aria-label={`Scroll ${title} right`}
+            aria-label={message('scrollRowRight', { name: title })}
             className="absolute bottom-0 right-2 top-0 z-40 m-auto h-11 w-11 rounded-full text-white opacity-0 transition hover:scale-125 group-hover:opacity-100 focus-visible:opacity-100"
             onClick={() => handleClick("right")}
           >

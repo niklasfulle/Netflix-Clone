@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Home from '@/app/page';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 import useRandomMovieList from '@/hooks/movies/useRandomMovieList';
 import useNewMovieList from '@/hooks/movies/useNewMovieList';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
@@ -145,6 +146,20 @@ describe('Home Page (page.tsx)', () => {
       expect(
         screen.getByTestId('movie-list-Continue Watching')
       ).toBeInTheDocument();
+    });
+
+    it('localizes the catalog section titles in German', () => {
+      render(
+        <LanguageProvider initialLocale="de">
+          <Home />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByTestId('movie-list-Weiterschauen')).toBeInTheDocument();
+      expect(screen.getByTestId('movie-list-Neu')).toBeInTheDocument();
+      expect(screen.getByTestId('row-Filme')).toBeInTheDocument();
+      expect(screen.getByTestId('row-Serien')).toBeInTheDocument();
+      expect(screen.getByTestId('row-Favoriten')).toBeInTheDocument();
     });
   });
 

@@ -52,11 +52,8 @@ type QrDevicePairingDependencies = {
 
 function canonicalOrigin(value: string): string {
   const origin = new URL(value);
-  const isLocalhost = origin.hostname === 'localhost'
-    || origin.hostname === '127.0.0.1'
-    || origin.hostname === '[::1]';
-  if (origin.protocol !== 'https:' && !(origin.protocol === 'http:' && isLocalhost)) {
-    throw new Error('QR device pairing requires a canonical HTTPS origin');
+  if (origin.protocol !== 'http:' && origin.protocol !== 'https:') {
+    throw new Error('QR device pairing requires a canonical HTTP or HTTPS origin');
   }
   return origin.origin;
 }

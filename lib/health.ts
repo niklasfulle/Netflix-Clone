@@ -4,6 +4,10 @@ import path from "node:path";
 
 import packageJson from "@/package.json";
 import { db } from "@/lib/db";
+import {
+  DEFAULT_DEPLOYMENT_UPDATE_POLICY,
+  deploymentUpdatePolicy,
+} from "@/lib/deployment-update-policy";
 import { getMediaFolders } from "@/lib/media-files";
 import { getRedisRuntime } from "@/lib/redis/runtime";
 
@@ -13,6 +17,9 @@ export type HealthStatus = {
   version: string;
   environment: string;
   timestamp: string;
+  deploymentUpdates: {
+    automaticReloadEnabled: boolean;
+  };
   checks: {
     application: "ok";
     database: "ok" | "error";
@@ -53,24 +60,21 @@ async function getRedisStatus(): Promise<HealthStatus["checks"]["redis"]> {
 }
 
 export async function getHealthStatus(): Promise<HealthStatus> {
-  let databaseStatus: HealthStatus["checks"]["database"] = "ok";
-
-  try {
-    await db.$queryRaw`SELECT 1`;
-  } catch {
-    databaseStatus = "error";
-  }
-
   const { movieFolder, seriesFolder } = getMediaFolders();
-  const storageChecks = await Promise.all([
-    isMediaFolderWritable(movieFolder),
-    isMediaFolderWritable(seriesFolder),
+  const [databaseStatus, storageChecks, redisStatus, updatePolicy] = await Promise.all([
+    db.$queryRaw`SELECT 1`
+      .then(() => "ok" as const)
+      .catch(() => "error" as const),
+    Promise.all([
+      isMediaFolderWritable(movieFolder),
+      isMediaFolderWritable(seriesFolder),
+    ]),
+    getRedisStatus(),
+    deploymentUpdatePolicy.read().catch(() => DEFAULT_DEPLOYMENT_UPDATE_POLICY),
   ]);
   const storageStatus: HealthStatus["checks"]["storage"] = storageChecks.every(Boolean)
     ? "ok"
     : "error";
-
-  const redisStatus = await getRedisStatus();
 
   return {
     status: databaseStatus === "ok" && storageStatus === "ok" ? "ok" : "error",
@@ -78,6 +82,7 @@ export async function getHealthStatus(): Promise<HealthStatus> {
     version: packageJson.version,
     environment: process.env.DEPLOYMENT_ENVIRONMENT ?? "development",
     timestamp: new Date().toISOString(),
+    deploymentUpdates: updatePolicy,
     checks: {
       application: "ok",
       database: databaseStatus,

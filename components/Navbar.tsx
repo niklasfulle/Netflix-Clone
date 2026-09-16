@@ -74,7 +74,7 @@ const Navbar = () => {
           <NavbarItem label={t('Home')} href="/" />
           <NavbarItem label={t('Movies')} href="/movies" />
           <NavbarItem label={t('Series')} href="/series" />
-          <NavbarItem label={t('My List')} href="/mylist" />
+          <NavbarItem label={t('Favorites')} href="/mylist" />
           <NavbarItem label={t('Playlists')} href="/playlists" />
           <NavbarItem label={t('Watchlist')} href="/watchlist" />
           <NavbarItem label={t('Random')} href="/random" />
@@ -110,7 +110,7 @@ const Navbar = () => {
               <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
                 <Image
                   src={`/images/profil/${profilImg}`}
-                  alt="Profile"
+                  alt={t('Profile')}
                   width={320}
                   height={320}
                   loading="eager"

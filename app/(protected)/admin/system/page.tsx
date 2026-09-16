@@ -21,6 +21,7 @@ import useSWR from "swr";
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DeploymentStatusPanel } from "@/components/admin/DeploymentStatusPanel";
+import { DeploymentUpdatePolicyPanel } from "@/components/admin/DeploymentUpdatePolicyPanel";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import type { Locale, TranslationKey } from "@/lib/i18n/translations";
 import type {
@@ -588,6 +589,7 @@ export default function AdminSystemPage() {
             <RecoverySection data={data} t={t} locale={locale} />
           </div>
           <DeploymentStatusPanel />
+          <DeploymentUpdatePolicyPanel />
           <AlertsSection alerts={data.alerts} t={t} />
         </>
       )}

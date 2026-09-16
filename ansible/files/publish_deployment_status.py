@@ -83,7 +83,7 @@ def build_record(**record: Unpack[DeploymentRecordInput]) -> dict[str, object]:
         raise ValueError("Invalid deployment result")
     if rollback_result not in ROLLBACK_RESULTS:
         raise ValueError("Invalid rollback result")
-    if set(health_results) != {"application", "https", "monitoring"}:
+    if set(health_results) != {"application", "proxy", "monitoring"}:
         raise ValueError("Invalid health checks")
     if any(value not in CHECK_RESULTS for value in health_results.values()):
         raise ValueError("Invalid health check result")
@@ -109,7 +109,7 @@ def build_record(**record: Unpack[DeploymentRecordInput]) -> dict[str, object]:
             "result": health_results[name],
             "checkedAt": None if health_results[name] == "pending" else published,
         }
-        for name in ("application", "https", "monitoring")
+        for name in ("application", "proxy", "monitoring")
     ]
 
     return {
@@ -234,7 +234,7 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--result", choices=RESULTS, required=True)
     parser.add_argument("--migration-result", choices=MIGRATION_RESULTS, required=True)
     parser.add_argument("--health-application", choices=CHECK_RESULTS, required=True)
-    parser.add_argument("--health-https", choices=CHECK_RESULTS, required=True)
+    parser.add_argument("--health-proxy", choices=CHECK_RESULTS, required=True)
     parser.add_argument("--health-monitoring", choices=CHECK_RESULTS, required=True)
     parser.add_argument("--rollback-result", choices=ROLLBACK_RESULTS, required=True)
     parser.add_argument("--rollback-image-reference", default="")
@@ -260,7 +260,7 @@ def main() -> int:
         migration_result=arguments.migration_result,
         health_results={
             "application": arguments.health_application,
-            "https": arguments.health_https,
+            "proxy": arguments.health_proxy,
             "monitoring": arguments.health_monitoring,
         },
         rollback_result=arguments.rollback_result,

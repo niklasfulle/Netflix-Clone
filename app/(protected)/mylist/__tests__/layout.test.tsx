@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import Layout, { metadata } from "../layout";
 
-describe("My List Layout (mylist/layout.tsx)", () => {
+describe("Favorites Layout (mylist/layout.tsx)", () => {
 
   describe("Basic Component Structure", () => {
     it("should render Layout component", () => {
@@ -63,8 +63,8 @@ describe("My List Layout (mylist/layout.tsx)", () => {
       expect(metadata.title).toBeDefined();
     });
 
-    it('should have title "Netflix - My List"', () => {
-      expect(metadata.title).toBe("Netflix - My List");
+    it('should have title "Netflix - Favorites"', () => {
+      expect(metadata.title).toBe("Netflix - Favorites");
     });
 
     it("should be of type Metadata", () => {
@@ -79,8 +79,8 @@ describe("My List Layout (mylist/layout.tsx)", () => {
       expect(metadata.title).toContain("Netflix");
     });
 
-    it("should have My List text", () => {
-      expect(metadata.title).toContain("My List");
+    it("should have Favorites text", () => {
+      expect(metadata.title).toContain("Favorites");
     });
   });
 
@@ -295,8 +295,8 @@ describe("My List Layout (mylist/layout.tsx)", () => {
       expect(metadata.title).toMatch(/^Netflix/);
     });
 
-    it("should end with My List", () => {
-      expect(metadata.title).toMatch(/My List$/);
+    it("should end with Favorites", () => {
+      expect(metadata.title).toMatch(/Favorites$/);
     });
   });
 

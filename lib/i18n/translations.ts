@@ -19,13 +19,17 @@ export const germanTranslations = {
   'Search...': 'Suchen...',
   'Search Result for:': 'Suchergebnis für:',
   'Favorites': 'Favoriten',
+  'Add to favorites': 'Zu Favoriten hinzufügen',
+  'Remove from favorites': 'Aus Favoriten entfernen',
   'Continue Watching': 'Weiterschauen',
   'New': 'Neu',
   'Play': 'Abspielen',
   'More info': 'Mehr Infos',
+  'Restart': 'Neu starten',
   'Loading...': 'Wird geladen...',
   'loading...': 'wird geladen...',
   'Loads Watchlist...': 'Merkliste wird geladen...',
+  'You have not added any favorites yet.': 'Du hast noch keine Favoriten hinzugefügt.',
   'Your watchlist is empty.': 'Deine Merkliste ist leer.',
   'Watching:': 'Du siehst:',
   'Previous video': 'Vorheriges Video',
@@ -35,6 +39,13 @@ export const germanTranslations = {
   'The movie or series could not be found.': 'Der Film oder die Serie wurde nicht gefunden.',
   'Back to home': 'Zurück zur Startseite',
   'Change Log': 'Änderungsverlauf',
+  'New version available': 'Neue Version verfügbar',
+  'Reload to use the latest changes.': 'Neu laden, um die neuesten Änderungen zu verwenden.',
+  'Reload now': 'Jetzt neu laden',
+  'Later': 'Später',
+  'Client update behavior': 'Client-Aktualisierungen',
+  'Automatic page reloads': 'Automatische Seitenaktualisierung',
+  'Reload pages automatically when no modal dialog is open. Open dialogs receive an update notice instead.': 'Seiten ohne geöffneten Dialog werden automatisch neu geladen. Bei geöffneten Dialogen erscheint stattdessen ein Update-Hinweis.',
   'Changelog': 'Änderungsverlauf',
   'Product Updates': 'Produktneuigkeiten',
   'What’s New in Netflix Clone': 'Was ist neu bei Netflix Clone?',
@@ -1138,7 +1149,14 @@ export type MessageKey =
   | 'entriesPerPage'
   | 'auditRetention'
   | 'playRandom'
-  | 'mediaFindingsShown';
+  | 'mediaFindingsShown'
+  | 'showDetails'
+  | 'moreInformation'
+  | 'thumbnailAlt'
+  | 'scrollRowLeft'
+  | 'scrollRowRight'
+  | 'sectionLoading'
+  | 'untitledContent';
 
 export type MessageParams = {
   pageOf: { page: number; total: number };
@@ -1151,6 +1169,13 @@ export type MessageParams = {
   auditRetention: { days: number };
   playRandom: { name: string };
   mediaFindingsShown: { shown: number; total: number };
+  showDetails: { title: string };
+  moreInformation: { title: string };
+  thumbnailAlt: { title: string };
+  scrollRowLeft: { name: string };
+  scrollRowRight: { name: string };
+  sectionLoading: { name: string };
+  untitledContent: Record<string, never>;
 };
 
 export const messages: {
@@ -1167,6 +1192,13 @@ export const messages: {
     auditRetention: ({ days }) => `Audit events are retained for ${days} days.`,
     playRandom: ({ name }) => `Play ${name} in random order`,
     mediaFindingsShown: ({ shown, total }) => `Showing ${shown} of ${total} findings.`,
+    showDetails: ({ title }) => `Show details for ${title}`,
+    moreInformation: ({ title }) => `More information about ${title}`,
+    thumbnailAlt: ({ title }) => `${title} thumbnail`,
+    scrollRowLeft: ({ name }) => `Scroll ${name} left`,
+    scrollRowRight: ({ name }) => `Scroll ${name} right`,
+    sectionLoading: ({ name }) => `${name} is loading`,
+    untitledContent: () => 'Content',
   },
   de: {
     pageOf: ({ page, total }) => `Seite ${page} von ${total}`,
@@ -1179,5 +1211,12 @@ export const messages: {
     auditRetention: ({ days }) => `Audit-Ereignisse werden ${days} Tage aufbewahrt.`,
     playRandom: ({ name }) => `${name} in zufälliger Reihenfolge abspielen`,
     mediaFindingsShown: ({ shown, total }) => `${shown} von ${total} Befunden werden angezeigt.`,
+    showDetails: ({ title }) => `Details zu ${title} anzeigen`,
+    moreInformation: ({ title }) => `Weitere Informationen zu ${title}`,
+    thumbnailAlt: ({ title }) => `Vorschaubild von ${title}`,
+    scrollRowLeft: ({ name }) => `${name} nach links scrollen`,
+    scrollRowRight: ({ name }) => `${name} nach rechts scrollen`,
+    sectionLoading: ({ name }) => `${name} wird geladen`,
+    untitledContent: () => 'Inhalt',
   },
 };

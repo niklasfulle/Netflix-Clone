@@ -6,9 +6,7 @@ test.describe('user settings', () => {
   test.use({ storageState: authStatePaths.user });
 
   test('user can review, reset, localize, and validate account settings safely', async ({ page }) => {
-    const browserFailures = createBrowserFailureMonitor(page, {
-      allowedApiFailures: { '/api/security/certificates': [503] },
-    });
+    const browserFailures = createBrowserFailureMonitor(page);
     await page.goto('/settings');
 
     await expect(page.getByRole('heading', {
@@ -35,31 +33,6 @@ test.describe('user settings', () => {
     browserFailures.assertNone();
   });
 
-  test('user can inspect and download the validated LAN HTTPS root', async ({ page }) => {
-    test.skip(
-      process.env.PLAYWRIGHT_EXTERNAL_SERVER !== 'true',
-      'This flow requires the public CA volume mounted by a deployed staging environment.',
-    );
-    const browserFailures = createBrowserFailureMonitor(page);
-    await page.goto('/settings#https-trust');
-
-    const trustPanel = page.locator('#https-trust');
-    await expect(trustPanel.getByRole('heading', {
-      name: /LAN HTTPS certificate trust|LAN-HTTPS-Zertifikat vertrauen/i,
-    })).toBeVisible();
-    await expect(trustPanel.getByText(/^SHA-256/i)).toBeVisible();
-    await expect(trustPanel.getByRole('img', { name: /QR code|QR-Code/i })).toBeVisible();
-    await expect(trustPanel.getByText(/webOS/i)).toBeVisible();
-
-    const pemDownload = trustPanel.getByRole('link', { name: /current PEM/i });
-    const downloadPromise = page.waitForEvent('download');
-    await pemDownload.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('netflix-clone-current-root-ca.pem');
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-      .toBe(true);
-    browserFailures.assertNone();
-  });
 });
 
 test.describe('backup validation', () => {

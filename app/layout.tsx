@@ -7,9 +7,11 @@ import { cookies } from 'next/headers';
 
 import { auth } from '@/auth';
 import DebugPanel from '@/components/DebugPanel';
+import DeploymentUpdateNotice from '@/components/DeploymentUpdateNotice';
 import EnvironmentBadge from '@/components/EnvironmentBadge';
 import { LanguageProvider } from '@/components/providers/LanguageProvider';
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from '@/lib/i18n/translations';
+import { APP_VERSION } from '@/lib/version';
 
 export const metadata: Metadata = {
   title: "Netflix - Home",
@@ -41,6 +43,7 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <LanguageProvider initialLocale={locale}>
             {children}
+            <DeploymentUpdateNotice currentVersion={APP_VERSION} />
           </LanguageProvider>
           <DebugPanel adminAllowed={session?.user?.role === UserRole.ADMIN} />
           <Toaster position="bottom-right" gutter={5} />

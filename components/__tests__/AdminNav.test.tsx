@@ -77,6 +77,8 @@ it("lets mobile administrators return to the regular browse area", () => {
     "min-h-0",
     "overflow-y-auto",
   );
+  expect(dialog.parentElement).toHaveClass("top-16", "bottom-0");
+  expect(dialog.parentElement).not.toHaveClass("inset-0", "pt-16");
 });
 
 it("switches the complete admin navigation between German and English", async () => {

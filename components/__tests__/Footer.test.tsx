@@ -4,6 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Footer from '../Footer';
 import { APP_VERSION } from '@/lib/version';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 // Mock next/link
 jest.mock('next/link', () => {
@@ -13,6 +14,17 @@ jest.mock('next/link', () => {
 });
 
 describe('Footer', () => {
+  test('localizes footer labels in German', () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <Footer />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText(/Urheberrecht:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Änderungsverlauf' })).toBeInTheDocument();
+  });
+
   describe('Rendering', () => {
     test('should render without crashing', () => {
       render(<Footer />);

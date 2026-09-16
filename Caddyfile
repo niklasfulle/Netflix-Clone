@@ -2,12 +2,10 @@
   admin off
 }
 
-{$HTTPS_HOST:netflix} {
-  tls internal
+http://{$LAN_HOST:netflix} {
   encode zstd gzip
 
   header {
-    Strict-Transport-Security "max-age=31536000"
     X-Content-Type-Options "nosniff"
     X-Frame-Options "DENY"
     Referrer-Policy "strict-origin-when-cross-origin"

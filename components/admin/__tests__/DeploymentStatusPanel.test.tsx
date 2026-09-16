@@ -23,7 +23,7 @@ const record = {
   migrationResult: "succeeded",
   healthChecks: [
     { name: "application", result: "passed", checkedAt: "2026-08-15T12:00:00.000Z" },
-    { name: "https", result: "passed", checkedAt: "2026-08-15T12:00:00.000Z" },
+    { name: "proxy", result: "passed", checkedAt: "2026-08-15T12:00:00.000Z" },
     { name: "monitoring", result: "passed", checkedAt: "2026-08-15T12:00:00.000Z" },
   ],
   rollback: { result: "not_required", imageReference: null },

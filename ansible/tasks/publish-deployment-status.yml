@@ -31,8 +31,8 @@
       - "{{ deployment_migration_result }}"
       - --health-application
       - "{{ deployment_application_health }}"
-      - --health-https
-      - "{{ deployment_https_health }}"
+      - --health-proxy
+      - "{{ deployment_proxy_health }}"
       - --health-monitoring
       - "{{ deployment_monitoring_health }}"
       - --rollback-result

@@ -257,7 +257,7 @@ yarn test:redis-resilience --with-docker
    `com.netflix-clone.environment=staging` label, health identity `health`,
    `maxmemory:167772160`, and `maxmemory_policy:allkeys-lfu`.
 4. Confirm `docker port netflix-redis-runtime` produces no output.
-5. Exercise application health through canonical HTTPS before promotion.
+5. Exercise application health through canonical HTTP before promotion.
 
 If only some Redis secret files already exist, deployment fails closed. Do not
 repair this by copying credentials from the other environment. Inspect the
@@ -314,7 +314,7 @@ durable state.
 ## Rollback and recovery
 
 Before replacement, Ansible preserves the previous Compose definition and
-Redis configuration. If Redis readiness, application health, HTTPS, or
+Redis configuration. If Redis readiness, application health, the HTTP proxy, or
 monitoring fails, the rescue block captures Redis diagnostics, stops the failed
 stack, restores both files, and starts the previous stack. On a first-deploy
 failure it removes the newly installed Redis configuration instead of claiming

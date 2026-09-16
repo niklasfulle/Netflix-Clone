@@ -634,6 +634,21 @@ describe('FilterRowBase', () => {
       expect(scrollContainer?.className).toMatch(/snap-x/);
       expect(scrollContainer?.className).toMatch(/md:overflow-x-hidden/);
     });
+
+    test('collapses native scrollbars without disabling mobile swipe scrolling', () => {
+      const { container } = render(
+        <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
+      );
+      const scrollContainer = container.querySelector('[class*="overflow-x-auto"]') as HTMLElement;
+
+      expect(scrollContainer.className).toMatch(/overflow-y-hidden/);
+      expect(scrollContainer.className).not.toContain('[&::-webkit-scrollbar]:hidden');
+      expect(scrollContainer.className).toContain('[&::-webkit-scrollbar]:h-0');
+      expect(scrollContainer.className).toContain('[&::-webkit-scrollbar]:w-0');
+      expect(scrollContainer.style.scrollbarWidth).toBe('none');
+      expect(scrollContainer.className).toMatch(/overflow-x-auto/);
+      expect(scrollContainer.className).toMatch(/touch-pan-x/);
+    });
   });
 
   describe('Scroll Behavior', () => {

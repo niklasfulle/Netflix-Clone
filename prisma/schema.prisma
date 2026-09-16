@@ -505,3 +505,9 @@ model Watchlist {
 
   @@unique([profilId, movieId])
 }
+
+model DeploymentUpdatePolicy {
+  id                     String   @id @default("global")
+  automaticReloadEnabled Boolean  @default(true)
+  updatedAt              DateTime @updatedAt
+}

@@ -7,6 +7,9 @@ import AdminSystemPage from "../page";
 jest.mock("@/components/admin/DeploymentStatusPanel", () => ({
   DeploymentStatusPanel: () => <section>Signed deployment evidence</section>,
 }));
+jest.mock("@/components/admin/DeploymentUpdatePolicyPanel", () => ({
+  DeploymentUpdatePolicyPanel: () => <section>Global client update policy</section>,
+}));
 
 jest.mock("swr");
 const mockedUseSWR = useSWR as jest.Mock;
@@ -139,6 +142,7 @@ describe("admin system page", () => {
       "/admin/jobs",
     );
     expect(screen.getByText("Signed deployment evidence")).toBeInTheDocument();
+    expect(screen.getByText("Global client update policy")).toBeInTheDocument();
     expect(screen.getByText("No active alerts.")).toBeInTheDocument();
   });
 

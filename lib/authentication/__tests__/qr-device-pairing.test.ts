@@ -11,7 +11,7 @@ describe('QR device pairing', () => {
         randomBytes: (size) => Buffer.alloc(size, 7),
         hash: (value) => `hash:${Buffer.from(value).toString('base64').slice(0, 12)}`,
       },
-      canonicalOrigin: 'https://netflix.local',
+      canonicalOrigin: 'http://netflix.local',
     });
 
     const pairing = await service.create();
@@ -19,7 +19,7 @@ describe('QR device pairing', () => {
 
     expect(pairing.expiresAt).toEqual(new Date('2026-08-21T12:05:00.000Z'));
     expect(pairing.manualCode).toMatch(/^[A-Z2-9]{4}(?:-[A-Z2-9]{4}){3}$/);
-    expect(pairing.approvalUrl).toMatch(/^https:\/\/netflix\.local\/auth\/qr\/approve\?pair=/);
+    expect(pairing.approvalUrl).toMatch(/^http:\/\/netflix\.local\/auth\/qr\/approve\?pair=/);
     expect(approvalSecret).toHaveLength(43);
     expect(pairing.pollSecret).toHaveLength(43);
     expect(pairing.exchangeSecret).toHaveLength(43);

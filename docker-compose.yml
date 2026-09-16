@@ -8,14 +8,12 @@ services:
     environment:
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-production}
       DEPLOYMENT_STATUS_APPROVED_PEERS: ${DEPLOYMENT_STATUS_APPROVED_PEERS:-staging}
-      AUTH_URL: https://${HTTPS_HOST:-netflix}
-      NEXTAUTH_URL: https://${HTTPS_HOST:-netflix}
-      AUTH_PUBLIC_URL: https://${HTTPS_HOST:-netflix}
+      AUTH_URL: http://${LAN_HOST:-netflix}
+      NEXTAUTH_URL: http://${LAN_HOST:-netflix}
+      AUTH_PUBLIC_URL: http://${LAN_HOST:-netflix}
       AUTH_TRUST_HOST: 'true'
       AUTH_TRUSTED_PROXY_HOPS: '1'
-      AUTH_WEBAUTHN_RP_ID: ${HTTPS_HOST:-netflix}
-      AUTH_WEBAUTHN_ORIGIN: https://${HTTPS_HOST:-netflix}
-      PUBLIC_CA_OVERLAP_DAYS: ${PUBLIC_CA_OVERLAP_DAYS:-30}
+      AUTH_PASSKEYS_ENABLED: 'false'
     depends_on:
       jobs-migrate:
         condition: service_completed_successfully
@@ -41,7 +39,6 @@ services:
       - /series:/series
       - /var/lib/netflix-monitor:/monitor:ro
       - /var/lib/netflix-deployment-status:/deployment-status:ro
-      - /var/lib/netflix-public-certificates:/public-certificates:ro
       - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
     logging:
@@ -167,14 +164,13 @@ services:
     image: caddy:2.10.2-alpine
     container_name: netflix-proxy
     environment:
-      HTTPS_HOST: ${HTTPS_HOST:-netflix}
+      LAN_HOST: ${LAN_HOST:-netflix}
     depends_on:
       - app
     networks:
       - frontend
     ports:
       - "80:80"
-      - "443:443"
     read_only: true
     security_opt:
       - no-new-privileges:true

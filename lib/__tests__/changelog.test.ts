@@ -1,13 +1,14 @@
 /** @jest-environment node */
 
 import { getChangelog } from '../changelog';
+import { APP_VERSION } from '../version';
 
 describe('published changelog', () => {
   it('keeps the 1.12 release line separate from the current release', () => {
     const entries = getChangelog();
 
     expect(entries.slice(0, 4).map(entry => entry.version)).toEqual([
-      '1.13.0',
+      APP_VERSION,
       '1.12.1',
       '1.12.0',
       '1.11.0',

@@ -32,7 +32,7 @@ The record contains only:
 - environment, application version, deployment identifier, and image identity;
 - deployment start, completion, and publication timestamps;
 - deployment and migration results;
-- bounded application, HTTPS, and monitoring health results;
+- bounded application, proxy, and monitoring health results;
 - bounded rollback result and previous image reference; and
 - the safe basename of the verified pre-migration backup.
 
@@ -43,7 +43,7 @@ credentials, authentication secrets, unrestricted logs, SQL, or backup data.
 
 Ansible publishes `in_progress` before the database backup and refreshes the
 record after migrations and each health boundary. It publishes `succeeded` only
-after application, canonical HTTPS, and monitoring checks have passed.
+after application, canonical HTTP, and monitoring checks have passed.
 
 The guarded deployment rescue first publishes `failed` with the completed and
 incomplete checks, then attempts the existing rollback. A verified rollback

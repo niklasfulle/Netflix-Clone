@@ -29,6 +29,9 @@ describe("health page", () => {
         storage: "ok",
         redis: "disabled",
       },
+      deploymentUpdates: {
+        automaticReloadEnabled: true,
+      },
     });
 
     render(await HealthPage());
@@ -55,6 +58,9 @@ describe("health page", () => {
         database: "error",
         storage: "ok",
         redis: "degraded",
+      },
+      deploymentUpdates: {
+        automaticReloadEnabled: true,
       },
     });
 

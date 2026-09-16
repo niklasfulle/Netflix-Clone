@@ -18,16 +18,9 @@ describe('Next.js security headers', () => {
     expect(headers.get('Permissions-Policy')).toContain('camera=()');
   });
 
-  it('enables HSTS only when explicitly running behind production TLS', async () => {
-    const previous = process.env.ENABLE_HSTS;
-    process.env.ENABLE_HSTS = 'true';
-    jest.resetModules();
-    const productionConfig = require('../next.config.js');
-    const rules = await productionConfig.headers();
-    expect(rules[0].headers).toContainEqual({
-      key: 'Strict-Transport-Security',
-      value: 'max-age=31536000; includeSubDomains',
-    });
-    process.env.ENABLE_HSTS = previous;
+  it('does not advertise HSTS for the HTTP deployment', async () => {
+    const rules = await nextConfig.headers();
+    const headers = rules[0].headers as Array<{ key: string }>;
+    expect(headers.some((header) => header.key === 'Strict-Transport-Security')).toBe(false);
   });
 });

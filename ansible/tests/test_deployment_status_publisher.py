@@ -31,7 +31,7 @@ class DeploymentStatusPublisherTests(unittest.TestCase):
             migration_result="succeeded",
             health_results={
                 "application": "passed",
-                "https": "passed",
+                "proxy": "passed",
                 "monitoring": "passed",
             },
             rollback_result="not_required",
@@ -71,7 +71,7 @@ class DeploymentStatusPublisherTests(unittest.TestCase):
             "migration_result": "succeeded",
             "health_results": {
                 "application": "passed",
-                "https": "failed",
+                "proxy": "failed",
                 "monitoring": "pending",
             },
             "backup_reference": "pre-1.12.0.dump",
@@ -130,7 +130,7 @@ class DeploymentStatusPublisherTests(unittest.TestCase):
             published_at="2026-08-15T12:00:00.000Z",
             result="succeeded",
             migration_result="succeeded",
-            health_results={"application": "passed", "https": "passed", "monitoring": "passed"},
+            health_results={"application": "passed", "proxy": "passed", "monitoring": "passed"},
             rollback_result="not_required",
             rollback_image_reference="",
             backup_reference="pre-1.12.0.dump",

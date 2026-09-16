@@ -697,6 +697,28 @@ describe('InfoModal', () => {
   });
 
   describe('Animation and Transitions', () => {
+    test('should animate the bordered modal shell as one unit', () => {
+      jest.useFakeTimers();
+      const { container } = render(
+        <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />
+      );
+
+      const modalShell = container.querySelector('dialog > div');
+
+      expect(modalShell?.className).toContain('border');
+      expect(modalShell?.className).toContain('transform');
+      expect(modalShell?.className).toContain('duration-300');
+      expect(modalShell?.className).toContain('scale-100');
+      expect(modalShell?.querySelector('[class*="scale-"]')).toBeNull();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+
+      expect(modalShell?.className).toContain('scale-0');
+      expect(modalShell?.querySelector('[class*="scale-"]')).toBeNull();
+      jest.runAllTimers();
+      jest.useRealTimers();
+    });
+
     test('should have scale transform', () => {
       const { container } = render(
         <InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />

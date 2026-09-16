@@ -103,12 +103,12 @@ const InfoModal: React.FC<InfoModalProps> = ({
       />
       <div
         tabIndex={-1}
-        className="relative z-10 w-full max-w-3xl mx-auto overflow-hidden rounded-2xl shadow-2xl border border-zinc-800 focus:outline-none"
+        className={`${
+          isVisible ? "scale-100" : "scale-0"
+        } relative z-10 w-full max-w-3xl mx-auto overflow-hidden rounded-2xl shadow-2xl border border-zinc-800 focus:outline-none transform transition-transform duration-300`}
       >
         <div
-          className={`${
-            isVisible ? "scale-100" : "scale-0"
-          } transform duration-300 relative flex-auto bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 drop-shadow-2xl`}
+          className="relative flex-auto bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 drop-shadow-2xl"
         >
           <div className="relative h-96">
             {isDesktop && videoAvailable && (
