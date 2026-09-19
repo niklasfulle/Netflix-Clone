@@ -8,6 +8,16 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Information modals now animate their border and content together, while long descriptions keep the primary controls visible throughout opening and closing
+- My List is now presented as Favorites with a useful empty state and accessible empty or filled heart controls on catalog items
+- Billboard titles and descriptions now shrink and truncate within mobile height budgets instead of pushing playback and information controls off-screen
+- Mobile administration navigation now includes a path back to the regular catalog, and remaining mobile navigation and catalog labels are localized
+- Mobile catalog rows hide native scrollbars while preserving horizontal touch scrolling and include a ten-title staging actor fixture for regression checks
+- Open clients now detect deployment updates, reload automatically when no dialog is active, and otherwise present a localized update notice that administrators can disable globally
+- Runtime and development dependencies received compatible patch and minor updates, including fixes for the audited Playwright, brace-expansion, js-yaml, and nanoid advisories
+
+## 1.13.0
+
 - An isolated, non-durable Redis runtime now provides environment-scoped caching with ACL credentials, bounded timeouts, LFU eviction, and a circuit breaker
 - The administrator System Overview now reports Redis connectivity, command latency, errors, reconnects, fallbacks, and cache hits and misses
 - Shared movie and series catalog metadata is cached in Redis for five minutes while profile watch progress remains current in PostgreSQL
