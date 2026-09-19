@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Search now shows a live, grouped preview after three characters with up to five actors and five catalog results per configured content type
+- The search field and preview use a compact responsive layout with a custom clear control, subtle staging badges, and accessible loading, error, and empty states
 - Information modals now animate their border and content together, while long descriptions keep the primary controls visible throughout opening and closing
 - My List is now presented as Favorites with a useful empty state and accessible empty or filled heart controls on catalog items
 - Billboard titles and descriptions now shrink and truncate within mobile height budgets instead of pushing playback and information controls off-screen
