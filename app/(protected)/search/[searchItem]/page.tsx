@@ -8,9 +8,15 @@ import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 import useInfoModal from '@/hooks/useInfoModal';
 import useSearchItem from '@/hooks/useSearchItem';
+import type { SearchResultsDto } from '@/lib/search';
 
 import SearchList from '../_components/SearchList';
 import Footer from '@/components/Footer';
+
+function hasSearchResults(results: SearchResultsDto) {
+  return results.actors.length > 0
+    || Object.values(results.content).some((items) => items.length > 0);
+}
 
 export default function MoviesPage() {
   const params = useParams<{ searchItem: string }>();
@@ -35,7 +41,7 @@ export default function MoviesPage() {
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <div className="pt-40 pb-40 min-h-screen">
-        {isEmpty(results) && !isLoadingSearch ? (
+        {results && !isLoadingSearch && !hasSearchResults(results) ? (
           <div className="flex flex-col items-center justify-center h-full">
             <p className="text-white text-lg md:text-2xl">
               No results found for &quot;{params.searchItem.replaceAll('%20', ' ')}&quot;
@@ -44,7 +50,7 @@ export default function MoviesPage() {
         ) : (
           <SearchList
             title="Search Result for:"
-            data={results ?? []}
+            data={results ?? { actors: [], content: {} }}
             isLoading={isLoadingSearch}
             searchItem={params.searchItem}
           />

@@ -55,12 +55,17 @@ jest.mock("@/components/Footer", () => {
 
 jest.mock("@/app/(protected)/search/_components/SearchList", () => {
   return function MockSearchList({ title, data, isLoading, searchItem }: any) {
+    const resultCount = (data?.actors?.length || 0)
+      + Object.values(data?.content || {}).reduce(
+        (total: number, items: any) => total + items.length,
+        0,
+      );
     return (
       <div data-testid="search-list">
         <span>Title: {title}</span>
         <span>SearchItem: {searchItem}</span>
         <span>Loading: {isLoading.toString()}</span>
-        <span>Results: {data?.length || 0}</span>
+        <span>Results: {resultCount}</span>
       </div>
     );
   };
@@ -87,20 +92,27 @@ describe("MoviesPage (Search)", () => {
     imageUrl: "/images/profile.jpg",
   };
 
-  const mockSearchResults = [
-    {
-      id: "1",
-      title: "Action Movie",
-      description: "Description 1",
-      genre: "Action",
+  const mockSearchResults = {
+    actors: [],
+    content: {
+      Movie: [
+        {
+          id: "1",
+          title: "Action Movie",
+          description: "Description 1",
+          genre: "Action",
+          type: "Movie",
+        },
+        {
+          id: "2",
+          title: "Action Hero",
+          description: "Description 2",
+          genre: "Action",
+          type: "Movie",
+        },
+      ],
     },
-    {
-      id: "2",
-      title: "Action Hero",
-      description: "Description 2",
-      genre: "Action",
-    },
-  ];
+  };
 
   const mockPlaylists = [
     {

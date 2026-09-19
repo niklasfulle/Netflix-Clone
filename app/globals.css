@@ -93,6 +93,30 @@ input:-webkit-autofill:active {
   }
 }
 
+.search-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.search-preview {
+  scrollbar-color: rgb(82 82 91) transparent;
+  scrollbar-width: thin;
+}
+
+.search-preview::-webkit-scrollbar {
+  width: 0.625rem;
+}
+
+.search-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.search-preview::-webkit-scrollbar-thumb {
+  background-clip: content-box;
+  background-color: rgb(82 82 91);
+  border: 0.1875rem solid transparent;
+  border-radius: 9999px;
+}
+
 @keyframes player-title-marquee {
   from {
     transform: translateX(0);

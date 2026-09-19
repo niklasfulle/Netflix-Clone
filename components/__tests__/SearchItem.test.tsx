@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import SearchItem from '../SearchItem';
 import { useRouter } from 'next/navigation';
 import { LanguageProvider } from '@/components/providers/LanguageProvider';
+import useSearchItem from '@/hooks/useSearchItem';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -20,6 +21,18 @@ jest.mock('react-icons/fa', () => ({
       className={className}
     />
   ),
+  FaTimes: ({ size, className }: any) => (
+    <svg
+      data-testid="clear-icon"
+      data-size={size}
+      className={className}
+    />
+  ),
+}));
+
+jest.mock('@/hooks/useSearchItem', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 describe('SearchItem', () => {
@@ -29,6 +42,11 @@ describe('SearchItem', () => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
+    });
+    (useSearchItem as jest.Mock).mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
     });
   });
 
@@ -84,17 +102,16 @@ describe('SearchItem', () => {
       const { container } = render(<SearchItem />);
       const wrapper = container.querySelector('.relative');
       expect(wrapper).toBeInTheDocument();
-      expect(wrapper).toHaveClass('flex');
-      expect(wrapper).toHaveClass('flex-row');
-      expect(wrapper).toHaveClass('w-full');
+      expect(wrapper).toHaveClass('min-w-0');
+      expect(wrapper).toHaveClass('sm:w-60');
     });
 
     it('should have relative positioning for button', () => {
       const { container } = render(<SearchItem />);
       const button = container.querySelector('button');
       expect(button).toHaveClass('absolute');
-      expect(button).toHaveClass('top-0');
-      expect(button).toHaveClass('right-0');
+      expect(button).toHaveClass('top-1');
+      expect(button).toHaveClass('right-1');
     });
   });
 
@@ -102,21 +119,19 @@ describe('SearchItem', () => {
     it('should have correct input classes', () => {
       render(<SearchItem />);
       const input = screen.getByRole('searchbox');
-      expect(input).toHaveClass('opacity-100');
-      expect(input).toHaveClass('cursor-text');
       expect(input).toHaveClass('w-full');
       expect(input).toHaveClass('h-10');
-      expect(input).toHaveClass('px-5');
-      expect(input).toHaveClass('pr-10');
+      expect(input).toHaveClass('px-4');
+      expect(input).toHaveClass('pr-11');
       expect(input).toHaveClass('rounded-full');
-      expect(input).toHaveClass('border-2');
-      expect(input).toHaveClass('border-white');
+      expect(input).toHaveClass('border');
+      expect(input).toHaveClass('border-white/70');
     });
 
-    it('should have focus outline none', () => {
+    it('should have a visible focus ring', () => {
       render(<SearchItem />);
       const input = screen.getByRole('searchbox');
-      expect(input).toHaveClass('focus:outline-none');
+      expect(input).toHaveClass('focus:ring-2');
     });
 
     it('should have white text color', () => {
@@ -128,13 +143,13 @@ describe('SearchItem', () => {
     it('should have placeholder styling', () => {
       render(<SearchItem />);
       const input = screen.getByRole('searchbox');
-      expect(input).toHaveClass('placeholder:text-neutral-300');
+      expect(input).toHaveClass('placeholder:text-neutral-400');
     });
 
-    it('should have transparent background', () => {
+    it('should have a translucent background', () => {
       render(<SearchItem />);
       const input = screen.getByRole('searchbox');
-      expect(input).toHaveClass('bg-[transparent]');
+      expect(input).toHaveClass('bg-zinc-950/70');
     });
   });
 
@@ -146,6 +161,17 @@ describe('SearchItem', () => {
       fireEvent.change(input, { target: { value: 'test movie' } });
       
       expect(input.value).toBe('test movie');
+    });
+
+    it('clears a populated query with the custom clear button', () => {
+      render(<SearchItem />);
+      const input = screen.getByRole('searchbox') as HTMLInputElement;
+
+      fireEvent.change(input, { target: { value: 'test' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+      expect(input).toHaveValue('');
+      expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
     });
 
     it('should call searchHandler on input change', () => {
@@ -166,6 +192,57 @@ describe('SearchItem', () => {
       
       fireEvent.change(input, { target: { value: 'ab' } });
       expect(input.value).toBe('ab');
+    });
+
+    it('should not navigate until at least three characters are entered', () => {
+      render(<SearchItem />);
+      const input = screen.getByRole('searchbox') as HTMLInputElement;
+
+      fireEvent.change(input, { target: { value: 'ab' } });
+      fireEvent.submit(input.closest('form')!);
+
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('renders live grouped preview results after three characters', () => {
+      (useSearchItem as jest.Mock).mockReturnValue({
+        data: {
+          actors: [{ id: 'actor-1', name: 'Actor One' }],
+          content: {
+            Movie: [{ id: 'movie-1', title: 'Movie One', type: 'Movie' }],
+          },
+        },
+        error: undefined,
+        isLoading: false,
+      });
+      render(<SearchItem />);
+      const input = screen.getByRole('searchbox') as HTMLInputElement;
+
+      fireEvent.change(input, { target: { value: 'act' } });
+
+      expect(screen.getByRole('heading', { name: 'Actors' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Movies' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Actor One' })).toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Movie One' })).toBeInTheDocument();
+    });
+
+    it('navigates to the selected preview result', () => {
+      (useSearchItem as jest.Mock).mockReturnValue({
+        data: {
+          actors: [{ id: 'actor-1', name: 'Actor One' }],
+          content: {
+            Movie: [{ id: 'movie-1', title: 'Movie One', type: 'Movie' }],
+          },
+        },
+        error: undefined,
+        isLoading: false,
+      });
+      render(<SearchItem />);
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'act' } });
+
+      fireEvent.click(screen.getByRole('option', { name: 'Movie One' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/watch/movie-1');
     });
 
     it('should handle special characters in input', () => {
@@ -514,13 +591,13 @@ describe('SearchItem', () => {
     it('should have correct icon size', () => {
       render(<SearchItem />);
       const icon = screen.getByTestId('search-icon');
-      expect(icon).toHaveAttribute('data-size', '18');
+      expect(icon).toHaveAttribute('data-size', '16');
     });
 
-    it('should have white text color on icon', () => {
+    it('should have a white icon button', () => {
       render(<SearchItem />);
-      const icon = screen.getByTestId('search-icon');
-      expect(icon).toHaveClass('text-white');
+      const button = screen.getByRole('button', { name: 'Search' });
+      expect(button).toHaveClass('text-white');
     });
 
     it('should have click handler on icon', () => {

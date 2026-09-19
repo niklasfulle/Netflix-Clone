@@ -39,6 +39,30 @@ describe('useSearchItem', () => {
     expect(useSWR).toHaveBeenCalledWith(null, expect.any(Function));
   });
 
+  it('should not fetch until the query has at least three characters', () => {
+    (useSWR as jest.Mock).mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+    });
+
+    renderHook(() => useSearchItem('ab'));
+
+    expect(useSWR).toHaveBeenCalledWith(null, expect.any(Function));
+  });
+
+  it('should trim the query before fetching from the search endpoint', () => {
+    (useSWR as jest.Mock).mockReturnValue({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+    });
+
+    renderHook(() => useSearchItem('  abc  '));
+
+    expect(useSWR).toHaveBeenCalledWith('/api/search/abc', expect.any(Function));
+  });
+
   it('should call correct search endpoint with query', () => {
     (useSWR as jest.Mock).mockReturnValue({
       data: undefined,

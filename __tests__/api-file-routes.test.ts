@@ -170,13 +170,17 @@ describe('file and remaining API routes', () => {
     mockedHelpers.getUserAndProfile.mockResolvedValue({
       user: { id: 'user1' }, profil: { id: 'profile1' }, error: null,
     } as any);
+    mockedDb.actor.findMany.mockResolvedValue([]);
     mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1' }]);
     mockedDb.movieWatchTime.findMany.mockResolvedValue([{ movieId: 'movie1', time: 10 }]);
-    mockedHelpers.transformMoviesResponse.mockReturnValue([{ id: 'movie1', watchTime: 10 }] as any);
+    mockedHelpers.transformMoviesResponse.mockReturnValue([{ id: 'movie1', type: 'Movie', watchTime: 10 }] as any);
 
     expect(await json(await search(new Request('http://localhost/api/search/Test'), {
       params: Promise.resolve({ searchItem: 'Star%20Wars' }),
-    }))).toEqual([{ id: 'movie1', watchTime: 10 }]);
+    }))).toEqual({
+      actors: [],
+      content: { Movie: [{ id: 'movie1', type: 'Movie', watchTime: 10 }], Serie: [] },
+    });
   });
 
   it('validates and stores an uploaded movie file', async () => {

@@ -1,10 +1,14 @@
 import useSWR from 'swr';
 
 import fetcher from '@/lib/fetcher';
-import type { CatalogItemDto } from '@/hooks/catalog/useCatalogQuery';
+import { MIN_SEARCH_LENGTH, type SearchResultsDto } from '@/lib/search';
 
 const useSearchItem = (item: string) => {
-  const { data, error, isLoading } = useSWR<CatalogItemDto[]>(item ? `/api/search/${encodeURIComponent(item)}` : null, fetcher)
+  const query = item.trim();
+  const key = query.length >= MIN_SEARCH_LENGTH
+    ? `/api/search/${encodeURIComponent(query)}`
+    : null;
+  const { data, error, isLoading } = useSWR<SearchResultsDto>(key, fetcher)
 
   return {
     data,
