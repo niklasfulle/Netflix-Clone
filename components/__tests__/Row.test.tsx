@@ -185,16 +185,14 @@ describe('Row Component', () => {
   });
 
   describe('Scroll Container', () => {
-    it('should have overflow-x-hidden class', () => {
+    it('supports touch scrolling while collapsing native mobile scrollbars', () => {
       const { container } = render(<Row data={mockData} title="Test" isLoading={false} />);
-      const scrollContainer = container.querySelector('.overflow-x-hidden');
-      expect(scrollContainer).toBeInTheDocument();
-    });
+      const scrollContainer = container.querySelector('.overflow-x-auto') as HTMLElement;
 
-    it('should have scrollbar-hide class', () => {
-      const { container } = render(<Row data={mockData} title="Test" isLoading={false} />);
-      const scrollContainer = container.querySelector('.scrollbar-hide');
-      expect(scrollContainer).toBeInTheDocument();
+      expect(scrollContainer).toHaveClass('touch-pan-x', 'md:overflow-x-hidden');
+      expect(scrollContainer.className).toContain('[&::-webkit-scrollbar]:h-0');
+      expect(scrollContainer.className).toContain('[&::-webkit-scrollbar]:w-0');
+      expect(scrollContainer.style.scrollbarWidth).toBe('none');
     });
 
     it('should have correct height class', () => {
@@ -211,7 +209,7 @@ describe('Row Component', () => {
 
     it('should maintain consistent spacing between thumbnails', () => {
       const { container } = render(<Row data={mockData} title="Test" isLoading={false} />);
-      const scrollContainer = container.querySelector('.overflow-x-hidden');
+      const scrollContainer = container.querySelector('.overflow-x-auto');
       expect(scrollContainer).toBeInTheDocument();
     });
   });
@@ -562,7 +560,7 @@ describe('Row Component', () => {
 
     it('should use ref correctly for scroll operations', () => {
       const { container } = render(<Row data={mockData} title="Test" isLoading={false} />);
-      const scrollContainer = container.querySelector('.overflow-x-hidden');
+      const scrollContainer = container.querySelector('.overflow-x-auto');
       expect(scrollContainer).toBeInTheDocument();
     });
   });

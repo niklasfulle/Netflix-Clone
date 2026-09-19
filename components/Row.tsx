@@ -59,7 +59,8 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
           </button>
           <div
             ref={rowRef}
-            className="flex items-center space-x-0.5 overflow-x-hidden md:space-x-2.5 scrollbar-hide h-44"
+            style={{ scrollbarWidth: 'none' }}
+            className="flex items-center h-44 space-x-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x md:space-x-2.5 md:overflow-x-hidden [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0"
           >
             {data.map((movie, index) => (
               <Thumbnail
