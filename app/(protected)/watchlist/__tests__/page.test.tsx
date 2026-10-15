@@ -35,6 +35,12 @@ describe("Watchlist Page Component", () => {
   });
 
   describe("Hooks Usage", () => {
+    it("should use the language hook for visible page text", () => {
+      const source = getComponentSource();
+      expect(source).toContain("useLanguage");
+      expect(source).toContain("const { t } = useLanguage()");
+    });
+
     it("should use useCurrentProfil hook", () => {
       const source = getComponentSource();
       expect(source).toContain("useCurrentProfil");
@@ -178,12 +184,12 @@ describe("Watchlist Page Component", () => {
   describe("WatchList Configuration", () => {
     it("should pass title prop to WatchList", () => {
       const source = getComponentSource();
-      expect(source).toContain('<WatchList title="Your Watchlist"');
+      expect(source).toContain("<WatchList title={t('Your Watchlist')}");
     });
 
-    it("should use Your Watchlist as title", () => {
+    it("should translate the watchlist title", () => {
       const source = getComponentSource();
-      expect(source).toContain("Your Watchlist");
+      expect(source).toContain("t('Your Watchlist')");
     });
   });
 
@@ -389,9 +395,9 @@ describe("Watchlist Page Component", () => {
       expect(source).toMatch(/InfoModal[\s\S]*?playlists={playlists}/);
     });
 
-    it("should pass string title to WatchList", () => {
+    it("should pass a localized title to WatchList", () => {
       const source = getComponentSource();
-      expect(source).toMatch(/WatchList[\s\S]*?title="Your Watchlist"/);
+      expect(source).toMatch(/WatchList[\s\S]*?title={t\('Your Watchlist'\)}/);
     });
   });
 
@@ -422,9 +428,9 @@ describe("Watchlist Page Component", () => {
       expect(source).toContain("Your Watchlist");
     });
 
-    it("should pass title as string literal", () => {
+    it("should pass title through the translation function", () => {
       const source = getComponentSource();
-      expect(source).toContain('title="Your Watchlist"');
+      expect(source).toContain("title={t('Your Watchlist')}");
     });
   });
 

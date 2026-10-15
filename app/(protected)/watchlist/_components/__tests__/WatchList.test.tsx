@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import WatchList from "../WatchList";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
@@ -71,6 +72,22 @@ describe("WatchList Component", () => {
   });
 
   describe("Loading State", () => {
+    it("translates the loading message into German", () => {
+      mockUseWatchlist.mockReturnValue({
+        watchlist: [],
+        loading: true,
+        error: null,
+      });
+
+      render(
+        <LanguageProvider initialLocale="de">
+          <WatchList title="Deine Merkliste" />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByText("Merkliste wird geladen...")).toBeInTheDocument();
+    });
+
     it("should display loading message when loading is true", () => {
       mockUseWatchlist.mockReturnValue({
         watchlist: [],
@@ -119,6 +136,22 @@ describe("WatchList Component", () => {
   });
 
   describe("Error State", () => {
+    it("translates the watchlist loading error into German", () => {
+      mockUseWatchlist.mockReturnValue({
+        watchlist: [],
+        loading: false,
+        error: "Error while loading the watchlist",
+      });
+
+      render(
+        <LanguageProvider initialLocale="de">
+          <WatchList title="Deine Merkliste" />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByText("Fehler beim Laden der Merkliste.")).toBeInTheDocument();
+    });
+
     it("should display error message when error exists", () => {
       mockUseWatchlist.mockReturnValue({
         watchlist: [],
@@ -187,6 +220,22 @@ describe("WatchList Component", () => {
   });
 
   describe("Empty State", () => {
+    it("translates the empty message into German", () => {
+      mockUseWatchlist.mockReturnValue({
+        watchlist: [],
+        loading: false,
+        error: null,
+      });
+
+      render(
+        <LanguageProvider initialLocale="de">
+          <WatchList title="Deine Merkliste" />
+        </LanguageProvider>,
+      );
+
+      expect(screen.getByText("Deine Merkliste ist leer.")).toBeInTheDocument();
+    });
+
     it("should display empty message when watchlist is empty", () => {
       mockUseWatchlist.mockReturnValue({
         watchlist: [],

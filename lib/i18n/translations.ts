@@ -35,6 +35,7 @@ export const germanTranslations = {
   'Loads Watchlist...': 'Merkliste wird geladen...',
   'You have not added any favorites yet.': 'Du hast noch keine Favoriten hinzugefügt.',
   'Your watchlist is empty.': 'Deine Merkliste ist leer.',
+  'Error while loading the watchlist': 'Fehler beim Laden der Merkliste.',
   'Watching:': 'Du siehst:',
   'Previous video': 'Vorheriges Video',
   'Next video': 'Nächstes Video',

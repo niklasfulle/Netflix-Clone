@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import InfoModal from "@/components/InfoModal";
 import Navbar from "@/components/Navbar";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 import usePlaylists from "@/hooks/playlists/usePlaylists";
 import useCurrentProfil from "@/hooks/useCurrentProfil";
@@ -16,6 +17,7 @@ export default function SeriesPage() {
   const { data: profil } = useCurrentProfil();
   const { data: playlists } = usePlaylists();
   const { isOpen, closeModal } = useInfoModal();
+  const { t } = useLanguage();
 
   const router = useRouter();
 
@@ -32,7 +34,7 @@ export default function SeriesPage() {
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <div className="pt-40 pb-40 min-h-screen">
-        <WatchList title="Your Watchlist" />
+        <WatchList title={t('Your Watchlist')} />
       </div>
       <Footer />
     </>
