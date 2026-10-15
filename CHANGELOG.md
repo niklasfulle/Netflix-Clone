@@ -8,6 +8,7 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Mobile navigation now keeps the catalog control, search field, and profile menu within narrow viewports without clipping the header
 - Search now shows a live, grouped preview after three characters with up to five actors and five catalog results per configured content type
 - The search field and preview use a compact responsive layout with a custom clear control, subtle staging badges, and accessible loading, error, and empty states
 - Information modals now animate their border and content together, while long descriptions keep the primary controls visible throughout opening and closing
