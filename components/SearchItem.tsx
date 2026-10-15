@@ -30,7 +30,7 @@ const SearchItem = () => {
 
   return (
     <form
-      className="relative w-[min(14rem,calc(100vw-8rem))] min-w-0 text-gray-600 sm:w-60 md:w-64 lg:w-72"
+      className="relative w-28 min-w-0 text-gray-600 sm:w-52 md:w-64 lg:w-72"
       onSubmit={submitSearch}
     >
       <input

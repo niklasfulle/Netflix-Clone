@@ -79,24 +79,25 @@ const Navbar = () => {
           <NavbarItem label={t('Watchlist')} href="/watchlist" />
           <NavbarItem label={t('Random')} href="/random" />
         </div>
-        <div className="relative ml-4 md:ml-8 lg:hidden">
+        <div className="relative ml-3 sm:ml-4 md:ml-8 lg:hidden">
           <button
             type="button"
             onClick={toggleMobileMenu}
             aria-expanded={showMobileMenu}
             aria-controls="mobile-catalog-menu"
+            aria-label={t('Browse')}
             className="flex flex-row items-center gap-2 cursor-pointer"
           >
-            <p className="text-base text-white">{t('Browse')}</p>
+            <p className="hidden text-base text-white sm:block">{t('Browse')}</p>
             <FaChevronDown
-              className={`mr-4 text-white transition ${
+              className={`text-white transition sm:mr-4 ${
                 showMobileMenu ? "rotate-180" : "rotate-0"
               }`}
             />
           </button>
           <MobileMenu visible={showMobileMenu} />
         </div>
-        <div className="flex flex-row items-center ml-auto gap-7">
+        <div className="flex flex-row items-center ml-auto gap-2 sm:gap-4 lg:gap-7">
           <SearchItem />
           <div className="relative flex flex-row items-center">
             <button
@@ -105,9 +106,9 @@ const Navbar = () => {
               aria-expanded={showAccountMenu}
               aria-controls="account-menu"
               onClick={toggleAccountMenu}
-              className="flex flex-row items-center gap-2 cursor-pointer"
+              className="flex flex-row items-center gap-1 cursor-pointer sm:gap-2"
             >
-              <div className="w-8 h-8 overflow-hidden rounded-md sm:w-10 sm:h-10">
+              <div className="w-9 h-9 overflow-hidden rounded-md sm:w-10 sm:h-10">
                 <Image
                   src={`/images/profil/${profilImg}`}
                   alt={t('Profile')}
@@ -117,7 +118,7 @@ const Navbar = () => {
                 />
               </div>
               <FaChevronDown
-                className={`text-white transition ${
+                className={`hidden text-white transition sm:block ${
                   showAccountMenu ? "rotate-180" : "rotate-0"
                 }`}
               />

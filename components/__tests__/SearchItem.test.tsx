@@ -103,7 +103,15 @@ describe('SearchItem', () => {
       const wrapper = container.querySelector('.relative');
       expect(wrapper).toBeInTheDocument();
       expect(wrapper).toHaveClass('min-w-0');
-      expect(wrapper).toHaveClass('sm:w-60');
+      expect(wrapper).toHaveClass('sm:w-52');
+    });
+
+    it('uses a compact width before the small-screen breakpoint', () => {
+      const { container } = render(<SearchItem />);
+      const wrapper = container.querySelector('form');
+
+      expect(wrapper).toHaveClass('w-28');
+      expect(wrapper).toHaveClass('sm:w-52');
     });
 
     it('should have relative positioning for button', () => {

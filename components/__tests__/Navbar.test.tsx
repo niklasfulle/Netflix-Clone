@@ -328,7 +328,7 @@ describe('Navbar Component', () => {
 
     test('should render profile image container', () => {
       const { container } = render(<Navbar />);
-      const profileContainer = container.querySelector('.w-8.h-8.overflow-hidden.rounded-md');
+      const profileContainer = container.querySelector('.w-9.h-9.overflow-hidden.rounded-md');
       expect(profileContainer).toBeTruthy();
     });
 
@@ -404,7 +404,7 @@ describe('Navbar Component', () => {
 
     test('should have search item in right section', () => {
       const { container } = render(<Navbar />);
-      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto.gap-7');
+      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto');
       expect(rightSection?.querySelector('[data-testid="search-item"]')).toBeTruthy();
     });
   });
@@ -521,14 +521,16 @@ describe('Navbar Component', () => {
 
     test('should render right section with ml-auto', () => {
       const { container } = render(<Navbar />);
-      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto.gap-7');
+      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto');
       expect(rightSection).toBeTruthy();
     });
 
     test('should have gap between right section items', () => {
       const { container } = render(<Navbar />);
-      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto.gap-7');
-      expect(rightSection?.className).toMatch(/gap-7/);
+      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto');
+      expect(rightSection?.className).toMatch(/gap-2/);
+      expect(rightSection?.className).toMatch(/sm:gap-4/);
+      expect(rightSection?.className).toMatch(/lg:gap-7/);
     });
 
     test('should have proper spacing between desktop nav items', () => {
@@ -620,14 +622,14 @@ describe('Navbar Component', () => {
 
     test('should have proper image container styling', () => {
       const { container } = render(<Navbar />);
-      const profileContainer = container.querySelector('.w-8.h-8.overflow-hidden.rounded-md');
+      const profileContainer = container.querySelector('.w-9.h-9.overflow-hidden.rounded-md');
       expect(profileContainer?.className).toMatch(/rounded-md/);
       expect(profileContainer?.className).toMatch(/overflow-hidden/);
     });
 
     test('should be responsive profile size', () => {
       const { container } = render(<Navbar />);
-      const profileContainer = container.querySelector('.w-8.h-8.overflow-hidden.rounded-md');
+      const profileContainer = container.querySelector('.w-9.h-9.overflow-hidden.rounded-md');
       expect(profileContainer?.className).toMatch(/sm:w-10/);
       expect(profileContainer?.className).toMatch(/sm:h-10/);
     });
@@ -883,7 +885,7 @@ describe('Navbar Component', () => {
 
     test('should have search and account menu on right', () => {
       const { container } = render(<Navbar />);
-      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto.gap-7');
+      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto');
       expect(rightSection).toBeTruthy();
       expect(rightSection?.querySelector('[data-testid="search-item"]')).toBeTruthy();
     });
@@ -910,6 +912,16 @@ describe('Navbar Component', () => {
   });
 
   describe('Mobile Responsiveness', () => {
+    test('uses compact controls before the small-screen breakpoint', () => {
+      const { container } = render(<Navbar />);
+      const rightSection = container.querySelector('.flex.flex-row.items-center.ml-auto');
+
+      expect(screen.getByText('Browse')).toHaveClass('hidden');
+      expect(screen.getByText('Browse')).toHaveClass('sm:block');
+      expect(rightSection).toHaveClass('gap-2');
+      expect(rightSection).toHaveClass('sm:gap-4');
+    });
+
     test('should hide desktop nav items on mobile', () => {
       const { container } = render(<Navbar />);
       const desktopNav = container.querySelector('.hidden.lg\\:flex');
@@ -942,7 +954,7 @@ describe('Navbar Component', () => {
 
     test('should have responsive profile image sizing', () => {
       const { container } = render(<Navbar />);
-      const profileContainer = container.querySelector('.w-8.h-8.overflow-hidden');
+      const profileContainer = container.querySelector('.w-9.h-9.overflow-hidden');
       expect(profileContainer?.className).toMatch(/sm:w-10/);
       expect(profileContainer?.className).toMatch(/sm:h-10/);
     });
