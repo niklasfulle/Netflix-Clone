@@ -8,6 +8,8 @@ export const ADMIN_AUDIT_ACTIONS = [
   'actor.update',
   'actor.merge',
   'actor.delete',
+  'actor.source.create',
+  'actor.source.delete',
   'user.role_change',
   'user.block',
   'user.unblock',
@@ -28,6 +30,7 @@ export type AdminAuditOutcome = 'SUCCEEDED' | 'DENIED' | 'FAILED';
 export type AdminAuditTargetType =
   | 'content'
   | 'actor'
+  | 'actor_source'
   | 'user'
   | 'backup'
   | 'background_job'
@@ -107,6 +110,8 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'actor.update': new Set(['changedFields']),
   'actor.merge': new Set(['mergedCount']),
   'actor.delete': new Set(['associatedContentCount']),
+  'actor.source.create': new Set(),
+  'actor.source.delete': new Set(),
   'user.role_change': new Set(['previousRole', 'nextRole']),
   'user.block': new Set(['reasonCode', 'hasExpiry']),
   'user.unblock': new Set(),

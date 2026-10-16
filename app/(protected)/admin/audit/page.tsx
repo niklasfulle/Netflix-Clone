@@ -50,6 +50,8 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'actor.update': 'Updated actor',
   'actor.merge': 'Merged actors',
   'actor.delete': 'Deleted actor',
+  'actor.source.create': 'Added actor source',
+  'actor.source.delete': 'Removed actor source',
   'user.role_change': 'Changed user role',
   'user.block': 'Blocked user',
   'user.unblock': 'Unblocked user',
@@ -68,6 +70,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
 const TARGET_TYPES: AdminAuditTargetType[] = [
   'content',
   'actor',
+  'actor_source',
   'user',
   'backup',
   'background_job',
@@ -79,6 +82,7 @@ const TARGET_TYPES: AdminAuditTargetType[] = [
 const TARGET_TYPE_LABELS: Record<AdminAuditTargetType, TranslationKey> = {
   content: 'Content target',
   actor: 'Actor target',
+  actor_source: 'Actor source target',
   user: 'User target',
   backup: 'Backup target',
   background_job: 'Background job target',
@@ -267,15 +271,15 @@ export default function AdminAuditPage() {
               className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500"
             />
           </label>
-          <select aria-label={t('Filter by action')} value={action} onChange={(event) => updateFilter(setAction, event.target.value)} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+          <select aria-label={t('Filter by action')} value={action} onChange={(event) => updateFilter(setAction, event.target.value)} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
             <option value="">{t('All actions')}</option>
             {ADMIN_AUDIT_ACTIONS.map((item) => <option key={item} value={item}>{t(ACTION_LABELS[item])}</option>)}
           </select>
-          <select aria-label={t('Filter by target type')} value={targetType} onChange={(event) => updateFilter(setTargetType, event.target.value)} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+          <select aria-label={t('Filter by target type')} value={targetType} onChange={(event) => updateFilter(setTargetType, event.target.value)} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
             <option value="">{t('All target types')}</option>
             {TARGET_TYPES.map((item) => <option key={item} value={item}>{t(TARGET_TYPE_LABELS[item])}</option>)}
           </select>
-          <select aria-label={t('Filter by outcome')} value={outcome} onChange={(event) => updateFilter(setOutcome, event.target.value)} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+          <select aria-label={t('Filter by outcome')} value={outcome} onChange={(event) => updateFilter(setOutcome, event.target.value)} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
             <option value="">{t('All outcomes')}</option>
             <option value="SUCCEEDED">{t('Succeeded')}</option>
             <option value="DENIED">{t('Denied')}</option>

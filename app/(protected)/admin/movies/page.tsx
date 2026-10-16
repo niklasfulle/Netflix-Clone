@@ -105,10 +105,10 @@ export default function AdminMoviesPage() {
         description="Filme und Serien katalogweit suchen, prüfen, veröffentlichen und bearbeiten."
         actions={
           <>
-            <button type="button" onClick={exportCsv} disabled={!data?.movies?.length} className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40">
+            <button type="button" onClick={exportCsv} disabled={!data?.movies?.length} title="Gefilterte Inhalte als CSV-Datei herunterladen" className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40">
               <Download className="h-4 w-4" /> CSV
             </button>
-            <Link href="/admin/movies/new" className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500">
+            <Link href="/admin/movies/new" title="Neuen Film oder neue Serie anlegen" className="inline-flex h-10 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-500">
               <Plus className="h-4 w-4" /> New Content
             </Link>
           </>
@@ -123,26 +123,26 @@ export default function AdminMoviesPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
               <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Titel oder Beschreibung suchen …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" />
             </label>
-            <select aria-label="Nach Inhaltstyp filtern" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Inhaltstyp filtern" value={type} onChange={(event) => { setType(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Typen</option><option value="Movie">Filme</option><option value="Serie">Serien</option>
             </select>
-            <select aria-label="Nach Veröffentlichungsstatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Veröffentlichungsstatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Status</option><option value="PUBLISHED">Veröffentlicht</option><option value="DRAFT">Entwürfe</option><option value="ARCHIVED">Archiviert</option>
             </select>
-            <select aria-label="Nach Genre filtern" value={genre} onChange={(event) => { setGenre(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Nach Genre filtern" value={genre} onChange={(event) => { setGenre(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value="all">Alle Genres</option>
               {data?.filters?.genres?.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <input aria-label="Nach Darsteller filtern" value={actor} onChange={(event) => { setActor(event.target.value); setPage(1); }} placeholder="Darsteller …" className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-white outline-none focus:border-red-500" />
           </div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={resetFilters} className="text-xs font-medium text-zinc-500 hover:text-white">Filter zurücksetzen</button>
+            <button type="button" onClick={resetFilters} title="Alle Such- und Filterkriterien entfernen" className="text-xs font-medium text-zinc-500 hover:text-white">Filter zurücksetzen</button>
             {selected.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2">
                 <span className="px-2 text-xs text-zinc-400">{selected.length} ausgewählt</span>
-                <button type="button" onClick={() => updateStatus("PUBLISHED")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Veröffentlichen</button>
-                <button type="button" onClick={() => updateStatus("DRAFT")} className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">Als Entwurf</button>
-                <button type="button" onClick={() => updateStatus("ARCHIVED")} className="rounded-lg bg-zinc-700 px-3 py-1.5 text-xs font-semibold text-white">Archivieren</button>
+                <button type="button" onClick={() => updateStatus("PUBLISHED")} title="Ausgewählte Inhalte veröffentlichen" className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">Veröffentlichen</button>
+                <button type="button" onClick={() => updateStatus("DRAFT")} title="Ausgewählte Inhalte als Entwurf speichern" className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white">Als Entwurf</button>
+                <button type="button" onClick={() => updateStatus("ARCHIVED")} title="Ausgewählte Inhalte archivieren" className="rounded-lg bg-zinc-700 px-3 py-1.5 text-xs font-semibold text-white">Archivieren</button>
               </div>
             )}
           </div>

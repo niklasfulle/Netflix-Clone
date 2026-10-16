@@ -420,6 +420,19 @@ model Actor {
   name      String       @unique
   createdAt DateTime     @default(now())
   movies    MovieActor[]
+  sources   ActorSource[]
+}
+
+model ActorSource {
+  id        String   @id @default(cuid())
+  actorId   String
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+  actor     Actor    @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([actorId, url])
+  @@index([actorId, createdAt])
 }
 
 model MovieActor {

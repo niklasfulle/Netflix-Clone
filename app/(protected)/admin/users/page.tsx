@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
       <AdminPageHeader
         title="Benutzer"
         description="Konten, Profile, Sicherheitsstatus und Berechtigungen zentral verwalten."
-        actions={<button type="button" onClick={exportCsv} disabled={!data?.users?.length} className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"><Download className="h-4 w-4" /> CSV exportieren</button>}
+        actions={<button type="button" onClick={exportCsv} disabled={!data?.users?.length} title="Angezeigte Benutzer als CSV-Datei herunterladen" className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"><Download className="h-4 w-4" /> CSV exportieren</button>}
       />
 
       {data?.counts && (
@@ -119,10 +119,10 @@ export default function AdminUsersPage() {
       <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50">
         <div className="grid gap-3 border-b border-zinc-800 p-4 lg:grid-cols-[minmax(260px,1fr)_repeat(4,minmax(130px,auto))]">
           <label className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" /><span className="sr-only">Benutzer suchen</span><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Name oder E-Mail suchen …" className="h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 pl-9 pr-3 text-sm text-white outline-none focus:border-red-500" /></label>
-          <select aria-label="Nach Rolle filtern" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Rollen</option><option value="ADMIN">Admins</option><option value="USER">Benutzer</option></select>
-          <select aria-label="Nach Kontostatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Status</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select>
-          <select aria-label="Nach Zwei-Faktor-Status filtern" value={twoFactor} onChange={(event) => { setTwoFactor(event.target.value); setPage(1); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">2FA beliebig</option><option value="enabled">2FA aktiv</option><option value="disabled">2FA inaktiv</option></select>
-          <select aria-label="Benutzer sortieren" value={`${sort}:${direction}`} onChange={(event) => { const [key, dir] = event.target.value.split(":"); setSort(key); setDirection(dir as "asc" | "desc"); }} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="createdAt:desc">Neueste zuerst</option><option value="createdAt:asc">Älteste zuerst</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option></select>
+          <select aria-label="Nach Rolle filtern" value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Rollen</option><option value="ADMIN">Admins</option><option value="USER">Benutzer</option></select>
+          <select aria-label="Nach Kontostatus filtern" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">Alle Status</option><option value="active">Aktiv</option><option value="blocked">Gesperrt</option></select>
+          <select aria-label="Nach Zwei-Faktor-Status filtern" value={twoFactor} onChange={(event) => { setTwoFactor(event.target.value); setPage(1); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="all">2FA beliebig</option><option value="enabled">2FA aktiv</option><option value="disabled">2FA inaktiv</option></select>
+          <select aria-label="Benutzer sortieren" value={`${sort}:${direction}`} onChange={(event) => { const [key, dir] = event.target.value.split(":"); setSort(key); setDirection(dir as "asc" | "desc"); }} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200"><option value="createdAt:desc">Neueste zuerst</option><option value="createdAt:asc">Älteste zuerst</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option></select>
         </div>
         {message && <output className={`block border-b border-zinc-800 px-4 py-3 text-sm ${message.includes("wurde") ? "text-emerald-400" : "text-red-400"}`}>{message}</output>}
         {error && <p role="alert" className="p-5 text-red-400">{error.message}</p>}
@@ -143,10 +143,10 @@ export default function AdminUsersPage() {
                       <td className="px-3 py-4 text-zinc-400">{new Date(user.createdAt).toLocaleDateString("de-DE")}</td>
                       <td className="px-3 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${user.isBlocked ? "bg-red-500/10 text-red-300" : "bg-emerald-500/10 text-emerald-300"}`}>{user.isBlocked ? "Gesperrt" : "Aktiv"}</span></td>
                       <td className="px-5 py-4"><div className="flex justify-end gap-1">
-                        <button type="button" onClick={() => setDetailUser(user)} aria-label={`${user.name} anzeigen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Eye className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => setDetailUser(user)} aria-label={`${user.name} anzeigen`} title={`${user.name}: Kontodetails anzeigen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Eye className="h-4 w-4" /></button>
                         {currentUser?.id !== user.id && (user.isBlocked
-                          ? <button type="button" onClick={() => toggleBlock(user, false)} aria-label={`${user.name} entsperren`} className="rounded-lg p-2 text-emerald-500 hover:bg-emerald-500/10"><Unlock className="h-4 w-4" /></button>
-                          : <button type="button" onClick={() => setBlockUser(user)} aria-label={`${user.name} sperren`} className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"><Lock className="h-4 w-4" /></button>)}
+                          ? <button type="button" onClick={() => toggleBlock(user, false)} aria-label={`${user.name} entsperren`} title={`${user.name} entsperren`} className="rounded-lg p-2 text-emerald-500 hover:bg-emerald-500/10"><Unlock className="h-4 w-4" /></button>
+                          : <button type="button" onClick={() => setBlockUser(user)} aria-label={`${user.name} sperren`} title={`${user.name} sperren`} className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"><Lock className="h-4 w-4" /></button>)}
                       </div></td>
                     </tr>
                   ))}
@@ -173,7 +173,7 @@ export default function AdminUsersPage() {
             className="absolute inset-0 border-0 bg-transparent p-0"
           />
           <aside className="relative z-10 h-full w-full max-w-lg overflow-y-auto border-l border-zinc-800 bg-zinc-950 p-6">
-            <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Benutzerkonto</p><h2 className="mt-2 text-2xl font-bold">{detailUser.name}</h2><p className="text-sm text-zinc-500">{detailUser.email}</p></div><button type="button" onClick={() => setDetailUser(null)} aria-label="Details schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
+            <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Benutzerkonto</p><h2 className="mt-2 text-2xl font-bold">{detailUser.name}</h2><p className="text-sm text-zinc-500">{detailUser.email}</p></div><button type="button" onClick={() => setDetailUser(null)} aria-label="Details schließen" title="Benutzerdetails schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl border border-zinc-800 p-3"><p className="text-zinc-500">Rolle</p><p className="mt-1 font-semibold">{detailUser.role}</p></div>
               <div className="rounded-xl border border-zinc-800 p-3"><p className="text-zinc-500">Zwei-Faktor</p><p className="mt-1 font-semibold">{detailUser.isTwoFactorEnabled ? "Aktiv" : "Inaktiv"}</p></div>
@@ -181,7 +181,7 @@ export default function AdminUsersPage() {
             {detailUser.blockedReason && <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4"><p className="text-xs text-red-400">Sperrgrund</p><p className="mt-1 text-sm text-zinc-300">{detailUser.blockedReason}</p>{detailUser.blockedUntil && <p className="mt-2 text-xs text-zinc-500">Bis {new Date(detailUser.blockedUntil).toLocaleString("de-DE")}</p>}</div>}
             <h3 className="mt-8 font-semibold">Profile</h3>
             <div className="mt-3 space-y-2">{detailUser.profiles.length === 0 && <p className="text-sm text-zinc-500">Keine Profile vorhanden.</p>}{detailUser.profiles.map((profile) => <div key={profile.id} className="flex items-center justify-between rounded-xl border border-zinc-800 p-3"><span className="text-sm text-zinc-200">{profile.name}</span>{profile.inUse && <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">Aktiv</span>}</div>)}</div>
-            {currentUser?.id !== detailUser.id && <div className="mt-8"><p className="mb-2 text-sm font-medium text-zinc-300">Rolle ändern</p><div className="flex gap-2"><button type="button" onClick={() => changeRole(detailUser, "USER")} disabled={detailUser.role === "USER"} className="flex-1 rounded-lg border border-zinc-700 py-2 text-sm disabled:opacity-40">Benutzer</button><button type="button" onClick={() => changeRole(detailUser, "ADMIN")} disabled={detailUser.role === "ADMIN"} className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold disabled:opacity-40">Administrator</button></div></div>}
+            {currentUser?.id !== detailUser.id && <div className="mt-8"><p className="mb-2 text-sm font-medium text-zinc-300">Rolle ändern</p><div className="flex gap-2"><button type="button" onClick={() => changeRole(detailUser, "USER")} disabled={detailUser.role === "USER"} title="Benutzerrechte zuweisen" className="flex-1 rounded-lg border border-zinc-700 py-2 text-sm disabled:opacity-40">Benutzer</button><button type="button" onClick={() => changeRole(detailUser, "ADMIN")} disabled={detailUser.role === "ADMIN"} title="Administratorrechte zuweisen" className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold disabled:opacity-40">Administrator</button></div></div>}
           </aside>
         </dialog>
       )}
@@ -189,10 +189,10 @@ export default function AdminUsersPage() {
       {blockUser && (
         <dialog ref={blockDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Benutzer sperren">
           <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Konto sperren</p><h2 className="mt-2 text-xl font-bold">{blockUser.name}</h2></div><button type="button" onClick={() => setBlockUser(null)} aria-label="Dialog schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
+            <div className="flex justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Konto sperren</p><h2 className="mt-2 text-xl font-bold">{blockUser.name}</h2></div><button type="button" onClick={() => setBlockUser(null)} aria-label="Dialog schließen" title="Sperrdialog schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
             <label className="mt-5 block text-sm text-zinc-300">Sperrgrund<textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-red-500" placeholder="Grund für die Sperre …" /></label>
             <label className="mt-4 block text-sm text-zinc-300">Optionales Ablaufdatum<input type="datetime-local" value={blockedUntil} onChange={(event) => setBlockedUntil(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-white" /></label>
-            <button type="button" onClick={() => toggleBlock(blockUser, true, { reason, blockedUntil })} className="mt-5 w-full rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white">Konto sperren</button>
+            <button type="button" onClick={() => toggleBlock(blockUser, true, { reason, blockedUntil })} title="Konto mit dem angegebenen Sperrgrund sperren" className="mt-5 w-full rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white">Konto sperren</button>
           </div>
         </dialog>
       )}

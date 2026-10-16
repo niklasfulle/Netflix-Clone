@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const [source, target] = await Promise.all([
-      db.actor.findUnique({ where: { id: sourceId }, include: { movies: true } }),
+      db.actor.findUnique({ where: { id: sourceId }, include: { movies: true, sources: true } }),
       db.actor.findUnique({ where: { id: targetId } }),
     ]);
     if (!source || !target) {
@@ -28,6 +28,12 @@ export async function POST(request: Request) {
     }
 
     await db.$transaction(async (transaction) => {
+      if (source.sources.length > 0) {
+        await transaction.actorSource.createMany({
+          data: source.sources.map(({ label, url }) => ({ actorId: targetId, label, url })),
+          skipDuplicates: true,
+        });
+      }
       if (source.movies.length > 0) {
         await transaction.movieActor.createMany({
           data: source.movies.map((entry) => ({ movieId: entry.movieId, actorId: targetId })),

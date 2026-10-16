@@ -62,6 +62,12 @@ _Avoid_: Missing file, deleted Content
 A Content item explicitly saved by the active Profile for later access.
 _Avoid_: My List entry, liked title, Watchlist item
 
+## Content catalog
+
+**Actor Source**:
+An external page manually linked to an Actor as a reference for checking that person's film and series credits.
+_Avoid_: Imported filmography, verified credit, automatic content source
+
 ## Background operations
 
 **Weekly Job Schedule**:

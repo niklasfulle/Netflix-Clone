@@ -52,7 +52,7 @@ export default function MovieAdminTable({
   };
 
   const sortableHeader = (label: string, key: string) => (
-    <button type="button" onClick={() => onSort(key)} className="inline-flex items-center gap-1 hover:text-white">
+    <button type="button" onClick={() => onSort(key)} title={`${label} sortieren`} className="inline-flex items-center gap-1 hover:text-white">
       {label}
       {sort === key && <span aria-label={direction === "asc" ? "aufsteigend" : "absteigend"}>{direction === "asc" ? "↑" : "↓"}</span>}
     </button>
@@ -114,10 +114,10 @@ export default function MovieAdminTable({
                 <td className="px-3 py-3 text-zinc-400">{new Date(item.updatedAt || item.createdAt).toLocaleDateString("de-DE")}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
-                    <Link href={`/watch/${item.id}`} aria-label={`${item.title} ansehen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
+                    <Link href={`/watch/${item.id}`} aria-label={`${item.title} ansehen`} title={`${item.title} ansehen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <Eye className="h-4 w-4" />
                     </Link>
-                    <Link href={`/admin/movies/${item.id}/edit`} aria-label={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
+                    <Link href={`/admin/movies/${item.id}/edit`} aria-label={`${item.title} bearbeiten`} title={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <FilePenLine className="h-4 w-4" />
                     </Link>
                   </div>

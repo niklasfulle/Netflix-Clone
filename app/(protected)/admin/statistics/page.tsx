@@ -35,7 +35,7 @@ export default function AdminStatsPage() {
         description="Nutzung, Reichweite und Katalogentwicklung über frei wählbare Zeiträume analysieren."
         actions={
           <>
-            <select aria-label="Analysezeitraum" value={days} onChange={(event) => setDays(Number(event.target.value))} className="h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
+            <select aria-label="Analysezeitraum" value={days} onChange={(event) => setDays(Number(event.target.value))} className="admin-select h-10 rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-sm text-zinc-200">
               <option value={7}>Letzte 7 Tage</option><option value={30}>Letzte 30 Tage</option><option value={90}>Letzte 90 Tage</option><option value={365}>Letztes Jahr</option>
             </select>
             <button type="button" onClick={exportCsv} disabled={!data} className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40"><Download className="h-4 w-4" /> Export</button>

@@ -336,7 +336,7 @@ export function JobOperationsDashboard() {
               aria-label={t('Job status')}
               value={status}
               onChange={(event) => { setStatus(event.target.value); resetPagination(); }}
-              className="min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
+              className="admin-select min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
             >
               <option value="">{t('All statuses')}</option>
               {statuses.map((value) => <option key={value} value={value}>{jobStatusLabel(value, t)}</option>)}
@@ -348,7 +348,7 @@ export function JobOperationsDashboard() {
               aria-label={t('Job type')}
               value={jobType}
               onChange={(event) => { setJobType(event.target.value); resetPagination(); }}
-              className="min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
+              className="admin-select min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-zinc-100"
             >
               <option value="">{t('All job types')}</option>
               {jobTypes.map((value) => <option key={value} value={value}>{value}</option>)}

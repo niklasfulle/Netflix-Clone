@@ -18,6 +18,7 @@ import { POST } from '../route';
 
 describe('actor merge API', () => {
   const transaction = {
+    actorSource: { createMany: jest.fn() },
     movieActor: { createMany: jest.fn(), deleteMany: jest.fn() },
     actor: { delete: jest.fn() },
   };
@@ -30,6 +31,7 @@ describe('actor merge API', () => {
       .mockResolvedValueOnce({
         id: 'actor-source',
         movies: [{ movieId: 'movie-1' }, { movieId: 'movie-2' }],
+        sources: [{ label: 'Filmography', url: 'https://example.com/actor' }],
       })
       .mockResolvedValueOnce({ id: 'actor-target' });
     (db.$transaction as jest.Mock).mockImplementation(async (callback) => callback(transaction));
@@ -42,6 +44,10 @@ describe('actor merge API', () => {
     }));
 
     expect(response.status).toBe(200);
+    expect(transaction.actorSource.createMany).toHaveBeenCalledWith({
+      data: [{ actorId: 'actor-target', label: 'Filmography', url: 'https://example.com/actor' }],
+      skipDuplicates: true,
+    });
     expect((db as any).adminAuditEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         action: 'actor.merge',

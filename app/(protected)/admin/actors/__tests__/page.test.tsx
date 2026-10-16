@@ -100,7 +100,7 @@ it("shows assigned content in actor details", () => {
   render(<AdminActorsPage />);
   fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
   expect(screen.getByText("Katalogfilm")).toBeInTheDocument();
-  expect(screen.getByAltText("Vorschaubild zu Katalogfilm")).toBeInTheDocument();
+  expect(screen.getByText("Film · Veröffentlicht")).toBeInTheDocument();
 });
 
 it("creates a new actor and refreshes the list", async () => {

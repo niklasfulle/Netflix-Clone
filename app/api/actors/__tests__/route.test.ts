@@ -53,6 +53,21 @@ describe('actors API error contract', () => {
     await expectApiError(response, 400, 'VALIDATION_ERROR');
   });
 
+  it('returns saved sources when listing actors', async () => {
+    const sources = [{ id: 'source-1', label: 'Filmography', url: 'https://example.com/actor' }];
+    mockedDb.actor.findMany.mockResolvedValue([
+      { id: 'actor-1', name: 'Actor One', movies: [], sources },
+    ]);
+    mockedDb.movieView.groupBy.mockResolvedValue([]);
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      actors: [expect.objectContaining({ id: 'actor-1', sources })],
+    }));
+  });
+
   it('returns 409 for duplicate actors', async () => {
     mockedDb.actor.findFirst.mockResolvedValue({ id: 'actor1' });
     const response = await POST(new Request('http://localhost/api/actors', {

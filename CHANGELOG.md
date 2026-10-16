@@ -8,6 +8,13 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Adminaktionen auf den Seiten Inhalte, Darsteller und Benutzer zeigen nun Tooltips mit einer kurzen Beschreibung der jeweiligen Aktion
+- Darstellerprofile können externe Quellenlinks speichern und öffnen, um Film- und Serienauftritte nachzuschlagen
+- Die Darstellerübersicht öffnet sich als kompakter zentrierter Dialog mit festem Kopfbereich, aufklappbarem Quellenformular und responsivem Inhaltsraster
+- Dropdown-Pfeile im Adminbereich sind einheitlich nach links eingerückt
+
+## 1.13.3
+
 - Mobile navigation now keeps the catalog control, search field, and profile menu within narrow viewports without clipping the header
 
 ## 1.13.2

@@ -30,7 +30,7 @@ export function AdminPagination({
             <select
               value={pageSize}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
-              className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-200"
+              className="admin-select rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-zinc-200"
             >
               {[10, 20, 50].map((size) => (
                 <option key={size} value={size}>{message("entriesPerPage", { count: size })}</option>

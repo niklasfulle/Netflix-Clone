@@ -170,7 +170,7 @@ export function WeeklyJobSchedulePanel() {
                     <select
                       value={schedule.timezone}
                       onChange={(event) => update(schedule.kind, { timezone: event.target.value as Schedule['timezone'] })}
-                      className="mt-2 block min-h-11 w-full rounded-lg border border-white/10 bg-black px-3 text-white"
+                      className="admin-select mt-2 block min-h-11 w-full rounded-lg border border-white/10 bg-black px-3 text-white"
                     >
                       <option value="Europe/Berlin">Europe/Berlin</option>
                       <option value="UTC">UTC</option>
