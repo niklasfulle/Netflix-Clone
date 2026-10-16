@@ -286,13 +286,13 @@ describe('InfoModal', () => {
       expect(screen.queryByTestId('edit-button')).not.toBeInTheDocument();
     });
 
-    test('should render edit button for admin users', () => {
+    test('should not render edit button in the catalog for admin users', () => {
       (useCurrentUser as jest.Mock).mockReturnValue({
         id: 'user-123',
         role: UserRole.ADMIN,
       });
       render(<InfoModal visible={true} onClose={mockOnClose} playlists={mockPlaylists} />);
-      expect(screen.getByTestId('edit-button')).toBeTruthy();
+      expect(screen.queryByTestId('edit-button')).not.toBeInTheDocument();
     });
 
     test('should render buttons only when movieId exists', () => {

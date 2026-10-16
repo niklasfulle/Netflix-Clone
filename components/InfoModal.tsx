@@ -11,9 +11,6 @@ import useInfoModal from "@/hooks/useInfoModal";
 import PlayButton from "./PlayButton";
 import PlaylistSelect from "./PlaylistSelect";
 import RestartButton from "./RestartButton";
-import EditMovieButton from "./EditMovieButton";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { UserRole } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import type { PlaylistDto } from "@/lib/api-types";
@@ -35,7 +32,6 @@ const InfoModal: React.FC<InfoModalProps> = ({
   const { movieId } = useInfoModal();
   const { data: movie } = useMovie(movieId);
   const { data: views } = useMovieViews(movieId);
-  const user = useCurrentUser();
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -149,9 +145,6 @@ const InfoModal: React.FC<InfoModalProps> = ({
                     <PlayButton movieId={movie?.id} />
                     <RestartButton movieId={movie?.id} />
                     <FavoriteButton movieId={movie?.id} />
-                    {user?.role === UserRole.ADMIN && (
-                      <EditMovieButton movieId={movie?.id} />
-                    )}
                   </>
                 )}
               </div>

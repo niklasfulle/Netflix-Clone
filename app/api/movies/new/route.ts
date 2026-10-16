@@ -17,7 +17,7 @@ export async function GET(): Promise<Response> {
       'Movie',
       user.id,
       profil.id,
-      { take: 4, orderBy: { createdAt: 'desc' }, reverse: false },
+      { take: 8, orderBy: { createdAt: 'desc' }, reverse: false },
     );
     const responseMovies = transformMoviesResponse(movies, watchTime);
 

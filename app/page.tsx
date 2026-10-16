@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Row from '@/components/Row';
 import useRandomMovieList from '@/hooks/movies/useRandomMovieList';
 import useNewMovieList from '@/hooks/movies/useNewMovieList';
+import useNewSeriesList from '@/hooks/series/useNewSeriesList';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
 import useFavorites from '@/hooks/useFavorites';
@@ -19,6 +20,13 @@ export default function Home() {
   const { isOpen, closeModal } = useInfoModal();
   const { data: newMovies = [], isLoading: isLoadingNewMovieList } =
     useNewMovieList();
+  const { data: newSeries = [], isLoading: isLoadingNewSeriesList } =
+    useNewSeriesList();
+  const newTitles = [...newMovies, ...newSeries]
+    .sort((first, second) => (
+      new Date(second.createdAt ?? 0).getTime() - new Date(first.createdAt ?? 0).getTime()
+    ))
+    .slice(0, 8);
   const { data: movies = [], isLoading: isLoadingMovieList } = useRandomMovieList();
   const { data: series = [], isLoading: isLoadingSeriesList } = useRandomSeriesList();
   const { data: favoriteMovies = [], isLoading: isLoadingFavorites } =
@@ -42,8 +50,8 @@ export default function Home() {
         />
         <MovieList
           title={t('New')}
-          data={newMovies}
-          isLoading={isLoadingNewMovieList}
+          data={newTitles}
+          isLoading={isLoadingNewMovieList || isLoadingNewSeriesList}
         />
         <Row title={t('Movies')} data={movies} isLoading={isLoadingMovieList} />
         <Row title={t('Series')} data={series} isLoading={isLoadingSeriesList} />

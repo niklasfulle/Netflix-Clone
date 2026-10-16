@@ -12,6 +12,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - Darstellerprofile können externe Quellenlinks speichern und öffnen, um Film- und Serienauftritte nachzuschlagen
 - Die Darstellerübersicht öffnet sich als kompakter zentrierter Dialog mit festem Kopfbereich, aufklappbarem Quellenformular und responsivem Inhaltsraster
 - Dropdown-Pfeile im Adminbereich sind einheitlich nach links eingerückt
+- Bearbeiten-Schaltflächen für Filme und Serien werden nur noch im Adminbereich angezeigt
+- Die Startseite zeigt unter „Neu“ die acht zuletzt hinzugefügten Filme und Serien gemeinsam in zwei Reihen
 
 ## 1.13.3
 

@@ -6,6 +6,7 @@ import useRandomMovieList from '@/hooks/movies/useRandomMovieList';
 import useNewMovieList from '@/hooks/movies/useNewMovieList';
 import usePlaylists from '@/hooks/playlists/usePlaylists';
 import useRandomSeriesList from '@/hooks/series/useRandomSeriesList';
+import useNewSeriesList from '@/hooks/series/useNewSeriesList';
 import useFavorites from '@/hooks/useFavorites';
 import useInfoModal from '@/hooks/useInfoModal';
 import useContinueWatching from '@/hooks/useContinueWatching';
@@ -37,7 +38,7 @@ jest.mock('@/components/MovieList', () => {
   return function MockMovieList({ title, data, isLoading }: any) {
     return (
       <div data-testid={`movie-list-${title}`}>
-        MovieList - {title} - Items: {data?.length || 0}, Loading: {isLoading.toString()}
+        MovieList - {title} - Items: {data?.length || 0}, Loading: {isLoading.toString()} - Titles: {data?.map((item: any) => item.title).join(', ')}
       </div>
     );
   };
@@ -64,6 +65,7 @@ jest.mock('@/hooks/movies/useRandomMovieList');
 jest.mock('@/hooks/movies/useNewMovieList');
 jest.mock('@/hooks/playlists/usePlaylists');
 jest.mock('@/hooks/series/useRandomSeriesList');
+jest.mock('@/hooks/series/useNewSeriesList', () => jest.fn(() => ({ data: [], isLoading: false })));
 jest.mock('@/hooks/useFavorites');
 jest.mock('@/hooks/useInfoModal');
 jest.mock('@/hooks/useContinueWatching', () =>
@@ -74,6 +76,7 @@ const mockUseRandomMovieList = useRandomMovieList as jest.MockedFunction<typeof 
 const mockUseNewMovieList = useNewMovieList as jest.MockedFunction<typeof useNewMovieList>;
 const mockUsePlaylists = usePlaylists as jest.MockedFunction<typeof usePlaylists>;
 const mockUseRandomSeriesList = useRandomSeriesList as jest.MockedFunction<typeof useRandomSeriesList>;
+const mockUseNewSeriesList = useNewSeriesList as jest.MockedFunction<typeof useNewSeriesList>;
 const mockUseFavorites = useFavorites as jest.MockedFunction<typeof useFavorites>;
 const mockUseInfoModal = useInfoModal as jest.MockedFunction<typeof useInfoModal>;
 const mockUseContinueWatching = useContinueWatching as jest.MockedFunction<
@@ -83,6 +86,7 @@ const mockUseContinueWatching = useContinueWatching as jest.MockedFunction<
 describe('Home Page (page.tsx)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseNewSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
   });
 
   describe('Component Rendering', () => {
@@ -241,15 +245,23 @@ describe('Home Page (page.tsx)', () => {
       } as any);
     });
 
-    it('should display new movies when data is loaded', () => {
+    it('should display the eight newest movies and series together', () => {
       const mockNewMovies = [
-        { id: '1', title: 'New Movie 1' },
-        { id: '2', title: 'New Movie 2' },
+        ...Array.from({ length: 8 }, (_, index) => ({
+          id: `movie-${index}`,
+          title: `Movie ${index}`,
+          createdAt: new Date(`2026-01-${String(index + 1).padStart(2, '0')}`),
+        })),
+      ];
+      const mockNewSeries = [
+        { id: 'series-newest', title: 'Newest Series', createdAt: new Date('2026-02-01') },
+        { id: 'series-second', title: 'Second Series', createdAt: new Date('2026-01-31') },
       ];
       mockUseNewMovieList.mockReturnValue({
         data: mockNewMovies,
         isLoading: false,
       } as any);
+      mockUseNewSeriesList.mockReturnValue({ data: mockNewSeries, isLoading: false } as any);
       mockUseRandomMovieList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseRandomSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
       mockUseFavorites.mockReturnValue({ data: [], isLoading: false } as any);
@@ -257,7 +269,10 @@ describe('Home Page (page.tsx)', () => {
 
       render(<Home />);
 
-      expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Items: 2');
+      const newTitles = screen.getByTestId('movie-list-New');
+      expect(newTitles).toHaveTextContent('Items: 8');
+      expect(newTitles.textContent).toContain('Newest Series, Second Series');
+      expect(newTitles.textContent).not.toContain('Movie 0');
     });
 
     it('should display movies when data is loaded', () => {
