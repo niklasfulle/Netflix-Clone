@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 import {
   Form,
   FormField,
@@ -67,6 +68,21 @@ const FormTestWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('Form Components', () => {
+  test('shows movie validation messages in the selected language', () => {
+    function ValidationForm() {
+      const form = useForm({ defaultValues: { movieName: '' } });
+      return (
+        <Form {...form}>
+          <FormField control={form.control} name="movieName" render={() => <FormItem><FormMessage /></FormItem>} />
+          <button onClick={() => form.setError('movieName', { message: 'Name must be set' })}>Validate</button>
+        </Form>
+      );
+    }
+    render(<LanguageProvider initialLocale="de"><ValidationForm /></LanguageProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    expect(screen.getByText('Bitte gib einen Namen ein.')).toBeInTheDocument();
+    expect(screen.queryByText('Name must be set')).not.toBeInTheDocument();
+  });
   describe('Form Component', () => {
     const FormWrapper = ({ children }: { children: React.ReactNode }) => {
       const form = useForm();

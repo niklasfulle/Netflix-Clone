@@ -103,6 +103,7 @@ jest.mock("@/components/ui/input", () => ({
 }));
 
 import { AddMovieForm } from "@/app/(protected)/add/_components/add-movie-form";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 describe("AddMovieForm state after submission", () => {
   beforeEach(() => {
@@ -110,6 +111,17 @@ describe("AddMovieForm state after submission", () => {
     globalThis.fetch = jest.fn().mockResolvedValue({
       json: async () => ({ actors: [] }),
     });
+  });
+
+  test.each([
+    [{ success: "Movie added!" }, "Inhalt hinzugefügt!", mockToastSuccess],
+    [{ error: "Invalid fields!" }, "Bitte überprüfe deine Eingaben.", mockToastError],
+  ])("localizes save feedback in German: %j", async (result, expected, notification) => {
+    mockAddMovie.mockResolvedValue(result);
+    render(<LanguageProvider initialLocale="de"><AddMovieForm /></LanguageProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Populate form" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inhalt speichern" }));
+    await waitFor(() => expect(notification).toHaveBeenCalledWith(expected));
   });
 
   test("clears the complete form and invalidates admin caches after success", async () => {

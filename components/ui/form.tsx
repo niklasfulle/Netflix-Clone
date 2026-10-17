@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import { germanTranslations, type TranslationKey } from '@/lib/i18n/translations';
 
 const Form = FormProvider
 
@@ -144,6 +146,7 @@ const FormMessage = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField()
+  const { t } = useLanguage()
   const body = error ? String(error?.message) : children
 
   if (!body) {
@@ -157,7 +160,9 @@ const FormMessage = React.forwardRef<
       className={cn("text-[0.8rem] font-medium text-destructive", className)}
       {...props}
     >
-      {body}
+      {typeof body === 'string' && Object.prototype.hasOwnProperty.call(germanTranslations, body)
+        ? t(body as TranslationKey)
+        : body}
     </p>
   )
 })

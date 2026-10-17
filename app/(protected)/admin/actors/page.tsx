@@ -41,6 +41,14 @@ const fetcher = (url: string) => fetch(url).then(async (response) => {
   return data;
 });
 
+function getSourceErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return fallback;
+}
+
 export default function AdminActorsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -150,7 +158,7 @@ export default function AdminActorsPage() {
       });
       const result = await response.json();
       if (!response.ok) {
-        setSourceError(result.error || "Quelle konnte nicht gespeichert werden.");
+        setSourceError(getSourceErrorMessage(result.error, "Quelle konnte nicht gespeichert werden."));
         return;
       }
       setDetailActor((current) => current ? { ...current, sources: [result.source, ...(current.sources || [])] } : current);
@@ -171,7 +179,7 @@ export default function AdminActorsPage() {
     const response = await fetch(`/api/actors/${detailActor.id}/sources?sourceId=${encodeURIComponent(source.id)}`, { method: "DELETE" });
     const result = await response.json();
     if (!response.ok) {
-      setSourceError(result.error || "Quelle konnte nicht entfernt werden.");
+      setSourceError(getSourceErrorMessage(result.error, "Quelle konnte nicht entfernt werden."));
       return;
     }
     setDetailActor((current) => current ? { ...current, sources: (current.sources || []).filter((item) => item.id !== source.id) } : current);
@@ -219,16 +227,33 @@ export default function AdminActorsPage() {
             <div className="overflow-x-auto">
               <table className="min-w-[760px] w-full text-left text-sm">
                 <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs uppercase tracking-wide text-zinc-500">
-                  <tr><th className="px-5 py-3">Name</th><th className="px-3 py-3">Filme</th><th className="px-3 py-3">Serien</th><th className="px-3 py-3">Views</th><th className="px-5 py-3 text-right">Aktionen</th></tr>
+                  <tr><th className="px-5 py-3">Name</th><th className="px-3 py-3">Filme</th><th className="px-3 py-3">Serien</th><th className="px-3 py-3">Views</th><th className="px-3 py-3">Quelle</th><th className="px-5 py-3 text-right">Aktionen</th></tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
-                  {data.actors.length === 0 && <tr><td colSpan={5} className="p-14 text-center text-zinc-500">Keine Darsteller gefunden.</td></tr>}
+                  {data.actors.length === 0 && <tr><td colSpan={6} className="p-14 text-center text-zinc-500">Keine Darsteller gefunden.</td></tr>}
                   {data.actors.map((actor: Actor) => (
                     <tr key={actor.id} className="hover:bg-zinc-800/50">
                       <td className="px-5 py-4 font-semibold text-white">{actor.name}</td>
                       <td className="px-3 py-4 text-zinc-300">{actor.movieCount}</td>
                       <td className="px-3 py-4 text-zinc-300">{actor.seriesCount}</td>
                       <td className="px-3 py-4 text-zinc-300">{actor.views.toLocaleString("de-DE")}</td>
+                      <td className="px-3 py-4">
+                        {actor.sources?.[0] ? (
+                          <a
+                            href={actor.sources[0].url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`${actor.name}: ${actor.sources[0].label} öffnen`}
+                            title={`${actor.sources[0].label} in neuem Tab öffnen`}
+                            className="inline-flex max-w-44 items-center gap-1.5 truncate text-red-300 hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{actor.sources[0].label}</span>
+                          </a>
+                        ) : (
+                          <span aria-label="Keine Quelle hinterlegt" className="text-zinc-600">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-1">
                           <button type="button" onClick={() => openDetails(actor)} aria-label={`${actor.name} anzeigen`} title={`${actor.name} anzeigen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Eye className="h-4 w-4" /></button>

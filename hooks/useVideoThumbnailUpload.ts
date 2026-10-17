@@ -1,8 +1,12 @@
 import { useRef, useState } from "react";
 import { useChunkedUpload } from "./useChunkedUpload";
+import { useUploadTitleNotification } from "./useUploadTitleNotification";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export const useVideoThumbnailUpload = () => {
+  const { t, message } = useLanguage();
+  const { notify: notifyUploadTitle, reset: resetUploadTitle } = useUploadTitleNotification();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
@@ -52,7 +56,7 @@ export const useVideoThumbnailUpload = () => {
       }
 
       onDurationChange?.(formattedDuration);
-      toast.success(`Video length: ${formattedDuration}`);
+      toast.success(message("videoLength", { duration: formattedDuration }));
     };
   };
 
@@ -101,37 +105,39 @@ export const useVideoThumbnailUpload = () => {
   const regenerateThumbnails = () => {
     const randomOffset = Math.floor(Math.random() * 10) * 10;
     generateThumbnails(randomOffset);
-    toast.success("New thumbnails are being generated...");
+    toast.success(t("New thumbnails are being generated..."));
   };
 
   const selectThumbnail = (thumbnail: string) => {
     setThumbnailUrl(thumbnail);
     setShowThumbnailSelector(false);
-    toast.success("Thumbnail selected!");
+    toast.success(t("Thumbnail selected!"));
   };
 
   const deselectThumbnail = () => {
     setThumbnailUrl("");
     setShowThumbnailSelector(true);
-    toast.success("Thumbnail deselected!");
+    toast.success(t("Thumbnail deselected!"));
   };
 
   const uploadVideo = async (videoType: string, onVideoUploadSuccess?: (result: { filePath: string; videoId: string }) => void) => {
     if (!videoFile) {
-      toast.error("Please select a video first!");
+      toast.error(t("Please select a video first!"));
       return;
     }
 
     if (!videoType) {
-      toast.error("Please select a type!");
+      toast.error(t("Please select a type!"));
       return;
     }
 
+    resetUploadTitle();
     const result = await uploadFile(videoFile, videoType, generatedVideoId);
 
     if (result) {
       setUploadedVideoPath(result.filePath);
-      toast.success("Video uploaded successfully!");
+      toast.success(t("Video uploaded successfully!"));
+      notifyUploadTitle(t("Upload complete"));
       onVideoUploadSuccess?.(result);
 
       setTimeout(() => {
@@ -153,6 +159,7 @@ export const useVideoThumbnailUpload = () => {
   };
 
   const resetUploadState = () => {
+    resetUploadTitle();
     if (videoPreviewUrl.startsWith("blob:")) {
       URL.revokeObjectURL?.(videoPreviewUrl);
     }
@@ -182,7 +189,7 @@ export const useVideoThumbnailUpload = () => {
 
     if (!uploadedVideoPath) {
       resetUploadState();
-      toast.success("Cancelled!");
+      toast.success(t("Cancelled!"));
       onCancel?.();
       return;
     }
@@ -200,13 +207,13 @@ export const useVideoThumbnailUpload = () => {
 
       if (data.success) {
         resetUploadState();
-        toast.success("Video deleted!");
+        toast.success(t("Video deleted!"));
       } else {
-        toast.error("Error deleting video!");
+        toast.error(t("Error deleting video!"));
       }
     } catch (error) {
       console.error("Error deleting video:", error);
-      toast.error("Error deleting video!");
+      toast.error(t("Error deleting video!"));
     }
 
     onCancel?.();

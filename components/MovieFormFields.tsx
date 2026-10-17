@@ -172,7 +172,7 @@ export const MovieFormFields = ({
             </Select>
             {genreOptions.length === 0 && (
               <p className="text-xs text-amber-300">
-                NEXT_PUBLIC_GENRE is not configured.
+                {t("No genres are configured.")}
               </p>
             )}
             <FormMessage />

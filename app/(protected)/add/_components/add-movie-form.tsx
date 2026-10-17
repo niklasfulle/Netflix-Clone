@@ -22,6 +22,8 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useVideoThumbnailUpload } from "@/hooks/useVideoThumbnailUpload";
 import { MovieSchema } from "@/schemas";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const EMPTY_MOVIE_FORM: z.infer<typeof MovieSchema> = {
   movieName: "",
@@ -35,6 +37,7 @@ const EMPTY_MOVIE_FORM: z.infer<typeof MovieSchema> = {
 };
 
 export const AddMovieForm = () => {
+  const { t, message } = useLanguage();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [estimatedTime, setEstimatedTime] = useState("");
@@ -133,7 +136,7 @@ export const AddMovieForm = () => {
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
     if (!thumbnailUrl) {
-      toast.error("Please select a thumbnail!");
+      toast.error(t("Please select a thumbnail!"));
       return;
     }
 
@@ -142,7 +145,7 @@ export const AddMovieForm = () => {
         const data = await addMovie(values, thumbnailUrl);
 
         if (data && "error" in data && data.error) {
-          toast.error(data.error);
+          toast.error(t(data.error as TranslationKey) || data.error);
         } else if (data && "success" in data && data.success) {
           form.reset(EMPTY_MOVIE_FORM);
           resetUploadState();
@@ -157,10 +160,10 @@ export const AddMovieForm = () => {
             { revalidate: true },
           );
           router.refresh();
-          toast.success(data.success);
+          toast.success(t(data.success as TranslationKey) || data.success);
         }
       } catch {
-        toast.error("Content could not be saved. Please try again.");
+        toast.error(t("Content could not be saved. Please try again."));
       }
     });
   };
@@ -182,7 +185,7 @@ export const AddMovieForm = () => {
       Array.from(new Set([...selectedActors, actor.id])),
       { shouldDirty: true, shouldValidate: true },
     );
-    toast.success(`${actor.name} wurde angelegt und ausgewählt.`);
+    toast.success(message("createdAndSelected", { name: actor.name }));
   };
 
   return (
@@ -264,7 +267,7 @@ export const AddMovieForm = () => {
               size="lg"
               className="w-full bg-red-600 font-semibold text-white hover:bg-red-500 sm:w-auto"
             >
-              {isPending ? "Saving content..." : "Save Content"}
+              {t(isPending ? "Saving content..." : "Save Content")}
             </Button>
           </div>
         </div>

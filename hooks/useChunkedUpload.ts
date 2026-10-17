@@ -1,7 +1,10 @@
 import { useState, useRef } from "react";
 import { toast } from "react-hot-toast";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 export const useChunkedUpload = () => {
+  const { t } = useLanguage();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -86,7 +89,7 @@ export const useChunkedUpload = () => {
         console.info("[UPLOAD] Upload wurde vom Nutzer abgebrochen.");
         return null;
       } else {
-        toast.error(error?.message || "Upload fehlgeschlagen!");
+        toast.error(t(error?.message as TranslationKey) || error?.message || "Upload fehlgeschlagen!");
         setIsUploading(false);
         setUploadProgress(0);
         abortControllerRef.current = null;

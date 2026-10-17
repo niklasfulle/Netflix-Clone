@@ -366,6 +366,31 @@ export const germanTranslations = {
   'Check the title, assignments, and image selection. After saving, the content appears in content management and can be edited there.': 'Prüfe Titel, Zuordnung und Bildauswahl. Der Inhalt erscheint nach dem Speichern in der Inhaltsverwaltung und kann dort weiter bearbeitet werden.',
   'Save Content': 'Inhalt speichern',
   'Saving content...': 'Inhalt wird gespeichert...',
+  'No genres are configured.': 'Es sind keine Genres eingerichtet.',
+  'Name must be set': 'Bitte gib einen Namen ein.',
+  'Descripton must be set': 'Bitte gib eine Beschreibung ein.',
+  'Mindestens ein Actor muss gewählt werden': 'Bitte wähle mindestens einen Darsteller aus.',
+  'Type must be set': 'Bitte wähle einen Typ aus.',
+  'Genre must be set': 'Bitte wähle ein Genre aus.',
+  'Duration must be set': 'Bitte gib eine Laufzeit ein.',
+  'Invalid duration': 'Bitte gib eine gültige Laufzeit ein.',
+  'Video must be set': 'Bitte lade ein Video hoch.',
+  'Unauthorized!': 'Bitte melde dich an.',
+  'Not allowed Server Action!': 'Für diese Aktion sind Administratorrechte erforderlich.',
+  'Genre is not allowed!': 'Das ausgewählte Genre ist nicht zulässig.',
+  'Movie added!': 'Inhalt hinzugefügt!',
+  'New thumbnails are being generated...': 'Neue Vorschaubilder werden erstellt...',
+  'Thumbnail selected!': 'Vorschaubild ausgewählt!',
+  'Thumbnail deselected!': 'Auswahl des Vorschaubilds aufgehoben!',
+  'Please select a video first!': 'Bitte wähle zuerst ein Video aus!',
+  'Please select a type!': 'Bitte wähle einen Typ aus!',
+  'Video uploaded successfully!': 'Video erfolgreich hochgeladen!',
+  'Upload complete': 'Upload abgeschlossen',
+  'Cancelled!': 'Abgebrochen!',
+  'Video deleted!': 'Video gelöscht!',
+  'Error deleting video!': 'Das Video konnte nicht gelöscht werden!',
+  'Chunk upload failed': 'Ein Teil des Videos konnte nicht hochgeladen werden.',
+  'Upload incomplete': 'Der Upload ist unvollständig.',
   'Edit Movie': 'Film bearbeiten',
   'User': 'Benutzer',
   'Users': 'Benutzer',
@@ -1161,6 +1186,9 @@ export type MessageKey =
   | 'showDetails'
   | 'moreInformation'
   | 'thumbnailAlt'
+  | 'selectThumbnail'
+  | 'thumbnailOption'
+  | 'videoLength'
   | 'scrollRowLeft'
   | 'scrollRowRight'
   | 'sectionLoading'
@@ -1180,6 +1208,9 @@ export type MessageParams = {
   showDetails: { title: string };
   moreInformation: { title: string };
   thumbnailAlt: { title: string };
+  selectThumbnail: { number: number };
+  thumbnailOption: { number: number };
+  videoLength: { duration: string };
   scrollRowLeft: { name: string };
   scrollRowRight: { name: string };
   sectionLoading: { name: string };
@@ -1203,6 +1234,9 @@ export const messages: {
     showDetails: ({ title }) => `Show details for ${title}`,
     moreInformation: ({ title }) => `More information about ${title}`,
     thumbnailAlt: ({ title }) => `${title} thumbnail`,
+    selectThumbnail: ({ number }) => `Select thumbnail ${number}`,
+    thumbnailOption: ({ number }) => `Thumbnail ${number}`,
+    videoLength: ({ duration }) => `Video length: ${duration}`,
     scrollRowLeft: ({ name }) => `Scroll ${name} left`,
     scrollRowRight: ({ name }) => `Scroll ${name} right`,
     sectionLoading: ({ name }) => `${name} is loading`,
@@ -1222,6 +1256,9 @@ export const messages: {
     showDetails: ({ title }) => `Details zu ${title} anzeigen`,
     moreInformation: ({ title }) => `Weitere Informationen zu ${title}`,
     thumbnailAlt: ({ title }) => `Vorschaubild von ${title}`,
+    selectThumbnail: ({ number }) => `Vorschaubild ${number} auswählen`,
+    thumbnailOption: ({ number }) => `Vorschaubild ${number}`,
+    videoLength: ({ duration }) => `Videolänge: ${duration}`,
     scrollRowLeft: ({ name }) => `${name} nach links scrollen`,
     scrollRowRight: ({ name }) => `${name} nach rechts scrollen`,
     sectionLoading: ({ name }) => `${name} wird geladen`,

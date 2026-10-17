@@ -34,6 +34,99 @@ it("renders actor metrics and detail drawer", () => {
   expect(screen.getByRole("dialog", { name: /Details zu Ada Actor/i })).toBeInTheDocument();
 });
 
+it("shows only the first saved source as a link in the actor list", () => {
+  mockedUseSWR.mockReturnValue({
+    data: {
+      actors: [{
+        ...actor,
+        sources: [
+          { id: "source-1", label: "IMDb-Profil", url: "https://example.com/imdb" },
+          { id: "source-2", label: "Filmografie", url: "https://example.com/filmography" },
+        ],
+      }],
+      total: 1,
+      totalPages: 1,
+    },
+    error: undefined,
+    isLoading: false,
+    mutate,
+  });
+
+  render(<AdminActorsPage />);
+
+  expect(screen.getByRole("link", { name: "Ada Actor: IMDb-Profil öffnen" })).toHaveAttribute(
+    "href",
+    "https://example.com/imdb",
+  );
+  expect(screen.queryByRole("link", { name: "Ada Actor: Filmografie öffnen" })).not.toBeInTheDocument();
+});
+
+it("can add two sources to the same actor in sequence", async () => {
+  globalThis.fetch = jest.fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ source: { id: "source-1", label: "IMDb", url: "https://example.com/imdb" } }),
+    } as Response)
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ source: { id: "source-2", label: "Filmografie", url: "https://example.com/filmography" } }),
+    } as Response);
+  render(<AdminActorsPage />);
+  fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
+
+  for (const [label, url] of [
+    ["IMDb", "https://example.com/imdb"],
+    ["Filmografie", "https://example.com/filmography"],
+  ]) {
+    fireEvent.click(screen.getByRole("button", { name: "Quelle hinzufügen" }));
+    fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: label } });
+    fireEvent.change(screen.getByLabelText("URL"), { target: { value: url } });
+    fireEvent.click(screen.getByRole("button", { name: "Quelle speichern" }));
+    await screen.findByRole("link", { name: label });
+  }
+
+  expect(screen.getByRole("link", { name: "IMDb" })).toHaveAttribute(
+    "href",
+    "https://example.com/imdb",
+  );
+  expect(screen.getByRole("link", { name: "Filmografie" })).toHaveAttribute(
+    "href",
+    "https://example.com/filmography",
+  );
+});
+
+it("shows nested source API errors without crashing the actor details", async () => {
+  globalThis.fetch = jest.fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: async () => ({ source: { id: "source-1", label: "IMDb", url: "https://example.com/imdb" } }),
+    } as Response)
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: { code: "CONFLICT", message: "Diese Quelle ist bereits hinterlegt." } }),
+    } as Response);
+  render(<AdminActorsPage />);
+  fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Quelle hinzufügen" }));
+  fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: "IMDb" } });
+  fireEvent.change(screen.getByLabelText("URL"), { target: { value: "https://example.com/imdb" } });
+  fireEvent.click(screen.getByRole("button", { name: "Quelle speichern" }));
+  await waitFor(() => expect(screen.getByText("Quelle wurde hinzugefügt.")).toBeInTheDocument());
+
+  fireEvent.click(screen.getByRole("button", { name: "Quelle hinzufügen" }));
+  fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: "IMDb" } });
+  fireEvent.change(screen.getByLabelText("URL"), { target: { value: "https://example.com/imdb" } });
+  fireEvent.click(screen.getByRole("button", { name: "Quelle speichern" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("Diese Quelle ist bereits hinterlegt.");
+  expect(screen.getByRole("dialog", { name: /Details zu Ada Actor/i })).toBeInTheDocument();
+});
+
 it("opens the create dialog", () => {
   render(<AdminActorsPage />);
   fireEvent.click(screen.getByRole("button", { name: /Darsteller hinzufügen/i }));

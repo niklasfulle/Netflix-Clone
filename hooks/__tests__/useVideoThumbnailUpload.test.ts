@@ -12,6 +12,7 @@ const originalFetch = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
 describe('useVideoThumbnailUpload', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    document.title = 'Netflix Admin';
     document.body.replaceChildren();
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -399,6 +400,27 @@ describe('useVideoThumbnailUpload', () => {
   });
 
   describe('uploadVideo', () => {
+    it('clears the previous title notice when another upload starts and keeps it cleared on failure', async () => {
+      jest.useFakeTimers();
+      let finishUpload!: (result: null) => void;
+      const uploadFile = jest.fn()
+        .mockResolvedValueOnce({ filePath: '/uploads/movie.mp4', videoId: 'video-123' })
+        .mockReturnValueOnce(new Promise((resolve) => { finishUpload = resolve; }));
+      (useChunkedUpload as jest.Mock).mockReturnValue({
+        uploadFile, uploadProgress: 0, isUploading: false, cancelUpload: jest.fn(),
+      });
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      act(() => { result.current.setVideoFile(new File(['video'], 'movie.mp4')); });
+      await act(async () => { await result.current.uploadVideo('Movie'); });
+      expect(document.title).toBe('✓ Upload complete – Netflix Admin');
+
+      let pending!: Promise<void>;
+      act(() => { pending = result.current.uploadVideo('Movie'); });
+      expect(document.title).toBe('Netflix Admin');
+      await act(async () => { finishUpload(null); await pending; });
+      expect(document.title).toBe('Netflix Admin');
+    });
+
     it('requires both a selected video and a media type', async () => {
       const uploadFile = jest.fn();
       (useChunkedUpload as jest.Mock).mockReturnValue({
@@ -447,6 +469,7 @@ describe('useVideoThumbnailUpload', () => {
       expect(uploadFile).toHaveBeenCalledWith(file, 'movie', 'video-123');
       expect(result.current.uploadedVideoPath).toBe('');
       expect(toast.default.success).not.toHaveBeenCalledWith('Video uploaded successfully!');
+      expect(document.title).toBe('Netflix Admin');
     });
 
     it('publishes a successful upload and schedules thumbnail generation', async () => {
@@ -474,6 +497,11 @@ describe('useVideoThumbnailUpload', () => {
       expect(result.current.uploadedVideoPath).toBe('/uploads/movie.mp4');
       expect(onVideoUploadSuccess).toHaveBeenCalledWith(uploadResult);
       expect(toast.default.success).toHaveBeenCalledWith('Video uploaded successfully!');
+      expect(document.title).toBe('✓ Upload complete – Netflix Admin');
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      expect(document.title).toBe('Netflix Admin');
       act(() => {
         jest.advanceTimersByTime(500);
       });

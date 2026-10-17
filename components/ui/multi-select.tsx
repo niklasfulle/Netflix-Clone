@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Check, X } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface Option {
   label: string;
@@ -20,10 +21,12 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   options,
   value,
   onChange,
-  placeholder = "Select...",
+  placeholder,
   disabled = false,
   label,
 }) => {
+  const { t } = useLanguage();
+  const placeholderText = placeholder ?? t("Select...");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -50,14 +53,14 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
           type="button"
           data-multi-select-trigger
           aria-expanded={open}
-          aria-label={label ?? placeholder}
+          aria-label={label ?? placeholderText}
           disabled={disabled}
           onClick={() => setOpen(v => !v)}
           className={`absolute inset-0 z-0 min-h-[44px] w-full cursor-pointer rounded border border-gray-500 bg-zinc-800 px-2 py-1 text-left ${disabled ? "cursor-not-allowed opacity-50" : "hover:border-red-500"}`}
         />
         <div className="pointer-events-none relative z-10 flex min-h-[44px] flex-wrap items-center gap-1 px-2 py-1">
           {value.length === 0 && (
-            <span className="select-none text-gray-400">{placeholder}</span>
+            <span className="select-none text-gray-400">{placeholderText}</span>
           )}
           {value.map(val => {
             const opt = options.find(o => o.value === val);
@@ -75,7 +78,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                     e.stopPropagation();
                     onChange(value.filter(v => v !== val));
                   }}
-                  aria-label="Remove"
+                  aria-label={t("Remove")}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -88,14 +91,14 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
         <div className="absolute z-50 mt-1 w-full bg-zinc-900 border border-gray-600 rounded shadow-lg max-h-60 overflow-auto animate-in fade-in">
           <input
             className="w-full px-2 py-1 bg-zinc-900 text-white border-b border-zinc-700 focus:outline-none text-sm"
-            placeholder="Search..."
+            placeholder={t("Search...")}
             value={search}
             onChange={e => setSearch(e.target.value)}
             autoFocus
           />
           <div className="max-h-48 overflow-auto">
             {filtered.length === 0 && (
-              <div className="p-2 text-gray-400 text-sm">No options</div>
+              <div className="p-2 text-gray-400 text-sm">{t("No options")}</div>
             )}
             {filtered.map(opt => (
               <label

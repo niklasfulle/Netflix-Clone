@@ -8,6 +8,13 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- In der Darstellerliste im Adminbereich ist der erste hinterlegte Quellenlink direkt aufrufbar
+- Fehlerantworten beim Hinzufügen oder Entfernen von Darstellerquellen werden angezeigt, ohne die Übersicht abstürzen zu lassen
+- Die Seite zum Anlegen neuer Inhalte berücksichtigt die gewählte Sprache auch bei Hinweisen, Speichern, Uploads, Vorschaubildern und Formularmeldungen
+- Erfolgreiche Video-Uploads werden im Browser-Tab durch einen Hinweis im Seitentitel angezeigt; beim Zurückkehren zum Tab oder Starten eines neuen Uploads wird der ursprüngliche Titel wiederhergestellt
+
+## 1.13.4
+
 - Adminaktionen auf den Seiten Inhalte, Darsteller und Benutzer zeigen nun Tooltips mit einer kurzen Beschreibung der jeweiligen Aktion
 - Darstellerprofile können externe Quellenlinks speichern und öffnen, um Film- und Serienauftritte nachzuschlagen
 - Die Darstellerübersicht öffnet sich als kompakter zentrierter Dialog mit festem Kopfbereich, aufklappbarem Quellenformular und responsivem Inhaltsraster

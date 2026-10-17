@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { ThumbnailSelector } from '../ThumbnailSelector';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 
 // Wrapper component to provide FormProvider for tests
 const FormWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -11,6 +12,19 @@ const FormWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('ThumbnailSelector', () => {
+  it('localizes image selection and its accessible labels in German', () => {
+    render(
+      <LanguageProvider initialLocale="de">
+        <FormWrapper>
+          <ThumbnailSelector thumbnailOptions={['/thumbnail.jpg']} onSelectThumbnail={jest.fn()} onRegenerate={jest.fn()} />
+        </FormWrapper>
+      </LanguageProvider>,
+    );
+    expect(screen.getByText('Vorschaubild auswählen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neu generieren' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vorschaubild 1 auswählen' })).toBeInTheDocument();
+    expect(screen.getByAltText('Vorschaubild 1')).toBeInTheDocument();
+  });
   const mockThumbnails = [
     'data:image/jpeg;base64,thumb1',
     'data:image/jpeg;base64,thumb2',
