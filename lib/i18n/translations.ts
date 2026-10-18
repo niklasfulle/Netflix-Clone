@@ -498,6 +498,8 @@ export const germanTranslations = {
   'We are checking your verification link.': 'Wir prüfen deinen Bestätigungslink.',
   'Oops! Something went wrong!': 'Hoppla! Etwas ist schiefgelaufen!',
   'Return to sign in and try again.': 'Kehre zur Anmeldung zurück und versuche es erneut.',
+  'Returning to sign in...': 'Anmeldung wird geöffnet...',
+  'Your current sign-in could not be used. Return to sign in to start a new session.': 'Deine aktuelle Anmeldung konnte nicht verwendet werden. Kehre zur Anmeldung zurück, um eine neue Sitzung zu starten.',
   'Something went wrong!': 'Etwas ist schiefgelaufen!',
   'Missing token!': 'Token fehlt!',
   'Your private streaming space': 'Dein privater Streaming-Bereich',

@@ -13,6 +13,8 @@ interface CardWrapperProps {
   headerDescription?: string;
   backButtonLabel: string;
   backButtonHref: string;
+  backButtonAction?: () => Promise<void>;
+  backButtonPendingLabel?: string;
   showSocial?: boolean;
 }
 
@@ -22,6 +24,8 @@ export const CardWrapper = ({
   headerDescription,
   backButtonLabel,
   backButtonHref,
+  backButtonAction,
+  backButtonPendingLabel,
   showSocial,
 }: CardWrapperProps) => {
   const titleId = useId();
@@ -45,7 +49,7 @@ export const CardWrapper = ({
         </div>
       )}
       <div className="border-t border-white/10 px-6 py-4 sm:px-9">
-        <BackButton href={backButtonHref} label={backButtonLabel} />
+        <BackButton href={backButtonHref} label={backButtonLabel} action={backButtonAction} pendingLabel={backButtonPendingLabel} />
       </div>
     </section>
   );

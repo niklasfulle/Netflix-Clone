@@ -8,6 +8,7 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Die Fehlerseite der Anmeldung beendet beim Zurückkehren die alte Sitzung, zeigt verständlichen Fehlertext und verhindert so ein Festhängen mit gesperrten oder widerrufenen Sitzungen
 - In der Darstellerliste im Adminbereich ist der erste hinterlegte Quellenlink direkt aufrufbar
 - Fehlerantworten beim Hinzufügen oder Entfernen von Darstellerquellen werden angezeigt, ohne die Übersicht abstürzen zu lassen
 - Die Seite zum Anlegen neuer Inhalte berücksichtigt die gewählte Sprache auch bei Hinweisen, Speichern, Uploads, Vorschaubildern und Formularmeldungen
