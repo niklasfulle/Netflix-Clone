@@ -23,6 +23,13 @@ export const germanTranslations = {
   'No results found.': 'Keine Ergebnisse gefunden.',
   'Search failed.': 'Suche fehlgeschlagen.',
   'Favorites': 'Favoriten',
+  'Automatic': 'Automatisch',
+  'Synced with your favorites.': 'Mit deinen Favoriten synchronisiert.',
+  'Play favorites': 'Favoriten abspielen',
+  'Mark movies and series with the heart to add them here.': 'Markiere Filme und Serien mit dem Herz, um sie hier aufzunehmen.',
+  'Favorites could not be updated. Please try again.': 'Die Favoriten konnten nicht aktualisiert werden. Bitte versuche es erneut.',
+  'This playlist is empty.': 'Diese Playlist ist leer.',
+  'Back to playlists': 'Zurück zu den Playlists',
   'Add to favorites': 'Zu Favoriten hinzufügen',
   'Remove from favorites': 'Aus Favoriten entfernen',
   'Continue Watching': 'Weiterschauen',
@@ -1191,6 +1198,7 @@ export type MessageKey =
   | 'selectThumbnail'
   | 'thumbnailOption'
   | 'videoLength'
+  | 'playlistTitleCount'
   | 'scrollRowLeft'
   | 'scrollRowRight'
   | 'sectionLoading'
@@ -1213,6 +1221,7 @@ export type MessageParams = {
   selectThumbnail: { number: number };
   thumbnailOption: { number: number };
   videoLength: { duration: string };
+  playlistTitleCount: { count: number };
   scrollRowLeft: { name: string };
   scrollRowRight: { name: string };
   sectionLoading: { name: string };
@@ -1239,6 +1248,7 @@ export const messages: {
     selectThumbnail: ({ number }) => `Select thumbnail ${number}`,
     thumbnailOption: ({ number }) => `Thumbnail ${number}`,
     videoLength: ({ duration }) => `Video length: ${duration}`,
+    playlistTitleCount: ({ count }) => `${count} ${count === 1 ? 'title' : 'titles'}`,
     scrollRowLeft: ({ name }) => `Scroll ${name} left`,
     scrollRowRight: ({ name }) => `Scroll ${name} right`,
     sectionLoading: ({ name }) => `${name} is loading`,
@@ -1261,6 +1271,7 @@ export const messages: {
     selectThumbnail: ({ number }) => `Vorschaubild ${number} auswählen`,
     thumbnailOption: ({ number }) => `Vorschaubild ${number}`,
     videoLength: ({ duration }) => `Videolänge: ${duration}`,
+    playlistTitleCount: ({ count }) => `${count} Titel`,
     scrollRowLeft: ({ name }) => `${name} nach links scrollen`,
     scrollRowRight: ({ name }) => `${name} nach rechts scrollen`,
     sectionLoading: ({ name }) => `${name} wird geladen`,

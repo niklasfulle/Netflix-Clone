@@ -62,6 +62,10 @@ _Avoid_: Missing file, deleted Content
 A Content item explicitly saved by the active Profile for later access.
 _Avoid_: My List entry, liked title, Watchlist item
 
+**Automatic Favorites Playlist**:
+A Profile's playlist whose membership follows that Profile's Favorites and is managed by adding or removing Favorites.
+_Avoid_: Copied favorites, manually maintained favorites playlist
+
 ## Content catalog
 
 **Actor Source**:

@@ -8,8 +8,11 @@ import { addMovieView } from "@/actions/watch/add-movie-view";
 import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
 import usePlaylist from "@/hooks/playlists/usePlaylist";
 import { getWatchProgressSaveSecond } from "@/lib/watch-progress-save";
+import Link from "next/link";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const Watch = () => {
+  const { t } = useLanguage();
   const playlistId = useParams<{ playlistId: string }>().playlistId;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastSavedSecondRef = useRef(-1);
@@ -17,6 +20,9 @@ const Watch = () => {
   const { data: playlist } = usePlaylist(playlistId);
   const [currentMovie, setCurrentMovie] = useState<number>(0);
   const movies = React.useMemo(() => playlist?.movies ?? [], [playlist]);
+  React.useEffect(() => {
+    setCurrentMovie((index) => Math.min(index, Math.max(0, movies.length - 1)));
+  }, [movies.length]);
 
   async function setMovieWatchTime() {
     const video = document.getElementById("videoElement") as HTMLVideoElement;
@@ -50,6 +56,15 @@ const Watch = () => {
 
   const hasMultiple = movies.length > 1;
   const current = movies[currentMovie];
+
+  if (playlist && movies.length === 0) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-black p-6 text-center text-white">
+        <p>{t('This playlist is empty.')}</p>
+        <Link href="/playlists" className="inline-flex min-h-11 items-center rounded-lg bg-red-600 px-5 font-semibold hover:bg-red-500">{t('Back to playlists')}</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen bg-black relative">
@@ -134,6 +149,7 @@ const Watch = () => {
       )}
       {current?.id && (
         <video
+          key={current.id}
           id="videoElement"
           autoPlay
           controls

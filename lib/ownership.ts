@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { FAVORITES_PLAYLIST_ID } from '@/lib/playlists';
 
 type OwnedPlaylistInput = {
   playlistId: string;
@@ -7,6 +8,7 @@ type OwnedPlaylistInput = {
 };
 
 export function findOwnedPlaylist({ playlistId, userId, profileId }: OwnedPlaylistInput) {
+  if (playlistId === FAVORITES_PLAYLIST_ID) return null;
   return db.playlist.findFirst({
     where: {
       id: playlistId,

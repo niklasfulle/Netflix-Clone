@@ -20,6 +20,7 @@ export interface PlaylistDto {
   name?: string;
   movies?: CatalogItemDto[];
   createdAt?: string | Date;
+  kind?: 'favorites';
 }
 
 export interface ProfileImageDto {

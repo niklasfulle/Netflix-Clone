@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server';
 import { ApiError, getUserAndProfile, handleApiError } from '@/lib/api-helpers';
 import { db } from '@/lib/db';
 import { findOwnedPlaylist } from '@/lib/ownership';
+import { getFavoritesPlaylist } from '@/data/favorites-playlist';
+import { FAVORITES_PLAYLIST_ID } from '@/lib/playlists';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,10 @@ export async function GET(
 
     const auth = await getUserAndProfile('api_playlist_detail');
     if (auth.error) return auth.error;
+
+    if (playlistId === FAVORITES_PLAYLIST_ID) {
+      return Response.json(await getFavoritesPlaylist(auth.user.id, auth.profil));
+    }
 
     const ownedPlaylist = await findOwnedPlaylist({
       playlistId,

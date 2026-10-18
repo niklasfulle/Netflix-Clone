@@ -106,7 +106,7 @@ const PlaylistSelect: React.FC<PlaylistSelectProps> = ({
                       <SelectContent>
                         {localPlaylists.filter(
                           (playlist): playlist is PlaylistDto & { id: string } =>
-                            typeof playlist.id === 'string',
+                            typeof playlist.id === 'string' && playlist.kind !== 'favorites',
                         ).map((playlist) => (
                           <SelectItem key={playlist.id} value={playlist.id}>
                             {playlist.title ?? playlist.name ?? 'Untitled playlist'}

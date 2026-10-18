@@ -1,5 +1,6 @@
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { getFavoritesPlaylist } from '@/data/favorites-playlist';
 
 export const dynamic = "force-dynamic"
 
@@ -22,18 +23,21 @@ export async function GET() {
       return Response.json(null, { status: 404 })
     }
 
-    const playlists = await db.playlist.findMany({
-      where: {
-        userId: user.id as string,
-        profilId: profil.id
-      },
-      orderBy: {
-        createdAt: "asc"
-      }
-    })
+    const [playlists, favoritesPlaylist] = await Promise.all([
+      db.playlist.findMany({
+        where: {
+          userId: user.id as string,
+          profilId: profil.id
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      }),
+      getFavoritesPlaylist(user.id as string, profil)
+    ])
 
 
-    const playlistsWithEntries: any = []
+    const playlistsWithEntries: any = [favoritesPlaylist]
     for (const playlist of playlists) {
       const playlistsEntries = await db.playlistEntry.findMany({
         where: {

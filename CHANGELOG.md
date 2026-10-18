@@ -8,6 +8,10 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Jedes Profil erhält eine automatische Playlist „Favoriten“, die beim Hinzufügen und Entfernen von Favoriten aktuell bleibt und direkt abgespielt werden kann
+
+## 1.13.5
+
 - Die Fehlerseite der Anmeldung beendet beim Zurückkehren die alte Sitzung, zeigt verständlichen Fehlertext und verhindert so ein Festhängen mit gesperrten oder widerrufenen Sitzungen
 - In der Darstellerliste im Adminbereich ist der erste hinterlegte Quellenlink direkt aufrufbar
 - Fehlerantworten beim Hinzufügen oder Entfernen von Darstellerquellen werden angezeigt, ohne die Übersicht abstürzen zu lassen

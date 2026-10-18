@@ -1,11 +1,14 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { useSWRConfig } from 'swr';
+import { toast } from 'react-hot-toast';
 
 import { add } from '@/actions/favorite/add';
 import { remove } from '@/actions/favorite/remove';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 import useFavorites from '@/hooks/useFavorites';
+import { FAVORITES_PLAYLIST_ID } from '@/lib/playlists';
 
 interface FavoriteButtonProps {
   movieId: string;
@@ -15,6 +18,8 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
   const { mutate: mutateFavorites } = useFavorites();
   const { data: currentProfil, mutate } = useCurrentProfil();
   const { t } = useLanguage();
+  const { mutate: revalidate } = useSWRConfig();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const isFavorite = useMemo(() => {
     const list = currentProfil?.favoriteIds || [];
@@ -24,20 +29,13 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
 
   const toggleFavorites = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentProfil) return;
+    if (!currentProfil || isUpdating) return;
     
     const currentFavoriteIds = currentProfil.favoriteIds || [];
-    let updatedFavoriteIds;
-
-    if (isFavorite) {
-      // Entferne movieId aus der Liste
-      updatedFavoriteIds = currentFavoriteIds.filter((id: string) => id !== movieId);
-      remove({ movieId });
-    } else {
-      // Füge movieId zur Liste hinzu
-      updatedFavoriteIds = [...currentFavoriteIds, movieId];
-      add({ movieId });
-    }
+    const updatedFavoriteIds = isFavorite
+      ? currentFavoriteIds.filter((id: string) => id !== movieId)
+      : [...currentFavoriteIds, movieId];
+    setIsUpdating(true);
 
     // Optimistic Update - aktualisiert sofort im UI
     mutate({
@@ -45,8 +43,21 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
       favoriteIds: updatedFavoriteIds,
     }, false); // false = kein revalidate
 
-    mutateFavorites();
-  }, [movieId, isFavorite, currentProfil, mutate, mutateFavorites]);
+    try {
+      const result = await (isFavorite ? remove({ movieId }) : add({ movieId }));
+      if (result?.error) throw new Error(result.error);
+      await Promise.allSettled([
+        mutateFavorites(),
+        revalidate('/api/playlist'),
+        revalidate(`/api/playlist/${FAVORITES_PLAYLIST_ID}`),
+      ]);
+    } catch {
+      mutate(currentProfil, false);
+      toast.error(t('Favorites could not be updated. Please try again.'));
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [movieId, isFavorite, currentProfil, mutate, mutateFavorites, revalidate, isUpdating, t]);
 
   const Icon = isFavorite ? FaHeart : FaRegHeart;
 
@@ -54,6 +65,8 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ movieId }) => {
     <button
       type="button"
       onClick={toggleFavorites}
+      disabled={isUpdating}
+      aria-busy={isUpdating}
       className="flex items-center justify-center h-10 w-10 lg:p-1 transition border-2 border-white rounded-full cursor-pointer group/item hover:border-neutral-300"
       aria-label={isFavorite ? t('Remove from favorites') : t('Add to favorites')}
       aria-pressed={isFavorite}

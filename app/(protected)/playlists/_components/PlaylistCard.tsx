@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 
 import { removePlaylist } from "@/actions/playlist/remove-playlist";
 import PlaylistCover from "./PlaylistCover";
+import FavoritesPlaylistCard from "./FavoritesPlaylistCard";
 
 interface PlaylistCardProps {
   data: Record<string, any>;
@@ -30,6 +31,10 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
       }
     });
   };
+
+  if (data.kind === 'favorites') {
+    return <FavoritesPlaylistCard data={data} isLoading={isLoading} />;
+  }
 
   return (
     <div className="relative group bg-zinc-800 col-span flex flex-row items-center justify-center rounded-t-md cursor-pointer">
