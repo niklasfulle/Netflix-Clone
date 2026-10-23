@@ -12,6 +12,27 @@ const payload = {
   requestedAt: '2026-08-27T08:00:00.000Z',
 };
 
+it.each([
+  { pollIntervalMs: 249 }, { pollIntervalMs: 10_001 }, { pollIntervalMs: 250.5 },
+  { maxPolls: 0 }, { maxPolls: 1801 }, { maxPolls: 1.5 },
+])('rejects invalid polling configuration: %o', options => {
+  expect(() => createBackupCreationJobHandler({ submitRequest: jest.fn(), readStatus: jest.fn(), ...options })).toThrow('outside its allowed range');
+});
+
+it('times out pending backup requests using the default cancellable wait', async () => {
+  const reportProgress = jest.fn();
+  const handler = createBackupCreationJobHandler({ submitRequest: jest.fn(), readStatus: jest.fn().mockResolvedValue(null), pollIntervalMs: 250, maxPolls: 1 });
+  await expect(handler(payload, { reportProgress })).rejects.toMatchObject({ diagnosticCode: 'BACKUP_POLL_TIMEOUT' });
+  expect(reportProgress).toHaveBeenLastCalledWith({ percent: 15, message: 'Database backup pending' });
+});
+
+it('cancels a pending backup promptly when the worker is stopped', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const handler = createBackupCreationJobHandler({ submitRequest: jest.fn(), readStatus: jest.fn().mockResolvedValue(null) });
+  await expect(handler(payload, { reportProgress: jest.fn(), signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+});
+
 it('waits for a newly created and verified backup', async () => {
   const readStatus = jest.fn()
     .mockResolvedValueOnce({ requestId: null, environment: 'staging', backupName: 'scheduled-staging-old.dump', status: 'VERIFIED' })

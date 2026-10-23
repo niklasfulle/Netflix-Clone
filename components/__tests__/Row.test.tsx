@@ -23,6 +23,11 @@ Element.prototype.scrollTo = jest.fn(function(options: any) {
 });
 
 describe('Row Component', () => {
+  it('renders incomplete catalog metadata without inventing an identifier', () => {
+    render(<Row data={[{ title: null }, { id: 'available', title: null }]} title="Partially loaded" isLoading={true} />);
+    expect(screen.getByTestId('thumbnail-undefined')).toBeInTheDocument();
+    expect(screen.getByTestId('thumbnail-available')).toBeInTheDocument();
+  });
   const mockData = [
     { id: 1, title: 'Movie 1' },
     { id: 2, title: 'Movie 2' },

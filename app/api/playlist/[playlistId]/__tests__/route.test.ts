@@ -20,6 +20,31 @@ const mockedDb = db as any;
 const request = new Request('http://localhost/api/playlist/playlist1') as never;
 
 describe('playlist detail API', () => {
+  it('rejects a missing playlist identifier before authentication or database access', async () => {
+    expect((await GET(request, { params: Promise.resolve({ playlistId: '' }) })).status).toBe(400);
+    expect(mockedCurrentUser).not.toHaveBeenCalled();
+  });
+
+  it('handles a playlist removed between the ownership check and record lookup', async () => {
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
+    mockedDb.playlist.findFirst.mockResolvedValue({ id: 'playlist1' });
+    mockedDb.playlist.findUnique.mockResolvedValue(null);
+    mockedDb.playlistEntry.findMany.mockResolvedValue([]);
+    expect((await GET(request, { params: Promise.resolve({ playlistId: 'playlist1' }) })).status).toBe(404);
+    expect(mockedDb.movie.findMany).not.toHaveBeenCalled();
+  });
+
+  it.each([{ entries: [], expected: [] }, { entries: [{ movieId: 'deleted' }], expected: [null] }])('preserves empty playlists and removed catalog entries: %o', async ({ entries, expected }) => {
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
+    mockedDb.playlist.findFirst.mockResolvedValue({ id: 'playlist1' });
+    mockedDb.playlist.findUnique.mockResolvedValue({ id: 'playlist1', title: 'Playlist' });
+    mockedDb.playlistEntry.findMany.mockResolvedValue(entries);
+    mockedDb.movie.findMany.mockResolvedValue([]);
+    const response = await GET(request, { params: Promise.resolve({ playlistId: 'playlist1' }) });
+    expect(await response.json()).toEqual({ id: 'playlist1', title: 'Playlist', movies: expected });
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('returns 401 when the request is unauthenticated', async () => {

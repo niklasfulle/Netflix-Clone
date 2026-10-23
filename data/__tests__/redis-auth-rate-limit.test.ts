@@ -48,6 +48,16 @@ function createFallback(buckets = [
 }
 
 describe('Redis authentication rate-limit repository', () => {
+  it('uses the durable decision if Redis returns an incomplete set of counters', async () => {
+    const redis = createRuntime({ status: 'ok', value: [{ attempts: 1, retryAfterMs: 60_000 }], latencyMs: 1 });
+    const fallback = createFallback();
+    const repository = createRedisAuthRateLimitRepository({ redis, fallback });
+    await expect(repository.consume(inputs)).resolves.toEqual([
+      { attempts: 2, resetAt: new Date('2026-08-23T10:01:00.000Z') },
+      { attempts: 3, resetAt: new Date('2026-08-23T10:01:00.000Z') },
+    ]);
+    expect(fallback.consume).toHaveBeenCalledWith(inputs);
+  });
   it('uses the PostgreSQL decision when Redis is unavailable', async () => {
     const redis = createRuntime({ status: 'error', reason: 'unavailable', latencyMs: 3 });
     const fallback = createFallback();

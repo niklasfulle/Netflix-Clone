@@ -87,6 +87,12 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { useRouter } from 'next/navigation';
 
 describe('InfoModal', () => {
+  it('uses an empty playlist default and ignores unrelated actor navigation keys', () => {
+    render(<InfoModal visible={true} onClose={mockOnClose} />);
+    expect(screen.getByTestId('playlist-select')).toHaveTextContent('Playlists: 0');
+    fireEvent.keyDown(screen.getByRole('link', { name: 'Actor One' }), { key: 'Tab' });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
   const mockMovie = {
     id: 'movie-123',
     title: 'Test Movie',

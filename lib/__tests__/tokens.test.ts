@@ -28,6 +28,21 @@ const mockedPasswordReset = getPasswordResetTokenByEmail as jest.Mock;
 const mockedTwoFactor = getTwoFactorTokenByEmail as jest.Mock;
 
 describe('token generators', () => {
+  it('creates the first password reset token without deleting another record', async () => {
+    mockedPasswordReset.mockResolvedValueOnce(null);
+    const result = await generatePasswordResetToken('new@example.test', 'user-1');
+    expect(mockedDb.passwordResetToken.delete).not.toHaveBeenCalled();
+    expect(result.token).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(mockedDb.passwordResetToken.create).toHaveBeenCalledWith({ data: expect.objectContaining({ email: 'new@example.test', userId: 'user-1' }) });
+  });
+
+  it('creates the first two-factor challenge without deleting an unrelated token', async () => {
+    mockedTwoFactor.mockResolvedValueOnce(null);
+    const result = await generateTwoFactorToken('new@example.test', 'user-1');
+    expect(mockedDb.twoFactorToken.delete).not.toHaveBeenCalled();
+    expect(result.token).toMatch(/^\d{6}$/);
+    expect(mockedDb.twoFactorToken.create).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: 'user-1' }) });
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockedDb.verificationToken.create.mockImplementation(({ data }: any) => data);

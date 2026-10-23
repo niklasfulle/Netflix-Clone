@@ -20,6 +20,12 @@ const search = adminAuditReader.search as jest.Mock;
 const request = (url: string) => ({ url }) as Request;
 
 describe('GET /api/admin/audit', () => {
+  it('sanitizes non-Error rejections without exposing their payload', async () => {
+    search.mockRejectedValueOnce('private database failure');
+    const response = await GET(request('http://localhost/api/admin/audit'));
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({ error: 'Unable to load audit events.' });
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('returns a filtered audit page without allowing caches to retain it', async () => {

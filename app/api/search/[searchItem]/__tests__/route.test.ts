@@ -23,6 +23,7 @@ jest.mock('@/lib/logger', () => ({
 import { db } from '@/lib/db';
 import {
   getUserAndProfile,
+  handleApiError,
   transformMoviesResponse,
 } from '@/lib/api-helpers';
 import { GET } from '../route';
@@ -48,6 +49,21 @@ function movie(title: string, type: string) {
 }
 
 describe('search route', () => {
+  it('does not disclose search results after an authentication rejection', async () => {
+    mockedGetUserAndProfile.mockResolvedValueOnce({ error: Response.json({ error: 'Unauthorized' }, { status: 401 }) });
+    const response = await GET(requestFor('actor'), { params: Promise.resolve({ searchItem: 'actor' }) });
+    expect(response.status).toBe(401);
+    expect(mockedFindActors).not.toHaveBeenCalled();
+    expect(mockedFindMovies).not.toHaveBeenCalled();
+  });
+
+  it('uses the common error response for malformed encoded search terms', async () => {
+    jest.mocked(handleApiError).mockImplementationOnce(() => Response.json({ error: 'Search unavailable' }, { status: 500 }));
+    const response = await GET(requestFor('%E0%A4%A'), { params: Promise.resolve({ searchItem: '%E0%A4%A' }) });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Search unavailable' });
+    expect(mockedFindMovies).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     process.env.NEXT_PUBLIC_TYPE = 'Movie,Serie';

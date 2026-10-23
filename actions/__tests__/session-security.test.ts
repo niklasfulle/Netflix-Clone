@@ -25,6 +25,18 @@ import { getSecurityActivity, revokeOtherSessions } from '../session-security';
 const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 
 describe('session security actions', () => {
+  it('records an operational failure and preserves the rejected revocation request', async () => {
+    const failure = new Error('Session store unavailable');
+    jest.mocked(sessionSecurity.revokeOtherSessions).mockRejectedValueOnce(failure);
+    await expect(revokeOtherSessions()).rejects.toBe(failure);
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'failed', retryable: true, errorCategory: 'database' }));
+  });
+  it('rejects unauthenticated session revocation without touching other sessions', async () => {
+    mockCurrentUser.mockResolvedValueOnce(undefined);
+    await expect(revokeOtherSessions()).resolves.toEqual({ status: 'rejected', code: 'unauthorized' });
+    expect(sessionSecurity.revokeOtherSessions).not.toHaveBeenCalled();
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'rejected', reasonCode: 'unauthorized' }));
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockTelemetryStart.mockReturnValue({

@@ -1,190 +1,24 @@
 "use client";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import React, { useRef, useEffect } from "react";
-import { FaArrowLeft } from "react-icons/fa";
 
-import { updateWatchTime } from "@/actions/watch/update-watch-time";
-import { addMovieView } from "@/actions/watch/add-movie-view";
-import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
-import useMovie from "@/hooks/movies/useMovie";
-import { getWatchProgressSaveSecond } from "@/lib/watch-progress-save";
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import useMovie from '@/hooks/movies/useMovie';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import VideoPlayer from '@/components/player/VideoPlayer';
+import WatchState from '@/components/player/WatchState';
 
-const Watch = () => {
+export default function Watch() {
   const movieId = useParams<{ movieId: string }>().movieId;
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const lastSavedSecondRef = useRef(-1);
   const router = useRouter();
-  const { data } = useMovie(movieId);
+  const search = useSearchParams();
+  const { t } = useLanguage();
+  const { data, isLoading } = useMovie(movieId);
+  const from = search.get('from');
+  const back = () => router.push(from?.startsWith('/') && !from.startsWith('//') ? from : '/');
+  const start = search.get('start');
+  const seconds = start === null ? undefined : Number(start);
+  let startTime: number | undefined;
+  if (seconds !== undefined) startTime = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
 
-  const searchParams = useSearchParams();
-  const search = searchParams.get("start");
-  const from = searchParams.get("from");
-
-  async function setMovieWatchTime() {
-    const video = videoRef.current;
-    if (video) {
-      updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
-    }
-  }
-
-  useEffect(() => {
-    if (videoRef.current && data?.watchTime && !search) {
-      videoRef.current.currentTime = data.watchTime;
-    }
-  }, [data?.watchTime, search]);
-
-  // Use a callback ref to restore saved volume/muted and attach listener reliably
-  const _prevVideoEl = React.useRef<HTMLVideoElement | null>(null);
-
-  const attachVolumeHandlers = (el: HTMLVideoElement | null) => {
-    // detach previous
-    if (_prevVideoEl.current && _prevVideoEl.current !== el) {
-      const old = _prevVideoEl.current as any;
-      const fn = old.__onVolumeChange;
-      if (fn) old.removeEventListener('volumechange', fn);
-      try {
-        delete old.__onVolumeChange;
-      } catch (error) {
-        console.warn('Unable to remove the previous volume handler.', error);
-      }
-    }
-
-    if (!el) {
-      _prevVideoEl.current = null;
-      videoRef.current = null;
-      return;
-    }
-
-    try {
-      const savedVolume = localStorage.getItem('videoVolume');
-      const savedMuted = localStorage.getItem('videoMuted');
-
-      if (savedVolume !== null) {
-        const vol = Number.parseFloat(savedVolume);
-        if (!Number.isNaN(vol)) el.volume = Math.min(1, Math.max(0, vol));
-      }
-      if (savedMuted !== null) {
-        el.muted = savedMuted === 'true';
-      }
-    } catch (error) {
-      console.warn('Unable to restore video volume settings.', error);
-    }
-
-    const onVolumeChange = () => {
-      try {
-        localStorage.setItem('videoVolume', String(el.volume));
-        localStorage.setItem('videoMuted', String(el.muted));
-      } catch (error) {
-        console.warn('Unable to save video volume settings.', error);
-      }
-    };
-
-    el.addEventListener('volumechange', onVolumeChange);
-    (el as any).__onVolumeChange = onVolumeChange;
-
-    _prevVideoEl.current = el;
-    videoRef.current = el;
-  };
-
-  useEffect(() => {
-    if (movieId) {
-      lastSavedSecondRef.current = -1;
-      addMovieView({ movieId });
-      addToWatchlist({ movieId });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Ensure handlers are attached when the video element is mounted.
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-    const tryAttach = () => {
-      const el = videoRef.current;
-      if (el) {
-        attachVolumeHandlers(el);
-        return true;
-      }
-      return false;
-    };
-
-    if (!tryAttach()) {
-      interval = setInterval(() => {
-        if (tryAttach() && interval) {
-          clearInterval(interval);
-          interval = null;
-        }
-      }, 100);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-      // detach listeners
-      attachVolumeHandlers(null);
-    };
-  }, []);
-
-  if (!data) {
-    return (
-      <div className="w-screen h-screen flex items-center justify-center bg-black">
-        <div className="text-center">
-          <h1 className="text-3xl text-white font-bold mb-4">Not found</h1>
-          <p className="text-zinc-400 mb-6">The movie or series could not be found.</p>
-          <button
-            className="bg-red-600 hover:bg-red-800 text-white px-6 py-3 rounded-md font-semibold shadow-md transition-all"
-            onClick={() => router.push("/")}
-          >
-            Back to home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-screen h-screen bg-black">
-      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-3 sm:gap-8 p-4 bg-black bg-opacity-70">
-        <FaArrowLeft
-          className="text-white cursor-pointer"
-          size={40}
-          onClick={() => {
-            setMovieWatchTime();
-            router.push(from || "/");
-          }}
-        />
-        <p className="player-title-marquee font-bold text-white text-xl xl:text-3xl">
-          <span
-            className="player-title-marquee-track"
-            data-title={`Watching: ${data?.title ?? ""}`}
-          >
-            <span className="pr-3 font-light">Watching: </span>
-            {data?.title}
-          </span>
-        </p>
-      </nav>
-      <video
-        id="videoElement"
-        autoPlay
-        controls
-        className="w-full h-full"
-        ref={videoRef}
-        poster={data.thumbnailUrl}
-        onTimeUpdate={() => {
-          if (!videoRef.current) return;
-          const saveSecond = getWatchProgressSaveSecond(
-            videoRef.current.currentTime,
-            lastSavedSecondRef.current,
-          );
-          if (saveSecond !== null) {
-            lastSavedSecondRef.current = saveSecond;
-            setMovieWatchTime();
-          }
-        }}
-      >
-        <source src={`/api/video/${movieId}`} type="video/mp4" />
-        <track kind="captions"></track>
-      </video>
-    </div>
-  );
-  }
-
-export default Watch;
+  if (!data) return <WatchState loading={isLoading} message={t('The movie or series could not be found.')} onBack={back} />;
+  return <VideoPlayer key={movieId} items={[{ ...data, id: movieId, title: data.title || t('Now playing') }]} startTime={startTime} onBack={back} />;
+}

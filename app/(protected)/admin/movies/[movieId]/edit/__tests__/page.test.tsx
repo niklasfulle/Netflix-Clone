@@ -37,6 +37,18 @@ const movie = {
 };
 
 describe("Admin edit content page", () => {
+  it.each([['DRAFT', 'Entwurf'], ['ARCHIVED', 'Archiviert']])("shows the %s lifecycle state for movies", (status, label) => {
+    mockedUseMovie.mockReturnValue({ data: { ...movie, type: 'Movie', status }, error: undefined, isLoading: false });
+    render(<AdminEditMoviePage />);
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText('Film')).toBeInTheDocument();
+  });
+
+  it("shows the missing-content state when no record exists without a request error", () => {
+    mockedUseMovie.mockReturnValue({ data: null, error: undefined, isLoading: false });
+    render(<AdminEditMoviePage />);
+    expect(screen.getByRole('heading', { name: 'Inhalt nicht verfügbar' })).toBeInTheDocument();
+  });
   beforeEach(() => {
     mockedUseParams.mockReturnValue({ movieId: "movie-1" });
     mockedUseMovie.mockReturnValue({ data: movie, error: undefined, isLoading: false });

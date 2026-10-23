@@ -101,10 +101,12 @@ it("validates successful and failing statistics responses", async () => {
   const fetchStatistics = mockedUseSWR.mock.calls[0][1];
   const fetchMock = jest.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => analyticsData } as Response)
-    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Keine Berechtigung" }) } as Response);
+    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Keine Berechtigung" }) } as Response)
+    .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response);
   globalThis.fetch = fetchMock;
 
   await expect(fetchStatistics("/api/statistics/admin-overview?days=30")).resolves.toEqual(analyticsData);
   await expect(fetchStatistics("/api/statistics/admin-overview?days=30")).rejects.toThrow("Keine Berechtigung");
+  await expect(fetchStatistics("/api/statistics/admin-overview?days=30")).rejects.toThrow("Statistiken konnten nicht geladen werden.");
   delete (globalThis as { fetch?: typeof fetch }).fetch;
 });

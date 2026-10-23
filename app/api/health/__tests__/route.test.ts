@@ -22,6 +22,7 @@ jest.mock("@/lib/deployment-update-policy", () => ({
 const mockedRedisHealth = jest.fn();
 
 import { access } from "node:fs/promises";
+import path from 'node:path';
 import { db } from "@/lib/db";
 import { deploymentUpdatePolicy } from "@/lib/deployment-update-policy";
 import { getRedisRuntime } from "@/lib/redis/runtime";
@@ -35,6 +36,38 @@ const mockedAccess = access as jest.Mock;
 const mockedGetRedisRuntime = getRedisRuntime as jest.Mock;
 
 describe("health endpoint", () => {
+  it.each([
+    { failure: { code: 'ENOENT' }, expectedStatus: 200, storage: 'ok' },
+    { failure: { code: 'EACCES' }, expectedStatus: 503, storage: 'error' },
+    { failure: null, expectedStatus: 503, storage: 'error' },
+    { failure: 'unavailable', expectedStatus: 503, storage: 'error' },
+    { failure: {}, expectedStatus: 503, storage: 'error' },
+  ])('classifies a temp-folder access failure safely: $failure', async ({ failure, expectedStatus, storage }) => {
+    mockedQueryRaw.mockResolvedValue([]);
+    mockedAccess.mockImplementation(async folder => { if (path.basename(String(folder)) === 'temp') throw failure; });
+    const response = await GET();
+    expect(response.status).toBe(expectedStatus);
+    expect(await response.json()).toMatchObject({ checks: { storage } });
+  });
+
+  it('keeps the application healthy when optional Redis and update-policy checks reject', async () => {
+    mockedQueryRaw.mockResolvedValue([]);
+    mockedAccess.mockResolvedValue(undefined);
+    mockedRedisHealth.mockRejectedValue(new Error('Redis unavailable'));
+    mockedReadUpdatePolicy.mockRejectedValue(new Error('Policy unavailable'));
+    delete process.env.DEPLOYMENT_ENVIRONMENT;
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ environment: 'development', checks: { redis: 'degraded' }, deploymentUpdates: { automaticReloadEnabled: true } });
+  });
+
+  it('classifies a closed Redis connection as degraded without taking the application offline', async () => {
+    mockedQueryRaw.mockResolvedValue([]); mockedAccess.mockResolvedValue(undefined);
+    mockedRedisHealth.mockResolvedValue({ status: 'closed' });
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ checks: { redis: 'degraded' } });
+  });
   const originalDeploymentEnvironment = process.env.DEPLOYMENT_ENVIRONMENT;
 
   beforeEach(() => {

@@ -23,6 +23,12 @@ jest.mock('@/lib/authentication/session-security', () => ({
 }));
 
 describe('session security runtime adapter', () => {
+  it('supports local session privacy hashing without configured production secrets', async () => {
+    delete process.env.AUTH_SECRET; delete process.env.NEXTAUTH_SECRET;
+    await import('@/lib/session-security');
+    const dependencies = mockCreateSessionSecurity.mock.calls[0][0];
+    expect(dependencies.hashAddress('198.51.100.4')).toMatch(/^[a-f0-9]{64}$/);
+  });
   const originalEnvironment = process.env;
 
   beforeEach(() => {

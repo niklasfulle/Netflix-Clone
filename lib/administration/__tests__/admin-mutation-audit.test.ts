@@ -1,6 +1,12 @@
 import { createAdminMutationAudit } from '../admin-mutation-audit';
 
 describe('administrator mutation audit module', () => {
+  it('reports only the type of an unexpected persistence rejection when no target is available', async () => {
+    const reportFailure = jest.fn();
+    const mutationAudit = createAdminMutationAudit({ audit: { record: jest.fn().mockRejectedValue('private rejection details'), recordAuthorizationDenial: jest.fn() }, createCorrelationId: () => 'correlation', reportFailure });
+    await expect(mutationAudit.begin('content.update').failed()).resolves.toBeUndefined();
+    expect(reportFailure).toHaveBeenCalledWith({ action: 'content.update', outcome: 'FAILED', correlationId: 'correlation', errorName: 'string' });
+  });
   it('records a successful mutation with one generated correlation identifier', async () => {
     const audit = {
       record: jest.fn().mockResolvedValue({ id: 'event-1' }),

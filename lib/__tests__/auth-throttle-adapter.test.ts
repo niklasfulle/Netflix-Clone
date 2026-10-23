@@ -34,6 +34,26 @@ jest.mock('@/lib/authentication/throttle', () => ({
 }));
 
 describe('authentication throttle runtime adapter', () => {
+  it.each(['-1', '99', 'invalid', undefined])('uses zero trusted proxy hops for absent or invalid configuration: %s', async hops => {
+    process.env.ENABLE_AUTH_THROTTLE_IN_TESTS = 'true';
+    if (hops === undefined) delete process.env.AUTH_TRUSTED_PROXY_HOPS;
+    else process.env.AUTH_TRUSTED_PROXY_HOPS = hops;
+    const requestHeaders = new Headers();
+    mockHeaders.mockResolvedValue(requestHeaders);
+    mockResolveClientAddress.mockReturnValue('unknown');
+    const { consumeAuthAttempt } = await import('@/lib/auth-throttle');
+    await consumeAuthAttempt('login', 'viewer@example.test');
+    await mockCreateAuthenticationThrottle.mock.calls[0][0].clientAddress();
+    expect(mockResolveClientAddress).toHaveBeenCalledWith(requestHeaders, 0);
+  });
+
+  it('allows local development throttling without production secrets', async () => {
+    process.env.ENABLE_AUTH_THROTTLE_IN_TESTS = 'true';
+    delete process.env.AUTH_SECRET; delete process.env.NEXTAUTH_SECRET;
+    mockConsume.mockResolvedValueOnce({ allowed: true, retryAfterSeconds: 0, keyHash: 'local' });
+    const { consumeAuthAttempt } = await import('@/lib/auth-throttle');
+    await expect(consumeAuthAttempt('login', 'viewer@example.test')).resolves.toMatchObject({ allowed: true });
+  });
   const originalEnvironment = process.env;
 
   beforeEach(() => {

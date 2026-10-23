@@ -3,6 +3,18 @@
 import { withAuthenticationRouteTelemetry } from '@/lib/authentication/auth-route';
 
 describe('Auth.js route telemetry boundary', () => {
+  it.each([401, 503])('records rejected HTTP responses without changing status %s', async status => {
+    const route = withAuthenticationRouteTelemetry(jest.fn().mockResolvedValue(new Response(null, { status })), telemetry, { observeSuccessfulRequest: true });
+    await expect(route(new Request('https://netflix/api/auth/callback'))).resolves.toHaveProperty('status', status);
+    expect(complete).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'rejected', reasonCode: 'provider_request_rejected', retryable: status === 503, errorCategory: 'provider', httpStatus: status }));
+  });
+
+  it('completes the existing observed attempt when the provider throws', async () => {
+    const route = withAuthenticationRouteTelemetry(jest.fn().mockRejectedValue(new Error('Unavailable')), telemetry, { observeSuccessfulRequest: true });
+    await expect(route(new Request('https://netflix/api/auth/callback'))).rejects.toThrow('Unavailable');
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(complete).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'failed', httpStatus: 500 }));
+  });
   const complete = jest.fn();
   const start = jest.fn(() => ({ correlationId: 'safe-reference', complete }));
   const telemetry = { start } as never;

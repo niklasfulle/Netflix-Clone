@@ -33,6 +33,7 @@ import * as favoriteActions from '@/actions/favorite/add';
 import * as removeActions from '@/actions/favorite/remove';
 import useCurrentProfil from '@/hooks/useCurrentProfil';
 import useFavorites from '@/hooks/useFavorites';
+import { toast } from 'react-hot-toast';
 
 const mockUseCurrentProfil = useCurrentProfil as jest.MockedFunction<typeof useCurrentProfil>;
 const mockUseFavorites = useFavorites as jest.MockedFunction<typeof useFavorites>;
@@ -40,6 +41,27 @@ const mockAdd = favoriteActions.add as jest.MockedFunction<typeof favoriteAction
 const mockRemove = removeActions.remove as jest.MockedFunction<typeof removeActions.remove>;
 
 describe('FavoriteButton', () => {
+  it('rolls back an optimistic favorite and informs the viewer when saving is rejected', async () => {
+    const error = jest.spyOn(toast, 'error').mockImplementation(() => 'notice');
+    mockAdd.mockResolvedValueOnce({ error: 'Update rejected' });
+    const profile = { id: 'profile', favoriteIds: [], name: 'Viewer' };
+    const mutate = jest.fn();
+    mockUseCurrentProfil.mockReturnValue({ data: profile, mutate } as any);
+    render(<FavoriteButton movieId="movie-1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add to favorites' }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith('Favorites could not be updated. Please try again.'));
+    expect(mutate).toHaveBeenLastCalledWith(profile, false);
+    expect(screen.getByRole('button')).toBeEnabled();
+    error.mockRestore();
+  });
+
+  it('treats a profile without a saved favorite list as empty', async () => {
+    const mutate = jest.fn();
+    mockUseCurrentProfil.mockReturnValue({ data: { id: 'profile', name: 'Viewer' }, mutate } as any);
+    render(<FavoriteButton movieId="movie-1" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add to favorites' }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith(expect.objectContaining({ favoriteIds: ['movie-1'] }), false));
+  });
   const defaultMockData = {
     data: {
       id: 'profil-1',

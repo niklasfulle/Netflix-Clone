@@ -3,6 +3,7 @@ import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import AdminNav from "../AdminNav";
 
 let mockPathname = "/admin/users";
+let mockProfile: { name: string; image: string } | undefined = { name: "Admin", image: "placeholder.png" };
 
 jest.mock("next/navigation", () => ({ usePathname: () => mockPathname }));
 jest.mock("next/image", () => ({
@@ -18,7 +19,7 @@ jest.mock("next/link", () => ({
     <a href={href} {...props}>{children}</a>
   ),
 }));
-jest.mock("@/hooks/useCurrentProfil", () => () => ({ data: { name: "Admin", image: "placeholder.png" } }));
+jest.mock("@/hooks/useCurrentProfil", () => () => ({ data: mockProfile }));
 jest.mock("@/components/AccountMenu", () => ({ visible }: { visible: boolean }) => (
   visible ? <div>Account options</div> : null
 ));
@@ -26,6 +27,36 @@ jest.mock("@/components/AccountMenu", () => ({ visible }: { visible: boolean }) 
 beforeEach(() => {
   localStorage.clear();
   mockPathname = "/admin/users";
+  mockProfile = { name: "Admin", image: "placeholder.png" };
+});
+
+it("closes the mobile drawer after a route change and toggles account options", () => {
+  mockProfile = undefined;
+  const { rerender, container } = render(<AdminNav />);
+  expect(container.querySelector('img[src="/images/profil/placeholder.png"]')).toBeInTheDocument();
+  const account = screen.getByRole("button", { name: "Admin Account & Sign out" });
+  fireEvent.click(account);
+  expect(screen.getByText("Account options")).toBeInTheDocument();
+  fireEvent.click(account);
+  expect(screen.queryByText("Account options")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+  mockPathname = "/outside-admin";
+  rerender(<AdminNav />);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(container.querySelector('[aria-current="page"]')).not.toBeInTheDocument();
+});
+
+it("closes mobile navigation after destination clicks and explicit close actions", () => {
+  render(<AdminNav />);
+  fireEvent.click(screen.getByRole("link", { name: "Users" }));
+  for (const destination of ["Users", "Back to Netflix"]) {
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: destination }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close navigation" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
 it("marks the active admin area and exposes all destinations", () => {

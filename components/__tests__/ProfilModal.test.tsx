@@ -62,6 +62,13 @@ const mockOnClose = jest.fn();
 const mockSetProfilImg = jest.fn();
 
 describe('ProfilModal Component', () => {
+  it('keeps the current avatar when rotating through an empty image catalog', () => {
+    jest.mocked(useProfilImgsApi).mockReturnValue({ data: [] } as any);
+    render(<ProfilModal visible onClose={mockOnClose} ProfilImg="img1.jpg" setProfilImg={mockSetProfilImg} />);
+    fireEvent.click(screen.getByTestId('arrow-right-icon').closest('button')!);
+    expect(screen.getByAltText('Profile')).toHaveAttribute('src', '/images/profil/img1.jpg');
+    expect(mockSetProfilImg).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     (useProfilImgsApi as jest.Mock).mockReturnValue({

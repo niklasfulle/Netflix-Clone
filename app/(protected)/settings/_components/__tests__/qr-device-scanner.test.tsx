@@ -28,6 +28,33 @@ jest.mock("@zxing/browser", () => ({
 }));
 
 describe("QrDeviceScanner", () => {
+  it.each(['https://[', '/auth/qr/approve?pair=', '/auth/qr/approve?pair=short', '/auth/qr/approve?other=value'])('rejects malformed approval data: %s', value => {
+    expect(getQrApprovalPath(value, 'https://netflix.test')).toBeNull();
+  });
+
+  it('shows camera permission failures and leaves manual approval available', async () => {
+    mockDecodeFromConstraints.mockRejectedValueOnce(new Error('Permission denied'));
+    render(<QrDeviceScanner />);
+    fireEvent.click(screen.getByRole('button', { name: 'Scan QR code' }));
+    expect(await screen.findByText('Camera access failed. Allow camera access or enter the code manually.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Enter a code manually' })).toHaveAttribute('href', '/auth/qr/approve');
+  });
+
+  it('stops late camera initialization after closing and ignores stale detections', async () => {
+    let initialize!: (controls: { stop: () => void }) => void;
+    mockDecodeFromConstraints.mockImplementationOnce((_constraints, _video, callback) => {
+      decodeCallback = callback;
+      return new Promise(resolve => { initialize = resolve; });
+    });
+    render(<QrDeviceScanner />);
+    fireEvent.click(screen.getByRole('button', { name: 'Scan QR code' }));
+    await waitFor(() => expect(initialize).toBeDefined());
+    fireEvent.click(screen.getByRole('button', { name: 'Close scanner' }));
+    await act(async () => { initialize({ stop: mockStop }); });
+    expect(mockStop).toHaveBeenCalled();
+    act(() => { decodeCallback?.(undefined, undefined, { stop: mockStop }); });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     decodeCallback = undefined;

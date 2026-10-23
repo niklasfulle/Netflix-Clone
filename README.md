@@ -3,7 +3,7 @@
 Eine selbst gehostete Streaming-Anwendung für Filme und Serien mit Benutzerprofilen,
 Wiedergabefortschritt und einem umfangreichen Administrationsbereich.
 
-Aktuelle Version: **1.11.0**
+Aktuelle Version: **1.14.0**
 
 ## Funktionsumfang
 
@@ -18,6 +18,8 @@ Aktuelle Version: **1.11.0**
 - „Continue Watching“ mit gespeichertem Wiedergabefortschritt
 - Wiedergabeverlauf und zufällige Wiedergabe
 - Byte-Range-Streaming für Player und Billboard-Videos
+- Eigener Videoplayer mit Titelanzeige, Playlist-Warteschlange, Autoplay-Countdown,
+  Tastatursteuerung, Vollbild und Bild-in-Bild; siehe [Player-Bedienung](docs/custom-video-player.md)
 - Responsive Oberfläche für Desktop und Mobilgeräte
 - Deutsche und englische Benutzeroberfläche
 - Überarbeitete Benutzereinstellungen
@@ -83,7 +85,97 @@ Für das Deployment:
 - Docker und systemd auf dem Ziel-LXC
 - Python 3 auf dem Ziel-LXC für den Monitoring-Agenten
 
-## Lokale Einrichtung
+## Lokal mit Docker Compose starten
+
+Voraussetzung: Docker Desktop mit Linux-Containern und Docker Compose.
+Die separate Datei `compose.local.yml` baut die App aus dem aktuellen Quellcode
+und startet PostgreSQL, Redis, den Hintergrund-Worker und Mailpit für lokale
+Auth-E-Mails. Es werden keine Zugangsdaten oder Dienste der Serverumgebung benötigt.
+
+Einmalig im Projektverzeichnis lokale Zufallswerte erzeugen (PowerShell):
+
+```powershell
+docker run --rm node:22-slim node -e "const c = require('node:crypto'); console.log('LOCAL_DATABASE_PASSWORD=' + c.randomBytes(32).toString('hex')); console.log('LOCAL_AUTH_SECRET=' + c.randomBytes(32).toString('hex'))" | Out-File -Encoding ascii .env.docker.local
+```
+
+Die Datei `.env.docker.local` wird von Git ignoriert. Behalte sie bei weiteren
+Starts bei, damit Datenbankpasswort und Sitzungsschlüssel stabil bleiben.
+Anschließend starten:
+
+```powershell
+docker compose --env-file .env.docker.local -f compose.local.yml up -d --build
+docker compose --env-file .env.docker.local -f compose.local.yml ps -a
+```
+
+Der erste Build kann mehrere Minuten dauern. Der Dienst `init` bereitet vor
+dem Start von App und Worker das lokale Prisma-Schema und die Job-Queue vor.
+Für diese isolierte lokale Datenbank wird `prisma db push` ohne Reset oder
+`--accept-data-loss` verwendet; die Produktionsmigrationen bleiben unverändert.
+`init` mit Status `Exited (0)` ist nach erfolgreicher Vorbereitung normal.
+
+- Anwendung: [http://localhost:3000](http://localhost:3000)
+- Lokales Postfach: [http://localhost:8025](http://localhost:8025)
+
+Beim Start werden automatisch lokale Beispieldaten ergänzt:
+
+- Zwei bestätigte Konten: `admin@netflix.test` (Admin) und `user@netflix.test` (Benutzer).
+- Je ein Profil mit Favoriten, Watchlist, Playlist und Wiedergabefortschritt.
+- 16 Titel (10 Filme und 6 Serien), davon 14 veröffentlicht, ein Entwurf und ein archivierter Titel.
+- Vier Schauspieler und synthetische, zwölf Sekunden lange Testvideos mit Ton.
+- Vier mit Imagegen erzeugte Profilbilder: Fuchs, Eule, Panda und Astronaut.
+  Die Dateien liegen unter `public/images/profil/generated/` und werden ohne
+  weitere Bildgenerierung beim Start in die Bildauswahl aufgenommen. Das
+  Admin-Demoprofil erhält den Fuchs, das Benutzer-Demoprofil die Eule. Bereits
+  vorhandene Demo-Profile mit dem ursprünglichen blauen Standardbild werden
+  aktualisiert; selbst gewählte Bilder bleiben erhalten.
+  [Generierungs-Prompts](docs/generated-profile-avatars.md).
+
+Die Passwörter werden installationsabhängig aus dem lokalen Sitzungsschlüssel
+abgeleitet. Zugangsdaten anzeigen:
+
+```powershell
+docker compose --env-file .env.docker.local -f compose.local.yml run --rm --no-deps seed node scripts/seed-local.mjs --credentials
+```
+
+Der Seed läuft ausschließlich mit `DEPLOYMENT_ENVIRONMENT=local` gegen
+`netflix_local`. Er ergänzt fehlende Datensätze und überschreibt keine bestehenden
+Konten, Passwörter oder bearbeiteten Inhalte. Die beiden Dateien `local-demo.mp4`
+werden bei jedem Start der Medieninitialisierung neu erzeugt. Die Dienste `seed`
+und `seed-media` enden nach erfolgreichem Durchlauf mit `Exited (0)`.
+Manuell erneut seeden:
+
+```powershell
+docker compose --env-file .env.docker.local -f compose.local.yml run --rm --no-deps seed
+```
+
+Du kannst auch ein eigenes Benutzerkonto registrieren und dessen Bestätigungslink
+in Mailpit öffnen. Alle ausgehenden Auth-E-Mails landen dort und werden nicht
+ins Internet versandt. Für Administratorrechte nach der Registrierung
+(E-Mail-Adresse ersetzen):
+
+```powershell
+'UPDATE "User" SET role = ''ADMIN'' WHERE email = ''deine-adresse@example.com'';' | docker compose --env-file .env.docker.local -f compose.local.yml exec -T database psql -U netflix -d netflix_local
+```
+
+Danach abmelden und erneut anmelden. Weitere Inhalte
+können über den Administrationsbereich angelegt werden. Filme, Serien, Logs und
+Datenbank liegen in eigenen Docker-Volumes. Mediendateien lassen sich beispielsweise
+mit `docker compose --env-file .env.docker.local -f compose.local.yml cp ./film.mp4 app:/movies/film.mp4`
+kopieren. App und Worker sehen dieselben Medienverzeichnisse.
+Die servergebundenen Monitoring-, Deployment- und Backup-Funktionen benötigen
+weiterhin die entsprechende Host-Infrastruktur.
+
+Logs anzeigen und Stack stoppen:
+
+```powershell
+docker compose --env-file .env.docker.local -f compose.local.yml logs -f app jobs-worker init
+docker compose --env-file .env.docker.local -f compose.local.yml down
+```
+
+`down` behält die Daten bei. `down -v` löscht sämtliche lokalen Daten und Medien
+dieses Stacks. Die bestehende `docker-compose.yml` bleibt für das Serverdeployment.
+
+## Lokale Einrichtung ohne Docker
 
 ### 1. Abhängigkeiten installieren
 

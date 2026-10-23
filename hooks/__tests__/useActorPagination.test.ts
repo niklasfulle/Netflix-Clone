@@ -11,6 +11,12 @@ jest.mock("@/hooks/catalog/useCatalogQuery", () => ({
 const mockUseCatalogQuery = jest.mocked(useCatalogQuery);
 
 describe("useActorPagination", () => {
+  it("returns the count error and an empty list while both requests are loading", () => {
+    const failure = new Error("Count unavailable");
+    mockUseCatalogQuery.mockImplementation((_content, query) => ({ data: undefined, error: query.kind === "actorCount" ? failure : undefined, isLoading: true }));
+    const { result } = renderHook(() => useActorPagination("movies"));
+    expect(result.current).toMatchObject({ actors: [], actorsCount: 0, error: failure, isLoading: true, hasMore: false });
+  });
   let actorPage: string[];
 
   beforeEach(() => {

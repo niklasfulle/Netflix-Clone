@@ -22,7 +22,7 @@ function getContentLabel(type: string, translate: (key: 'Movies' | 'Series') => 
 }
 
 const SearchResultLabel: React.FC<{ value: string }> = ({ value }) => {
-  const prefix = value.match(environmentPrefix);
+  const prefix = environmentPrefix.exec(value);
 
   if (!prefix) {
     return <span className="block min-w-0 truncate">{value}</span>;
@@ -52,9 +52,9 @@ const SearchPreview: React.FC<SearchPreviewProps> = ({
 
   if (isLoading) {
     return (
-      <div role="status" aria-live="polite" className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-neutral-300 shadow-2xl shadow-black/40">
+      <output aria-live="polite" className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-neutral-300 shadow-2xl shadow-black/40">
         {t('Loading...')}
-      </div>
+      </output>
     );
   }
 
@@ -73,15 +73,14 @@ const SearchPreview: React.FC<SearchPreviewProps> = ({
 
   if (previewActors.length === 0 && contentGroups.length === 0) {
     return (
-      <div role="status" aria-live="polite" className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-neutral-300 shadow-2xl shadow-black/40">
+      <output aria-live="polite" className="absolute left-0 top-[calc(100%+0.5rem)] z-50 w-full rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm text-neutral-300 shadow-2xl shadow-black/40">
         {t('No results found.')}
-      </div>
+      </output>
     );
   }
 
   return (
-    <div
-      role="listbox"
+    <section
       aria-label={t('Search results')}
       className="search-preview absolute left-0 top-[calc(100%+0.5rem)] z-50 max-h-[min(22rem,calc(100vh-6rem))] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-zinc-950 p-2 text-white shadow-2xl shadow-black/40"
     >
@@ -94,8 +93,6 @@ const SearchPreview: React.FC<SearchPreviewProps> = ({
             <button
               key={actor.id}
               type="button"
-              role="option"
-              aria-selected="false"
               className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-neutral-100 transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               onClick={() => onSelect(`/search/${encodeURIComponent(actor.name)}`)}
             >
@@ -114,8 +111,6 @@ const SearchPreview: React.FC<SearchPreviewProps> = ({
             <button
               key={item.id ?? item.title}
               type="button"
-              role="option"
-              aria-selected="false"
               className="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-neutral-100 transition-colors hover:bg-white/10 focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/70"
               onClick={() => item.id && onSelect(`/watch/${encodeURIComponent(item.id)}`)}
             >
@@ -124,7 +119,7 @@ const SearchPreview: React.FC<SearchPreviewProps> = ({
           ))}
         </section>
       ))}
-    </div>
+    </section>
   );
 };
 

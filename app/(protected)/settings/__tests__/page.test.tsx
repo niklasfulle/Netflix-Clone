@@ -41,6 +41,14 @@ const mockUseCurrentProfile = useCurrentProfil as jest.MockedFunction<
 >;
 
 describe("SettingsPage", () => {
+  it.each([{ email: 'viewer@example.test', initial: 'V' }, { email: '', initial: 'N' }])('uses account and profile fallback labels: $initial', ({ email, initial }) => {
+    mockGetUser.mockReturnValue({ data: { user: { name: '', email } }, error: undefined, isLoading: false });
+    mockUseCurrentProfile.mockReturnValue({ data: { id: 'profile-1', profilName: '' }, error: undefined, isLoading: false, mutate: jest.fn() });
+    render(<SettingsPage />);
+    expect(screen.getByText('Netflix member')).toBeInTheDocument();
+    expect(screen.getByText(initial)).toBeInTheDocument();
+    expect(screen.getByText('Signed in with profile Netflix.')).toBeInTheDocument();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUser.mockReturnValue({

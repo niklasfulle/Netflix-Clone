@@ -1,35 +1,42 @@
-import Link from "next/link";
-import React from "react";
-import toast from "react-hot-toast";
-import { FaPen, FaPlay, FaTrashAlt } from "react-icons/fa";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+"use client";
 
-import { removePlaylist } from "@/actions/playlist/remove-playlist";
-import PlaylistCover from "./PlaylistCover";
-import FavoritesPlaylistCard from "./FavoritesPlaylistCard";
+import Link from 'next/link';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { Pencil, Play, Trash2 } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import { removePlaylist } from '@/actions/playlist/remove-playlist';
+import type { PlaylistDto } from '@/lib/api-types';
+import PlaylistCover from './PlaylistCover';
+import FavoritesPlaylistCard from './FavoritesPlaylistCard';
 
 interface PlaylistCardProps {
-  data: Record<string, any>;
+  data: PlaylistDto;
   isLoading: boolean;
-  openModalEdit: any;
+  openModalEdit: (playlistId: string) => void;
 }
 
-const PlaylistCard: React.FC<PlaylistCardProps> = ({
-  data,
-  isLoading,
-  openModalEdit,
-}) => {
-  const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null);
-  const onClickDelete = (playlistId: string) => {
-    removePlaylist(playlistId).then((data) => {
-      if (data?.error) {
-        toast.error(data?.error);
-      }
-      if (data?.success) {
-        toast.success(data?.success);
+export default function PlaylistCard({ data, isLoading, openModalEdit }: Readonly<PlaylistCardProps>) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { t, message } = useLanguage();
+  const movies = data.movies ?? [];
+  const playlistId = data.id;
+  const canPlay = movies.length > 0 && !isLoading && Boolean(playlistId);
+
+  const onClickDelete = async () => {
+    if (!playlistId) return;
+    setDeleteOpen(false);
+    try {
+      const result = await removePlaylist(playlistId);
+      if (result?.error) toast.error(result.error);
+      if (result?.success) {
+        toast.success(result.success);
         location.reload();
       }
-    });
+    } catch {
+      toast.error(t('Something went wrong!'));
+    }
   };
 
   if (data.kind === 'favorites') {
@@ -37,146 +44,43 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
   }
 
   return (
-    <div className="relative group bg-zinc-800 col-span flex flex-row items-center justify-center rounded-t-md cursor-pointer">
-      {(isLoading || data.movies.length == 0) && (
-        <div className="flex items-center justify-center w-full h-full p-10 transition shadow-xl cursor-pointer oobject-cover duration rounded-t-md bg-zinc-800">
-          <h1 className="absolute top-0 text-2xl text-white font-bold">
-            {data.title}
-          </h1>
-          <PlaylistCover movies={data.movies} />
-          <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
-            <PopoverTrigger asChild>
-              <FaTrashAlt
-                className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-                size={18}
-                onClick={() => setOpenPopoverId(data.id)}
-              />
-            </PopoverTrigger>
-            <PopoverContent className="w-56 flex flex-col items-center gap-2">
-              <span className="text-sm text-center">Playlist wirklich löschen?</span>
-              <div className="flex gap-2 mt-2">
-                <button
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
-                >Ja</button>
-                <button
-                  className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
-                  onClick={() => setOpenPopoverId(null)}
-                >Nein</button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <FaPen
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
-            size={18}
-            onClick={() => openModalEdit(data.id)}
-          />
-        </div>
-      )}
-      {data.movies.length > 0 && data.movies.length < 4 && (
-        <>
-          <h1 className="absolute top-0 xl:text-2xl text-xl text-white font-bold">
-            {data.title}
-          </h1>
-          <PlaylistCover movies={data.movies} />
-          <Link href={`/watch/playlist/${data.id}`} className="hidden md:block">
-            <FaPlay
-              className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
-              size={40}
-            />
-          </Link>
-          <Link href={`/watch/playlist/${data.id}`} className="md:hidden block">
-            <FaPlay
-              className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
-              size={30}
-            />
-          </Link>
-          <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
-            <PopoverTrigger asChild>
-              <FaTrashAlt
-                className="absolute z-10 text-red-600 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-                size={18}
-                onClick={() => setOpenPopoverId(data.id)}
-              />
-            </PopoverTrigger>
-            <PopoverContent className="w-56 flex flex-col items-center gap-2">
-              <span className="text-sm text-center">Playlist wirklich löschen?</span>
-              <div className="flex gap-2 mt-2">
-                <button
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
-                >Ja</button>
-                <button
-                  className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
-                  onClick={() => setOpenPopoverId(null)}
-                >Nein</button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <FaPen
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
-            size={18}
-            onClick={() => openModalEdit(data.id)}
-          />
-        </>
-      )}
-      {data.movies.length >= 4 && (
-        <>
-          <div className="grid grid-cols-2 shadow-xl w-full rounded-t-md relative">
-            <PlaylistCover movies={data.movies} />
-            <Link
-              href={`/watch/playlist/${data.id}`}
-              className="hidden md:block"
-            >
-              <FaPlay
-                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
-                size={40}
-              />
-            </Link>
-            <Link
-              href={`/watch/playlist/${data.id}`}
-              className="md:hidden block"
-            >
-              <FaPlay
-                className="absolute text-white hover:text-neutral-300 m-auto left-0 right-0 top-0 bottom-0"
-                size={30}
-              />
-            </Link>
-            <Popover open={openPopoverId === data.id} onOpenChange={(open) => setOpenPopoverId(open ? data.id : null)}>
+    <article aria-label={data.title} aria-busy={isLoading} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-zinc-900">
+      <PlaylistCover movies={movies} />
+      <div className="flex flex-1 flex-col gap-3 p-3 sm:p-4">
+        <h2 className="break-words font-semibold text-white">{data.title}</h2>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-zinc-400">{message('playlistTitleCount', { count: movies.length })}</p>
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" aria-label={`${t('Edit')}: ${data.title}`} disabled={isLoading || !playlistId}
+              onClick={() => { if (playlistId) openModalEdit(playlistId); }}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-zinc-300 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50">
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <Popover open={deleteOpen} onOpenChange={setDeleteOpen}>
               <PopoverTrigger asChild>
-                <FaTrashAlt
-                  className="absolute z-10 text-red-500 transition-all ease-in cursor-pointer right-12 bottom-2 hover:text-red-400"
-                  size={18}
-                  onClick={() => setOpenPopoverId(data.id)}
-                />
+                <button type="button" aria-label={`${t('Delete')}: ${data.title}`} disabled={isLoading || !playlistId}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50">
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 flex flex-col items-center gap-2">
-                <span className="text-sm text-center">Playlist wirklich löschen?</span>
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                    onClick={() => { onClickDelete(data.id); setOpenPopoverId(null); }}
-                  >Ja</button>
-                  <button
-                    className="px-3 py-1 bg-zinc-700 text-white rounded hover:bg-zinc-600"
-                    onClick={() => setOpenPopoverId(null)}
-                  >Nein</button>
+              <PopoverContent className="flex w-56 flex-col items-center gap-2">
+                <span className="text-center text-sm">{t('Really delete playlist?')}</span>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" className="min-h-11 rounded bg-red-600 px-3 text-white hover:bg-red-700" onClick={onClickDelete}>{t('Yes')}</button>
+                  <button type="button" className="min-h-11 rounded bg-zinc-700 px-3 text-white hover:bg-zinc-600" onClick={() => setDeleteOpen(false)}>{t('No')}</button>
                 </div>
               </PopoverContent>
             </Popover>
-            <FaPen
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer right-2 bottom-2 hover:text-neutral-400"
-              size={18}
-              onClick={() => openModalEdit(data.id)}
-            />
           </div>
-          <h1 className="absolute top-0 xl:text-2xl text-xl text-white font-bold">
-            {data.title}
-          </h1>
-        </>
-      )}
-    </div>
+        </div>
+        {canPlay ? (
+          <Link href={`/watch/playlist/${playlistId}`} className="mt-auto inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-3 text-center text-sm font-semibold text-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300">
+            <Play className="h-4 w-4 shrink-0" aria-hidden="true" />{t('Play')}
+          </Link>
+        ) : (
+          <p className="mt-auto text-xs leading-5 text-zinc-400">{!isLoading && t('This playlist is empty.')}</p>
+        )}
+      </div>
+    </article>
   );
-};
-
-export default PlaylistCard;
+}

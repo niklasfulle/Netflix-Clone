@@ -3,6 +3,12 @@
 import { createAuthenticationTelemetry } from '@/lib/authentication/telemetry';
 
 describe('authentication telemetry', () => {
+  it.each([[99, 100], [200.9, 200], [700, 599]])('bounds terminal HTTP status %s to %s', (httpStatus, expected) => {
+    const write = jest.fn();
+    const telemetry = createAuthenticationTelemetry({ write, now: () => new Date('2026-10-23T12:00:00Z'), randomUUID: () => '018f48d8-8ba1-7dd9-8000-000000000001', environment: 'test', version: '1.14.0' });
+    telemetry.start({ flow: 'login', component: 'authentication.service' }).complete({ stage: 'credentials', outcome: 'rejected', reasonCode: 'invalid_credentials', retryable: false, httpStatus });
+    expect(write).toHaveBeenLastCalledWith(expect.objectContaining({ httpStatus: expected }));
+  });
   it('records one correlated start and terminal event for a rejected login', () => {
     const records: Array<Record<string, unknown>> = [];
     const times = [

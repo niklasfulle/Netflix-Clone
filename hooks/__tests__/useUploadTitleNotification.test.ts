@@ -8,6 +8,15 @@ beforeEach(() => {
   document.title = "Netflix Admin - Neuer Inhalt";
 });
 
+it('announces completion without a separator when the page title is empty', () => {
+  document.title = '';
+  const { result } = renderHook(() => useUploadTitleNotification());
+  act(() => { result.current.notify('Upload complete'); });
+  expect(document.title).toBe('✓ Upload complete');
+  act(() => { result.current.reset(); });
+  expect(document.title).toBe('');
+});
+
 afterEach(() => {
   document.title = originalTitle;
   if (originalVisibility) Object.defineProperty(document, "visibilityState", originalVisibility);

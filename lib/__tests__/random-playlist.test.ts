@@ -11,6 +11,9 @@ const movies = [
 ] as Movie[];
 
 describe('shuffleMovies', () => {
+  test('drops incomplete temporary entries rather than creating unplayable queue items', () => {
+    expect(compactPlaylistMovies([{ title: 'Missing id' }, { id: 'missing-title' }, { id: 'valid', title: 'Playable' }])).toEqual([{ id: 'valid', title: 'Playable' }]);
+  });
   test('returns all movies without mutating the source array', () => {
     const originalOrder = movies.map((movie) => movie.id);
     const shuffled = shuffleMovies(movies);

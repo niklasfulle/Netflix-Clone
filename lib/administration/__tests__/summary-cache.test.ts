@@ -17,6 +17,19 @@ import type {
 
 type StoredValue = { encoded: string; expiresAt: number };
 
+it('returns unserializable source values without attempting to store them in Redis', async () => {
+  const circular: Record<string, unknown> = {};
+  circular.self = circular;
+  const redis = new FakeRedisRuntime('staging', () => 0);
+  const cache = createSummaryCache({ redis });
+  for (const value of [undefined, circular]) {
+    const result = await cache.read({ namespace: 'unserializable-summary', version: 1, identities: [], ttlSeconds: 30, maxValueBytes: 1024, decode: input => input, load: async () => value });
+    expect(result.value).toBe(value);
+    expect(result.stored).toBe(false);
+    expect(redis.values.size).toBe(0);
+  }
+});
+
 class FakeRedisRuntime implements RedisRuntime {
   readonly values = new Map<string, StoredValue>();
   readonly deleted: string[] = [];

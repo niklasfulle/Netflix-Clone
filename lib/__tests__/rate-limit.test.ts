@@ -3,6 +3,26 @@
 import { createRateLimiter } from '@/lib/rate-limit';
 
 describe('createRateLimiter', () => {
+  it('evicts the oldest active identifier when the configured key bound is reached', () => {
+    const limiter = createRateLimiter({ limit: 1, windowMs: 60_000, maxKeys: 2, now: () => 0 });
+    limiter.consume('oldest'); limiter.consume('second'); limiter.consume('third');
+    expect(limiter.size()).toBe(2);
+    expect(limiter.consume('second').allowed).toBe(false);
+    expect(limiter.consume('oldest').allowed).toBe(true);
+    expect(limiter.size()).toBe(2);
+  });
+
+  it('refunds a single attempt and safely resets or clears tracked identifiers', () => {
+    const limiter = createRateLimiter({ limit: 1, windowMs: 60_000 });
+    limiter.refund('missing');
+    limiter.consume('one'); limiter.refund('one');
+    expect(limiter.size()).toBe(0);
+    expect(limiter.consume('one').allowed).toBe(true);
+    expect(limiter.reset('one')).toBe(true);
+    expect(limiter.consume('one').allowed).toBe(true);
+    limiter.clear();
+    expect(limiter.size()).toBe(0);
+  });
   it('blocks attempts after the configured limit and returns a safe retry delay', () => {
     let now = 1_000;
     const limiter = createRateLimiter({ limit: 2, windowMs: 10_000, now: () => now });

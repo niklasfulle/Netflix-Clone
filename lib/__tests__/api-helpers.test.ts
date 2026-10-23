@@ -31,6 +31,22 @@ const mockedCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>
 const mockedDb = db as any;
 
 describe('API helpers', () => {
+  it('returns missing-user and missing-profile errors without optional logging context', async () => {
+    mockedCurrentUser.mockResolvedValueOnce(undefined).mockResolvedValueOnce({ id: 'user1' } as any);
+    expect((await getUserAndProfile()).error?.status).toBe(401);
+    mockedDb.profil.findFirst.mockResolvedValue(null);
+    expect((await getUserAndProfile()).error?.status).toBe(404);
+    expect(logBackendAction).not.toHaveBeenCalled();
+  });
+
+  it('logs non-Error failures without exposing their contents and preserves known API errors', async () => {
+    const failure = handleApiError('untrusted internal detail', 'test');
+    expect(failure.status).toBe(500);
+    expect(await failure.json()).toEqual({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' } });
+    const known = handleApiError(new ApiError('CONFLICT', 'Already exists'), 'test');
+    expect(known.status).toBe(409);
+    expect(await known.json()).toEqual({ error: { code: 'CONFLICT', message: 'Already exists' } });
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('resolves the current user and active profile', async () => {

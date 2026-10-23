@@ -1,0 +1,175 @@
+name: netflix-local
+
+x-app: &app
+  image: netflix-clone-local:latest
+  build:
+    context: .
+    dockerfile: dockerfile
+  environment:
+    POSTGRESQL_URL: postgresql://netflix:${LOCAL_DATABASE_PASSWORD:?Generate .env.docker.local first}@database:5432/netflix_local
+    AUTH_SECRET: ${LOCAL_AUTH_SECRET:?Generate .env.docker.local first}
+    AUTH_URL: http://localhost:3000
+    NEXTAUTH_URL: http://localhost:3000
+    AUTH_PUBLIC_URL: http://localhost:3000
+    AUTH_TRUST_HOST: 'true'
+    AUTH_TRUSTED_PROXY_HOPS: '0'
+    AUTH_PASSKEYS_ENABLED: 'false'
+    AUTH_MAIL_HOST: mail
+    AUTH_MAIL_PORT: '1025'
+    AUTH_MAIL_SECURE: 'false'
+    AUTH_MAIL_FROM: Netflix Local <auth@netflix.test>
+    AUTH_MAIL_LOCALE: de
+    DEPLOYMENT_ENVIRONMENT: local
+    REDIS_ENABLED: 'true'
+    REDIS_URL: redis://redis:6379
+    REDIS_KEY_PREFIX: 'netflix:local:'
+    NEXT_PUBLIC_GENRE: Action,Comedy,Drama,Thriller,Animation,Documentary
+    MOVIE_FOLDER: /movies
+    SERIES_FOLDER: /series
+  volumes:
+    - movies:/movies
+    - series:/series
+    - logs:/netflix-clone/logs
+
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: netflix_local
+      POSTGRES_USER: netflix
+      POSTGRES_PASSWORD: ${LOCAL_DATABASE_PASSWORD:?Generate .env.docker.local first}
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U netflix -d netflix_local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2.15-alpine
+    command: [redis-server, --save, '', --appendonly, 'no']
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  mail:
+    image: axllent/mailpit:v1.27.8
+    ports:
+      - '127.0.0.1:8025:8025'
+    restart: unless-stopped
+
+  init:
+    <<: *app
+    user: '0:0'
+    command:
+      - sh
+      - -ec
+      - |
+        mkdir -p /movies /series /netflix-clone/logs
+        chown 10001:10001 /movies /series /netflix-clone/logs
+        ./node_modules/.bin/prisma db push --skip-generate
+        node scripts/migrate-job-queue.mjs
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    restart: 'no'
+
+  seed-media:
+    image: mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585
+    entrypoint: /ffmpeg
+    user: '10001:10001'
+    command:
+      - -hide_banner
+      - -loglevel
+      - error
+      - -y
+      - -f
+      - lavfi
+      - -i
+      - testsrc2=size=640x360:rate=24
+      - -f
+      - lavfi
+      - -i
+      - sine=frequency=440:sample_rate=44100
+      - -t
+      - '12'
+      - -c:v
+      - libx264
+      - -preset
+      - ultrafast
+      - -pix_fmt
+      - yuv420p
+      - -c:a
+      - aac
+      - -movflags
+      - +faststart
+      - /movies/local-demo.mp4
+      - -t
+      - '12'
+      - -c:v
+      - libx264
+      - -preset
+      - ultrafast
+      - -pix_fmt
+      - yuv420p
+      - -c:a
+      - aac
+      - -movflags
+      - +faststart
+      - /series/local-demo.mp4
+    volumes:
+      - movies:/movies
+      - series:/series
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: 'no'
+
+  seed:
+    <<: *app
+    command: [node, scripts/seed-local.mjs]
+    depends_on:
+      seed-media:
+        condition: service_completed_successfully
+    healthcheck:
+      disable: true
+    restart: 'no'
+
+  app:
+    <<: *app
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mail:
+        condition: service_started
+    restart: unless-stopped
+
+  jobs-worker:
+    <<: *app
+    command: [node, .worker/job-worker.mjs]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    stop_grace_period: 105s
+    restart: unless-stopped
+
+volumes:
+  database:
+  movies:
+  series:
+  logs:

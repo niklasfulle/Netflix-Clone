@@ -290,8 +290,27 @@ it("validates log API responses", async () => {
   const fetchLogs = mockedUseSWR.mock.calls[0][1];
   globalThis.fetch = jest.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => logsData } as Response)
-    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Logs nicht lesbar" }) } as Response);
+    .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "Logs nicht lesbar" }) } as Response)
+    .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response);
 
   await expect(fetchLogs("/api/logs")).resolves.toEqual(logsData);
   await expect(fetchLogs("/api/logs")).rejects.toThrow("Logs nicht lesbar");
+  await expect(fetchLogs("/api/logs")).rejects.toThrow("Logs konnten nicht geladen werden.");
+});
+
+it.each(['authentication', 'container'])('renders incomplete %s log metadata without dropping the entry', source => {
+  mockedUseSWR.mockReturnValue({ data: { source, logs: [{}], total: 1, totalPages: 1, counts: {} }, isLoading: false, mutate });
+  render(<AdminLogsPage />);
+  fireEvent.click(screen.getByRole('tab', { name: source === 'container' ? 'Docker-Container' : 'Authentifizierungs-Logs' }));
+  expect(screen.getAllByText('–').length).toBeGreaterThanOrEqual(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Anzeigen' }));
+  expect(screen.getByRole('heading', { name: 'Details' })).toBeInTheDocument();
+});
+
+it('closes the log-clear confirmation with Escape without changing storage', () => {
+  render(<AdminLogsPage />);
+  fireEvent.click(screen.getByRole('button', { name: 'Logs leeren' }));
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(mutate).not.toHaveBeenCalled();
 });

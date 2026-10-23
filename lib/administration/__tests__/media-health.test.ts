@@ -3,6 +3,17 @@
 import { createMediaHealthReader } from '../media-health';
 
 describe('media health reader', () => {
+  it('uses the runtime clock and default freshness window for a recently completed scan', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-23T12:00:00Z'));
+    try {
+      const repository = {
+        findRunning: jest.fn().mockResolvedValue(null),
+        findLatest: jest.fn().mockResolvedValue({ id: 'scan', scope: 'CATALOG', requestedContentId: null, status: 'COMPLETED', startedAt: new Date('2026-10-23T10:00:00Z'), completedAt: new Date('2026-10-23T11:00:00Z'), contentCount: 0, findingCount: 0, criticalCount: 0, warningCount: 0 }),
+        findFindings: jest.fn().mockResolvedValue({ findings: [], total: 0 }),
+      };
+      await expect(createMediaHealthReader({ repository, checkAvailability: async () => true }).read({})).resolves.toMatchObject({ availability: 'AVAILABLE', stale: false });
+    } finally { jest.useRealTimers(); }
+  });
   it('returns availability, progress, latest persisted result, and filtered findings', async () => {
     const repository = {
       findRunning: jest.fn().mockResolvedValue({

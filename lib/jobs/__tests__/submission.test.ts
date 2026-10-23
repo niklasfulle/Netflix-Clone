@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { createJobSubmissionService, type JobSubmissionDatabase } from '@/lib/jobs/submission';
+import { createJobSubmissionService, jobQueueOptions, type JobSubmissionDatabase } from '@/lib/jobs/submission';
 
 type StoredJob = {
   id: string;
@@ -93,6 +93,54 @@ function transactionalDatabase() {
 }
 
 describe('background job submission', () => {
+  it('gives backup creation its longer timeout and dedicated dead-letter queue', () => {
+    expect(jobQueueOptions({ jobName: 'backup.creation.request', queueJobId: 'queue-1', singletonKey: 'backup-1', database: { executeSql: jest.fn() } })).toMatchObject({ expireInSeconds: 1800, deadLetter: 'backup.creation.request.dead' });
+  });
+  it('uses runtime identifiers and executes queue SQL in the accepting transaction', async () => {
+    const { database, committed } = transactionalDatabase();
+    const service = createJobSubmissionService({ database, publisher: {
+      send: jest.fn(async (_name, _data, options) => {
+        await expect(options.db.executeSql('SELECT 1')).resolves.toEqual({ rows: [] });
+        await expect(options.db.executeSql('SELECT $1', [1])).resolves.toEqual({ rows: [] });
+        return options.id;
+      }),
+    } });
+    const result = await service.submit(submission());
+    expect(result.queueJobId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(committed.size).toBe(1);
+  });
+
+  it('rolls back when the queue refuses to accept a job', async () => {
+    const { database, committed } = transactionalDatabase();
+    const service = createJobSubmissionService({ database, publisher: { send: jest.fn().mockResolvedValue(null) } });
+    await expect(service.submit(submission())).rejects.toThrow('Queue rejected the accepted job');
+    expect(committed.size).toBe(0);
+  });
+
+  it('rejects a corrupt existing run without a queue identifier', async () => {
+    const { database } = transactionalDatabase();
+    jest.mocked(database.jobRun.findUnique).mockResolvedValueOnce({ id: 'broken-run', queueJobId: null, status: 'QUEUED', correlationId: 'request-1' });
+    const send = jest.fn();
+    await expect(createJobSubmissionService({ database, publisher: { send } }).submit(submission())).rejects.toThrow('missing its queue identifier');
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('preserves a uniqueness failure when no winning job can be found', async () => {
+    const { database } = transactionalDatabase();
+    const conflict = Object.assign(new Error('unique conflict'), { code: 'P2002' });
+    database.$transaction = jest.fn().mockRejectedValue(conflict);
+    await expect(createJobSubmissionService({ database, publisher: { send: jest.fn() } }).submit(submission())).rejects.toBe(conflict);
+  });
+
+  it('returns a duplicate discovered inside the accepting transaction without publishing', async () => {
+    const { database } = transactionalDatabase();
+    const send = jest.fn(async (_name, _data, options) => options.id);
+    const service = createJobSubmissionService({ database, publisher: { send } });
+    await service.submit(submission());
+    jest.mocked(database.jobRun.findUnique).mockResolvedValueOnce(null);
+    await expect(service.submit(submission())).resolves.toMatchObject({ duplicate: true });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
   it('atomically persists and enqueues an accepted typed job', async () => {
     const { database, committed } = transactionalDatabase();
     const publisher = { send: jest.fn().mockResolvedValue('550e8400-e29b-41d4-a716-446655440000') };

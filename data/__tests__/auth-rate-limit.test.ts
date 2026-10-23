@@ -13,6 +13,11 @@ const mockedExecuteRaw = db.$executeRaw as jest.Mock;
 const mockedTransaction = db.$transaction as jest.Mock;
 
 describe('persistent authentication rate-limit repository', () => {
+  it('does not open transactions for an empty set of subjects', async () => {
+    await expect(authRateLimitRepository.consume([])).resolves.toEqual([]);
+    await expect(authRateLimitRepository.reset([])).resolves.toBeUndefined();
+    expect(mockedTransaction).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockedTransaction.mockImplementation(async callback => callback({

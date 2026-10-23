@@ -12,6 +12,15 @@ const FormWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('ThumbnailSelector', () => {
+  it('supports Space selection and ignores unrelated navigation keys', () => {
+    const select = jest.fn();
+    render(<FormWrapper><ThumbnailSelector thumbnailOptions={['/thumbnail.jpg']} onSelectThumbnail={select} onRegenerate={jest.fn()} /></FormWrapper>);
+    const button = screen.getByRole('button', { name: 'Select thumbnail 1' });
+    fireEvent.keyDown(button, { key: 'Tab' });
+    expect(select).not.toHaveBeenCalled();
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(select).toHaveBeenCalledWith('/thumbnail.jpg');
+  });
   it('localizes image selection and its accessible labels in German', () => {
     render(
       <LanguageProvider initialLocale="de">

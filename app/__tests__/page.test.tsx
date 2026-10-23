@@ -84,6 +84,24 @@ const mockUseContinueWatching = useContinueWatching as jest.MockedFunction<
 >;
 
 describe('Home Page (page.tsx)', () => {
+  it('keeps every catalog section usable while responses have no data', () => {
+    mockUseInfoModal.mockReturnValue({ isOpen: false, closeModal: jest.fn() } as any);
+    for (const hook of [mockUseNewMovieList, mockUseNewSeriesList, mockUseRandomMovieList, mockUseRandomSeriesList, mockUseFavorites, mockUseContinueWatching]) hook.mockReturnValue({ data: undefined, isLoading: true } as any);
+    mockUsePlaylists.mockReturnValue({ data: undefined } as any);
+    render(<Home />);
+    expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Items: 0');
+    expect(screen.getByTestId('movie-list-Continue Watching')).toHaveTextContent('Items: 0');
+  });
+
+  it('sorts partially loaded titles without creation dates deterministically', () => {
+    mockUseInfoModal.mockReturnValue({ isOpen: false, closeModal: jest.fn() } as any);
+    mockUseNewMovieList.mockReturnValue({ data: [{ id: 'undated-1', title: 'Undated 1' }, { id: 'dated', title: 'Recent', createdAt: '2026-01-01' }, { id: 'undated-2', title: 'Undated 2' }], isLoading: false } as any);
+    mockUseNewSeriesList.mockReturnValue({ data: [], isLoading: false } as any);
+    for (const hook of [mockUseRandomMovieList, mockUseRandomSeriesList, mockUseFavorites, mockUseContinueWatching]) hook.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUsePlaylists.mockReturnValue({ data: [] } as any);
+    render(<Home />);
+    expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Titles: Recent, Undated 1, Undated 2');
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseNewSeriesList.mockReturnValue({ data: [], isLoading: false } as any);

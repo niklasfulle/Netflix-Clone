@@ -16,6 +16,18 @@ jest.mock('next/image', () => ({
 jest.mock('@/hooks/useInfoModal');
 
 describe('Thumbnail', () => {
+  it('shows fallback artwork for incomplete metadata without opening a missing title', () => {
+    render(<Thumbnail data={{}} isLoading={false} />);
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/images/Logo2.png');
+    fireEvent.click(screen.getByRole('button'));
+    expect(mockOpenModal).not.toHaveBeenCalled();
+  });
+
+  it('keeps an item with an unsupported duration format available for details', () => {
+    render(<Thumbnail data={{ id: 'legacy', title: 'Legacy title', duration: '1:2:3:4' }} isLoading={false} />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(mockOpenModal).toHaveBeenCalledWith('legacy');
+  });
   const mockOpenModal = jest.fn();
 
   const defaultMockData = {

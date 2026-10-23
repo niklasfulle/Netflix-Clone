@@ -84,6 +84,47 @@ jest.mock('bcryptjs', () => ({
 }));
 
 describe('production authentication adapters', () => {
+  it('labels telemetry from an unconfigured environment as unknown', async () => {
+    delete process.env.DEPLOYMENT_ENVIRONMENT; Reflect.deleteProperty(process.env, 'NODE_ENV');
+    mockCreateAuthenticationTelemetry.mockReturnValue({});
+    await import('@/lib/authentication/production-telemetry');
+    expect(mockCreateAuthenticationTelemetry).toHaveBeenCalledWith(expect.objectContaining({ environment: 'unknown' }));
+  });
+
+  it('supplies the runtime clock to device pairing expiration checks', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-23T12:00:00Z'));
+    try {
+      process.env.AUTH_URL = 'https://netflix.example';
+      const { qrDevicePairingService } = await import('@/lib/authentication/production-qr-device-pairing');
+      qrDevicePairingService();
+      expect(mockCreatePairingService.mock.calls[0][0].clock.now()).toEqual(new Date('2026-10-23T12:00:00Z'));
+    } finally { jest.useRealTimers(); }
+  });
+  it.each([
+    ['login', async () => (await import('@/actions/login')).login({ email: 'invalid', password: '' }), 'invalid_fields'],
+    ['registration', async () => (await import('@/actions/register')).register({ name: 'V', email: 'invalid', password: 'short', confirm: 'different' }), 'invalid_fields'],
+    ['password reset request', async () => (await import('@/actions/reset-password')).reset({ email: 'invalid' }), 'invalid_fields'],
+    ['verification resend', async () => (await import('@/actions/resend-verification')).resendVerificationEmail({ email: 'invalid' }), 'invalid_fields'],
+    ['password update without token', async () => (await import('@/actions/new-password')).setNewPassword({ password: 'a sufficiently long password', confirm: 'a sufficiently long password' }), 'invalid_token'],
+    ['password update with weak input', async () => (await import('@/actions/new-password')).setNewPassword({ password: 'short', confirm: 'short' }, 'test-request-token'), 'invalid_fields'],
+    ['email verification without token', async () => (await import('@/actions/new-verification')).newVerification(''), 'invalid_token'],
+  ] as const)('validates %s through the real server-action and authentication-service boundary', async (_name, request, code) => {
+    const serviceFactory = mockCreateAuthenticationService.getMockImplementation();
+    const telemetryFactory = mockCreateAuthenticationTelemetry.getMockImplementation();
+    mockCreateAuthenticationService.mockImplementation(jest.requireActual('@/lib/authentication/service').createAuthenticationService);
+    mockCreateAuthenticationTelemetry.mockImplementation(jest.requireActual('@/lib/authentication/telemetry').createAuthenticationTelemetry);
+    try {
+      await expect(request()).resolves.toMatchObject({ status: 'rejected', code });
+      expect(mockDb.user.create).not.toHaveBeenCalled();
+      expect(mockDb.user.update).not.toHaveBeenCalled();
+      expect(mockSignIn).not.toHaveBeenCalled();
+      expect(mockSendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockSendResetPasswordEmail).not.toHaveBeenCalled();
+    } finally {
+      mockCreateAuthenticationService.mockImplementation(serviceFactory ?? (() => undefined));
+      mockCreateAuthenticationTelemetry.mockImplementation(telemetryFactory ?? (() => undefined));
+    }
+  });
   const originalEnvironment = process.env;
 
   beforeEach(() => {

@@ -42,6 +42,11 @@ const mockMovies = [
 ];
 
 describe("SearchList", () => {
+  it('shows loading feedback before deciding that a favorites list is empty', () => {
+    render(<SearchList data={[]} title="Favorites" isLoading />);
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Browse' })).not.toBeInTheDocument();
+  });
   describe("Rendering", () => {
     it("renders without crashing", () => {
       const { container } = render(

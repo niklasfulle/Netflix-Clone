@@ -35,6 +35,21 @@ const finding: MediaFinding = {
 };
 
 describe('Prisma media scan run repository', () => {
+  it('propagates database failures that are not running-scan conflicts', async () => {
+    const { db, tx } = database();
+    const failure = new Error('Database unavailable');
+    tx.mediaIntegrityScanRun.create.mockRejectedValueOnce(failure);
+    await expect(createPrismaMediaScanRunRepository(db).start({ scope: 'CATALOG', requestedContentId: null, startedAt: new Date() })).rejects.toBe(failure);
+  });
+
+  it('stores absent finding metadata as null', async () => {
+    const { db, tx } = database();
+    await createPrismaMediaScanRunRepository(db).complete('scan-1', {
+      scope: 'CATALOG', requestedContentId: null, status: 'COMPLETED', startedAt: new Date(), completedAt: new Date(), contentCount: 1, findingCount: 1, criticalCount: 1, warningCount: 0,
+      findings: [{ ...finding, metadata: undefined }],
+    });
+    expect(tx.mediaIntegrityFinding.createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ metadata: null })] });
+  });
   it('creates a running scan and atomically replaces findings on completion', async () => {
     const { db, tx } = database();
     const repository = createPrismaMediaScanRunRepository(db);

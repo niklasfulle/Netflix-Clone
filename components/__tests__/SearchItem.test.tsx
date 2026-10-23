@@ -230,8 +230,8 @@ describe('SearchItem', () => {
 
       expect(screen.getByRole('heading', { name: 'Actors' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Movies' })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: 'Actor One' })).toBeInTheDocument();
-      expect(screen.getByRole('option', { name: 'Movie One' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Actor One' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Movie One' })).toBeInTheDocument();
     });
 
     it('navigates to the selected preview result', () => {
@@ -248,7 +248,7 @@ describe('SearchItem', () => {
       render(<SearchItem />);
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'act' } });
 
-      fireEvent.click(screen.getByRole('option', { name: 'Movie One' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Movie One' }));
 
       expect(mockPush).toHaveBeenCalledWith('/watch/movie-1');
     });

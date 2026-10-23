@@ -14,6 +14,31 @@ const labels = {
 };
 
 describe('AuthEmailSent', () => {
+  it('starts with a one-minute cooldown when no duration is supplied', () => {
+    render(<AuthEmailSent {...labels} email="viewer@example.test" onResend={jest.fn()} />);
+    expect(screen.getByRole('button', { name: 'Resend available in 60s' })).toBeDisabled();
+  });
+
+  it('prevents duplicate resends while pending and starts the default cooldown after success', async () => {
+    let finish!: (result: { status: 'success'; code: 'verification_sent' }) => void;
+    const onResend = jest.fn(() => new Promise<{ status: 'success'; code: 'verification_sent' }>(resolve => { finish = resolve; }));
+    render(<AuthEmailSent {...labels} email="viewer@example.test" initialCooldownSeconds={0} onResend={onResend} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Send again' }));
+    expect(screen.getByRole('button', { name: 'Sending again…' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Sending again…' }));
+    expect(onResend).toHaveBeenCalledTimes(1);
+    await act(async () => { finish({ status: 'success', code: 'verification_sent' }); });
+    expect(screen.getByText('Email sent again.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Resend available in 60s' })).toBeDisabled();
+  });
+
+  it.each(['rejected', 'network'])('shows a recoverable resend failure: %s', async failure => {
+    const onResend = failure === 'network' ? jest.fn().mockRejectedValue(new Error('Offline')) : jest.fn().mockResolvedValue({ status: 'rejected', code: 'invalid_fields' });
+    render(<AuthEmailSent {...labels} email="viewer@example.test" initialCooldownSeconds={0} onResend={onResend} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Send again' }));
+    await waitFor(() => expect(screen.getByText('Unable to resend.')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Send again' })).toBeEnabled();
+  });
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 

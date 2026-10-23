@@ -30,12 +30,13 @@ jest.mock('@/lib/backup-verification', () => {
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { currentUser } from '@/lib/auth';
 import {
+  BackupVerificationStatusError,
   readBackupVerificationStatus,
   readScheduledBackupStatus,
 } from '@/lib/backup-verification';
 import { db } from '@/lib/db';
 import { backgroundJobSubmission } from '@/lib/jobs/runtime';
-import { OperationalLeaseUnavailableError } from '@/lib/operations/lease';
+import { OperationalLeaseLostError, OperationalLeaseUnavailableError } from '@/lib/operations/lease';
 import { operationalLeases } from '@/lib/operations/runtime';
 import { GET, POST } from '../route';
 
@@ -71,6 +72,32 @@ const verifiedStatus = {
 };
 
 describe('administrator PostgreSQL backup verification API', () => {
+  it.each([
+    { error: new BackupVerificationStatusError(), status: 503 },
+    { error: new Error('Status unavailable'), status: 500 },
+  ])('returns uncached status failures: $status', async ({ error, status }) => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedReadStatus.mockRejectedValue(error);
+    const response = await GET();
+    expect(response.status).toBe(status);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(JSON.stringify(await response.json())).not.toContain(error.stack);
+  });
+
+  it.each([null, { id: 'viewer', role: 'USER' }])('rejects a vanished or changed administrator session: %s', async user => {
+    mockedIsAdmin.mockResolvedValue(true);
+    jest.mocked(currentUser).mockResolvedValue(user as never);
+    expect((await POST()).status).toBe(503);
+    expect(mockedSubmit).not.toHaveBeenCalled();
+  });
+
+  it('returns an uncached conflict if the lease is lost before completion', async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedExecute.mockRejectedValueOnce(new OperationalLeaseLostError('backup.verify'));
+    const response = await POST();
+    expect(response.status).toBe(409);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });

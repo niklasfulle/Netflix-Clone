@@ -6,6 +6,16 @@ import {
 } from '@/lib/jobs/worker-heartbeat';
 
 describe('worker heartbeat', () => {
+  it('marks a draining worker failed using the current clock and owned worker generation', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-23T12:00:00Z'));
+    try {
+      const database = { jobWorkerHeartbeat: { upsert: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) } };
+      const heartbeat = createWorkerHeartbeat({ database, instanceToken: 'worker-current' });
+      await expect(heartbeat.markDraining()).resolves.toBe(true);
+      await expect(heartbeat.markFailed()).resolves.toBe(true);
+      expect(database.jobWorkerHeartbeat.updateMany).toHaveBeenLastCalledWith({ where: { id: 'primary', instanceToken: 'worker-current' }, data: { state: 'FAILED', heartbeatAt: new Date('2026-10-23T12:00:00Z'), stoppedAt: new Date('2026-10-23T12:00:00Z') } });
+    } finally { jest.useRealTimers(); }
+  });
   it('claims the singleton heartbeat and only updates its own worker generation', async () => {
     const upsert = jest.fn().mockResolvedValue(undefined);
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });

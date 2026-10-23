@@ -2,6 +2,21 @@
 
 import { createWorkerLifecycle } from '@/lib/jobs/worker-lifecycle';
 
+it('rejects draining before startup and prevents starting a worker twice', async () => {
+  const lifecycle = createWorkerLifecycle({ queue: { start: jest.fn(), stop: jest.fn() }, registerWork: jest.fn(), disconnect: jest.fn() });
+  await expect(lifecycle.stop()).rejects.toThrow('Worker cannot drain from CREATED');
+  await lifecycle.start();
+  await expect(lifecycle.start()).rejects.toThrow('Worker cannot start from ACTIVE');
+});
+
+it('marks failed startup as failed rather than allowing queue consumption', async () => {
+  const registerWork = jest.fn().mockRejectedValue(new Error('Registration unavailable'));
+  const lifecycle = createWorkerLifecycle({ queue: { start: jest.fn(), stop: jest.fn() }, registerWork, disconnect: jest.fn() });
+  await expect(lifecycle.start()).rejects.toThrow('Registration unavailable');
+  expect(lifecycle.state()).toBe('FAILED');
+  await expect(lifecycle.stop()).rejects.toThrow('Worker cannot drain from FAILED');
+});
+
 it('drains once and reaches a stopped state when the worker process is interrupted', async () => {
   const queue = {
     start: jest.fn().mockResolvedValue(undefined),

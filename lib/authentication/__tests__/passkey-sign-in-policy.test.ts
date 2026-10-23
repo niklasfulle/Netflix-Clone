@@ -1,6 +1,12 @@
 import { isPasskeySignInAllowed } from '@/lib/authentication/passkey-sign-in-policy';
 
 describe('isPasskeySignInAllowed', () => {
+  it('leaves other authentication providers independent of passkey enrollment grants', async () => {
+    const dependencies = { findAccount: jest.fn(), hasManagementGrant: jest.fn() };
+    await expect(isPasskeySignInAllowed({ provider: 'credentials', providerAccountId: 'account', userId: 'user' }, dependencies)).resolves.toBe(true);
+    expect(dependencies.findAccount).not.toHaveBeenCalled();
+    expect(dependencies.hasManagementGrant).not.toHaveBeenCalled();
+  });
   it('allows an existing passkey login without a management grant', async () => {
     const findAccount = jest.fn().mockResolvedValue({ id: 'account-1' });
     const hasManagementGrant = jest.fn();

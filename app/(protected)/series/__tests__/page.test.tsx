@@ -17,7 +17,7 @@ jest.mock("@/hooks/useInfoModal");
 jest.mock("@/components/Footer", () => () => <footer>Footer</footer>);
 jest.mock("@/components/Navbar", () => () => <nav>Navbar</nav>);
 jest.mock("@/components/InfoModal", () => () => null);
-jest.mock("@/components/MovieList", () => ({ title }: { title: string }) => <div>{title}</div>);
+jest.mock("@/components/MovieList", () => ({ title, data }: { title: string; data: unknown[] }) => <div data-testid="new-items" data-count={data.length}>{title}</div>);
 jest.mock("../_components/BillboardSeries", () => () => <div>Billboard</div>);
 jest.mock("../_components/FilterRowSeries", () => ({
   title,
@@ -29,6 +29,11 @@ jest.mock("../_components/FilterRowSeries", () => ({
 ));
 
 describe("SeriesPage", () => {
+  it('renders an empty new-title row while the catalog request is loading', () => {
+    jest.mocked(useNewSeriesList).mockReturnValue({ data: undefined, isLoading: true } as never);
+    render(<SeriesPage />);
+    expect(screen.getByTestId('new-items')).toHaveAttribute('data-count', '0');
+  });
   const push = jest.fn();
   const loadMore = jest.fn();
 

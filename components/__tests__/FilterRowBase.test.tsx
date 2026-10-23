@@ -6,6 +6,9 @@ import FilterRowBase from '../FilterRowBase';
 import { Movie } from '@prisma/client';
 import { RANDOM_PLAYLIST_STORAGE_KEY } from '@/lib/random-playlist';
 import { toast } from 'react-hot-toast';
+import * as debug from '@/lib/debug';
+
+jest.mock('@/lib/debug', () => ({ ...jest.requireActual('@/lib/debug'), isDebugEnabled: jest.fn(() => false) }));
 
 const mockPush = jest.fn();
 
@@ -106,6 +109,28 @@ const mockMovies: Movie[] = [
 ];
 
 describe('FilterRowBase', () => {
+  it('preserves debug navigation and accepts pointer and touch activation', () => {
+    const enabled = jest.mocked(debug.isDebugEnabled).mockReturnValue(true);
+    try {
+      render(<FilterRowBase title="Debug row" movies={mockMovies} isLoading={false} />);
+      const play = screen.getByRole('button', { name: 'Play Debug row in random order' });
+      fireEvent.pointerDown(play);
+      fireEvent.touchStart(play);
+      fireEvent.click(play);
+      expect(mockPush).toHaveBeenCalledWith(`/watch/random?${debug.DEBUG_QUERY}`);
+      expect(JSON.parse(sessionStorage.getItem(RANDOM_PLAYLIST_STORAGE_KEY)!)).toMatchObject({ returnPath: `/movies?${debug.DEBUG_QUERY}` });
+    } finally { enabled.mockReturnValue(false); }
+  });
+
+  it('reports non-Error storage failures as a recoverable playlist error', () => {
+    const store = jest.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => { throw 'Storage unavailable'; });
+    try {
+      render(<FilterRowBase title="Storage row" movies={mockMovies} isLoading={false} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Play Storage row in random order' }));
+      expect(toast.error).toHaveBeenCalledWith('Playlist could not be started. Please try again.');
+      expect(mockPush).not.toHaveBeenCalled();
+    } finally { store.mockRestore(); }
+  });
   beforeEach(() => {
     mockPush.mockClear();
     (toast.error as jest.Mock).mockClear();

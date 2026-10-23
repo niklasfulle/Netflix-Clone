@@ -106,6 +106,74 @@ const mockedRecentIds = getRecentContinueWatchingIds as jest.MockedFunction<type
 const json = (response: Response) => response.json();
 
 describe('API route coverage', () => {
+  it.each([
+    ['random content', getRandom], ['random movie', getRandomMovie], ['random series', getRandomSeries], ['playlists', getPlaylists],
+  ] as const)('rejects anonymous %s requests before catalog access', async (_name, request) => {
+    mockedCurrentUser.mockResolvedValue(undefined);
+    expect((await request()).status).toBe(404);
+    expect(mockedDb.movie.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty random series result and handles viewer lookup errors', async () => {
+    mockedCurrentUser.mockResolvedValueOnce({ id: 'user1' } as any).mockRejectedValueOnce(new Error('Auth unavailable'));
+    mockedHelpers.getRandomMovie.mockResolvedValueOnce(null);
+    expect(await json(await getRandomSeries())).toBeNull();
+    expect((await getRandomSeries()).status).toBe(500);
+  });
+
+  it('keeps random content without creation metadata serializable', async () => {
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.movie.count.mockResolvedValue(1);
+    mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1', createdAt: null }]);
+    expect(await json(await getRandom())).toEqual({ id: 'movie1', createdAt: null });
+  });
+
+  it('returns missing-profile and database-error responses for playlist lists', async () => {
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.profil.findFirst.mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('Database offline'));
+    expect((await getPlaylists()).status).toBe(404);
+    expect(await json(await getPlaylists())).toBeNull();
+  });
+
+  it('validates administrator and viewer state before listing all series', async () => {
+    mockedIsAdmin.mockResolvedValueOnce(false).mockResolvedValue(true);
+    expect((await getAllSeries()).status).toBe(403);
+    mockedCurrentUser.mockResolvedValueOnce(undefined).mockResolvedValue({ id: 'user1' } as any);
+    expect((await getAllSeries()).status).toBe(404);
+    mockedDb.profil.findFirst.mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('Database offline'));
+    expect((await getAllSeries()).status).toBe(404);
+    expect(await json(await getAllSeries())).toBeNull();
+  });
+
+  it('reports zero views for series without recorded views', async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
+    mockedDb.movie.findMany.mockResolvedValue([{ id: 'series1' }]);
+    mockedDb.movieView.groupBy.mockResolvedValue([]);
+    expect(await json(await getAllSeries())).toEqual([{ id: 'series1', views: 0 }]);
+  });
+
+  it.each([
+    ['movies', getRandomMovies], ['series', getRandomSeriesCollection],
+  ] as const)('handles empty and unavailable random %s catalogs', async (_name, request) => {
+    const req = { nextUrl: new URL('http://localhost/api/random') } as any;
+    mockedHelpers.getUserAndProfile.mockResolvedValueOnce({ error: Response.json(null, { status: 401 }) } as any);
+    expect((await request(req)).status).toBe(401);
+    mockedHelpers.getUserAndProfile.mockResolvedValue({ user: { id: 'user1' }, profil: { id: 'profile1' } } as any);
+    mockedDb.movie.findMany.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('Catalog unavailable'));
+    expect(await json(await request(req))).toEqual([]);
+    expect((await request(req)).status).toBe(500);
+  });
+
+  it('handles denied, empty and unavailable continue-watching requests', async () => {
+    mockedHelpers.getUserAndProfile.mockResolvedValueOnce({ error: Response.json(null, { status: 401 }) } as any);
+    expect((await getContinueWatching()).status).toBe(401);
+    mockedHelpers.getUserAndProfile.mockResolvedValue({ user: { id: 'user1' }, profil: { id: 'profile1' } } as any);
+    mockedDb.movieWatchTime.findMany.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('Progress unavailable'));
+    expect(await json(await getContinueWatching())).toEqual([]);
+    expect(await json(await getContinueWatching())).toEqual([]);
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     mockedHelpers.handleApiError.mockImplementation((error: unknown) =>
@@ -114,6 +182,49 @@ describe('API route coverage', () => {
     mockedHelpers.serializeMovie.mockImplementation((movie: any) => movie);
     mockedHelpers.transformMoviesResponse.mockImplementation((movies: any) => movies);
     mockedRecentIds.mockReturnValue(['movie1']);
+  });
+
+  describe.each([
+    ['movies', () => getMovies()],
+    ['series', () => getSeries()],
+    ['new movies', () => getNewMovies()],
+    ['new media', () => getNewMedia()],
+    ['new series', () => getNewSeries()],
+    ['movie actor count', () => getMovieActorCount()],
+    ['series actor count', () => getSeriesActorCount()],
+    ['movie actors', () => getMovieActors(new Request('http://localhost') as any, { params: Promise.resolve({ limit: '0_10' }) })],
+    ['series actors', () => getSeriesActors(new Request('http://localhost') as any, { params: Promise.resolve({ limit: '0_10' }) })],
+    ['actor movies', () => getMoviesByActor(new Request('http://localhost') as any, { params: Promise.resolve({ actor: 'Alex' }) })],
+    ['actor series', () => getSeriesByActor(new Request('http://localhost') as any, { params: Promise.resolve({ actor: 'Alex' }) })],
+  ] as const)('%s request failures', (_name, request) => {
+    it('returns the authentication failure without querying the catalog', async () => {
+      mockedHelpers.getUserAndProfile.mockResolvedValue({ error: Response.json({ error: 'Unauthorized' }, { status: 401 }) } as any);
+      const response = await request();
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: 'Unauthorized' });
+      expect(mockedHelpers.getMoviesWithWatchTime).not.toHaveBeenCalled();
+      expect(mockedHelpers.getActorsWithPagination).not.toHaveBeenCalled();
+    });
+
+    it('uses the common error response when resolving the viewer fails', async () => {
+      mockedHelpers.getUserAndProfile.mockRejectedValue(new Error('Viewer lookup unavailable'));
+      const response = await request();
+      expect(response.status).toBe(500);
+      expect(await response.json()).toEqual({ error: 'Error: Viewer lookup unavailable' });
+    });
+  });
+
+  it('returns an empty random movie result when the catalog has no eligible title', async () => {
+    mockedCurrentUser.mockResolvedValueOnce({ id: 'user' } as never);
+    mockedHelpers.getRandomMovie.mockResolvedValueOnce(null);
+    const response = await getRandomMovie();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toBeNull();
+  });
+
+  it('handles a random movie request when the viewer lookup fails', async () => {
+    mockedCurrentUser.mockRejectedValueOnce(new Error('Viewer lookup failed'));
+    expect((await getRandomMovie()).status).toBe(500);
   });
 
   it('returns the current user or a 404', async () => {
@@ -380,26 +491,27 @@ describe('API route coverage', () => {
     expect(await json(await getFavoriteProfile())).toMatchObject({ id: 'profile1' });
   });
 
-  it('returns playlists with ordered movie entries', async () => {
+  it('returns automatic favorites first and preserves ordered entries in normal playlists', async () => {
     mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
-    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
-    mockedDb.playlist.findMany.mockResolvedValue([{ id: 'playlist1', title: 'Favorites' }]);
-    mockedDb.playlist.findUnique.mockResolvedValue({ id: 'playlist1', title: 'Favorites' });
-    mockedDb.playlistEntry.findMany.mockResolvedValue([{ movieId: 'movie1' }]);
-    mockedDb.movie.findUnique.mockResolvedValue({ id: 'movie1' });
+    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1', favoriteIds: [] });
+    mockedDb.playlist.findMany.mockResolvedValue([{ id: 'playlist1', title: 'Movie night' }]);
+    mockedDb.playlist.findUnique.mockResolvedValue({ id: 'playlist1', title: 'Movie night' });
+    mockedDb.playlistEntry.findMany.mockResolvedValue([{ movieId: 'movie2' }, { movieId: 'movie1' }]);
+    mockedDb.movie.findUnique.mockImplementation(async ({ where }: any) => ({ id: where.id }));
 
     expect(await json(await getPlaylists())).toEqual([
-      expect.objectContaining({ id: 'playlist1', movies: [{ id: 'movie1' }] }),
+      expect.objectContaining({ id: 'favorites', kind: 'favorites', userId: 'user1', profilId: 'profile1', movies: [] }),
+      expect.objectContaining({ id: 'playlist1', title: 'Movie night', movies: [{ id: 'movie2' }, { id: 'movie1' }] }),
     ]);
 
     mockedHelpers.getUserAndProfile.mockResolvedValue({
       user: { id: 'user1' }, profil: { id: 'profile1' }, error: null,
     } as any);
     mockedDb.playlist.findFirst.mockResolvedValue({ id: 'playlist1' });
-    mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1' }]);
+    mockedDb.movie.findMany.mockResolvedValue([{ id: 'movie1' }, { id: 'movie2' }]);
     expect(await json(await getPlaylist(undefined as any, {
       params: Promise.resolve({ playlistId: 'playlist1' }),
-    }))).toEqual(expect.objectContaining({ id: 'playlist1', movies: [{ id: 'movie1' }] }));
+    }))).toEqual(expect.objectContaining({ id: 'playlist1', movies: [{ id: 'movie2' }, { id: 'movie1' }] }));
   });
 
   it('builds the continue-watching response', async () => {

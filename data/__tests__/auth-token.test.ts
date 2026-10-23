@@ -34,6 +34,10 @@ function useTokenRecord(record: {
 }
 
 describe('atomic authentication token consumption', () => {
+  it('preserves an explicit null target binding when consuming a verification token', async () => {
+    useTokenRecord({ id: 'token-null', email: 'viewer@example.test', userId: 'user', targetEmail: null, expires: new Date('2026-10-23T13:00:00Z') });
+    await expect(consumeAuthToken('verification', 'test-token', new Date('2026-10-23T12:00:00Z'))).resolves.toEqual({ status: 'valid', email: 'viewer@example.test', userId: 'user', targetEmail: null });
+  });
   beforeEach(() => jest.clearAllMocks());
 
   it('returns the account and target binding only once', async () => {

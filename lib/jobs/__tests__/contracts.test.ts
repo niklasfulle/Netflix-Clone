@@ -3,6 +3,9 @@
 import { MAX_JOB_AGE_MS, parseQueuedJob, parseJobSubmission } from '@/lib/jobs/contracts';
 
 describe('background job contracts', () => {
+  it('rejects a missing queue envelope before attempting execution', () => {
+    expect(() => parseQueuedJob(undefined)).toThrow('Job envelope exceeds the allowed size');
+  });
   it('accepts a versioned media integrity scan with bounded ownership metadata', () => {
     expect(parseJobSubmission({
       name: 'media.integrity.scan',

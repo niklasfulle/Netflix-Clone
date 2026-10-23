@@ -1,6 +1,9 @@
 import { hasActiveUserBlock } from '../user-access';
 
 describe('user access blocking', () => {
+  it('keeps a permanent block active with default runtime dependencies', async () => {
+    await expect(hasActiveUserBlock({ id: 'blocked', isBlocked: true, blockedUntil: null })).resolves.toBe(true);
+  });
   const database = {
     user: {
       update: jest.fn(),

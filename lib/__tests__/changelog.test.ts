@@ -1,23 +1,37 @@
 /** @jest-environment node */
 
-import { getChangelog } from '../changelog';
+import { getChangelog, parseChangelog } from '../changelog';
 import { APP_VERSION } from '../version';
 
 describe('published changelog', () => {
-  it('keeps the 1.13.1, 1.13.2, and current 1.13.3 releases separate', () => {
+  it('ignores unversioned notes and parses current and explicit releases with either newline format', () => {
+    expect(parseChangelog('- unversioned\r\n## [CURRENT]\r\n- New behavior\r\n\r\n## 1.2.3\r\n- Earlier behavior\r\nAdditional prose')).toEqual([
+      { version: APP_VERSION, changes: ['New behavior'] },
+      { version: '1.2.3', changes: ['Earlier behavior'] },
+    ]);
+    expect(parseChangelog('')).toEqual([]);
+  });
+  it('keeps the current release and previous published releases separate', () => {
     const entries = getChangelog();
 
     expect(entries.slice(0, 5).map(entry => entry.version)).toEqual([
       APP_VERSION,
-      '1.13.2',
-      '1.13.1',
-      '1.13.0',
-      '1.12.1',
+      '1.13.6',
+      '1.13.5',
+      '1.13.4',
+      '1.13.3',
     ]);
     expect(entries.find(entry => entry.version === APP_VERSION)?.changes).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('Mobile navigation'),
+        expect.stringContaining('Videoplayer'),
+        expect.stringContaining('Playlist-Karten'),
+        expect.stringContaining('Docker-Compose'),
+        expect.stringContaining('Seed'),
+        expect.stringContaining('Profilbilder'),
       ]),
+    );
+    expect(entries.find(entry => entry.version === '1.13.6')?.changes).toEqual(
+      expect.arrayContaining([expect.stringContaining('automatische Playlist „Favoriten“')]),
     );
     expect(entries.find(entry => entry.version === '1.13.2')?.changes).toEqual(
       expect.arrayContaining([

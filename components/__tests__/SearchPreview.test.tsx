@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { LanguageProvider } from '@/components/providers/LanguageProvider';
@@ -29,16 +29,35 @@ const results: SearchResultsDto = {
 };
 
 describe('SearchPreview', () => {
+  it('navigates using encoded actor names and content ids', () => {
+    const onSelect = jest.fn();
+    renderPreview({ data: { actors: [{ id: 'actor', name: 'Alex & Sam' }], content: { Documentary: [{ id: 'film/one', title: 'Nature' }] } }, onSelect });
+    fireEvent.click(screen.getByRole('button', { name: 'Alex & Sam' }));
+    expect(onSelect).toHaveBeenLastCalledWith('/search/Alex%20%26%20Sam');
+    expect(screen.getByRole('heading', { name: 'Documentary' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Nature' }));
+    expect(onSelect).toHaveBeenLastCalledWith('/watch/film%2Fone');
+  });
+
+  it('tolerates partial responses and does not navigate for content without an id', () => {
+    const onSelect = jest.fn();
+    const { rerender } = renderPreview({ data: {} as SearchResultsDto, onSelect });
+    expect(screen.getByRole('status')).toHaveTextContent('No results found.');
+    rerender(<LanguageProvider initialLocale="en"><SearchPreview data={{ actors: [], content: { Movie: [{ title: 'Unavailable' }, {}] } }} isLoading={false} onSelect={onSelect} /></LanguageProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Unavailable' }));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+  });
   it('renders actor and configured content groups', () => {
     renderPreview({ data: results });
 
-    expect(screen.getByRole('listbox', { name: 'Search results' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Search results' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Actors' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Movies' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Series' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Actor One' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Movie One' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Series One' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actor One' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Movie One' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Series One' })).toBeInTheDocument();
   });
 
   it('renders staging prefixes as compact result labels', () => {
@@ -50,7 +69,7 @@ describe('SearchPreview', () => {
     });
 
     expect(screen.getByText('STAGING')).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'STAGING Avery Stone' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'STAGING Avery Stone' })).toBeInTheDocument();
   });
 
   it('shows at most five results in each category', () => {
@@ -70,9 +89,9 @@ describe('SearchPreview', () => {
       },
     });
 
-    expect(screen.getAllByRole('option')).toHaveLength(10);
-    expect(screen.queryByRole('option', { name: 'Actor 6' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: 'Movie 6' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(10);
+    expect(screen.queryByRole('button', { name: 'Actor 6' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Movie 6' })).not.toBeInTheDocument();
   });
 
   it('renders a loading status', () => {

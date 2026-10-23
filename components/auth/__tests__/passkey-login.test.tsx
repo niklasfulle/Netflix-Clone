@@ -14,6 +14,34 @@ jest.mock('@/components/providers/LanguageProvider', () => ({
 const mockedSignIn = jest.mocked(signIn);
 
 describe('PasskeyLogin', () => {
+  it.each([new Error('Offline'), new DOMException('Aborted', 'AbortError')])('hides unavailable passkey configuration: %s', async failure => {
+    global.fetch = jest.fn().mockRejectedValue(failure);
+    const { container } = render(<PasskeyLogin />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('hides passkeys after a non-successful configuration response', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false });
+    const { container } = render(<PasskeyLogin />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('explains unsupported browsers without starting a ceremony', async () => {
+    Object.defineProperty(window, 'PublicKeyCredential', { configurable: true, value: undefined });
+    render(<PasskeyLogin />);
+    expect(await screen.findByText('Passkeys are not supported by this browser.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeDisabled();
+    expect(mockedSignIn).not.toHaveBeenCalled();
+  });
+
+  it('shows a recoverable error for failed passkey sign-in', async () => {
+    mockedSignIn.mockRejectedValue(new Error('Service unavailable'));
+    render(<PasskeyLogin />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign in with a passkey' }));
+    expect(await screen.findByText('Passkey sign-in failed. Use your password or try again.')).toBeInTheDocument();
+  });
   beforeEach(() => {
     mockedSignIn.mockReset();
     global.fetch = jest.fn().mockResolvedValue({

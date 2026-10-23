@@ -34,6 +34,12 @@ import { logBackendAction } from '@/lib/logger';
 const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 
 describe('update playlist action', () => {
+  it('requires an identifier even when the playlist name is otherwise valid', async () => {
+    mockCurrentUser.mockResolvedValue({ id: 'user' } as never);
+    jest.mocked(db.profil.findFirst).mockResolvedValue({ id: 'profile' } as never);
+    await expect(updatePlaylist({ playlistName: 'Movie night' }, [], [])).resolves.toEqual({ error: 'Invalid fields!' });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

@@ -39,6 +39,21 @@ function catalogItem(overrides: Partial<MediaCatalogItem> = {}): MediaCatalogIte
 }
 
 describe('media integrity scanner', () => {
+  it('marks the run failed when the catalog cannot be read', async () => {
+    const runs = memoryRuns();
+    const failure = new Error('Catalog unavailable');
+    const scanner = createMediaIntegrityScanner({ catalog: { listPublished: jest.fn().mockRejectedValue(failure) }, inspector: { inspect: jest.fn() }, runs });
+    await expect(scanner.scan()).rejects.toBe(failure);
+    expect(runs.fail).toHaveBeenCalledWith('scan-1', expect.any(Date));
+    expect(runs.complete).not.toHaveBeenCalled();
+  });
+
+  it('handles empty references and zero concurrency without inventing duplicate findings', async () => {
+    const inspect = jest.fn().mockResolvedValue([]);
+    const scanner = createMediaIntegrityScanner({ catalog: { listPublished: async () => [catalogItem({ videoReference: '', thumbnailReference: '' })] }, inspector: { inspect }, runs: memoryRuns(), inspectionConcurrency: 0 });
+    await expect(scanner.scan()).resolves.toMatchObject({ contentCount: 1, findings: [] });
+    expect(inspect).toHaveBeenCalledTimes(1);
+  });
   let root: string;
   let movies: string;
   let series: string;

@@ -1,180 +1,19 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
-import React, { useRef, useState } from "react";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
-import { updateWatchTime } from "@/actions/watch/update-watch-time";
-import { addMovieView } from "@/actions/watch/add-movie-view";
-import { addToWatchlist } from "@/actions/watch/add-to-watchlist";
-import usePlaylist from "@/hooks/playlists/usePlaylist";
-import { getWatchProgressSaveSecond } from "@/lib/watch-progress-save";
-import Link from "next/link";
-import { useLanguage } from "@/components/providers/LanguageProvider";
+import { useParams, useRouter } from 'next/navigation';
+import usePlaylist from '@/hooks/playlists/usePlaylist';
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import VideoPlayer from '@/components/player/VideoPlayer';
+import WatchState from '@/components/player/WatchState';
 
-const Watch = () => {
-  const { t } = useLanguage();
+export default function WatchPlaylist() {
   const playlistId = useParams<{ playlistId: string }>().playlistId;
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const lastSavedSecondRef = useRef(-1);
   const router = useRouter();
-  const { data: playlist } = usePlaylist(playlistId);
-  const [currentMovie, setCurrentMovie] = useState<number>(0);
-  const movies = React.useMemo(() => playlist?.movies ?? [], [playlist]);
-  React.useEffect(() => {
-    setCurrentMovie((index) => Math.min(index, Math.max(0, movies.length - 1)));
-  }, [movies.length]);
-
-  async function setMovieWatchTime() {
-    const video = document.getElementById("videoElement") as HTMLVideoElement;
-    const movieId = movies[currentMovie]?.id;
-    if (movieId && video) {
-      updateWatchTime({ movieId, watchTime: Math.round(video.currentTime) });
-    }
-  }
-
-  const updateMovie = (dir: number) => {
-    const newIndex = currentMovie + dir;
-    if (newIndex >= 0 && newIndex < movies.length) {
-      setMovieWatchTime();
-      setCurrentMovie(newIndex);
-    }
-  };
-
-  React.useEffect(() => {
-    const movieId = movies[currentMovie]?.id;
-    if (movieId) {
-      lastSavedSecondRef.current = -1;
-      addMovieView({ movieId });
-      addToWatchlist({ movieId });
-    }
-  }, [currentMovie, movies]);
-
-  const handleVideoEnded = () => {
-    setMovieWatchTime();
-    updateMovie(1);
-  };
-
-  const hasMultiple = movies.length > 1;
-  const current = movies[currentMovie];
-
-  if (playlist && movies.length === 0) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-black p-6 text-center text-white">
-        <p>{t('This playlist is empty.')}</p>
-        <Link href="/playlists" className="inline-flex min-h-11 items-center rounded-lg bg-red-600 px-5 font-semibold hover:bg-red-500">{t('Back to playlists')}</Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-screen h-screen bg-black relative">
-      <nav className="fixed top-8 sm:top-0 z-10 flex flex-row items-center w-full gap-3 sm:gap-8 p-4 bg-black bg-opacity-70">
-        <FaArrowLeft
-          className="text-white cursor-pointer"
-          size={40}
-          onClick={() => {
-            setMovieWatchTime();
-            router.push("/playlists");
-          }}
-        />
-        <p className="player-title-marquee font-bold text-white text-xl xl:text-3xl">
-          <span
-            className="player-title-marquee-track"
-            data-title={`Watching: ${current?.title ?? ""}`}
-          >
-            <span className="pr-3 font-light">Watching: </span>
-            {current?.title}
-          </span>
-        </p>
-      </nav>
-      {hasMultiple && currentMovie === 0 && (
-        <button
-          onClick={() => updateMovie(1)}
-          className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
-        >
-          <FaArrowRight
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
-            size={45}
-          />
-          <FaArrowRight
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
-            size={26}
-          />
-        </button>
-      )}
-      {hasMultiple && currentMovie > 0 && currentMovie < movies.length - 1 && (
-        <>
-          <button
-            className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
-            onClick={() => updateMovie(-1)}
-          >
-            <FaArrowLeft
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
-              size={45}
-            />
-            <FaArrowLeft
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
-              size={26}
-            />
-          </button>
-          <button
-            onClick={() => updateMovie(1)}
-            className="fixed z-10 -right-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tl-xl rounded-bl-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
-          >
-            <FaArrowRight
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
-              size={45}
-            />
-            <FaArrowRight
-              className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
-              size={26}
-            />
-          </button>
-        </>
-      )}
-      {hasMultiple && currentMovie === movies.length - 1 && (
-        <button
-          onClick={() => updateMovie(-1)}
-          className="fixed z-10 -left-1 bottom-[20%] h-10 w-12 xl:h-16 xl:w-20 bg-black rounded-tr-xl rounded-br-xl cursor-pointer flex flex-row items-center justify-center border-[1px] border-white"
-        >
-          <FaArrowLeft
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 xl:block hidden"
-            size={45}
-          />
-          <FaArrowLeft
-            className="absolute z-10 text-white transition-all ease-in cursor-pointer hover:text-neutral-300 block xl:hidden"
-            size={26}
-          />
-        </button>
-      )}
-      {current?.id && (
-        <video
-          key={current.id}
-          id="videoElement"
-          autoPlay
-          controls
-          className="w-full h-full"
-          ref={videoRef}
-          poster={current.thumbnailUrl}
-          onTimeUpdate={() => {
-            if (!videoRef.current) return;
-            const saveSecond = getWatchProgressSaveSecond(
-              videoRef.current.currentTime,
-              lastSavedSecondRef.current,
-            );
-            if (saveSecond !== null) {
-              lastSavedSecondRef.current = saveSecond;
-              setMovieWatchTime();
-            }
-          }}
-          onEnded={handleVideoEnded}
-        >
-          <source src={`/api/video/${current.id}`} type="video/mp4" />
-          <track kind="captions"></track>
-        </video>
-      )}
-    </div>
-  );
-};
-
-export default Watch;
+  const { t } = useLanguage();
+  const { data: playlist, isLoading } = usePlaylist(playlistId);
+  const back = () => router.push('/playlists');
+  if (!playlist) return <WatchState loading={isLoading} message={t('Playlist not found')} onBack={back} />;
+  const items = (playlist.movies ?? []).flatMap(movie => movie?.id ? [{ ...movie, id: movie.id, title: movie.title || t('Now playing') }] : []);
+  if (!items.length) return <WatchState message={t('This playlist is empty.')} onBack={back} />;
+  return <VideoPlayer key={playlistId} items={items} playlistTitle={playlist.kind === 'favorites' ? t('Favorites') : playlist.title || t('Playlist')} onBack={back} />;
+}

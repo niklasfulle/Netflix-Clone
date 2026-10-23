@@ -3,6 +3,20 @@
 import fetcher, { ApiClientError } from '@/lib/fetcher';
 
 describe('fetcher', () => {
+  it('returns no payload when a successful response does not advertise JSON', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(fetcher('/api/no-content')).resolves.toBeUndefined();
+  });
+
+  it('uses safe fallback fields for an incomplete error envelope', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(Response.json({ error: {} }, { status: 503 }));
+    await expect(fetcher('/api/unavailable')).rejects.toMatchObject({ status: 503, code: 'HTTP_ERROR', message: 'Request failed.' });
+  });
+
+  it('handles invalid JSON without exposing its content', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(new Response('broken body', { status: 500, headers: { 'Content-Type': 'application/json' } }));
+    await expect(fetcher('/api/broken')).rejects.toMatchObject({ message: 'Request failed.' });
+  });
   beforeEach(() => {
     global.fetch = jest.fn();
   });

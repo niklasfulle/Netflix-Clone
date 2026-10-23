@@ -3,6 +3,11 @@ import { NewPasswordSchema, RegisterSchema, SettingsSchema } from '@/schemas';
 const strongPassword = 'correct horse battery staple';
 
 describe('shared password policy', () => {
+  it('requires a new password when a viewer supplies only their current password', () => {
+    const result = SettingsSchema.safeParse({ name: 'Viewer', password: 'legacy' });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: ['newPassword'], message: 'New password is required!' })]));
+  });
   it('requires at least 12 characters for registration', () => {
     expect(RegisterSchema.safeParse({
       name: 'Viewer',

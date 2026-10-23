@@ -27,6 +27,12 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 describe('add to watchlist action - Authentifizierung & Validierung', () => {
+  it('rejects a malformed client payload without updating the watchlist', async () => {
+    jest.mocked(currentUser).mockResolvedValue({ id: 'user' } as never);
+    await expect(addToWatchlist({} as Parameters<typeof addToWatchlist>[0])).resolves.toEqual({ error: 'Invalid fields!' });
+    expect(db.profil.findFirst).not.toHaveBeenCalled();
+    expect(db.watchlist.create).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

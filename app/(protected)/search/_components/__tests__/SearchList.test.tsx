@@ -20,6 +20,14 @@ jest.mock("@/components/MovieCard", () => {
 });
 
 describe("SearchList", () => {
+  it('renders actors, series and additional configured content categories in separate groups', () => {
+    render(<SearchList title="Search results" searchItem="Alex" isLoading={false} data={{ actors: [{ id: 'actor', name: 'Alex & Sam' }], content: { Serie: [{ id: 'series', title: 'Series title' }], Documentary: [{ id: 'documentary', title: 'Nature' }], Movie: [] } }} />);
+    expect(screen.getByRole('link', { name: 'Alex & Sam' })).toHaveAttribute('href', '/search/Alex%20%26%20Sam');
+    expect(screen.getByRole('heading', { name: 'Series' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Documentary' })).toBeInTheDocument();
+    expect(screen.getByTestId('movie-card-series')).toHaveTextContent('Series title');
+    expect(screen.getByTestId('movie-card-documentary')).toHaveTextContent('Nature');
+  });
   const mockMovies = [
     {
       id: "1",

@@ -10,6 +10,12 @@ import { GET } from '../route';
 const mockedFindUnique = db.movie.findUnique as jest.Mock;
 
 describe('catalog thumbnail route', () => {
+  it('rejects malformed percent-encoding in a stored public image path', async () => {
+    mockedFindUnique.mockResolvedValue({ thumbnailUrl: '/images/%E0%A4%A.png' });
+    const response = await GET(new Request('http://localhost/api/catalog/thumbnails/movie'), { params: Promise.resolve({ movieId: 'movie' }) });
+    expect(response.status).toBe(415);
+    expect((await response.arrayBuffer()).byteLength).toBe(0);
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('serves an inline thumbnail as a cacheable image resource', async () => {

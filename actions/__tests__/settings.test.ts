@@ -41,6 +41,7 @@ jest.mock("@/lib/session-security", () => ({
   sessionSecurity: {
     recordActivity: jest.fn(),
     revokeOtherSessions: jest.fn(),
+    revokeAllSessions: jest.fn(),
   },
 }));
 
@@ -83,6 +84,30 @@ const databaseUser = {
 };
 
 describe("settings action", () => {
+  it('rejects password changes for an account without a stored credential password', async () => {
+    mockGetUserById.mockResolvedValueOnce({ ...databaseUser, hashedPassword: null } as never);
+    await expect(settings({ name: 'Member', password: 'current-password', newPassword: 'new-password-123', confirmNewPassword: 'new-password-123' })).resolves.toEqual({ error: 'Password cannot be changed for this account.' });
+    expect(db.user.update).not.toHaveBeenCalled();
+  });
+
+  it('revokes all existing sessions after a password change when the current session is unregistered', async () => {
+    mockCurrentUser.mockResolvedValueOnce({ ...sessionUser, sessionId: undefined } as never);
+    await expect(settings({ name: 'Member', password: 'current-password', newPassword: 'new-password-123', confirmNewPassword: 'new-password-123' })).resolves.toEqual({ success: 'Settings updated!' });
+    expect(sessionSecurity.revokeAllSessions).toHaveBeenCalledWith({ userId: 'user-1', event: 'password_changed', context: { userAgent: 'Browser/1.0' } });
+  });
+
+  it('records mail failures without leaking the delivery error', async () => {
+    jest.mocked(generateVerificationToken).mockResolvedValueOnce({ email: 'new@example.test', token: 'test-token', expires: new Date() });
+    jest.mocked(sendVerificationEmail).mockRejectedValueOnce(new Error('Private transport details'));
+    await expect(settings({ name: 'Member', email: 'new@example.test' })).resolves.toEqual({ error: 'Settings could not be updated. Reference: settings-reference' });
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({ errorCategory: 'mail', outcome: 'failed' }));
+  });
+
+  it('classifies password-verification outages as credential failures', async () => {
+    mockCompare.mockRejectedValueOnce(new Error('Verifier unavailable') as never);
+    await expect(settings({ name: 'Member', password: 'current-password', newPassword: 'new-password-123', confirmNewPassword: 'new-password-123' })).resolves.toEqual({ error: 'Settings could not be updated. Reference: settings-reference' });
+    expect(mockTelemetryComplete).toHaveBeenCalledWith(expect.objectContaining({ errorCategory: 'credentials', outcome: 'failed' }));
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUser.mockResolvedValue(sessionUser as never);

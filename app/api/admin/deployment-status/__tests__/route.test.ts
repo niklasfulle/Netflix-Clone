@@ -19,6 +19,14 @@ const mockedReadScheduled = readScheduledBackupStatus as jest.MockedFunction<
 >;
 
 describe("admin deployment status API", () => {
+  it('returns a safe uncached response for unexpected backup-status failures', async () => {
+    mockedIsAdmin.mockResolvedValue(true);
+    mockedReadScheduled.mockRejectedValueOnce(new Error('Private filesystem details'));
+    const response = await GET();
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({ error: 'Deployment status could not be loaded' });
+  });
   const originalEnvironment = process.env.DEPLOYMENT_ENVIRONMENT;
   const originalPeers = process.env.DEPLOYMENT_STATUS_APPROVED_PEERS;
   const originalRoot = process.env.DEPLOYMENT_STATUS_ROOT;

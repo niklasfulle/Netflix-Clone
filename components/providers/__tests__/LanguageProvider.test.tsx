@@ -23,6 +23,12 @@ const TestContent = () => {
 };
 
 describe('LanguageProvider', () => {
+  test('keeps the default language usable when a consumer has no surrounding provider', () => {
+    render(<><TestContent /><LanguageSwitcher /></>);
+    fireEvent.click(screen.getByRole('button', { name: 'DE' }));
+    expect(screen.getByText('Movies')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'EN' })).toHaveAttribute('aria-pressed', 'true');
+  });
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.lang = 'en';

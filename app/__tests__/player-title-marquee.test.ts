@@ -2,13 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const playerPages = [
-  'app/(protected)/watch/[movieId]/page.tsx',
-  'app/(protected)/watch/playlist/[playlistId]/page.tsx',
-  'app/(protected)/watch/random/page.tsx',
   'app/(protected)/random/page.tsx',
 ];
 
-describe('mobile player title marquee', () => {
+// Watch routes render the shared VideoPlayer; its title behavior is tested there.
+describe('legacy random catalog title marquee', () => {
   test.each(playerPages)('%s uses the compact marquee title', (playerPage) => {
     const source = fs.readFileSync(path.join(process.cwd(), playerPage), 'utf8');
 

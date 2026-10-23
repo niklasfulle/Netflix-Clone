@@ -24,6 +24,12 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 describe('add movie view action - Authentifizierung & Validierung', () => {
+  it('rejects a malformed client payload before recording a view', async () => {
+    jest.mocked(currentUser).mockResolvedValue({ id: 'user' } as never);
+    await expect(addMovieView({} as Parameters<typeof addMovieView>[0])).resolves.toEqual({ error: 'Invalid fields!' });
+    expect(db.profil.findFirst).not.toHaveBeenCalled();
+    expect(db.movieView.create).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

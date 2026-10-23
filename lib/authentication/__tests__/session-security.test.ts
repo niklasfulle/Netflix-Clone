@@ -19,6 +19,37 @@ function createRepository(): jest.Mocked<SessionSecurityRepository> {
 }
 
 describe('session security module', () => {
+  it('touches active sessions and rejects expiration before repository access', async () => {
+    const repository = createRepository();
+    repository.findActive.mockResolvedValue(true);
+    const security = createSessionSecurity({ repository, now: () => now, createId: () => 'unused', hashAddress: () => 'hash' });
+    const input = { userId: 'user-1', sessionId: 'active-session', issuedAt: now, expiresAt: new Date(now.getTime() + 1000) };
+    await expect(security.authenticate(input)).resolves.toEqual({ status: 'active', sessionId: 'active-session' });
+    expect(repository.touch).toHaveBeenCalledWith('active-session', now);
+    repository.findActive.mockClear();
+    await expect(security.authenticate({ ...input, expiresAt: now })).resolves.toEqual({ status: 'revoked' });
+    expect(repository.findActive).not.toHaveBeenCalled();
+  });
+
+  it('accepts legacy tokens at the cutoff and without an account cutoff', async () => {
+    const repository = createRepository();
+    repository.getLegacyCutoff.mockResolvedValueOnce(null).mockResolvedValueOnce(now);
+    const security = createSessionSecurity({ repository, now: () => now, createId: () => 'unused', hashAddress: () => 'hash' });
+    await expect(security.isAuthorized({ userId: 'user-1', issuedAt: now })).resolves.toBe(true);
+    await expect(security.isAuthorized({ userId: 'user-1', issuedAt: now })).resolves.toBe(true);
+  });
+
+  it('sanitizes activity context and does not duplicate sign-out events for an already revoked session', async () => {
+    const repository = createRepository();
+    repository.revokeOne.mockResolvedValue(false);
+    const hashAddress = jest.fn();
+    const security = createSessionSecurity({ repository, now: () => now, createId: () => 'unused', hashAddress });
+    await security.revokeCurrentSession({ userId: 'user-1', sessionId: 'revoked' });
+    expect(repository.recordActivity).not.toHaveBeenCalled();
+    await security.recordActivity('user-1', 'mfa_enabled', { address: ' unknown ', userAgent: '\u0000Browser\u007f\n' });
+    expect(repository.recordActivity).toHaveBeenCalledWith(expect.objectContaining({ ipHash: null, userAgent: 'Browser', event: 'mfa_enabled' }));
+    expect(hashAddress).not.toHaveBeenCalled();
+  });
   it('establishes a registered session without persisting a raw client address', async () => {
     const repository = createRepository();
     repository.getLegacyCutoff.mockResolvedValue(null);

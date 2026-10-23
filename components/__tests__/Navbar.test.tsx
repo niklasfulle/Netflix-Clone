@@ -75,6 +75,11 @@ const mockUseCurrentProfil = useCurrentProfil as jest.MockedFunction<
 >;
 
 describe('Navbar Component', () => {
+  it('shows the placeholder avatar for a loaded profile without a chosen image', () => {
+    mockUseCurrentProfil.mockReturnValue({ data: { image: null } } as any);
+    const { container } = render(<Navbar />);
+    expect(container.querySelector('img[src="/images/profil/placeholder.png"]')).toBeInTheDocument();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseCurrentProfil.mockReturnValue({

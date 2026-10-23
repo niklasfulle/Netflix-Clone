@@ -47,6 +47,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('deleteMovie action - Movie Deletion with Authorization', () => {
+  it.each(['Movie', 'Serie'])('uses the local fallback media folder for %s when no folders are configured', async type => {
+    const environment = jest.replaceProperty(process, 'env', { ...process.env, MOVIE_FOLDER: '', SERIES_FOLDER: '' });
+    try {
+      jest.mocked(db.movie.findUnique).mockResolvedValueOnce({ ...mockMovie, type } as never);
+      await expect(deleteMovie('movie-1')).resolves.toEqual({ success: 'Movie deleted successfully!' });
+      expect(path.join).toHaveBeenCalledWith(type === 'Serie' ? './series' : './movies', 'video-file.mp4');
+    } finally { environment.restore(); }
+  });
   const mockLogBackendAction = logBackendAction as jest.MockedFunction<typeof logBackendAction>;
   const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
   const mockCurrentRole = currentRole as jest.MockedFunction<typeof currentRole>;

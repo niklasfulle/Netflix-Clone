@@ -17,6 +17,19 @@ const baseTick = {
   },
 };
 
+it('uses current time and fresh request identifiers when executing a schedule with default runtime services', async () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-10-23T10:00:00Z'));
+  try {
+    const submit = jest.fn().mockResolvedValue({ id: 'job-run-123' });
+    const handler = createWeeklyScheduleTickHandler({ resolveAdministrator: jest.fn().mockResolvedValue({ id: 'admin-user-123', role: 'ADMIN' }), submit });
+    await handler({ ...baseTick, kind: 'BACKUP' }, 'delivery-123');
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({
+      correlationId: expect.stringMatching(/^[a-f0-9-]{36}$/),
+      payload: expect.objectContaining({ requestedAt: '2026-10-23T10:00:00.000Z', requestId: expect.stringMatching(/^[a-f0-9-]{36}$/) }),
+    }));
+  } finally { jest.useRealTimers(); }
+});
+
 it('turns a backup schedule tick into a durable backup job', async () => {
   const submit = jest.fn().mockResolvedValue({ id: 'job-run-123' });
   const handler = createWeeklyScheduleTickHandler({

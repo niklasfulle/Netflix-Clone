@@ -160,7 +160,7 @@ const FormMessage = React.forwardRef<
       className={cn("text-[0.8rem] font-medium text-destructive", className)}
       {...props}
     >
-      {typeof body === 'string' && Object.prototype.hasOwnProperty.call(germanTranslations, body)
+      {typeof body === 'string' && Object.hasOwn(germanTranslations, body)
         ? t(body as TranslationKey)
         : body}
     </p>

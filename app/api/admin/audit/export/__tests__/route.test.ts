@@ -26,6 +26,13 @@ const search = adminAuditReader.search as jest.Mock;
 const request = (url: string) => ({ url }) as Request;
 
 describe('GET /api/admin/audit/export', () => {
+  it.each([new Error('Database unavailable'), 'non-error rejection'])('returns a bounded uncached export error: %s', async error => {
+    search.mockRejectedValue(error);
+    const response = await GET(request('http://localhost/api/admin/audit/export'));
+    expect(response.status).toBe(500);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await response.text()).toBe('Unable to export audit events.');
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('uses the shared filters and exports at most one bounded page', async () => {

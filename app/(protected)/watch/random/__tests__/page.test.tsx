@@ -1,97 +1,53 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-
+import { fireEvent, render, screen } from '@testing-library/react';
 import RandomWatch from '../page';
-import {
-  RANDOM_PLAYLIST_STORAGE_KEY,
-  type RandomPlaylist,
-} from '@/lib/random-playlist';
+import { RANDOM_PLAYLIST_STORAGE_KEY } from '@/lib/random-playlist';
 
 const mockPush = jest.fn();
-const mockAddMovieView = jest.fn();
-const mockAddToWatchlist = jest.fn();
-const mockUpdateWatchTime = jest.fn();
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('@/components/player/VideoPlayer', () => ({
+  __esModule: true,
+  default: ({ items, playlistTitle, onBack }: any) => <div data-testid="player" data-items={JSON.stringify(items)}><h1>{playlistTitle}</h1><button onClick={onBack}>Leave player</button></div>,
 }));
 
-jest.mock('@/actions/watch/add-movie-view', () => ({
-  addMovieView: (...args: unknown[]) => mockAddMovieView(...args),
-}));
+beforeEach(() => { jest.clearAllMocks(); sessionStorage.clear(); });
 
-jest.mock('@/actions/watch/add-to-watchlist', () => ({
-  addToWatchlist: (...args: unknown[]) => mockAddToWatchlist(...args),
-}));
+it('shows an empty state when no temporary playlist exists', () => {
+  render(<RandomWatch />);
+  expect(screen.getByText('Playlist not found')).toBeInTheDocument();
+});
 
-jest.mock('@/actions/watch/update-watch-time', () => ({
-  updateWatchTime: (...args: unknown[]) => mockUpdateWatchTime(...args),
-}));
+it.each([undefined, '//outside.example', 'https://outside.example'])('uses the home page for an unsafe or absent return path: %s', returnPath => {
+  sessionStorage.setItem(RANDOM_PLAYLIST_STORAGE_KEY, JSON.stringify({ title: 'Actor', returnPath, movies: [{ id: 'one', title: 'First' }] }));
+  render(<RandomWatch />);
+  fireEvent.click(screen.getByRole('button', { name: 'Leave player' }));
+  expect(mockPush).toHaveBeenCalledWith('/');
+});
 
-const playlist: RandomPlaylist = {
-  title: 'Test Actor',
-  returnPath: '/movies',
-  movies: [
-    {
-      id: 'movie-1',
-      title: 'First Movie',
-      thumbnailUrl: 'first.jpg',
-    },
-    {
-      id: 'movie-2',
-      title: 'Second Movie',
-      thumbnailUrl: 'second.jpg',
-    },
-  ],
-};
+it('allows returning home when the temporary playlist is unavailable', () => {
+  render(<RandomWatch />);
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  expect(mockPush).toHaveBeenCalledWith('/');
+});
 
-describe('RandomWatch', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    sessionStorage.clear();
-  });
+it('still offers a safe exit when browser storage cannot be read or cleared', () => {
+  const read = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Storage disabled'); });
+  const clear = jest.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('Storage disabled'); });
+  render(<RandomWatch />);
+  expect(screen.getByText('Playlist not found')).toBeInTheDocument();
+  read.mockRestore(); clear.mockRestore();
+});
 
-  test('shows an empty state when no temporary playlist exists', async () => {
-    render(<RandomWatch />);
+it('loads the temporary playlist without creating a database playlist', () => {
+  sessionStorage.setItem(RANDOM_PLAYLIST_STORAGE_KEY, JSON.stringify({ title: 'Test Actor', returnPath: '/movies', movies: [{ id: 'one', title: 'First' }, { id: 'two', title: 'Second' }] }));
+  render(<RandomWatch />);
+  expect(screen.getByRole('heading', { name: 'Random · Test Actor' })).toBeInTheDocument();
+  expect(JSON.parse(screen.getByTestId('player').getAttribute('data-items')!).map((movie: any) => movie.id)).toEqual(['one', 'two']);
+  fireEvent.click(screen.getByRole('button', { name: 'Leave player' }));
+  expect(mockPush).toHaveBeenCalledWith('/movies');
+});
 
-    expect(await screen.findByText('Playlist not found')).toBeInTheDocument();
-  });
-
-  test('loads and starts the first movie from session storage', async () => {
-    sessionStorage.setItem(
-      RANDOM_PLAYLIST_STORAGE_KEY,
-      JSON.stringify(playlist)
-    );
-
-    const { container } = render(<RandomWatch />);
-
-    expect(await screen.findByText('First Movie')).toBeInTheDocument();
-    expect(screen.getByText('Random Test Actor:')).toBeInTheDocument();
-    expect(container.querySelector('source')).toHaveAttribute(
-      'src',
-      '/api/video/movie-1'
-    );
-    await waitFor(() => {
-      expect(mockAddMovieView).toHaveBeenCalledWith({ movieId: 'movie-1' });
-      expect(mockAddToWatchlist).toHaveBeenCalledWith({ movieId: 'movie-1' });
-    });
-  });
-
-  test('moves to the next movie without creating a database playlist', async () => {
-    sessionStorage.setItem(
-      RANDOM_PLAYLIST_STORAGE_KEY,
-      JSON.stringify(playlist)
-    );
-
-    const { container } = render(<RandomWatch />);
-    await screen.findByText('First Movie');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next video' }));
-
-    expect(await screen.findByText('Second Movie')).toBeInTheDocument();
-    expect(container.querySelector('source')).toHaveAttribute(
-      'src',
-      '/api/video/movie-2'
-    );
-    expect(mockAddMovieView).toHaveBeenCalledWith({ movieId: 'movie-2' });
-  });
+it.each(['invalid-json', JSON.stringify({ title: 'Broken', movies: null })])('discards malformed temporary data', raw => {
+  sessionStorage.setItem(RANDOM_PLAYLIST_STORAGE_KEY, raw); render(<RandomWatch />);
+  expect(screen.getByText('Playlist not found')).toBeInTheDocument();
+  expect(sessionStorage.getItem(RANDOM_PLAYLIST_STORAGE_KEY)).toBeNull();
 });

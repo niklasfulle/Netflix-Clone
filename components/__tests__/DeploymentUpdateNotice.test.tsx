@@ -17,6 +17,44 @@ function healthResponse(version: string, ok = true, automaticReloadEnabled = tru
 }
 
 describe('DeploymentUpdateNotice', () => {
+  it('checks again when the tab becomes visible and reloads only once per mount', async () => {
+    const visibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    const reloadPage = jest.fn();
+    fetchMock.mockResolvedValue(healthResponse('1.13.1'));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    const { unmount } = render(<DeploymentUpdateNotice currentVersion="1.13.0" reloadPage={reloadPage} />);
+    try {
+      expect(fetchMock).not.toHaveBeenCalled();
+      fireEvent(document, new Event('visibilitychange'));
+      expect(fetchMock).not.toHaveBeenCalled();
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(reloadPage).toHaveBeenCalledTimes(1));
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+    } finally {
+      unmount();
+      if (visibility) Object.defineProperty(document, 'visibilityState', visibility);
+      else Reflect.deleteProperty(document, 'visibilityState');
+    }
+  });
+
+  it.each([{ status: 'ok' }, { status: 'degraded', version: '1.13.1' }])('does not reload incomplete or degraded health responses: %o', async health => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => health });
+    const reloadPage = jest.fn();
+    render(<DeploymentUpdateNotice currentVersion="1.13.0" reloadPage={reloadPage} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it('tolerates unavailable health checks', async () => {
+    fetchMock.mockRejectedValue(new Error('Deployment restarting'));
+    const reloadPage = jest.fn();
+    render(<DeploymentUpdateNotice currentVersion="1.13.0" reloadPage={reloadPage} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     fetchMock.mockReset();
     globalThis.fetch = fetchMock;

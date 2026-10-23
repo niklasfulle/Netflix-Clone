@@ -32,6 +32,20 @@ const values = {
 };
 
 describe('updateMovie', () => {
+  it.each([new Error('Cannot move this video'), 'non-error rejection'])('does not update metadata when staging the media move fails: %s', async failure => {
+    jest.mocked(stageMediaTypeChange).mockRejectedValueOnce(failure);
+    await expect(updateMovie('movie-1', values, 'thumb.jpg')).resolves.toEqual({ error: failure instanceof Error ? 'Cannot move this video' : 'Video file could not be moved!' });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('retains the successful catalog update if obsolete source-file cleanup fails', async () => {
+    const rollback = jest.fn();
+    const commit = jest.fn().mockRejectedValue(new Error('Source cleanup denied'));
+    jest.mocked(stageMediaTypeChange).mockResolvedValueOnce({ videoName: 'moved.mp4', sourcePath: 'movies/original.mp4', destinationPath: 'series/moved.mp4', rollback, commit });
+    await expect(updateMovie('movie-1', values, 'thumb.jpg')).resolves.toEqual({ success: 'Movie updated!' });
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(rollback).not.toHaveBeenCalled();
+  });
   const transaction = {
     movie: { update: jest.fn() },
     movieActor: { deleteMany: jest.fn(), createMany: jest.fn() },

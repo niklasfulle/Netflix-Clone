@@ -3,6 +3,9 @@
 import { privacySafeAuthenticationContext } from '@/lib/authentication/privacy';
 
 describe('authentication audit privacy', () => {
+  it('drops malformed identity values instead of retaining personal data', () => {
+    expect(privacySafeAuthenticationContext({ email: { raw: 'viewer@example.com' }, identity: null, scope: 'login' }, 'audit-secret')).toEqual({ scope: 'login' });
+  });
   it('replaces identities with a stable keyed hash and removes credentials', () => {
     const first = privacySafeAuthenticationContext({
       identity: 'Viewer@Example.com',

@@ -34,6 +34,12 @@ const changelog = [
 ];
 
 describe('ChangelogPage', () => {
+  it('shows a first release without an empty historical timeline', () => {
+    mockedGetChangelog.mockReturnValue([changelog[0]]);
+    render(<ChangelogPage />);
+    expect(screen.getByRole('region', { name: 'Version 1.11.0' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Release History' })).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     mockedGetChangelog.mockReturnValue(changelog);
   });

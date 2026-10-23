@@ -27,6 +27,21 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 describe('add playlist entry action - Authentifizierung & Validierung', () => {
+  it('does not insert a second copy of a movie already in the playlist', async () => {
+    jest.mocked(currentUser).mockResolvedValue({ id: 'user' } as never);
+    jest.mocked(db.profil.findFirst).mockResolvedValue({ id: 'profile' } as never);
+    jest.mocked(db.playlist.findFirst).mockResolvedValue({ id: 'list' } as never);
+    jest.mocked(db.playlistEntry.findMany).mockResolvedValueOnce([{ movieId: 'movie' }] as never);
+    await expect(addPlaylistEntry({ playlistId: 'list', movieId: 'movie' })).resolves.toEqual({ error: 'Already in Playlist' });
+    expect(db.playlistEntry.create).not.toHaveBeenCalled();
+  });
+  it('does not add content to a playlist outside the active profile', async () => {
+    jest.mocked(currentUser).mockResolvedValue({ id: 'user' } as never);
+    jest.mocked(db.profil.findFirst).mockResolvedValue({ id: 'profile' } as never);
+    jest.mocked(db.playlist.findFirst).mockResolvedValueOnce(null);
+    await expect(addPlaylistEntry({ playlistId: 'foreign', movieId: 'movie' })).resolves.toEqual({ error: 'Playlist not found!' });
+    expect(db.playlistEntry.create).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

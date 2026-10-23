@@ -87,6 +87,63 @@ const mockedHelpers = apiHelpers as jest.Mocked<typeof apiHelpers>;
 const json = (response: Response) => response.json();
 
 describe('file and remaining API routes', () => {
+  it('serves administrator series previews from configured media folders and reports preview failures', async () => {
+    const folders = { movie: process.env.MOVIE_FOLDER, series: process.env.SERIES_FOLDER };
+    process.env.MOVIE_FOLDER = path.join(process.cwd(), 'configured-movies');
+    process.env.SERIES_FOLDER = path.join(process.cwd(), 'configured-series');
+    try {
+      mockedDb.movie.findUnique.mockResolvedValue({ id: 'series1', type: 'Serie', status: 'DRAFT', videoUrl: 'episode.mp4' });
+      mockedFs.existsSync.mockReturnValue(true);
+      mockedFs.statSync.mockReturnValue({ size: 100, isFile: () => true } as any);
+      mockedFs.createReadStream.mockImplementation(() => Readable.from(Buffer.alloc(100)) as any);
+      const request = { headers: new Headers() } as any;
+      const context = { params: Promise.resolve({ videoId: 'series1' }) };
+      expect((await streamVideo(request, context)).status).toBe(200);
+      expect((await streamBillboard(request, context)).status).toBe(200);
+      mockedFs.existsSync.mockReturnValue(false);
+      expect((await streamBillboard(request, context)).status).toBe(404);
+      mockedDb.movie.findUnique.mockRejectedValueOnce(new Error('Catalog offline'));
+      expect((await streamBillboard(request, context)).status).toBe(500);
+      mockedDb.movie.findUnique.mockResolvedValueOnce(null);
+      expect((await checkBillboardAvailability(request, context)).status).toBe(404);
+    } finally {
+      if (folders.movie === undefined) delete process.env.MOVIE_FOLDER; else process.env.MOVIE_FOLDER = folders.movie;
+      if (folders.series === undefined) delete process.env.SERIES_FOLDER; else process.env.SERIES_FOLDER = folders.series;
+    }
+  });
+  it('rejects missing delete paths and reports malformed requests without touching files', async () => {
+    expect((await deleteMovieFile({ json: async () => ({}) } as any)).status).toBe(400);
+    expect((await deleteMovieFile({ json: async () => { throw new Error('Malformed JSON'); } } as any)).status).toBe(500);
+    expect(mockedFs.unlinkSync).not.toHaveBeenCalled();
+  });
+
+  it('requires explicit log-clear confirmation and handles invalid JSON or storage failures', async () => {
+    expect((await clearLogs(new Request('http://localhost/api/logs/clear', { method: 'POST', body: '{}' }))).status).toBe(400);
+    expect((await clearLogs(new Request('http://localhost/api/logs/clear', { method: 'POST', body: '{' }))).status).toBe(400);
+    mockedFsPromises.writeFile.mockRejectedValueOnce(new Error('Storage unavailable'));
+    expect((await clearLogs(new Request('http://localhost/api/logs/clear', { method: 'POST', body: JSON.stringify({ confirmation: 'LOGS LÖSCHEN' }) }))).status).toBe(500);
+  });
+
+  it('avoids progress queries when search finds no content', async () => {
+    mockedHelpers.getUserAndProfile.mockResolvedValue({ user: { id: 'user1' }, profil: { id: 'profile1' } } as any);
+    mockedDb.actor.findMany.mockResolvedValue([]);
+    mockedDb.movie.findMany.mockResolvedValue([]);
+    mockedHelpers.transformMoviesResponse.mockReturnValue([]);
+    const response = await search(new Request('http://localhost/api/search/absent'), { params: Promise.resolve({ searchItem: 'absent' }) });
+    expect(await response.json()).toEqual({ actors: [], content: { Movie: [], Serie: [] } });
+    expect(mockedDb.movieWatchTime.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns video not-found and failure responses without opening a stream', async () => {
+    const request = { headers: new Headers() } as any;
+    const params = { params: Promise.resolve({ videoId: 'movie1' }) };
+    mockedDb.movie.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ status: 'PUBLISHED', type: 'Serie', videoUrl: 'missing' }).mockRejectedValueOnce(new Error('Catalog offline'));
+    mockedFs.existsSync.mockReturnValue(false);
+    expect((await streamVideo(request, params)).status).toBe(404);
+    expect((await streamVideo(request, params)).status).toBe(404);
+    expect((await streamVideo(request, params)).status).toBe(500);
+    expect(mockedFs.createReadStream).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.resetAllMocks();
     mockedFsPromises.mkdir.mockResolvedValue(undefined);

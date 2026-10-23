@@ -9,6 +9,21 @@ import { adminAuditReadRepository } from '@/data/admin-audit-reader';
 import { db } from '@/lib/db';
 
 describe('administrator audit read repository', () => {
+  it.each(['from', 'to'] as const)('applies a one-sided %s date filter when no matching actor exists', async boundary => {
+    jest.mocked(db.adminAuditEvent.count).mockResolvedValue(0);
+    jest.mocked(db.adminAuditEvent.findMany).mockResolvedValue([]);
+    jest.mocked(db.user.findMany).mockResolvedValue([]);
+    const date = new Date('2026-08-01T00:00:00.000Z');
+    await adminAuditReadRepository.search({ page: 1, pageSize: 20, actor: 'removed-account', [boundary]: date });
+    expect(db.adminAuditEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { OR: [{ actorUserId: { contains: 'removed-account', mode: 'insensitive' } }], createdAt: { [boundary === 'from' ? 'gte' : 'lte']: date } } }));
+  });
+
+  it('returns retained events even when account names or actor identifiers are absent', async () => {
+    jest.mocked(db.adminAuditEvent.count).mockResolvedValue(2);
+    jest.mocked(db.adminAuditEvent.findMany).mockResolvedValue([{ id: 'system-event', actorUserId: null }, { id: 'removed-account-event', actorUserId: 'removed' }] as never);
+    jest.mocked(db.user.findMany).mockResolvedValue([]);
+    await expect(adminAuditReadRepository.search({ page: 1, pageSize: 20 })).resolves.toEqual({ total: 2, events: [{ id: 'system-event', actorUserId: null, actorName: null }, { id: 'removed-account-event', actorUserId: 'removed', actorName: null }] });
+  });
   beforeEach(() => jest.resetAllMocks());
 
   it('filters and paginates in Prisma and resolves an optional actor name', async () => {

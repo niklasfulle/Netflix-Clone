@@ -1,6 +1,17 @@
 import { resolvePasskeyConfiguration } from '@/lib/authentication/passkey-configuration';
 
 describe('resolvePasskeyConfiguration', () => {
+  const configuration = { AUTH_PASSKEYS_ENABLED: 'true', AUTH_WEBAUTHN_RP_ID: 'example.com', AUTH_WEBAUTHN_RP_NAME: 'Netflix Clone', AUTH_WEBAUTHN_ORIGIN: 'https://login.example.com' };
+
+  it.each(['invalid origin', 'https://name@example.com', 'https://:value@example.com', 'https://example.com/path', 'https://example.com?query=1', 'https://example.com#fragment'])('rejects malformed or noncanonical origins: %s', origin => {
+    expect(() => resolvePasskeyConfiguration({ ...configuration, AUTH_WEBAUTHN_ORIGIN: origin })).toThrow('AUTH_WEBAUTHN_ORIGIN must be');
+  });
+
+  it('allows subdomains and local HTTP development with complete configuration', () => {
+    expect(resolvePasskeyConfiguration(configuration)).toMatchObject({ enabled: true, rpId: 'example.com' });
+    expect(resolvePasskeyConfiguration({ ...configuration, AUTH_WEBAUTHN_RP_ID: 'localhost', AUTH_WEBAUTHN_ORIGIN: 'http://localhost:3000' }, 'development')).toMatchObject({ enabled: true, rpId: 'localhost' });
+    expect(() => resolvePasskeyConfiguration({ ...configuration, AUTH_WEBAUTHN_ORIGIN: 'http://example.com' }, 'development')).toThrow('must use HTTPS');
+  });
   it('keeps passkeys disabled unless the feature is explicitly enabled', () => {
     expect(resolvePasskeyConfiguration({}, 'production')).toEqual({ enabled: false });
     expect(

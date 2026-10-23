@@ -35,6 +35,14 @@ function durableRepository(): jest.Mocked<JobExecutionRepository> {
 }
 
 describe('background job Redis coordination', () => {
+  it('does not publish a running snapshot for a job that has already succeeded', async () => {
+    const durable = durableRepository();
+    durable.claim.mockResolvedValue('SUCCEEDED');
+    const coordination = { publish: jest.fn() };
+    const repository = createCoordinatedJobExecutionRepository(durable, coordination);
+    await expect(repository.claim({ job, queueJobId: 'delivery-123', attemptCount: 1, startedAt: new Date('2026-08-23T10:01:00Z') })).resolves.toBe('SUCCEEDED');
+    expect(coordination.publish).not.toHaveBeenCalled();
+  });
   it('stores and retrieves a bounded expiring coordination snapshot', async () => {
     let stored: unknown;
     const runtime = {

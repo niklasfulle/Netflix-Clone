@@ -8,6 +8,26 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Erweiterte Verhaltenstests schließen kleine Coverage-Lücken bei Player, Playlists, Katalog, Anmeldung, Sitzungen, Admin-Oberflächen, API-Fehlerfällen und Hintergrundjobs
+- SonarQube-Korrekturen verbessern HTML-Semantik und Statusmeldungen von Suche und Player, vereinfachen die Player-Komponente und erhalten die Tastatursteuerung; echte WebVTT-Untertitelspuren können dem Player übergeben werden
+- Ein eigener Videoplayer mit deutscher und englischer Oberfläche ersetzt die Browser-Steuerung für Einzelvideos, normale Playlists, automatische Favoriten-Playlists und temporäre Zufallsplaylists
+- Der Player zeigt Videotitel, Playlistname und aktuelle Position; eine aufklappbare Titelliste ermöglicht direkte Auswahl sowie Wechsel zum vorherigen und nächsten Video
+- Ein abbrechbarer Fünf-Sekunden-Countdown startet den nächsten Playlist-Titel automatisch; sofortiges Abspielen und eine dauerhaft abschaltbare Autoplay-Einstellung stehen ebenfalls zur Verfügung
+- Eigene Wiedergabesteuerung mit Zeitleiste, Zeit- und Pufferanzeige, Zehn-Sekunden-Sprüngen, Lautstärke, Stummschaltung und Geschwindigkeiten von 0,5× bis 2×
+- Vollbild bleibt bei Playlist-Wechseln erhalten; unterstützte Browser bieten Bild-in-Bild, Tastatursteuerung und nach Inaktivität ausblendbare Bedienelemente für Desktop und Mobilgeräte
+- Profilbezogener Wiedergabefortschritt wird regelmäßig sowie beim Pausieren, Verlassen und Titelwechsel gespeichert; der Player setzt nach dem Laden der Metadaten fort und berücksichtigt auch beim Zurückwechseln den zuletzt gespeicherten Stand
+- Lautstärke, Stummschaltung und Wiedergabegeschwindigkeit bleiben im Browser gespeichert; blockiertes Autoplay, Ladezustände, Speicherfehler und nicht abspielbare Videos werden verständlich behandelt, einschließlich Wiederholen und weiterhin bedienbarer Playlist
+- Normale Playlist-Karten entsprechen jetzt der Favoriten-Karte: einheitliche 16:9-Vorschau, Kartenhöhe, Titelanzahl und bündige rote Abspielbuttons; Bearbeiten und bestätigtes Löschen bleiben auf Desktop und Mobilgeräten erreichbar
+- Playlist-Vorschaubilder nutzen eine gemeinsame Darstellung mit Einzelbild oder Vierer-Collage, einschließlich genau vier Titeln, und einem Fallback für fehlende Vorschaubilder
+- Eine separate lokale Docker-Compose-Umgebung baut die Anwendung aus dem Quellcode und startet PostgreSQL, Redis, Hintergrund-Worker und Mailpit ohne Abhängigkeiten von der Produktionsumgebung
+- Der lokale Stack initialisiert Datenbankschema und Job-Queue vor dem App-Start; eigene Daten- und Medien-Volumes sowie installationsabhängige lokale Zugangsdaten bleiben über Neustarts erhalten
+- Ein wiederholbarer, auf die lokale Umgebung begrenzter Seed ergänzt Admin- und Benutzerkonto, Profile, 16 Filme und Serien, vier Schauspieler, Favoriten, Watchlists, Playlists und Wiedergabefortschritt, ohne bestehende Konten oder bearbeitete Inhalte zu überschreiben
+- Lokal erzeugte zwölf Sekunden lange Testvideos mit Ton ermöglichen echte Wiedergabe-, Such- und Playlist-Tests; Auth-E-Mails können im lokalen Mailpit-Postfach geöffnet werden
+- Vier mit Imagegen erzeugte Profilbilder – Fuchs, Eule, Panda und Astronaut – stehen im lokalen Seed zur Auswahl; bestehende Demo-Profile mit dem ursprünglichen Standardbild werden aktualisiert und selbst gewählte Bilder bleiben erhalten
+- README und ergänzende Anleitungen dokumentieren lokalen Docker-Betrieb, Seeding, Profilbild-Generierung und Player-Bedienung einschließlich Tastenkürzeln und Medienvoraussetzungen
+
+## 1.13.6
+
 - Jedes Profil erhält eine automatische Playlist „Favoriten“, die beim Hinzufügen und Entfernen von Favoriten aktuell bleibt und direkt abgespielt werden kann
 
 ## 1.13.5

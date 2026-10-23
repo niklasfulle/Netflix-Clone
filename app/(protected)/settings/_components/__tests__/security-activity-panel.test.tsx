@@ -14,6 +14,35 @@ const mockGetActivity = getSecurityActivity as jest.MockedFunction<typeof getSec
 const mockRevokeOthers = revokeOtherSessions as jest.MockedFunction<typeof revokeOtherSessions>;
 
 describe('security activity panel', () => {
+  it('shows the empty state when the current session cannot read activity', async () => {
+    mockGetActivity.mockResolvedValueOnce({ status: 'rejected', code: 'unauthorized' });
+    render(<SecurityActivityPanel />);
+    expect(await screen.findByText('No security activity recorded yet.')).toBeInTheDocument();
+  });
+
+  it('uses generic labels for unknown events and devices', async () => {
+    mockGetActivity.mockResolvedValueOnce({ status: 'success', activity: [{ id: 'new-event', event: 'qr_device_approved', createdAt: '2026-08-12T10:00:00.000Z', userAgent: null }] });
+    render(<SecurityActivityPanel />);
+    expect(await screen.findByText('Security setting changed')).toBeInTheDocument();
+    expect(screen.getByText(/Unknown device/)).toBeInTheDocument();
+  });
+
+  it('reports one revoked device using the singular message', async () => {
+    mockRevokeOthers.mockResolvedValueOnce({ status: 'success', code: 'other_sessions_revoked', revoked: 1 });
+    render(<SecurityActivityPanel />);
+    await screen.findByText('Signed in');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out other devices' }));
+    expect(await screen.findByText('1 other session was signed out.')).toBeInTheDocument();
+  });
+
+  it('explains rejected revocations without reloading the activity', async () => {
+    mockRevokeOthers.mockResolvedValueOnce({ status: 'rejected', code: 'session_unavailable' });
+    render(<SecurityActivityPanel />);
+    await screen.findByText('Signed in');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out other devices' }));
+    expect(await screen.findByText('Other sessions could not be signed out.')).toBeInTheDocument();
+    expect(mockGetActivity).toHaveBeenCalledTimes(1);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetActivity.mockResolvedValue({

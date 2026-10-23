@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { login } from '@/actions/login';
 import { setNewPassword } from '@/actions/new-password';
 import { newVerification } from '@/actions/new-verification';
 import { register } from '@/actions/register';
 import { reset } from '@/actions/reset-password';
+import { resendVerificationEmail } from '@/actions/resend-verification';
 import { LoginForm } from '@/components/auth/login-form';
 import { NewPasswordForm } from '@/components/auth/new-password-form';
 import { NewVerificationForm } from '@/components/auth/new-verification-form';
@@ -54,6 +55,71 @@ function submitLogin() {
 }
 
 describe('auth form interactions', () => {
+  it('resends account verification after the registration email cooldown', async () => {
+    jest.useFakeTimers();
+    try {
+      mockedRegister.mockResolvedValueOnce({ status: 'success', code: 'verification_sent' });
+      jest.mocked(resendVerificationEmail).mockResolvedValueOnce({ status: 'success', code: 'verification_sent' });
+      render(<RegisterForm />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Register' })).toBeEnabled());
+      for (const [label, value] of Object.entries({ 'Full name': 'Viewer', Email: 'viewer@example.test', Password: 'valid-password-123', 'Confirm password': 'valid-password-123' })) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      fireEvent.click(screen.getByRole('button', { name: 'Register' }));
+      await screen.findByText('viewer@example.test');
+      act(() => { jest.advanceTimersByTime(60_000); });
+      fireEvent.click(screen.getByRole('button', { name: 'Send again' }));
+      await waitFor(() => expect(resendVerificationEmail).toHaveBeenCalledWith({ email: 'viewer@example.test' }));
+    } finally { jest.useRealTimers(); }
+  });
+  it.each([
+    { name: 'login', Component: LoginForm, action: mockedLogin, button: 'Login', fields: { Email: 'viewer@example.test', Password: 'valid-password-123' } },
+    { name: 'registration', Component: RegisterForm, action: mockedRegister, button: 'Register', fields: { 'Full name': 'Viewer', Email: 'viewer@example.test', Password: 'valid-password-123', 'Confirm password': 'valid-password-123' } },
+    { name: 'password reset', Component: ResetForm, action: mockedReset, button: 'Send reset email', fields: { Email: 'viewer@example.test' } },
+    { name: 'password update', Component: NewPasswordForm, action: mockedSetNewPassword, button: 'Set Password', fields: { 'New Password': 'valid-password-123', 'Confirm password': 'valid-password-123' } },
+  ])('keeps the $name form recoverable after a failed server request', async ({ Component, action, button, fields }) => {
+    getSearchParameter.mockReturnValue('test-token');
+    action.mockRejectedValueOnce(new Error('Network unavailable'));
+    render(<Component />);
+    await waitFor(() => expect(screen.getByRole('button', { name: button })).toBeEnabled());
+    for (const [label, value] of Object.entries(fields)) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: button }));
+    expect(await screen.findByText('Something went wrong!')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: button })).toBeEnabled());
+  });
+
+  it.each([
+    { status: 'rejected', code: 'token_expired', message: 'Token has expired!' },
+    { status: 'retry', code: 'rate_limited', retryAfterSeconds: 60, message: 'Too many attempts. Please try again later.' },
+  ] as const)('shows terminal verification feedback without restarting the request: $status', async ({ message, ...result }) => {
+    getSearchParameter.mockReturnValue('test-token');
+    mockedNewVerification.mockResolvedValueOnce(result);
+    render(<NewVerificationForm />);
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(mockedNewVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a recoverable message if automatic verification cannot reach the server', async () => {
+    getSearchParameter.mockReturnValue('test-token');
+    mockedNewVerification.mockRejectedValueOnce(new Error('Offline'));
+    render(<NewVerificationForm />);
+    expect(await screen.findByText('Something went wrong!')).toBeInTheDocument();
+    expect(mockedNewVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows requesting a fresh password reset email after the cooldown', async () => {
+    jest.useFakeTimers();
+    try {
+      mockedReset.mockResolvedValue({ status: 'success', code: 'password_reset_sent' });
+      render(<ResetForm />);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Send reset email' })).toBeEnabled());
+      fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'VIEWER@EXAMPLE.TEST' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Send reset email' }));
+      expect(await screen.findByText('viewer@example.test')).toBeInTheDocument();
+      act(() => { jest.advanceTimersByTime(60_000); });
+      fireEvent.click(screen.getByRole('button', { name: 'Send again' }));
+      await waitFor(() => expect(mockedReset).toHaveBeenLastCalledWith({ email: 'viewer@example.test' }));
+      expect(mockedReset).toHaveBeenCalledTimes(2);
+    } finally { jest.useRealTimers(); }
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     getSearchParameter.mockReturnValue(null);

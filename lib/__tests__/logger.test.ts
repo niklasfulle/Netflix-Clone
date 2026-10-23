@@ -13,6 +13,17 @@ jest.mock('@/lib/log-store', () => {
 });
 
 describe('backend action logger', () => {
+  it('handles events with no operational details without adding undefined fields', async () => {
+    const { logBackendAction } = await import('@/lib/logger');
+    logBackendAction('service.ready', {}, 'warn');
+    expect(mockWrite).toHaveBeenCalledWith({ timestamp: expect.any(String), level: 'warn', action: 'service.ready' });
+  });
+
+  it('preserves allow-listed actor and throttle references while dropping unrelated fields', async () => {
+    const { logBackendAction } = await import('@/lib/logger');
+    logBackendAction('authentication.reference', { userEmail: 'viewer@example.test', email: 'contact@example.test', identityHash: 'identity-reference', keyHash: 'bucket-reference', ignored: 'not-logged', values: {} });
+    expect(mockWrite).toHaveBeenCalledWith({ timestamp: expect.any(String), level: 'info', action: 'authentication.reference', userEmail: 'viewer@example.test', email: 'contact@example.test', identityHash: 'identity-reference', keyHash: 'bucket-reference' });
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

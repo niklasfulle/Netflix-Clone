@@ -16,6 +16,16 @@ jest.mock('next/navigation', () => ({
 }));
 
 describe('QrDeviceApproval', () => {
+  it.each([401, 'network'] as const)('keeps approval recoverable after %s failures', async failure => {
+    global.fetch = failure === 'network' ? jest.fn().mockRejectedValue(new Error('Offline')) : jest.fn().mockResolvedValue({ ok: false, status: failure });
+    render(<QrDeviceApproval />);
+    fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'password' } });
+    fireEvent.change(screen.getByLabelText('Optional MFA or recovery code'), { target: { value: '123456' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve sign-in' }));
+    expect(await screen.findByText(failure === 401 ? 'Sign in on this phone first, then return to approve the other device.' : 'This sign-in request could not be approved. Check the code and your recent authentication.')).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/qr/approve', expect.objectContaining({ body: JSON.stringify({ approvalSecret: 'approval-secret', password: 'password', mfaCode: '123456' }) }));
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseSearchParams.mockReturnValue(new URLSearchParams('pair=approval-secret') as never);

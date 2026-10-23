@@ -1,8 +1,21 @@
 /** @jest-environment node */
 
-import { createWeeklyScheduleService } from '@/lib/jobs/weekly-schedules';
+import { createWeeklyScheduleService, parseWeeklyScheduleTick } from '@/lib/jobs/weekly-schedules';
 
 describe('weekly background job schedules', () => {
+  it('rejects queue deliveries whose job kind disagrees with their schedule configuration', () => {
+    expect(() => parseWeeklyScheduleTick({ schemaVersion: 1, kind: 'BACKUP', actorUserId: 'admin-user-123', environment: 'staging', schedule: { kind: 'MEDIA_HEALTH', weekdays: [1], time: '03:00', timezone: 'UTC' } })).toThrow('Schedule tick kind does not match its configuration');
+  });
+  it('restores a valid stored schedule only for its matching schedule kind', async () => {
+    const service = createWeeklyScheduleService({
+      getSchedules: jest.fn().mockResolvedValue([{ data: { schemaVersion: 1, kind: 'BACKUP', actorUserId: 'admin-user-123', environment: 'staging', schedule: { kind: 'BACKUP', weekdays: [1], time: '03:00', timezone: 'Europe/Berlin' } } }]),
+      schedule: jest.fn(), unschedule: jest.fn(),
+    });
+    await expect(service.list()).resolves.toEqual([
+      expect.objectContaining({ kind: 'BACKUP', enabled: true, weekdays: [1], time: '03:00' }),
+      expect.objectContaining({ kind: 'MEDIA_HEALTH', enabled: false, time: '04:00' }),
+    ]);
+  });
   it('returns safe disabled defaults when no schedule exists', async () => {
     const service = createWeeklyScheduleService({
       getSchedules: jest.fn().mockResolvedValue([]),

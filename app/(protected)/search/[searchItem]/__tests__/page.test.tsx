@@ -85,6 +85,18 @@ const mockUsePlaylists = usePlaylists as jest.MockedFunction<typeof usePlaylists
 const mockUseInfoModal = useInfoModal as jest.MockedFunction<typeof useInfoModal>;
 
 describe("MoviesPage (Search)", () => {
+  it('shows no-results feedback only after a successful empty search', () => {
+    mockUseSearchItem.mockReturnValue({ data: { actors: [], content: { Movie: [], Serie: [] } }, isLoading: false } as any);
+    render(<MoviesPage />);
+    expect(screen.getByText(/No results found for/)).toBeInTheDocument();
+    expect(screen.queryByTestId('search-list')).not.toBeInTheDocument();
+  });
+  it.each([undefined, { actors: [], content: { Movie: [] } }])('keeps an in-flight search from displaying a premature empty result: %j', data => {
+    mockUseSearchItem.mockReturnValue({ data, isLoading: true } as any);
+    render(<MoviesPage />);
+    expect(screen.getByTestId('search-list')).toBeInTheDocument();
+    expect(screen.queryByText(/No results found/)).not.toBeInTheDocument();
+  });
   const mockProfil = {
     id: "profile-1",
     name: "John Doe",

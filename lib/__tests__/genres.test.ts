@@ -8,6 +8,15 @@ import {
 } from "@/lib/genres";
 
 describe("genre configuration", () => {
+  it('uses runtime genre settings when arguments are omitted', () => {
+    const environment = jest.replaceProperty(process, 'env', { ...process.env, NODE_ENV: 'production', NEXT_PUBLIC_GENRE: 'Drama' });
+    try {
+      expect(getSelectableGenres()).toEqual(['Drama']);
+      expect(isGenreAllowed('Drama')).toBe(true);
+      expect(isGenreAllowed('Action')).toBe(false);
+      expect(parseGenreOptions(undefined)).toEqual([]);
+    } finally { environment.restore(); }
+  });
   it("trims values and removes empty entries and duplicates", () => {
     expect(parseGenreOptions(" Action,Drama, Action, ,Comedy ")).toEqual([
       "Action",

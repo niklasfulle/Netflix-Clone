@@ -67,6 +67,14 @@ it('returns a bounded filtered job page without caching it', async () => {
   expect(mockedHealth).toHaveBeenCalledWith({ userId: 'admin-user-123', role: 'ADMIN' });
 });
 
+it('returns a safe service-unavailable response for unexpected repository failures', async () => {
+  mockedList.mockRejectedValueOnce(new Error('Private database details'));
+  const response = await GET(new Request('http://localhost/api/admin/jobs'));
+  expect(response.status).toBe(503);
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+  expect(await response.json()).toEqual({ error: 'Unable to load background jobs' });
+});
+
 it('rejects invalid filters before querying PostgreSQL', async () => {
   const response = await GET(new Request(
     'http://localhost/api/admin/jobs?status=NOT_A_JOB_STATUS&limit=500',

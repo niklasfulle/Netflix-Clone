@@ -33,6 +33,16 @@ jest.mock('@/components/BillboardPlayButton', () => {
 import BillboardBase from '../BillboardBase';
 
 describe('BillboardBase', () => {
+  it.each(['blocked', 'legacy'] as const)('survives %s autoplay responses when media becomes playable', async mode => {
+    const play = jest.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => mode === 'blocked' ? Promise.reject(new Error('Autoplay blocked')) : undefined as unknown as Promise<void>);
+    try {
+      const { container } = render(<BillboardBase data={mockData} isLoading={false} />);
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
+      fireEvent.canPlay(container.querySelector('video')!);
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('play-button')).toBeInTheDocument();
+    } finally { play.mockRestore(); }
+  });
   const mockData = {
     id: 'movie-1',
     title: 'Test Movie Title',

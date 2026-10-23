@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { MfaChallenge } from '@/components/auth/mfa-challenge';
 
@@ -7,6 +7,32 @@ jest.mock('@/components/providers/LanguageProvider', () => ({
 }));
 
 describe('MfaChallenge', () => {
+  it('expires email codes, enables resend after its cooldown and disables controls while pending', () => {
+    jest.useFakeTimers();
+    try {
+      const onResendEmail = jest.fn();
+      const props = { challenge: { status: 'challenge' as const, code: 'two_factor_required' as const, challenge: 'email_otp' as const, maskedDestination: 'v***@example.test', expiresInSeconds: 2, resendAfterSeconds: 1 }, isPending: false, onSubmit: jest.fn(), onRequestEmail: jest.fn(), onResendEmail, onBack: jest.fn() };
+      const { rerender } = render(<MfaChallenge {...props} />);
+      act(() => { jest.advanceTimersByTime(1000); });
+      fireEvent.click(screen.getByRole('button', { name: 'Send again' }));
+      expect(onResendEmail).toHaveBeenCalledTimes(1);
+      act(() => { jest.advanceTimersByTime(1000); });
+      expect(screen.getByText('This code has expired.')).toBeInTheDocument();
+      expect(screen.getByLabelText('Email verification code')).toBeDisabled();
+      rerender(<MfaChallenge {...props} isPending={true} />);
+      expect(screen.getByRole('button', { name: 'Confirming…' })).toBeDisabled();
+    } finally { jest.useRealTimers(); }
+  });
+
+  it('switches back from recovery codes and ignores blank form submissions', () => {
+    const onSubmit = jest.fn();
+    const { container } = render(<MfaChallenge challenge={{ status: 'challenge', code: 'two_factor_required', challenge: 'totp', canUseEmailFallback: true }} isPending={false} onSubmit={onSubmit} onRequestEmail={jest.fn()} onResendEmail={jest.fn()} onBack={jest.fn()} />);
+    fireEvent.submit(container.querySelector('form')!);
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use a recovery code' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use authenticator code' }));
+    expect(screen.getByLabelText('Authenticator code')).toBeInTheDocument();
+  });
   it('submits authenticator codes and exposes recovery and email fallback paths', () => {
     const onSubmit = jest.fn();
     const onRequestEmail = jest.fn();

@@ -3,6 +3,26 @@ import { createRecentAuthenticationService } from '../recent-authentication';
 describe('recent authentication', () => {
   const now = new Date('2026-08-21T13:00:00.000Z');
 
+  it.each([
+    { user: null, mfaCode: undefined, allowed: false },
+    { user: { hashedPassword: null, isBlocked: false, isTwoFactorEnabled: false }, mfaCode: undefined, allowed: false },
+    { user: { hashedPassword: 'stored-hash', isBlocked: true, isTwoFactorEnabled: false }, mfaCode: undefined, allowed: false },
+    { user: { hashedPassword: 'stored-hash', isBlocked: false, isTwoFactorEnabled: true }, mfaCode: undefined, allowed: false },
+    { user: { hashedPassword: 'stored-hash', isBlocked: false, isTwoFactorEnabled: true }, mfaCode: '000000', allowed: false },
+    { user: { hashedPassword: 'stored-hash', isBlocked: false, isTwoFactorEnabled: false }, mfaCode: undefined, allowed: true },
+  ])('requires every enabled authentication factor: %#', async ({ user, mfaCode, allowed }) => {
+    const upsert = jest.fn();
+    const consume = jest.fn().mockResolvedValue(null);
+    const service = createRecentAuthenticationService({
+      users: { findById: jest.fn().mockResolvedValue(user && { id: 'user-1', ...user }) },
+      passwords: { verify: jest.fn().mockResolvedValue(true) },
+      mfa: { consume }, grants: { upsert }, clock: { now: () => now },
+    });
+    await expect(service.verifyAndGrant({ userId: 'user-1', sessionId: 'session-1', password: 'fresh password', mfaCode })).resolves.toEqual({ status: allowed ? 'verified' : 'rejected' });
+    expect(upsert).toHaveBeenCalledTimes(allowed ? 1 : 0);
+    if (!mfaCode) expect(consume).not.toHaveBeenCalled();
+  });
+
   it('grants five minutes only after fresh password and enabled MFA verification', async () => {
     const upsert = jest.fn().mockResolvedValue(undefined);
     const consume = jest.fn().mockResolvedValue('totp');

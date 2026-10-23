@@ -17,6 +17,12 @@ import { logBackendAction } from '@/lib/logger';
 const mockCurrentUser = currentUser as jest.MockedFunction<typeof currentUser>;
 
 describe('remove playlist action', () => {
+  it('rejects an empty identifier before resolving or deleting a playlist', async () => {
+    mockCurrentUser.mockResolvedValue({ id: 'user' } as never);
+    await expect(removePlaylist('')).resolves.toEqual({ error: 'Invalid fields!' });
+    expect(db.profil.findFirst).not.toHaveBeenCalled();
+    expect(db.playlist.delete).not.toHaveBeenCalled();
+  });
   beforeEach(() => jest.clearAllMocks());
 
   it('rejects unauthenticated users', async () => {
