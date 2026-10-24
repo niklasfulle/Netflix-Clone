@@ -15,6 +15,10 @@ export const useVideoThumbnailUpload = () => {
   const [thumbnailTimestamps, setThumbnailTimestamps] = useState<number[]>([]);
   const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
   const [thumbnailGenerationError, setThumbnailGenerationError] = useState(false);
+  const [selectedThumbnailTimestamp, setSelectedThumbnailTimestamp] = useState<number | null>(null);
+  const [thumbnailVideoDuration, setThumbnailVideoDuration] = useState(0);
+  const [isAdjustingThumbnail, setIsAdjustingThumbnail] = useState(false);
+  const [thumbnailAdjustmentError, setThumbnailAdjustmentError] = useState(false);
   const [uploadedVideoPath, setUploadedVideoPath] = useState<string>("");
   const [generatedVideoId, setGeneratedVideoId] = useState<string>("");
 
@@ -25,6 +29,7 @@ export const useVideoThumbnailUpload = () => {
   const cancelThumbnailGeneration = () => {
     generationCleanupRef.current?.();
     setIsGeneratingThumbnails(false);
+    setIsAdjustingThumbnail(false);
   };
 
   useEffect(() => () => {
@@ -48,6 +53,9 @@ export const useVideoThumbnailUpload = () => {
     setThumbnailOptions([]);
     setThumbnailTimestamps([]);
     setThumbnailGenerationError(false);
+    setSelectedThumbnailTimestamp(null);
+    setThumbnailVideoDuration(0);
+    setThumbnailAdjustmentError(false);
     setShowThumbnailSelector(false);
     setVideoFile(file);
     const previewUrl = URL.createObjectURL(file);
@@ -125,6 +133,7 @@ export const useVideoThumbnailUpload = () => {
         }
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+        setThumbnailVideoDuration(video.duration);
         // Sample within each segment instead of seeking to the current frame at 0.
         const segmentOffset = Math.max(0.1, Math.min(0.9, startOffset / 100));
         const captureNextFrame = () => {
@@ -180,17 +189,84 @@ export const useVideoThumbnailUpload = () => {
     generateThumbnails(randomOffset);
   };
 
-  const selectThumbnail = (thumbnail: string) => {
+  const selectThumbnail = (thumbnail: string, timestamp?: number) => {
     cancelThumbnailGeneration();
     setThumbnailUrl(thumbnail);
+    setSelectedThumbnailTimestamp(timestamp ?? thumbnailTimestamps[thumbnailOptions.indexOf(thumbnail)] ?? null);
+    setThumbnailAdjustmentError(false);
     setShowThumbnailSelector(false);
     toast.success(t("Thumbnail selected!"));
   };
 
   const deselectThumbnail = () => {
+    cancelThumbnailGeneration();
     setThumbnailUrl("");
+    setSelectedThumbnailTimestamp(null);
+    setThumbnailAdjustmentError(false);
     setShowThumbnailSelector(true);
     toast.success(t("Thumbnail deselected!"));
+  };
+
+  const adjustThumbnail = (seconds: -5 | 5) => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || selectedThumbnailTimestamp === null || generationCleanupRef.current) return;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+    const target = Math.max(0, Math.min(selectedThumbnailTimestamp + seconds, Math.max(0, video.duration - 0.05)));
+    if (target === selectedThumbnailTimestamp) return;
+    let active = true;
+    const cleanup = () => {
+      active = false;
+      clearTimeout(timeout);
+      video.onseeked = null;
+      video.onerror = null;
+      generationCleanupRef.current = null;
+    };
+    const fail = () => {
+      if (!active) return;
+      cleanup();
+      setIsAdjustingThumbnail(false);
+      setThumbnailAdjustmentError(true);
+    };
+    const capture = () => {
+      if (!active) return;
+      try {
+        const ctx = canvas.getContext("2d");
+        if (!ctx || !video.videoWidth || !video.videoHeight) {
+          fail();
+          return;
+        }
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
+        if (!thumbnail.startsWith("data:image/jpeg")) {
+          fail();
+          return;
+        }
+        cleanup();
+        setThumbnailUrl(thumbnail);
+        setSelectedThumbnailTimestamp(target);
+        setIsAdjustingThumbnail(false);
+      } catch {
+        fail();
+      }
+    };
+    const timeout = setTimeout(fail, 15000);
+    generationCleanupRef.current = cleanup;
+    setThumbnailAdjustmentError(false);
+    setIsAdjustingThumbnail(true);
+    video.onseeked = capture;
+    video.onerror = fail;
+    try {
+      if (Math.abs(video.currentTime - target) < 0.001 && video.readyState >= 2 && !video.seeking) {
+        capture();
+      } else {
+        video.currentTime = target;
+      }
+    } catch {
+      fail();
+    }
   };
 
   const uploadVideo = async (videoType: string, onVideoUploadSuccess?: (result: { filePath: string; videoId: string }) => void) => {
@@ -224,6 +300,8 @@ export const useVideoThumbnailUpload = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       cancelThumbnailGeneration();
+      setSelectedThumbnailTimestamp(null);
+      setThumbnailAdjustmentError(false);
       setThumbnailUrl(reader.result as string);
       setShowThumbnailSelector(false);
     };
@@ -245,6 +323,9 @@ export const useVideoThumbnailUpload = () => {
     setThumbnailOptions([]);
     setThumbnailTimestamps([]);
     setThumbnailGenerationError(false);
+    setSelectedThumbnailTimestamp(null);
+    setThumbnailVideoDuration(0);
+    setThumbnailAdjustmentError(false);
     setShowThumbnailSelector(false);
 
     for (const inputId of ["video-upload", "thumbnail-upload"]) {
@@ -304,6 +385,10 @@ export const useVideoThumbnailUpload = () => {
     thumbnailTimestamps,
     isGeneratingThumbnails,
     thumbnailGenerationError,
+    selectedThumbnailTimestamp,
+    thumbnailVideoDuration,
+    isAdjustingThumbnail,
+    thumbnailAdjustmentError,
     uploadedVideoPath,
     generatedVideoId,
     uploadProgress: chunkUploadProgress,
@@ -319,6 +404,7 @@ export const useVideoThumbnailUpload = () => {
     regenerateThumbnails,
     selectThumbnail,
     deselectThumbnail,
+    adjustThumbnail,
     uploadVideo,
     createDataUri,
     resetUploadState,

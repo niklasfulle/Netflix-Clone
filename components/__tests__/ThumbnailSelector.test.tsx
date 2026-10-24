@@ -33,7 +33,7 @@ describe('ThumbnailSelector', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('New previews are ready.');
     fireEvent.click(screen.getByRole('button', { name: 'Select thumbnail 1' }));
-    expect(select).toHaveBeenCalledWith('/new.jpg');
+    expect(select).toHaveBeenCalledWith('/new.jpg', 125);
     expect(screen.getByRole('button', { name: 'Generate new' })).toBeEnabled();
   });
 

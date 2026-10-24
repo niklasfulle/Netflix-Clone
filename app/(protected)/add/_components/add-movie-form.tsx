@@ -52,6 +52,11 @@ export const AddMovieForm = () => {
     thumbnailTimestamps,
     isGeneratingThumbnails,
     thumbnailGenerationError,
+    selectedThumbnailTimestamp,
+    thumbnailVideoDuration,
+    isAdjustingThumbnail,
+    thumbnailAdjustmentError,
+    adjustThumbnail,
     uploadProgress,
     isUploading,
     uploadedVideoPath,
@@ -138,6 +143,7 @@ export const AddMovieForm = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof MovieSchema>) => {
+    if (isAdjustingThumbnail) return;
     if (!thumbnailUrl) {
       toast.error(t("Please select a thumbnail!"));
       return;
@@ -247,6 +253,11 @@ export const AddMovieForm = () => {
               onManualUpload={createDataUri}
               showDeselect
               useImage
+              selectedTimestamp={selectedThumbnailTimestamp}
+              videoDuration={thumbnailVideoDuration}
+              isAdjusting={isAdjustingThumbnail}
+              adjustmentError={thumbnailAdjustmentError}
+              onAdjustThumbnail={adjustThumbnail}
             />
           )}
 
@@ -269,7 +280,7 @@ export const AddMovieForm = () => {
           <div className="mt-4 flex justify-end border-t border-zinc-800 pt-6">
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isAdjustingThumbnail}
               size="lg"
               className="w-full bg-red-600 font-semibold text-white hover:bg-red-500 sm:w-auto"
             >

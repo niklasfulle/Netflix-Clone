@@ -11,7 +11,7 @@ interface ThumbnailSelectorProps {
   thumbnailTimestamps?: number[];
   isGenerating?: boolean;
   generationError?: boolean;
-  onSelectThumbnail: (thumbnail: string) => void;
+  onSelectThumbnail: (thumbnail: string, timestamp?: number) => void;
   onRegenerate: () => void;
 }
 
@@ -70,6 +70,11 @@ export const ThumbnailSelector = ({
             </div>
           );
           const seconds = Math.floor(thumbnailTimestamps[index] ?? 0);
+          const select = () => {
+            const timestamp = thumbnailTimestamps[index];
+            if (timestamp === undefined) onSelectThumbnail(thumb);
+            else onSelectThumbnail(thumb, timestamp);
+          };
           const timestamp = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
             .filter((_, position) => position > 0 || seconds >= 3600)
             .map((value) => String(value).padStart(2, "0")).join(":");
@@ -78,11 +83,11 @@ export const ThumbnailSelector = ({
             type="button"
             key={`${index}-${thumb}`}
             disabled={isGenerating}
-            onClick={() => onSelectThumbnail(thumb)}
+            onClick={select}
             onKeyDown={(e) => {
               if (!isGenerating && (e.key === "Enter" || e.key === " ")) {
                 e.preventDefault();
-                onSelectThumbnail(thumb);
+                select();
               }
             }}
             className="group relative aspect-video w-full overflow-hidden rounded-lg border-2 border-transparent p-0 transition-colors enabled:hover:border-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-wait"

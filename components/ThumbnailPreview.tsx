@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { FormLabel } from "@/components/ui/form";
-import { Upload, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Upload, X } from "lucide-react";
 
 interface ThumbnailPreviewProps {
   thumbnailUrl: string;
@@ -12,6 +12,11 @@ interface ThumbnailPreviewProps {
   onManualUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   showDeselect?: boolean;
   useImage?: boolean;
+  selectedTimestamp?: number | null;
+  videoDuration?: number;
+  isAdjusting?: boolean;
+  adjustmentError?: boolean;
+  onAdjustThumbnail?: (seconds: -5 | 5) => void;
 }
 
 export const ThumbnailPreview = ({
@@ -20,8 +25,17 @@ export const ThumbnailPreview = ({
   onManualUpload,
   showDeselect = true,
   useImage = false,
+  selectedTimestamp = null,
+  videoDuration = 0,
+  isAdjusting = false,
+  adjustmentError = false,
+  onAdjustThumbnail,
 }: ThumbnailPreviewProps) => {
   const { t } = useLanguage();
+  const seconds = Math.floor(selectedTimestamp ?? 0);
+  const timestamp = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
+    .filter((_, position) => position > 0 || seconds >= 3600)
+    .map((value) => String(value).padStart(2, "0")).join(":");
 
   return (
     <>
@@ -35,6 +49,7 @@ export const ThumbnailPreview = ({
               <Button
                 type="button"
                 onClick={onDeselect}
+                disabled={isAdjusting}
                 className="h-8 px-3 bg-zinc-700 hover:bg-zinc-600 text-white text-xs"
               >
                 <X className="w-3 h-3 mr-1" />
@@ -42,6 +57,7 @@ export const ThumbnailPreview = ({
               </Button>
             )}
           </div>
+          <div className="relative" aria-busy={isAdjusting}>
           {useImage ? (
             <Image
               src={thumbnailUrl}
@@ -60,6 +76,31 @@ export const ThumbnailPreview = ({
               className="rounded-xl border-2 border-green-500"
             />
           )}
+          {isAdjusting && (
+            <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center rounded bg-black/50">
+              <Loader2 className="h-10 w-10 motion-safe:animate-spin text-white" />
+            </div>
+          )}
+          </div>
+          {onAdjustThumbnail && selectedTimestamp !== null && videoDuration > 0 && (
+            <div className="mt-3 rounded-lg border border-zinc-700 bg-zinc-900 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button type="button" onClick={() => onAdjustThumbnail(-5)} disabled={isAdjusting || selectedTimestamp <= 0} className="bg-zinc-700 text-white hover:bg-zinc-600">
+                  <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />
+                  {t("5 seconds earlier")}
+                </Button>
+                <output className="text-sm text-zinc-200">
+                  {isAdjusting ? t("Updating thumbnail...") : <span className="font-mono tabular-nums">{timestamp}</span>}
+                </output>
+                <Button type="button" onClick={() => onAdjustThumbnail(5)} disabled={isAdjusting || selectedTimestamp >= videoDuration - 0.05} className="bg-zinc-700 text-white hover:bg-zinc-600">
+                  {t("5 seconds later")}
+                  <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+              <p className="mt-3 text-xs text-zinc-400">{t("Move through the video to fine-tune your thumbnail. The new frame is selected automatically.")}</p>
+              {adjustmentError && <p role="alert" className="mt-2 text-sm text-red-300">{t("Thumbnail could not be updated. Your previous image is still selected. Try again.")}</p>}
+            </div>
+          )}
         </div>
       )}
 
@@ -75,6 +116,7 @@ export const ThumbnailPreview = ({
               type="file"
               accept="image/*"
               onChange={onManualUpload}
+              disabled={isAdjusting}
             />
             <label
               htmlFor="thumbnail-upload"

@@ -781,5 +781,78 @@ describe('useVideoThumbnailUpload', () => {
       expect(drawImage).not.toHaveBeenCalled();
       expect(video.onseeked).toBeNull();
     });
+
+    it('shifts from the selected timestamp, prevents overlapping requests, and selects the new frame', () => {
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.generateThumbnails(20); });
+      for (let i = 0; i < 6; i++) act(() => { video.onseeked?.(new Event('seeked')); });
+      act(() => { result.current.selectThumbnail(result.current.thumbnailOptions[2], 22); });
+      expect(result.current.selectedThumbnailTimestamp).toBe(22);
+      expect(result.current.thumbnailVideoDuration).toBe(60);
+      act(() => { result.current.adjustThumbnail(5); });
+      expect(video.currentTime).toBe(27);
+      expect(result.current.isAdjustingThumbnail).toBe(true);
+      expect(result.current.thumbnailUrl).toBe('data:image/jpeg;base64,frame-3');
+      act(() => { result.current.adjustThumbnail(5); });
+      expect(video.currentTime).toBe(27);
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.selectedThumbnailTimestamp).toBe(27);
+      expect(result.current.thumbnailUrl).toBe('data:image/jpeg;base64,frame-7');
+      expect(result.current.isAdjustingThumbnail).toBe(false);
+      act(() => { result.current.adjustThumbnail(-5); });
+      expect(video.currentTime).toBe(22);
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.selectedThumbnailTimestamp).toBe(22);
+    });
+
+    it('clamps a frame adjustment at the beginning and end of a video', () => {
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.selectThumbnail('data:image/jpeg;base64,chosen', 2); });
+      act(() => { result.current.adjustThumbnail(-5); });
+      expect(video.currentTime).toBe(0);
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.selectedThumbnailTimestamp).toBe(0);
+      act(() => { result.current.adjustThumbnail(-5); });
+      expect(result.current.isAdjustingThumbnail).toBe(false);
+      act(() => { result.current.selectThumbnail('data:image/jpeg;base64,chosen', 58); });
+      act(() => { result.current.adjustThumbnail(5); });
+      expect(video.currentTime).toBeCloseTo(59.95);
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.selectedThumbnailTimestamp).toBeCloseTo(59.95);
+      act(() => { result.current.adjustThumbnail(5); });
+      expect(result.current.isAdjustingThumbnail).toBe(false);
+    });
+
+    it('retains the selected image after an adjustment timeout and allows retry', () => {
+      jest.useFakeTimers();
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.selectThumbnail('data:image/jpeg;base64,chosen', 20); });
+      act(() => { result.current.adjustThumbnail(5); });
+      act(() => { jest.advanceTimersByTime(15000); });
+      expect(result.current.thumbnailUrl).toBe('data:image/jpeg;base64,chosen');
+      expect(result.current.selectedThumbnailTimestamp).toBe(20);
+      expect(result.current.thumbnailAdjustmentError).toBe(true);
+      expect(result.current.isAdjustingThumbnail).toBe(false);
+      act(() => { result.current.adjustThumbnail(5); });
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.selectedThumbnailTimestamp).toBe(25);
+      expect(result.current.thumbnailAdjustmentError).toBe(false);
+    });
+
+    it('discards a pending adjustment when another image is selected', () => {
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.selectThumbnail('data:image/jpeg;base64,first', 20); });
+      act(() => { result.current.adjustThumbnail(5); });
+      const lateSeek = video.onseeked!;
+      act(() => { result.current.selectThumbnail('data:image/jpeg;base64,other', 40); });
+      act(() => { lateSeek.call(video, new Event('seeked')); });
+      expect(result.current.thumbnailUrl).toBe('data:image/jpeg;base64,other');
+      expect(result.current.selectedThumbnailTimestamp).toBe(40);
+      expect(result.current.isAdjustingThumbnail).toBe(false);
+    });
   });
 });
