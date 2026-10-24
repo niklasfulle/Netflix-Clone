@@ -635,8 +635,8 @@
       delay: "{{ docker_pull_delay }}"
       until: docker_registry_dns.rc == 0
 
-    - name: Remove dangling Docker images before pulling the release
-      command: docker image prune --force
+    - name: Remove unused Docker images before pulling the release
+      command: docker image prune --all --force
       changed_when: false
 
     - name: Pull new Docker image
@@ -1440,8 +1440,8 @@
               {{ previous_container_image.stdout | default('unknown') }} was restored;
               diagnostics are in /root/netflix-deploy-failures.
 
-    - name: Remove dangling Docker layers after successful start
-      command: docker image prune --force
+    - name: Remove unused Docker images after successful start
+      command: docker image prune --all --force
       changed_when: false
 
     - name: Display completion message
