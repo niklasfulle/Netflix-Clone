@@ -635,6 +635,10 @@
       delay: "{{ docker_pull_delay }}"
       until: docker_registry_dns.rc == 0
 
+    - name: Remove dangling Docker images before pulling the release
+      command: docker image prune --force
+      changed_when: false
+
     - name: Pull new Docker image
       command:
         argv:

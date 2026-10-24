@@ -28,7 +28,8 @@ COPY . .
 
 RUN ./node_modules/.bin/prisma generate \
     && yarn build:worker \
-    && ./node_modules/.bin/next build
+    && ./node_modules/.bin/next build \
+    && rm -rf .next/cache
 
 FROM base AS production-dependencies
 
