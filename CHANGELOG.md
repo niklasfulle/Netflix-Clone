@@ -9,6 +9,9 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 ## [current]
 
 - Das Produktionsimage enthält nicht mehr den großen Next.js-Turbopack-Buildcache; das Deployment entfernt vor dem Pull und nach erfolgreichem Start alle Images, die kein Container verwendet, und gibt so Speicherplatz frei
+
+## 1.14.0
+
 - Erweiterte Verhaltenstests schließen kleine Coverage-Lücken bei Player, Playlists, Katalog, Anmeldung, Sitzungen, Admin-Oberflächen, API-Fehlerfällen und Hintergrundjobs
 - SonarQube-Korrekturen verbessern HTML-Semantik und Statusmeldungen von Suche und Player, vereinfachen die Player-Komponente und erhalten die Tastatursteuerung; echte WebVTT-Untertitelspuren können dem Player übergeben werden
 - Ein eigener Videoplayer mit deutscher und englischer Oberfläche ersetzt die Browser-Steuerung für Einzelvideos, normale Playlists, automatische Favoriten-Playlists und temporäre Zufallsplaylists
