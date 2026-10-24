@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import type * as z from "zod";
 
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -23,9 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MovieSchema } from "@/schemas";
+import { useRecentActors } from "@/hooks/useRecentActors";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const TYPE_OPTIONS = process.env.NEXT_PUBLIC_TYPE?.split(",") || ["Movie", "Serie"];
+const EMPTY_ACTOR_IDS: string[] = [];
 
 function getTypeLabel(type: string, translate: (key: TranslationKey) => string) {
   if (type === "Movie") return translate("Movie");
@@ -56,6 +58,8 @@ export const MovieFormFields = ({
 }: MovieFormFieldsProps) => {
   const { t } = useLanguage();
   const genreOptions = useGenreOptions();
+  const selectedActorIds = useWatch({ control: form.control, name: "movieActor" }) ?? EMPTY_ACTOR_IDS;
+  const recentActorIds = useRecentActors(selectedActorIds);
 
   return (
     <>
@@ -106,6 +110,8 @@ export const MovieFormFields = ({
           <FormControl>
             <MultiSelect
               options={actorOptions}
+              recentValues={recentActorIds}
+              otherOptionsLabel={t("All actors")}
               value={field.value || []}
               onChange={field.onChange}
               disabled={disabled || actorsLoading}

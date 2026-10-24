@@ -15,6 +15,8 @@ interface MultiSelectProps {
   placeholder?: string;
   disabled?: boolean;
   label?: string;
+  recentValues?: string[];
+  otherOptionsLabel?: string;
 }
 
 export const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -24,6 +26,8 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   placeholder,
   disabled = false,
   label,
+  recentValues = [],
+  otherOptionsLabel,
 }) => {
   const { t } = useLanguage();
   const placeholderText = placeholder ?? t("Select...");
@@ -41,9 +45,18 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const query = search.trim().toLowerCase();
   const filtered = options.filter(opt =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
+    opt.label.toLowerCase().includes(query)
   );
+  const recentOptions = query ? [] : [...new Set(recentValues)]
+    .map(id => options.find(option => option.value === id))
+    .filter((option): option is Option => option !== undefined);
+  const recentIds = new Set(recentOptions.map(option => option.value));
+  const groups = recentOptions.length > 0 ? [
+    { key: "recent", label: t("Recently used"), options: recentOptions },
+    { key: "other", label: otherOptionsLabel ?? t("All options"), options: filtered.filter(option => !recentIds.has(option.value)) },
+  ] : [{ key: "all", label: null, options: filtered }];
 
   return (
     <div className="relative" ref={ref}>
@@ -100,7 +113,10 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             {filtered.length === 0 && (
               <div className="p-2 text-gray-400 text-sm">{t("No options")}</div>
             )}
-            {filtered.map(opt => (
+            {groups.map(group => group.options.length > 0 && (
+              <div key={group.key}>
+                {group.label && <p className="border-b border-zinc-800 px-2 pb-1 pt-3 text-xs font-semibold text-zinc-400">{group.label}</p>}
+                {group.options.map(opt => (
               <label
                 key={opt.value}
                 className={`flex cursor-pointer items-center px-2 py-2 text-sm text-white hover:bg-zinc-700 ${value.includes(opt.value) ? "bg-red-700/40" : ""}`}
@@ -120,6 +136,8 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 {opt.label}
                 {value.includes(opt.value) && <Check className="w-4 h-4 ml-auto text-red-500" />}
               </label>
+                ))}
+              </div>
             ))}
           </div>
         </div>
