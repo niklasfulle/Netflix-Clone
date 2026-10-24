@@ -26,6 +26,17 @@ frontend-only translation file:
 This exception applies only to that exact file. All other workspace files must
 still be scanned before reading.
 
+## Local Docker updates
+
+After changing code or configuration used by the local Docker stack, rebuild
+the affected image and recreate its affected running services before finishing.
+For `compose.local.yml`, app and jobs-worker share `netflix-clone-local:latest`:
+build it once with `docker compose --env-file .env.docker.local -f compose.local.yml build app`,
+then refresh both with `docker compose --env-file .env.docker.local -f compose.local.yml up -d --no-deps app jobs-worker`.
+Verify the services are running and the app health check passes. Preserve
+existing volumes and do not rerun initialization or seeding unless needed by
+the change. Documentation-only changes excluded from the image need no rebuild.
+
 ## Agent skills
 
 ### Issue tracker
