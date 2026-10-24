@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChunkedUpload } from "./useChunkedUpload";
 import { useUploadTitleNotification } from "./useUploadTitleNotification";
 import { toast } from "react-hot-toast";
@@ -12,11 +12,24 @@ export const useVideoThumbnailUpload = () => {
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [showThumbnailSelector, setShowThumbnailSelector] = useState(false);
   const [thumbnailOptions, setThumbnailOptions] = useState<string[]>([]);
+  const [thumbnailTimestamps, setThumbnailTimestamps] = useState<number[]>([]);
+  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
+  const [thumbnailGenerationError, setThumbnailGenerationError] = useState(false);
   const [uploadedVideoPath, setUploadedVideoPath] = useState<string>("");
   const [generatedVideoId, setGeneratedVideoId] = useState<string>("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const generationCleanupRef = useRef<(() => void) | null>(null);
+
+  const cancelThumbnailGeneration = () => {
+    generationCleanupRef.current?.();
+    setIsGeneratingThumbnails(false);
+  };
+
+  useEffect(() => () => {
+    generationCleanupRef.current?.();
+  }, []);
 
   const { uploadFile, uploadProgress: chunkUploadProgress, isUploading, cancelUpload: cancelChunkUpload } = useChunkedUpload();
 
@@ -31,6 +44,11 @@ export const useVideoThumbnailUpload = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    cancelThumbnailGeneration();
+    setThumbnailOptions([]);
+    setThumbnailTimestamps([]);
+    setThumbnailGenerationError(false);
+    setShowThumbnailSelector(false);
     setVideoFile(file);
     const previewUrl = URL.createObjectURL(file);
     setVideoPreviewUrl(previewUrl);
@@ -61,54 +79,109 @@ export const useVideoThumbnailUpload = () => {
   };
 
   const generateThumbnails = (startOffset: number = 0) => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || generationCleanupRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const duration = video.duration;
     const thumbnails: string[] = [];
-    let captureCount = 0;
+    const timestamps: number[] = [];
     const totalCaptures = 6;
+    let active = true;
+    let timeout: ReturnType<typeof setTimeout>;
 
-    const offsetPercentage = startOffset / 100;
-
-    const captureFrame = (time: number) => {
-      video.currentTime = time;
+    const cleanup = () => {
+      active = false;
+      clearTimeout(timeout);
+      video.onseeked = null;
+      video.onerror = null;
+      video.removeEventListener("loadedmetadata", startCapturing);
+      generationCleanupRef.current = null;
     };
 
-    video.onseeked = () => {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
-      thumbnails.push(thumbnail);
-      captureCount++;
+    const fail = () => {
+      if (!active) return;
+      cleanup();
+      setIsGeneratingThumbnails(false);
+      setThumbnailGenerationError(true);
+    };
 
-      if (captureCount < totalCaptures) {
-        const basePosition = (duration / totalCaptures) * captureCount;
-        const offset = duration * offsetPercentage * 0.1;
-        captureFrame(Math.min(basePosition + offset, duration - 1));
-      } else {
-        setThumbnailOptions(thumbnails);
-        setShowThumbnailSelector(true);
+    const armTimeout = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(fail, 15000);
+    };
+
+    const startCapturing = () => {
+      if (!active) return;
+      try {
+        video.removeEventListener("loadedmetadata", startCapturing);
+        if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) {
+          fail();
+          return;
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          fail();
+          return;
+        }
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        // Sample within each segment instead of seeking to the current frame at 0.
+        const segmentOffset = Math.max(0.1, Math.min(0.9, startOffset / 100));
+        const captureNextFrame = () => {
+          armTimeout();
+          video.currentTime = (video.duration / totalCaptures) * (thumbnails.length + segmentOffset);
+        };
+        video.onseeked = () => {
+          if (!active) return;
+          try {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
+            if (!thumbnail.startsWith("data:image/jpeg")) {
+              fail();
+              return;
+            }
+            thumbnails.push(thumbnail);
+            timestamps.push(video.currentTime);
+            setThumbnailOptions([...thumbnails]);
+            setThumbnailTimestamps([...timestamps]);
+            if (thumbnails.length < totalCaptures) {
+              captureNextFrame();
+            } else {
+              cleanup();
+              setIsGeneratingThumbnails(false);
+            }
+          } catch {
+            fail();
+          }
+        };
+        captureNextFrame();
+      } catch {
+        fail();
       }
     };
 
-    const firstFrameTime = Math.max(0, (duration / totalCaptures) * offsetPercentage);
-    captureFrame(firstFrameTime);
+    generationCleanupRef.current = cleanup;
+    setThumbnailOptions([]);
+    setThumbnailTimestamps([]);
+    setThumbnailGenerationError(false);
+    setIsGeneratingThumbnails(true);
+    setShowThumbnailSelector(true);
+    video.onerror = fail;
+    armTimeout();
+    if (Number.isFinite(video.duration) && video.videoWidth > 0) {
+      startCapturing();
+    } else {
+      video.addEventListener("loadedmetadata", startCapturing, { once: true });
+    }
   };
 
   const regenerateThumbnails = () => {
-    const randomOffset = Math.floor(Math.random() * 10) * 10;
+    const randomOffset = 10 + Math.floor(Math.random() * 9) * 10;
     generateThumbnails(randomOffset);
-    toast.success(t("New thumbnails are being generated..."));
   };
 
   const selectThumbnail = (thumbnail: string) => {
+    cancelThumbnailGeneration();
     setThumbnailUrl(thumbnail);
     setShowThumbnailSelector(false);
     toast.success(t("Thumbnail selected!"));
@@ -140,9 +213,7 @@ export const useVideoThumbnailUpload = () => {
       notifyUploadTitle(t("Upload complete"));
       onVideoUploadSuccess?.(result);
 
-      setTimeout(() => {
-        generateThumbnails();
-      }, 500);
+      generateThumbnails();
     }
   };
 
@@ -152,6 +223,7 @@ export const useVideoThumbnailUpload = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
+      cancelThumbnailGeneration();
       setThumbnailUrl(reader.result as string);
       setShowThumbnailSelector(false);
     };
@@ -159,6 +231,7 @@ export const useVideoThumbnailUpload = () => {
   };
 
   const resetUploadState = () => {
+    cancelThumbnailGeneration();
     resetUploadTitle();
     if (videoPreviewUrl.startsWith("blob:")) {
       URL.revokeObjectURL?.(videoPreviewUrl);
@@ -170,6 +243,8 @@ export const useVideoThumbnailUpload = () => {
     setGeneratedVideoId("");
     setThumbnailUrl("");
     setThumbnailOptions([]);
+    setThumbnailTimestamps([]);
+    setThumbnailGenerationError(false);
     setShowThumbnailSelector(false);
 
     for (const inputId of ["video-upload", "thumbnail-upload"]) {
@@ -226,6 +301,9 @@ export const useVideoThumbnailUpload = () => {
     thumbnailUrl,
     showThumbnailSelector,
     thumbnailOptions,
+    thumbnailTimestamps,
+    isGeneratingThumbnails,
+    thumbnailGenerationError,
     uploadedVideoPath,
     generatedVideoId,
     uploadProgress: chunkUploadProgress,

@@ -71,6 +71,9 @@ export const EditMovieForm = ({
     thumbnailUrl,
     showThumbnailSelector,
     thumbnailOptions,
+    thumbnailTimestamps,
+    isGeneratingThumbnails,
+    thumbnailGenerationError,
     uploadProgress,
     isUploading,
     uploadedVideoPath,
@@ -200,9 +203,12 @@ export const EditMovieForm = ({
             </div>
           )}
 
-          {showThumbnailSelector && thumbnailOptions.length > 0 && (
+          {showThumbnailSelector && (
             <ThumbnailSelector
               thumbnailOptions={thumbnailOptions}
+              thumbnailTimestamps={thumbnailTimestamps}
+              isGenerating={isGeneratingThumbnails}
+              generationError={thumbnailGenerationError}
               onSelectThumbnail={selectThumbnail}
               onRegenerate={regenerateThumbnails}
             />

@@ -12,6 +12,39 @@ const FormWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('ThumbnailSelector', () => {
+  it('shows progress immediately, reveals captured frames, and enables selection only when ready', () => {
+    const select = jest.fn();
+    const regenerate = jest.fn();
+    const { rerender } = render(
+      <FormWrapper><ThumbnailSelector thumbnailOptions={[]} isGenerating onSelectThumbnail={select} onRegenerate={regenerate} /></FormWrapper>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Generating previews: 0 of 6 ready');
+    expect(screen.getByRole('progressbar', { name: 'Preview generation' })).toHaveAttribute('value', '0');
+    expect(screen.getByRole('button', { name: 'Generating previews...' })).toBeDisabled();
+
+    rerender(<FormWrapper><ThumbnailSelector thumbnailOptions={['/new.jpg']} thumbnailTimestamps={[125]} isGenerating onSelectThumbnail={select} onRegenerate={regenerate} /></FormWrapper>);
+    expect(screen.getByRole('status')).toHaveTextContent('1 of 6 ready');
+    expect(screen.getByText('02:05')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Select thumbnail 1' }));
+    expect(select).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Select thumbnail 1' })).toBeDisabled();
+
+    rerender(<FormWrapper><ThumbnailSelector thumbnailOptions={['/new.jpg']} thumbnailTimestamps={[125]} onSelectThumbnail={select} onRegenerate={regenerate} /></FormWrapper>);
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('New previews are ready.');
+    fireEvent.click(screen.getByRole('button', { name: 'Select thumbnail 1' }));
+    expect(select).toHaveBeenCalledWith('/new.jpg');
+    expect(screen.getByRole('button', { name: 'Generate new' })).toBeEnabled();
+  });
+
+  it('offers a retry after failure even when no frame could be generated', () => {
+    const regenerate = jest.fn();
+    render(<LanguageProvider initialLocale="de"><FormWrapper><ThumbnailSelector thumbnailOptions={[]} generationError onSelectThumbnail={jest.fn()} onRegenerate={regenerate} /></FormWrapper></LanguageProvider>);
+    expect(screen.getByRole('alert')).toHaveTextContent('Vorschaubilder konnten nicht erstellt werden');
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    expect(regenerate).toHaveBeenCalledTimes(1);
+  });
+
   it('supports Space selection and ignores unrelated navigation keys', () => {
     const select = jest.fn();
     render(<FormWrapper><ThumbnailSelector thumbnailOptions={['/thumbnail.jpg']} onSelectThumbnail={select} onRegenerate={jest.fn()} /></FormWrapper>);

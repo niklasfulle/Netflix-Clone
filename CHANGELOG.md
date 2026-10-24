@@ -8,6 +8,7 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Die Thumbnail-Auswahl zeigt die Generierung mit Live-Fortschritt, Platzhaltern und einzeln erscheinenden Bildern samt Video-Zeitstempel; parallele Generierung wird verhindert, Fehler und Zeitüberschreitungen erlauben einen erneuten Versuch
 - Das Produktionsimage enthält nicht mehr den großen Next.js-Turbopack-Buildcache; das Deployment entfernt vor dem Pull und nach erfolgreichem Start alle Images, die kein Container verwendet, und gibt so Speicherplatz frei
 
 ## 1.14.0

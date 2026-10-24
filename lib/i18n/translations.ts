@@ -592,6 +592,12 @@ export const germanTranslations = {
   '2FA Code': '2FA-Code',
   'Enable two factor authentication for your account': 'Zwei-Faktor-Authentifizierung für dein Konto aktivieren',
   'Generate new': 'Neu generieren',
+  'Generating previews...': 'Vorschaubilder werden erstellt...',
+  'Preview generation': 'Vorschaubilder erstellen',
+  'Try again': 'Erneut versuchen',
+  'Preview generation failed. Try again or upload an image manually.': 'Vorschaubilder konnten nicht erstellt werden. Versuche es erneut oder lade ein Bild manuell hoch.',
+  'New previews are ready. Select your favorite image.': 'Die neuen Vorschaubilder sind fertig. Wähle dein bevorzugtes Bild aus.',
+  'Images appear one by one. Please wait until generation finishes.': 'Die Bilder erscheinen nacheinander. Warte bitte, bis alle Vorschaubilder fertig sind.',
   'Regenerate': 'Erneut generieren',
   'Send reset email': 'E-Mail zum Zurücksetzen senden',
   'Set Password': 'Passwort festlegen',
@@ -1226,6 +1232,7 @@ export type MessageKey =
   | 'thumbnailAlt'
   | 'selectThumbnail'
   | 'thumbnailOption'
+  | 'thumbnailGenerationProgress'
   | 'videoLength'
   | 'playlistTitleCount'
   | 'scrollRowLeft'
@@ -1249,6 +1256,7 @@ export type MessageParams = {
   thumbnailAlt: { title: string };
   selectThumbnail: { number: number };
   thumbnailOption: { number: number };
+  thumbnailGenerationProgress: { count: number; total: number };
   videoLength: { duration: string };
   playlistTitleCount: { count: number };
   scrollRowLeft: { name: string };
@@ -1276,6 +1284,7 @@ export const messages: {
     thumbnailAlt: ({ title }) => `${title} thumbnail`,
     selectThumbnail: ({ number }) => `Select thumbnail ${number}`,
     thumbnailOption: ({ number }) => `Thumbnail ${number}`,
+    thumbnailGenerationProgress: ({ count, total }) => `Generating previews: ${count} of ${total} ready`,
     videoLength: ({ duration }) => `Video length: ${duration}`,
     playlistTitleCount: ({ count }) => `${count} ${count === 1 ? 'title' : 'titles'}`,
     scrollRowLeft: ({ name }) => `Scroll ${name} left`,
@@ -1299,6 +1308,7 @@ export const messages: {
     thumbnailAlt: ({ title }) => `Vorschaubild von ${title}`,
     selectThumbnail: ({ number }) => `Vorschaubild ${number} auswählen`,
     thumbnailOption: ({ number }) => `Vorschaubild ${number}`,
+    thumbnailGenerationProgress: ({ count, total }) => `Vorschaubilder werden erstellt: ${count} von ${total} fertig`,
     videoLength: ({ duration }) => `Videolänge: ${duration}`,
     playlistTitleCount: ({ count }) => `${count} Titel`,
     scrollRowLeft: ({ name }) => `${name} nach links scrollen`,

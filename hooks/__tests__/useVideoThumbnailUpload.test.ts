@@ -472,7 +472,7 @@ describe('useVideoThumbnailUpload', () => {
       expect(document.title).toBe('Netflix Admin');
     });
 
-    it('publishes a successful upload and schedules thumbnail generation', async () => {
+    it('publishes a successful upload and starts thumbnail generation immediately', async () => {
       jest.useFakeTimers();
       const uploadResult = { filePath: '/uploads/movie.mp4', videoId: 'video-123' };
       const uploadFile = jest.fn().mockResolvedValue(uploadResult);
@@ -485,6 +485,10 @@ describe('useVideoThumbnailUpload', () => {
       const { result } = renderHook(() => useVideoThumbnailUpload());
       const file = new File(['video'], 'movie.mp4', { type: 'video/mp4' });
       const onVideoUploadSuccess = jest.fn();
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      Object.defineProperty(result.current.videoRef, 'current', { configurable: true, value: video });
+      Object.defineProperty(result.current.canvasRef, 'current', { configurable: true, value: canvas });
       act(() => {
         result.current.setVideoFile(file);
         result.current.setGeneratedVideoId('video-123');
@@ -498,13 +502,12 @@ describe('useVideoThumbnailUpload', () => {
       expect(onVideoUploadSuccess).toHaveBeenCalledWith(uploadResult);
       expect(toast.default.success).toHaveBeenCalledWith('Video uploaded successfully!');
       expect(document.title).toBe('✓ Upload complete – Netflix Admin');
+      expect(result.current.isGeneratingThumbnails).toBe(true);
+      expect(result.current.showThumbnailSelector).toBe(true);
       act(() => {
         window.dispatchEvent(new Event('focus'));
       });
       expect(document.title).toBe('Netflix Admin');
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
     });
   });
 
@@ -620,24 +623,44 @@ describe('useVideoThumbnailUpload', () => {
   });
 
   describe('regenerateThumbnails', () => {
-    it('should show toast message', () => {
+    it('does not announce success before previews have been generated', () => {
       const { result } = renderHook(() => useVideoThumbnailUpload());
 
       act(() => {
         result.current.regenerateThumbnails();
       });
 
-      expect(toast.default.success).toHaveBeenCalledWith(
-        'New thumbnails are being generated...'
-      );
+      expect(toast.default.success).not.toHaveBeenCalled();
     });
   });
 
   describe('generateThumbnails', () => {
-    it('does not expose a selector when the browser cannot provide a canvas context', () => {
+    const attachCapture = (result: { current: ReturnType<typeof useVideoThumbnailUpload> }) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      Object.defineProperties(video, {
+        duration: { configurable: true, value: 60 },
+        videoWidth: { configurable: true, value: 1920 },
+        videoHeight: { configurable: true, value: 1080 },
+        currentTime: { configurable: true, writable: true, value: 0 },
+      });
+      const drawImage = jest.fn();
+      jest.spyOn(canvas, 'getContext').mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+      jest.spyOn(canvas, 'toDataURL').mockImplementation(() => `data:image/jpeg;base64,frame-${drawImage.mock.calls.length}`);
+      Object.defineProperty(result.current.videoRef, 'current', { configurable: true, value: video });
+      Object.defineProperty(result.current.canvasRef, 'current', { configurable: true, value: canvas });
+      return { video, canvas, drawImage };
+    };
+
+    it('exposes a recoverable error when the browser cannot provide a canvas context', () => {
       const { result } = renderHook(() => useVideoThumbnailUpload());
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
+      Object.defineProperties(video, {
+        duration: { configurable: true, value: 60 },
+        videoWidth: { configurable: true, value: 1920 },
+        videoHeight: { configurable: true, value: 1080 },
+      });
       jest.spyOn(canvas, 'getContext').mockReturnValue(null);
       Object.defineProperty(result.current.videoRef, 'current', { configurable: true, value: video });
       Object.defineProperty(result.current.canvasRef, 'current', { configurable: true, value: canvas });
@@ -647,7 +670,9 @@ describe('useVideoThumbnailUpload', () => {
       });
 
       expect(result.current.thumbnailOptions).toEqual([]);
-      expect(result.current.showThumbnailSelector).toBe(false);
+      expect(result.current.showThumbnailSelector).toBe(true);
+      expect(result.current.thumbnailGenerationError).toBe(true);
+      expect(result.current.isGeneratingThumbnails).toBe(false);
     });
 
     it('captures six frames and opens the thumbnail selector', () => {
@@ -671,10 +696,14 @@ describe('useVideoThumbnailUpload', () => {
       act(() => {
         result.current.generateThumbnails(20);
       });
+      expect(result.current.isGeneratingThumbnails).toBe(true);
+      expect(result.current.showThumbnailSelector).toBe(true);
       for (let frame = 0; frame < 6; frame += 1) {
         act(() => {
           video.onseeked?.(new Event('seeked'));
         });
+        expect(result.current.thumbnailOptions).toHaveLength(frame + 1);
+        expect(result.current.isGeneratingThumbnails).toBe(frame < 5);
       }
 
       expect(canvas.width).toBe(1920);
@@ -689,6 +718,68 @@ describe('useVideoThumbnailUpload', () => {
         'data:image/jpeg;base64,frame-6',
       ]);
       expect(result.current.showThumbnailSelector).toBe(true);
+      expect(result.current.thumbnailTimestamps).toEqual([2, 12, 22, 32, 42, 52]);
+      expect(video.onseeked).toBeNull();
+    });
+
+    it('times out a stalled seek and allows a fresh generation attempt', () => {
+      jest.useFakeTimers();
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.generateThumbnails(); });
+      expect(video.currentTime).toBeGreaterThan(0);
+      const seekHandler = video.onseeked;
+      act(() => { result.current.regenerateThumbnails(); });
+      expect(video.onseeked).toBe(seekHandler);
+      act(() => { jest.advanceTimersByTime(15000); });
+      expect(result.current.isGeneratingThumbnails).toBe(false);
+      expect(result.current.thumbnailGenerationError).toBe(true);
+      expect(video.onseeked).toBeNull();
+      act(() => { result.current.regenerateThumbnails(); });
+      expect(result.current.isGeneratingThumbnails).toBe(true);
+      expect(result.current.thumbnailGenerationError).toBe(false);
+    });
+
+    it('discards pending frames and timeouts after reset', () => {
+      jest.useFakeTimers();
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video } = attachCapture(result);
+      act(() => { result.current.generateThumbnails(); });
+      const lateSeek = video.onseeked!;
+      act(() => { result.current.resetUploadState(); });
+      act(() => { lateSeek.call(video, new Event('seeked')); jest.advanceTimersByTime(15000); });
+      expect(result.current.thumbnailOptions).toEqual([]);
+      expect(result.current.isGeneratingThumbnails).toBe(false);
+      expect(result.current.thumbnailGenerationError).toBe(false);
+      expect(result.current.showThumbnailSelector).toBe(false);
+    });
+
+    it('waits for video metadata and reports a frame decoding failure', () => {
+      const { result } = renderHook(() => useVideoThumbnailUpload());
+      const { video, drawImage } = attachCapture(result);
+      Object.defineProperty(video, 'duration', { configurable: true, value: Number.NaN });
+      act(() => { result.current.generateThumbnails(); });
+      expect(result.current.isGeneratingThumbnails).toBe(true);
+      expect(video.onseeked).toBeNull();
+      Object.defineProperty(video, 'duration', { configurable: true, value: 60 });
+      act(() => { video.dispatchEvent(new Event('loadedmetadata')); });
+      drawImage.mockImplementation(() => { throw new Error('decode failed'); });
+      act(() => { video.onseeked?.(new Event('seeked')); });
+      expect(result.current.thumbnailGenerationError).toBe(true);
+      expect(result.current.isGeneratingThumbnails).toBe(false);
+      expect(result.current.thumbnailOptions).toEqual([]);
+    });
+
+    it('cleans up pending seeks on unmount', () => {
+      jest.useFakeTimers();
+      const { result, unmount } = renderHook(() => useVideoThumbnailUpload());
+      const { video, drawImage } = attachCapture(result);
+      act(() => { result.current.generateThumbnails(); });
+      const lateSeek = video.onseeked!;
+      unmount();
+      lateSeek.call(video, new Event('seeked'));
+      expect(drawImage).not.toHaveBeenCalled();
+      expect(video.onseeked).toBeNull();
     });
   });
 });
