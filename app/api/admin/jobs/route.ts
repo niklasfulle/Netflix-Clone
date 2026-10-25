@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 const querySchema = z.object({
   status: z.enum(JOB_ADMIN_STATUSES).optional(),
   jobType: z.enum([
+    JOB_NAMES.videoAnalysis,
     JOB_NAMES.mediaIntegrityScan,
     JOB_NAMES.backupVerification,
     JOB_NAMES.backupRetentionCleanup,

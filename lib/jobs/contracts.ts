@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const JOB_NAMES = {
+  videoAnalysis: 'video.categories.analyze',
+  videoAnalysisDeadLetter: 'video.categories.analyze.dead',
   mediaIntegrityScan: 'media.integrity.scan',
   mediaIntegrityScanDeadLetter: 'media.integrity.scan.dead',
   backupVerification: 'backup.verification.request',
@@ -143,7 +145,17 @@ const backupRetentionSubmission = z.object(backupRetentionFields).strict()
   .refine(matchingRetentionEnvironment, {
     message: 'Backup retention target does not match its environment',
   });
+const videoAnalysisFields = {
+  name: z.literal(JOB_NAMES.videoAnalysis), version: z.literal(1),
+  payload: z.object({ analysisId: boundedIdentifier, contentId: contentIdentifier }).strict(),
+  actor: z.object({ userId: boundedIdentifier, role: z.literal('ADMIN') }).strict(),
+  target: z.object({ type: z.literal('content'), id: contentIdentifier }).strict(),
+  idempotencyKey: boundedIdentifier, correlationId: boundedIdentifier,
+};
+const matchingVideoAnalysis = (value: { payload: { contentId: string }; target: { id: string } }) => value.payload.contentId === value.target.id;
+const videoAnalysisSubmission = z.object(videoAnalysisFields).strict().refine(matchingVideoAnalysis);
 const jobSubmission = z.union([
+  videoAnalysisSubmission,
   mediaIntegrityScanSubmission,
   backupVerificationSubmission,
   backupCreationSubmission,
@@ -183,6 +195,7 @@ const queuedBackupRetentionJob = z.object({
 });
 
 const queuedJobs = z.union([
+  z.object({ ...videoAnalysisFields, jobRunId: boundedIdentifier, acceptedAt: z.iso.datetime({ offset: true }) }).strict().refine(matchingVideoAnalysis),
   queuedJob,
   queuedBackupVerificationJob,
   queuedBackupCreationJob,
@@ -226,6 +239,7 @@ const backupRetentionResult = z.object({
 }).strict();
 
 const jobResult = z.union([
+  z.object({ analysisId: boundedIdentifier, suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(120), status: z.literal('READY') }).strict(),
   mediaIntegrityScanResult,
   backupVerificationResult,
   backupCreationResult,

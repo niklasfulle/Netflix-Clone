@@ -4,6 +4,7 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: jest.fn() }),
 }));
 jest.mock('@/hooks/useVideoThumbnailUpload');
+jest.mock('@/hooks/useCategories', () => ({ useCategories: () => ({ categories: [], isLoading: false, refresh: jest.fn() }) }));
 jest.mock('@/actions/add/add-movie', () => ({
   addMovie: jest.fn(),
 }));
@@ -16,7 +17,7 @@ jest.mock('@/components/ui/button', () => ({
 }));
 
 jest.mock('@/components/ui/form', () => ({
-  Form: ({ children }: any) => <form data-testid="form">{children}</form>,
+  Form: ({ children }: any) => <div data-testid="form">{children}</div>,
   FormControl: ({ children }: any) => <div data-testid="form-control">{children}</div>,
   FormField: ({ render }: any) => render({ field: { value: '', onChange: jest.fn() }, fieldState: {} }),
   FormItem: ({ children }: any) => <div data-testid="form-item">{children}</div>,
@@ -152,7 +153,7 @@ describe('AddMovieForm Component', () => {
     it('should render multi-select for actors', async () => {
       render(<AddMovieForm />);
       await waitFor(() => {
-        expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+        expect(screen.getByTitle(/^(Select actors|Loading\.\.\.)$/)).toBeInTheDocument();
       });
     });
 
@@ -553,7 +554,7 @@ describe('AddMovieForm Component', () => {
       render(<AddMovieForm />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+        expect(screen.getByTitle(/^(Select actors|Loading\.\.\.)$/)).toBeInTheDocument();
       });
     });
   });
@@ -612,7 +613,7 @@ describe('AddMovieForm Component', () => {
       render(<AddMovieForm />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+        expect(screen.getByTitle(/^(Select actors|Loading\.\.\.)$/)).toBeInTheDocument();
       });
     });
 

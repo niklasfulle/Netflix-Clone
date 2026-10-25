@@ -19,6 +19,7 @@ const statuses = [
 ] as const;
 
 const jobTypes = [
+  'video.categories.analyze',
   'media.integrity.scan',
   'backup.verification.request',
   'backup.retention.cleanup',

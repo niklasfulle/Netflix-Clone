@@ -1,4 +1,6 @@
 .git
+.local-private
+**/video-examples-*.json
 .github
 .next
 node_modules

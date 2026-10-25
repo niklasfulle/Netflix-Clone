@@ -15,6 +15,7 @@ const boss = new PgBoss({
 await boss.start();
 try {
   const queueDefinitions = [
+    { name: 'video.categories.analyze', deadLetter: 'video.categories.analyze.dead', expireInSeconds: 6 * 60 * 60 },
     {
       name: 'media.integrity.scan',
       deadLetter: 'media.integrity.scan.dead',

@@ -6,6 +6,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ffprobe /ffprobe /usr/local/bin/ffprobe
+COPY --from=ffprobe /ffmpeg /usr/local/bin/ffmpeg
 
 WORKDIR /netflix-clone
 

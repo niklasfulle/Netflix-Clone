@@ -31,6 +31,8 @@ export interface EditableMovie {
   videoUrl: string;
   thumbnailUrl: string;
   actorIds?: string[];
+  categoryIds?: string[];
+  categories?: { id: string; name: string }[];
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   updatedAt?: string;
 }
@@ -103,6 +105,7 @@ export const EditMovieForm = ({
       movieActor: Array.isArray(movie?.actorIds) ? movie.actorIds : [],
       movieType: movie?.type,
       movieGenre: movie?.genre,
+      movieCategories: movie?.categoryIds ?? [],
       movieDuration: movie?.duration,
       movieVideo: movie?.videoUrl,
       movieThumbnail: "",
@@ -110,6 +113,12 @@ export const EditMovieForm = ({
   });
 
   const [initialThumbnail] = useState(movie?.thumbnailUrl || "");
+
+  useEffect(() => {
+    if (!form.getFieldState('movieCategories').isDirty) {
+      form.resetField('movieCategories', { defaultValue: movie.categoryIds ?? [] });
+    }
+  }, [form, movie.categoryIds]);
 
   useEffect(() => {
     if (initialThumbnail) {
@@ -160,7 +169,8 @@ export const EditMovieForm = ({
     }
 
     startTransition(() => {
-      updateMovie(movie.id, values, thumbnailUrl).then((data) => {
+      const updatedValues = { ...values, movieCategories: form.getFieldState('movieCategories').isDirty ? values.movieCategories : undefined };
+      updateMovie(movie.id, updatedValues, thumbnailUrl).then((data) => {
         if (data && "error" in data && data.error) {
           toast.error(data.error);
         } else if (data && "success" in data && data.success) {

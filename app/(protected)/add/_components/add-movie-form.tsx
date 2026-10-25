@@ -31,6 +31,7 @@ const EMPTY_MOVIE_FORM: z.infer<typeof MovieSchema> = {
   movieActor: [],
   movieType: "",
   movieGenre: "",
+  movieCategories: [],
   movieDuration: "",
   movieVideo: "",
   movieThumbnail: "",

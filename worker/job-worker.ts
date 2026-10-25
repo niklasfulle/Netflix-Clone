@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { mediaIntegrityScanner } from '@/lib/media-integrity';
 import { db } from '@/lib/db';
+import { runVideoAnalysis } from '@/lib/video-analysis/handler';
+import { VideoAnalysisError } from '@/lib/video-analysis/contracts';
 import {
   readBackupVerificationStatus,
   readScheduledBackupStatus,
@@ -57,6 +59,7 @@ function failureDetails(error: unknown) {
 }
 
 function isPermanent(error: unknown): boolean {
+  if (error instanceof VideoAnalysisError) return error.permanent;
   return error instanceof PermanentJobError || error instanceof z.ZodError
     || (error instanceof Error && ['Job envelope is stale', 'Job envelope exceeds the allowed size'].includes(error.message));
 }
@@ -139,6 +142,11 @@ async function processJobs(jobs: WorkerDelivery[]) {
       },
       runs,
       handlers: {
+        async videoAnalysis(payload, context) {
+          return operationalLeases.execute({ operation: 'media.analyze', targetId: 'video-analysis:gpu', ttlMs: 5 * 60_000 }, lease => runVideoAnalysis(payload, {
+            ...context, actorUserId: job.data.actor.userId, jobRunId: job.data.jobRunId, assertLease: lease.assertCurrent,
+          }));
+        },
         async mediaIntegrityScan(payload, { reportProgress }) {
           return operationalLeases.execute({
             operation: 'media.scan',
@@ -210,6 +218,7 @@ async function processScheduleTicks(jobs: ScheduleDelivery[]) {
 
 async function registerWork() {
   const requiredQueues = [
+    JOB_NAMES.videoAnalysis,
     JOB_NAMES.mediaIntegrityScan,
     JOB_NAMES.backupVerification,
     JOB_NAMES.backupCreation,
@@ -223,6 +232,7 @@ async function registerWork() {
   }
 
   await Promise.all([
+    boss.work<QueuedJob, unknown, typeof workOptions>(JOB_NAMES.videoAnalysis, workOptions, processJobs),
     boss.work<QueuedJob, unknown, typeof workOptions>(
       JOB_NAMES.mediaIntegrityScan,
       workOptions,

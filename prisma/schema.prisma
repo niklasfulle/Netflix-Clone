@@ -289,6 +289,7 @@ model AdminAuditEvent {
 
 model JobRun {
   id                String       @id @default(cuid())
+  videoAnalysis     VideoAnalysis?
   jobType           String
   contractVersion   Int
   idempotencyKey    String
@@ -406,6 +407,9 @@ model Movie {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @default(now()) @updatedAt
   actors          MovieActor[]
+  categories      MovieCategory[]
+  videoAnalyses   VideoAnalysis[]
+  videoExamples   VideoExample[]
   watchlists      Watchlist[]
   playlistEntries PlaylistEntry[]
   watchTimes      MovieWatchTime[]
@@ -421,6 +425,96 @@ model Actor {
   createdAt DateTime     @default(now())
   movies    MovieActor[]
   sources   ActorSource[]
+}
+
+model Category {
+  id             String          @id @default(cuid())
+  name           String          @db.VarChar(80)
+  nameEn         String          @default("") @db.VarChar(80)
+  normalizedName String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  movies         MovieCategory[]
+  suggestions    VideoCategorySuggestion[]
+}
+
+model VideoExample {
+  id                String   @id @default(cuid())
+  movieId           String
+  requestId         String   @unique
+  sourceFingerprint String
+  startSeconds      Float
+  endSeconds        Float
+  labels            Json
+  note              String   @default("") @db.VarChar(500)
+  reviewerId        String
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  movie             Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([movieId, startSeconds])
+}
+
+model VideoAnalysis {
+  id                String                    @id @default(cuid())
+  movieId           String
+  requestedById     String
+  jobRunId          String?                   @unique
+  cacheKey          String                    @unique
+  sourceFingerprint String
+  model             String
+  status            String                    @default("QUEUED")
+  durationSeconds   Float?
+  sampleCount       Int                       @default(0)
+  processedCount    Int                       @default(0)
+  errorCode         String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @default(now()) @updatedAt
+  completedAt       DateTime?
+  movie             Movie                     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  jobRun            JobRun?                   @relation(fields: [jobRunId], references: [id], onDelete: SetNull)
+  samples           VideoAnalysisSample[]
+  suggestions       VideoCategorySuggestion[]
+
+  @@index([movieId, createdAt])
+}
+
+model VideoAnalysisSample {
+  analysisId String
+  index      Int
+  atSeconds  Float
+  tags       Json
+  analysis   VideoAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@id([analysisId, index])
+}
+
+model VideoCategorySuggestion {
+  id             String        @id @default(cuid())
+  analysisId     String
+  name           String        @db.VarChar(80)
+  nameEn         String        @default("") @db.VarChar(80)
+  normalizedName String
+  confidence     Float
+  evidence       Json
+  state          String        @default("PENDING")
+  categoryId     String?
+  analysis       VideoAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  category       Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@unique([analysisId, normalizedName])
+  @@index([categoryId])
+}
+
+model MovieCategory {
+  movieId    String
+  categoryId String
+  movie      Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, categoryId])
+  @@index([categoryId])
 }
 
 model ActorSource {

@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { useDialogFocus } from "@/hooks/useDialogFocus";
 import type { PlaylistDto } from "@/lib/api-types";
 import { useBillboardVideoAvailability } from "@/hooks/useBillboardVideoAvailability";
+import { useLanguage } from '@/components/providers/LanguageProvider';
+import { categoryLabel } from '@/lib/category-label';
 
 interface InfoModalProps {
   visible?: boolean;
@@ -28,6 +30,7 @@ const InfoModal: React.FC<InfoModalProps> = ({
   playlists = [],
 }) => {
   const [isVisible, setIsVisible] = useState(!!visible);
+  const { locale } = useLanguage();
   const [isDesktop, setIsDesktop] = useState(true);
   const { movieId } = useInfoModal();
   const { data: movie } = useMovie(movieId);
@@ -164,6 +167,9 @@ const InfoModal: React.FC<InfoModalProps> = ({
             <div className="flex flex-row flex-wrap items-center gap-6 mb-2">
               <span className="text-base text-zinc-400">{movie?.duration}</span>
               <span className="text-base text-zinc-400">{movie?.genre}</span>
+              {movie?.categories?.map(category => (
+                <span key={category.id} className="rounded-full border border-zinc-600 bg-zinc-800 px-3 py-1 text-sm text-zinc-200">{categoryLabel(category, locale)}</span>
+              ))}
               {Array.isArray(movie?.actors) && movie.actors.length > 0 && (
                 <>
                   {movie.actors.map((actor: unknown) => {

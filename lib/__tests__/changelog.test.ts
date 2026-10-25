@@ -16,12 +16,22 @@ describe('published changelog', () => {
 
     expect(entries.slice(0, 5).map(entry => entry.version)).toEqual([
       APP_VERSION,
+      '1.14.1',
+      '1.14.0',
       '1.13.6',
       '1.13.5',
-      '1.13.4',
-      '1.13.3',
     ]);
     expect(entries.find(entry => entry.version === APP_VERSION)?.changes).toEqual(
+      expect.arrayContaining([expect.stringContaining('Kategorienverwaltung')]),
+    );
+    const previousPatch = entries.find(entry => entry.version === '1.14.1')?.changes ?? [];
+    expect(previousPatch).toEqual(expect.arrayContaining([
+      expect.stringContaining('Turbopack-Buildcache'),
+      expect.stringContaining('Thumbnail-Auswahl'),
+      expect.stringContaining('Darstellerauswahl'),
+    ]));
+    expect(previousPatch.join('\n')).not.toContain('Kategorienverwaltung');
+    expect(entries.find(entry => entry.version === '1.14.0')?.changes).toEqual(
       expect.arrayContaining([
         expect.stringContaining('Videoplayer'),
         expect.stringContaining('Playlist-Karten'),

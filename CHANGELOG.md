@@ -8,6 +8,18 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Eine Bewertungsansicht markiert Videostellen mit Start- und Endzeit und speichert positive, negative und unsichere Kategoriebewertungen; Abschnitte lassen sich bearbeiten, löschen, wiederholt abspielen und ohne Mediendateien exportieren
+- Katalog-spezifische Modellvorgaben werden aus einer ignorierten lokalen Env-Datei geladen; lokale Daten und Sicherungen bleiben außerhalb von Git und Docker-Images
+- Ein auf den Videokatalog abgestimmtes Analyseprofil prüft mehr zeitlichen Kontext und größere Vorschaubilder; strengere Evidenzregeln, Mindestwerte und wiederholte Fundstellen begrenzen unbelegte neue Vorschläge, während vorhandene Treffer bei neuen Vorschlägen sichtbar bleiben
+- Der lokale Modellserver nutzt einen begrenzten RAM-Cache und mehr Bild- und Kontext-Token; veraltete Teilanalysen werden bei Profilwechsel nicht mit neuen Einstellungen vermischt
+- Kategorien und KI-Vorschläge erhalten deutsche und englische Namen unter einer gemeinsamen ID; Verwaltung, Auswahl und Inhaltsdetails berücksichtigen die gewählte Sprache, und neue Kategorien benötigen beide Namen
+- Die Videoanalyse entdeckt Kategorien jetzt zuerst ohne Vorgaben und gleicht vorhandene Kategorien anschließend separat ab; dadurch verdrängen bestehende Kategorien keine neuen Vorschläge mehr, und erneute Analysen verwenden eine neue Analyseversion
+- Eine lokale GPU-Videoanalyse sammelt Vorschläge für vorhandene und neue Kategorien; Administratoren prüfen Fundstellen mit Zeitstempeln und übernehmen oder verwerfen Vorschläge ausdrücklich, wobei neue Kategorien erst bei der Übernahme entstehen
+- Die Analyse nutzt ein lokales Qwen3-VL-Modell mit optionalem Docker-Compose-Profil für NVIDIA-GPUs; Fortschritt, Abbrechen, Wiederaufnahme und zwischengespeicherte Teilergebnisse sind in die Hintergrundjobs integriert
+- Eine eigene Kategorienverwaltung ermöglicht das Anlegen, Umbenennen und bestätigte Löschen frei definierter Kategorien; Filme und Serien können mehrere Kategorien erhalten, die beim Bearbeiten erhalten bleiben und in den Inhaltsdetails angezeigt werden
+
+## 1.14.1
+
 - Die Darstellerauswahl merkt sich im Browser die drei zuletzt ausgewählten Darsteller und zeigt sie ohne Suchtext zuerst; bei einer Suche bleibt die normale Reihenfolge der passenden Ergebnisse erhalten
 - Ausgewählte generierte Vorschaubilder lassen sich in Fünf-Sekunden-Schritten vor- und zurückversetzen; Zeitstempel, Ladeanzeige und Begrenzung auf die Videolänge unterstützen die Feinwahl, während fehlgeschlagene Aufnahmen das bisherige Bild erhalten
 - Die Thumbnail-Auswahl zeigt die Generierung mit Live-Fortschritt, Platzhaltern und einzeln erscheinenden Bildern samt Video-Zeitstempel; parallele Generierung wird verhindert, Fehler und Zeitüberschreitungen erlauben einen erneuten Versuch

@@ -3,7 +3,7 @@
 Eine selbst gehostete Streaming-Anwendung für Filme und Serien mit Benutzerprofilen,
 Wiedergabefortschritt und einem umfangreichen Administrationsbereich.
 
-Aktuelle Version: **1.14.0**
+Aktuelle Version: **1.14.2**
 
 ## Funktionsumfang
 
@@ -34,6 +34,7 @@ zugänglich.
 - Content-Status `DRAFT`, `PUBLISHED` und `ARCHIVED`
 - Schauspieler direkt beim Erstellen eines Inhalts anlegen und zuweisen
 - Schauspieler suchen, umbenennen, zusammenführen und sicher löschen
+- Kategorien anlegen, umbenennen und Filmen sowie Serien mehrfach zuordnen
 - Benutzer, Rollen und temporäre Sperren verwalten
 - Statistiken und CSV-Exporte
 - Strukturierte Systemprotokolle mit Filtern und Auto-Refresh
@@ -48,6 +49,7 @@ Wichtige Admin-Routen:
 | Inhalte | `/admin/movies` |
 | Neuer Inhalt | `/admin/movies/new` |
 | Schauspieler | `/admin/actors` |
+| Kategorien | `/admin/categories` |
 | Benutzer | `/admin/users` |
 | Statistiken | `/admin/statistics` |
 | Logs | `/admin/logs` |
@@ -174,6 +176,124 @@ docker compose --env-file .env.docker.local -f compose.local.yml down
 
 `down` behält die Daten bei. `down -v` löscht sämtliche lokalen Daten und Medien
 dieses Stacks. Die bestehende `docker-compose.yml` bleibt für das Serverdeployment.
+
+### Lokale Videoanalyse mit NVIDIA-GPU
+
+Über **Administration → Videoanalyse → Videostellen markieren** öffnet sich
+die Bewertungsansicht für einen Film oder eine Serien-Datei. Start und Ende
+können an der aktuellen Playerposition gesetzt oder als Sekunden beziehungsweise
+`HH:MM:SS.mmm` eingegeben werden. Der ausgewählte Abschnitt lässt sich wiederholt
+abspielen; markierte Abschnitte erscheinen in der Zeitleiste.
+
+Jede Kategorie wird ausdrücklich als vorhanden, nicht vorhanden oder unsicher
+bewertet. Nicht bewertete Kategorien sind keine negativen Beispiele. Beispiele
+werden mit Zeitbereich, Kategorieschnappschuss und Dateifingerabdruck in der
+lokalen Datenbank gespeichert. Bearbeiten und bestätigtes Löschen sind möglich.
+Bei einer geänderten Videodatei werden alte Beispiele gekennzeichnet und vom
+JSON-Export ausgeschlossen. Der Export enthält Metadaten ohne Videodateien;
+`groupKey` hält Beispiele eines Videos für spätere Trainings-/Testaufteilungen
+zusammen. Unsichere Bewertungen müssen vor einem Training geprüft werden.
+Die Markierungen verändern weder den Wiedergabefortschritt noch automatisch
+die Kategorien des Films oder die Modellgewichte.
+
+Katalog-spezifische Modellvorgaben gehören in die ignorierte Datei
+`.env.video-analysis.local`. Eine neutrale Vorlage liegt unter
+`.env.video-analysis.example`. Docker lädt diese optionale Datei nur zur Laufzeit;
+sie wird weder eingecheckt noch in das Image kopiert. Änderungen an den Vorgaben
+erzeugen ein neues Analyseprofil, damit bestehende Ergebnisse nicht vermischt
+werden. Sensible Begriffe für die lokale Veröffentlichungsprüfung können dort
+als JSON-Liste in `VIDEO_ANALYSIS_PRIVATE_TERMS` hinterlegt werden. Mit
+`node scripts/check-local-privacy.mjs` lassen sich der Git-Index und die noch
+nicht veröffentlichten Commit-Texte vor einem Push prüfen. Lokale Sicherungen
+unter `.local-private/` sind ebenfalls von Git und Docker ausgeschlossen.
+
+Kategorien haben einen deutschen Namen (`name`) und einen englischen Namen
+(`nameEn`) unter derselben ID. Beide Namen sind beim Anlegen und Bearbeiten
+erforderlich. Auswahl und Inhaltsdetails verwenden die Sprache der Oberfläche;
+in der Verwaltung und bei KI-Vorschlägen lassen sich beide Namen prüfen.
+Die Analyse erzeugt beide Sprachfassungen zusammen. Bereits vorhandene lokale
+Kategorien und offene Vorschläge mit fehlender Übersetzung lassen sich nach
+dem Schema-Update über das lokale Modell ergänzen, ohne ihre IDs oder
+Zuordnungen zu ändern:
+
+```powershell
+node scripts/translate-local-categories.mjs
+```
+
+Der Befehl verarbeitet nur Einträge ohne englischen Namen. Modellübersetzungen
+können anschließend in der Kategorienverwaltung korrigiert werden.
+
+Das optionale Profil `analysis` startet ein lokales Qwen3-VL-4B-Modell für
+Kategorie-Vorschläge. Voraussetzung sind Docker Desktop mit GPU-Unterstützung
+unter WSL2 und eine NVIDIA-GPU mit etwa 8 GB VRAM, beispielsweise die RTX 3070.
+Andere GPU-Anwendungen können den verfügbaren Speicher begrenzen.
+
+```powershell
+docker compose --env-file .env.docker.local -f compose.local.yml --profile analysis up -d video-model
+```
+
+Beim ersten Start werden ungefähr 3 GB Modellgewichte von Hugging Face geladen,
+mit festen SHA-256-Prüfsummen geprüft und im Volume `video-models` gespeichert.
+Danach benötigt die eigentliche Analyse keine Internetverbindung. Das Modell
+ist nur im internen Docker-Netz erreichbar und veröffentlicht keinen Host-Port.
+
+Unter **Administration → Videoanalyse** kann jeder Film und jede Serien-Datei
+einzeln in die Warteschlange gestellt werden. Fortschritt und Abbrechen werden
+angezeigt. Fehlgeschlagene Jobs lassen sich über **Analyse fortsetzen** mit den
+bereits gespeicherten Abschnitten wiederholen. **Erneut analysieren** beginnt
+einen neuen Durchlauf. Unveränderte Dateien nutzen andernfalls das vorhandene
+Ergebnis; Änderungen an Datei oder Modell erzeugen eine neue Analyse.
+
+Das Modell erhält je Abschnitt drei verkleinerte Einzelbilder. Die Abschnitte
+werden zuerst ohne Kategorienvorgabe ausgewertet, um neue Begriffe zu entdecken.
+Ein zweiter Durchlauf prüft unabhängig davon die vorhandenen Kategorien. Beide
+Ergebnisse werden zusammengeführt; neue Vorschläge werden dabei bevorzugt
+beibehalten. Das erhöht die Analysezeit, erzwingt aber keine neuen Kategorien,
+wenn die Bilder keine weiteren Merkmale hergeben. Die Abschnitte
+verteilen sich über die vollständige Laufzeit: ungefähr alle 20 Sekunden,
+mindestens sechs und höchstens 120 Abschnitte. Bei langen Videos wird der Abstand
+entsprechend größer. Audio wird nicht ausgewertet; kurze Szenen können zwischen
+den Stichproben liegen. Die Modellwerte sind Schätzungen und keine kalibrierten
+Wahrscheinlichkeiten. Das Analyseprofil verwendet bis zu 768 Pixel große Bilder
+und betrachtet pro Abschnitt Momente mit bis zu zwei Sekunden Abstand zum
+Mittelpunkt. Unsichere neue Begriffe benötigen mindestens zwei unterschiedliche
+Fundstellen; ein einzelner Fund genügt erst ab einem Modellwert von 0,9. Werte
+unter 0,65 werden verworfen. Diese Regeln sind heuristisch und ersetzen keine
+Prüfung der Fundstellen. Fundstellen lassen sich über Zeitstempel im Video prüfen.
+
+Das Analyseprofil passt Anweisungen, Bildauflösung, zeitliche Stichproben und
+Auswahlregeln an; die Modellgewichte bleiben unverändert. Bestätigungen und
+Ablehnungen trainieren das Modell nicht automatisch. Eine belastbare Aussage
+über mehr richtige und weniger falsche Kategorien benötigt einen separat
+bewerteten Testbestand mit passenden und unpassenden Beispielen pro Kategorie.
+Für ein späteres Fine-Tuning sollten Trainings- und Testbeispiele getrennt
+bleiben. Die allgemeinen Fähigkeiten des Basismodells sind in der
+[Qwen3-VL-Modellkarte](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct) beschrieben;
+sie belegen keine Trefferquote für die eigene Kategorienbibliothek.
+
+Vorhandene und neue Kategorien erscheinen als Vorschläge. Erst **Kategorien
+übernehmen und zuweisen** ordnet ausgewählte Vorschläge zu und legt gegebenenfalls
+neue Kategorien an. Manuelle Zuordnungen bleiben erhalten. **Verwerfen** ändert
+keine Kategorien. Teilergebnisse und Vorschläge liegen in PostgreSQL; extrahierte
+Bilder werden nur im Arbeitsspeicher verarbeitet. Videos und Bilder werden zur
+Analyse nicht an einen externen Dienst gesendet. Es wird jeweils ein Video auf
+der GPU verarbeitet, während weitere Jobs warten.
+
+`compose.local.yml` aktiviert die Anwendungsfunktion über `VIDEO_ANALYSIS_ENABLED`
+und verwendet intern `VIDEO_ANALYSIS_URL=http://video-model:8080`. Ohne gestartetes
+Analyse-Profil zeigt die Oberfläche das Modell als nicht bereit an. Außerhalb
+dieser lokalen Compose-Konfiguration ist die Analyse standardmäßig deaktiviert.
+
+Den vollständigen lokalen Ablauf mit einem erzeugten neutralen Testvideo prüfen:
+
+```powershell
+node scripts/test-video-analysis-local.mjs
+```
+
+Der Test prüft die echte GPU-Verarbeitung, gespeicherte Abschnitte, Cache-Nutzung
+und die ausdrückliche Übernahme eines kontrollierten Kategorie-Vorschlags. Er
+entfernt anschließend seine eigenen Testdaten; laufende Jobs bleiben bei einem
+Timeout für die Diagnose erhalten.
 
 ## Lokale Einrichtung ohne Docker
 

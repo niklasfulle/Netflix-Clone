@@ -65,7 +65,13 @@ export const updateMovie = async (
     movieGenre,
     movieDuration,
     movieVideo,
+    movieCategories,
   } = validatedField.data;
+  const categoryIds = [...new Set(movieCategories ?? [])];
+  if (categoryIds.length > 0 && await db.category.count({ where: { id: { in: categoryIds } } }) !== categoryIds.length) {
+    await audit.failed({ target: { type: 'content', id: movieId } });
+    return { error: "One or more categories no longer exist. Please refresh the list." };
+  }
   if (!isGenreAllowed(movieGenre)) {
     logBackendAction('updateMovie_genre_not_allowed', { userId: user.id, movieId, movieGenre }, 'warn');
     await audit.failed({ target: { type: 'content', id: movieId } });
@@ -107,6 +113,7 @@ export const updateMovie = async (
           duration: movieDuration,
           videoUrl: stagedMove?.videoName ?? movieVideo,
           thumbnailUrl,
+          ...(movieCategories !== undefined && { categories: { deleteMany: {}, create: categoryIds.map((categoryId) => ({ categoryId })) } }),
         },
       });
       await transaction.movieActor.deleteMany({ where: { movieId } });
@@ -151,6 +158,7 @@ export const updateMovie = async (
         'videoUrl',
         'thumbnailUrl',
         'actors',
+        ...(movieCategories !== undefined ? ['categories'] : []),
       ],
     },
   });

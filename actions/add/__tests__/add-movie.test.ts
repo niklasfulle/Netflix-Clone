@@ -5,6 +5,7 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/db', () => ({
   db: {
+    category: { count: jest.fn() },
     movie: {
       create: jest.fn(),
     },
@@ -32,6 +33,19 @@ import { isGenreAllowed } from '@/lib/genres';
 import { UserRole } from '@prisma/client';
 
 describe('add movie action - Authentifizierung & Validierung', () => {
+  it('links multiple unique categories to a new series and rejects missing categories before creation', async () => {
+    (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1', role: UserRole.ADMIN });
+    (currentRole as jest.Mock).mockResolvedValue(UserRole.ADMIN);
+    (db.movie.create as jest.Mock).mockResolvedValue({ id: 'series-1' });
+    (db.category.count as jest.Mock).mockResolvedValue(2);
+    const values = { movieName: 'Series', movieDescripton: 'Description', movieType: 'Serie', movieGenre: 'Drama', movieDuration: '01:00:00', movieVideo: 'video', movieActor: ['actor'], movieCategories: ['first', 'second', 'first'] };
+    await expect(addMovie(values, 'thumb')).resolves.toEqual({ success: 'Movie added!' });
+    expect(db.movie.create).toHaveBeenCalledWith({ data: expect.objectContaining({ categories: { create: [{ categoryId: 'first' }, { categoryId: 'second' }] } }) });
+    jest.mocked(db.movie.create).mockClear();
+    (db.category.count as jest.Mock).mockResolvedValue(1);
+    await expect(addMovie(values, 'thumb')).resolves.toHaveProperty('error');
+    expect(db.movie.create).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     (isGenreAllowed as jest.Mock).mockReturnValue(true);

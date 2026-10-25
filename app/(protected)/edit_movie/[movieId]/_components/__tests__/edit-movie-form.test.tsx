@@ -165,6 +165,13 @@ const mockRouter = {
 };
 
 describe("EditMovieForm", () => {
+  it("keeps loaded category assignments when saving other metadata", async () => {
+    const { container } = render(<EditMovieForm movie={{ ...mockMovie, categoryIds: ['category-one', 'category-two'] }} />);
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(updateMovieModule.updateMovie).toHaveBeenCalledWith(
+      'movie-1', expect.objectContaining({ movieCategories: undefined }), '/thumbnails/test.jpg',
+    ));
+  });
   beforeEach(() => {
     jest.clearAllMocks();
 

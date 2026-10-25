@@ -5,6 +5,7 @@ import { useWatch, type UseFormReturn } from "react-hook-form";
 import type * as z from "zod";
 
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CategorySelect } from "@/components/CategorySelect";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { useGenreOptions } from "@/components/providers/GenreProvider";
 import {
@@ -120,6 +121,17 @@ export const MovieFormFields = ({
           </FormControl>
           <FormMessage />
           {actorExtension}
+        </FormItem>
+      )}
+    />
+    <FormField
+      control={form.control}
+      name="movieCategories"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel className="text-white">{t("Categories")}</FormLabel>
+          <CategorySelect value={field.value ?? []} onChange={field.onChange} disabled={disabled} />
+          <FormMessage />
         </FormItem>
       )}
     />

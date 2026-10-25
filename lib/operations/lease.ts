@@ -6,6 +6,7 @@ export const PROTECTED_OPERATION_NAMES = [
   'backup.cleanup',
   'restore.verify',
   'media.scan',
+  'media.analyze',
   'media.cleanup',
   'deployment.adjacent',
 ] as const;

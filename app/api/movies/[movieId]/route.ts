@@ -42,6 +42,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
     const movie = await db.movie.findUnique({
       where: { id: movieId },
       include: {
+        categories: { include: { category: true } },
         actors: {
           include: {
             actor: true
@@ -64,6 +65,8 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       ...movie,
       actors: actorObjs,
       actorIds,
+      categories: (movie.categories ?? []).map(({ category }) => ({ id: category.id, name: category.name, nameEn: category.nameEn })),
+      categoryIds: (movie.categories ?? []).map(({ categoryId }) => categoryId),
       watchTime: undefined,
     };
 

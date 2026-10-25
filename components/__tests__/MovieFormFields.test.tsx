@@ -7,6 +7,7 @@ import type { MovieSchema } from '@/schemas';
 
 let mockGenres: string[] = [];
 jest.mock('@/components/providers/GenreProvider', () => ({ useGenreOptions: () => mockGenres }));
+jest.mock('@/hooks/useCategories', () => ({ useCategories: () => ({ categories: [], isLoading: false, refresh: jest.fn() }) }));
 beforeEach(() => { mockGenres = []; localStorage.clear(); });
 
 function EmptyConfigurationForm() {

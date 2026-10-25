@@ -87,6 +87,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                 <button
                   type="button"
                   className="pointer-events-auto ml-1 focus:outline-none"
+                  disabled={disabled}
                   onClick={e => {
                     e.stopPropagation();
                     onChange(value.filter(v => v !== val));

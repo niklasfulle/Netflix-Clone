@@ -29,6 +29,10 @@ export type JobExecutionRepository = {
 };
 
 type WorkerHandlers = {
+  videoAnalysis?(payload: { analysisId: string; contentId: string }, context: {
+    signal?: AbortSignal;
+    reportProgress(progress: JobProgress): Promise<void>;
+  }): Promise<unknown>;
   mediaIntegrityScan(
     payload: { scope: 'catalog' } | { scope: 'content'; contentId: string },
     context: {
@@ -110,6 +114,10 @@ async function dispatchJob(
   handlers: WorkerHandlers,
   context: HandlerContext,
 ): Promise<unknown> {
+  if (job.name === JOB_NAMES.videoAnalysis) {
+    if (!handlers.videoAnalysis) throw new PermanentJobError('No handler is registered for this job contract');
+    return handlers.videoAnalysis(job.payload, context);
+  }
   if (job.name === JOB_NAMES.mediaIntegrityScan) {
     return handlers.mediaIntegrityScan(job.payload, context);
   }

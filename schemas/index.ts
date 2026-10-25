@@ -141,6 +141,7 @@ export const MovieSchema = z.object({
   movieActor: z.array(z.string().min(1)).min(1, 'Mindestens ein Actor muss gewählt werden'),
   movieType: z.string().min(1, 'Type must be set'),
   movieGenre: z.string().min(1, 'Genre must be set'),
+  movieCategories: z.array(z.string().min(1).max(191)).max(50).optional(),
   movieDuration: z.string().min(1, 'Duration must be set').regex(/^(\d{1,2}:)?\d{2}:\d{2}$/g, 'Invalid duration'),
   movieVideo: z.string().min(1, 'Video must be set'),
   movieThumbnail: z.string().optional(),

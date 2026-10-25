@@ -10,6 +10,14 @@ export const ADMIN_AUDIT_ACTIONS = [
   'actor.delete',
   'actor.source.create',
   'actor.source.delete',
+  'category.create',
+  'category.update',
+  'category.delete',
+  'video.analysis.submit',
+  'video.analysis.review',
+  'video.example.create',
+  'video.example.update',
+  'video.example.delete',
   'user.role_change',
   'user.block',
   'user.unblock',
@@ -31,6 +39,9 @@ export type AdminAuditTargetType =
   | 'content'
   | 'actor'
   | 'actor_source'
+  | 'category'
+  | 'video_analysis'
+  | 'video_example'
   | 'user'
   | 'backup'
   | 'background_job'
@@ -112,6 +123,14 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'actor.delete': new Set(['associatedContentCount']),
   'actor.source.create': new Set(),
   'actor.source.delete': new Set(),
+  'category.create': new Set(),
+  'category.update': new Set(['changedFields']),
+  'category.delete': new Set(),
+  'video.analysis.submit': new Set(['duplicate']),
+  'video.analysis.review': new Set(['acceptedCount', 'rejectedCount']),
+  'video.example.create': new Set(['labelCount']),
+  'video.example.update': new Set(['labelCount']),
+  'video.example.delete': new Set(),
   'user.role_change': new Set(['previousRole', 'nextRole']),
   'user.block': new Set(['reasonCode', 'hasExpiry']),
   'user.unblock': new Set(),

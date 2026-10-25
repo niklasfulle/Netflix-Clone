@@ -46,7 +46,12 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
     return { error: "Invalid fields!" };
   }
 
-  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo } = validatedField.data;
+  const { movieName, movieDescripton, movieActor, movieType, movieGenre, movieDuration, movieVideo, movieCategories } = validatedField.data;
+  const categoryIds = [...new Set(movieCategories ?? [])];
+  if (categoryIds.length > 0 && await db.category.count({ where: { id: { in: categoryIds } } }) !== categoryIds.length) {
+    await audit.failed();
+    return { error: "One or more categories no longer exist. Please refresh the list." };
+  }
 
   if (!isGenreAllowed(movieGenre)) {
     logBackendAction('addMovie_genre_not_allowed', { userId: user.id, movieGenre }, 'warn');
@@ -64,6 +69,7 @@ export const addMovie = async (values: z.infer<typeof MovieSchema>, thumbnailUrl
       type: movieType,
       genre: movieGenre,
       duration: movieDuration,
+      ...(categoryIds.length > 0 && { categories: { create: categoryIds.map((categoryId) => ({ categoryId })) } }),
     }
   });
 

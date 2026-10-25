@@ -7,6 +7,7 @@ jest.mock('@/lib/media-library', () => ({
 }));
 jest.mock('@/lib/db', () => ({
   db: {
+    category: { count: jest.fn() },
     movie: { findUnique: jest.fn() },
     adminAuditEvent: { create: jest.fn() },
     $transaction: jest.fn(),
@@ -32,6 +33,24 @@ const values = {
 };
 
 describe('updateMovie', () => {
+  it('replaces category assignments atomically and supports clearing all categories', async () => {
+    (db.category.count as jest.Mock).mockResolvedValue(2);
+    await expect(updateMovie('movie-1', { ...values, movieCategories: ['first', 'second', 'first'] }, 'thumb')).resolves.toHaveProperty('success');
+    expect(transaction.movie.update).toHaveBeenLastCalledWith({ where: { id: 'movie-1' }, data: expect.objectContaining({ categories: { deleteMany: {}, create: [{ categoryId: 'first' }, { categoryId: 'second' }] } }) });
+    await updateMovie('movie-1', { ...values, movieCategories: [] }, 'thumb');
+    expect(transaction.movie.update).toHaveBeenLastCalledWith({ where: { id: 'movie-1' }, data: expect.objectContaining({ categories: { deleteMany: {}, create: [] } }) });
+  });
+
+  it('preserves category assignments for older clients that omit the category field', async () => {
+    await updateMovie('movie-1', values, 'thumb');
+    expect(transaction.movie.update.mock.calls[0][0].data).not.toHaveProperty('categories');
+  });
+
+  it('rejects category IDs that were deleted while the form was open', async () => {
+    (db.category.count as jest.Mock).mockResolvedValue(0);
+    await expect(updateMovie('movie-1', { ...values, movieCategories: ['gone'] }, 'thumb')).resolves.toHaveProperty('error');
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
   it.each([new Error('Cannot move this video'), 'non-error rejection'])('does not update metadata when staging the media move fails: %s', async failure => {
     jest.mocked(stageMediaTypeChange).mockRejectedValueOnce(failure);
     await expect(updateMovie('movie-1', values, 'thumb.jpg')).resolves.toEqual({ error: failure instanceof Error ? 'Cannot move this video' : 'Video file could not be moved!' });

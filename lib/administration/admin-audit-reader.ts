@@ -41,6 +41,9 @@ type AdminAuditReadDependencies = {
 const TARGET_TYPES = new Set<AdminAuditTargetType>([
   'content',
   'actor',
+  'category',
+  'video_analysis',
+  'video_example',
   'user',
   'backup',
   'media_scan',
