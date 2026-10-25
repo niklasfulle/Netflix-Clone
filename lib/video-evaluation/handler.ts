@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 import { db } from '@/lib/db';
 import type { JobProgress } from '@/lib/jobs/contracts';
 import { hasActiveUserBlock } from '@/lib/user-access';
 import { VideoAnalysisError } from '@/lib/video-analysis/contracts';
-import { classifyVideoFrames, videoAnalysisEnabled } from '@/lib/video-analysis/model';
+import { classifyVideoFramesWithDiagnostics, videoAnalysisEnabled } from '@/lib/video-analysis/model';
 import { currentAnalysisProfileId } from '@/lib/video-analysis/runtime-profile';
 import { inspectAnalysisSource, captureAnalysisFrame } from '@/lib/video-analysis/source';
 import { createFfprobe } from '@/lib/media-probe';
@@ -46,21 +47,26 @@ export async function runVideoEvaluation(payload: { evaluationId: string }, cont
       if (movie) source = await inspectAnalysisSource(movie).catch(() => null);
       let status = !source ? 'UNAVAILABLE' : source.fingerprint !== sample.sourceFingerprint ? 'STALE' : 'COMPLETED';
       let tags;
+      let diagnostics;
+      let evidence: { index: number; atSeconds: number; sha256: string; jpeg: Buffer }[] = [];
       if (status === 'COMPLETED' && source) {
         const probe = await createFfprobe()(source.filePath, 15_000);
         if (!probe.durationSeconds || sample.endSeconds > probe.durationSeconds) status = 'STALE';
         else {
           const frames: Buffer[] = [];
-          for (const position of samplePositions(sample.startSeconds, sample.endSeconds)) {
-            await checkpoint(); frames.push(await captureAnalysisFrame(source.filePath, position, signal));
+          for (const [index, position] of samplePositions(sample.startSeconds, sample.endSeconds).entries()) {
+            await checkpoint();
+            const frame = await captureAnalysisFrame(source.filePath, position, signal);
+            frames.push(frame);
+            evidence.push({ index, atSeconds: Number(position.toFixed(3)), sha256: createHash('sha256').update(frame).digest('hex'), jpeg: frame });
           }
-          tags = await classifyVideoFrames(frames, vocabulary.map(category => category.name), signal);
+          ({ tags, diagnostics } = await classifyVideoFramesWithDiagnostics(frames, vocabulary.map(category => category.name), signal));
           const current = await db.movie.findUnique({ where: { id: sample.movieId }, select: { type: true, videoUrl: true } });
-          if (!current || (await inspectAnalysisSource(current)).fingerprint !== sample.sourceFingerprint) { status = 'STALE'; tags = undefined; }
+          if (!current || (await inspectAnalysisSource(current)).fingerprint !== sample.sourceFingerprint) { status = 'STALE'; tags = undefined; diagnostics = undefined; evidence = []; }
         }
       }
       await checkpoint();
-      await db.videoEvaluationSample.update({ where: { id: sample.id }, data: { status, ...(tags && { tags }) } });
+      await db.videoEvaluationSample.update({ where: { id: sample.id }, data: { status, ...(tags && { tags, diagnostics, frames: { deleteMany: {}, create: evidence } }) } });
       processed++; if (status !== 'COMPLETED') skipped++;
       await progress();
     }

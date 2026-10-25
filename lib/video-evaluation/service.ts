@@ -43,14 +43,14 @@ export async function submitVideoEvaluation(requestId: string, actorUserId: stri
 
 export async function readVideoEvaluations(selectedId?: string) {
   const [runs, exampleCount, movies, available] = await Promise.all([
-    db.videoEvaluation.findMany({ orderBy: { createdAt: 'desc' }, take: 10, include: { jobRun: { select: { id: true, status: true, progress: true } }, samples: { orderBy: [{ movieId: 'asc' }, { startSeconds: 'asc' }] } } }),
+    db.videoEvaluation.findMany({ orderBy: { createdAt: 'desc' }, take: 10, include: { jobRun: { select: { id: true, status: true, progress: true } }, samples: { orderBy: [{ movieId: 'asc' }, { startSeconds: 'asc' }], include: { _count: { select: { frames: true } } } } } }),
     db.videoExample.count(), db.videoExample.groupBy({ by: ['movieId'] }), analysisModelAvailable(),
   ]);
   const selected = runs.find(run => run.id === selectedId) ?? runs[0];
   const titles = new Map((await db.movie.findMany({ where: { id: { in: [...new Set(selected?.samples.map(sample => sample.movieId) ?? [])] } }, select: { id: true, title: true } })).map(movie => [movie.id, movie.title]));
   return { exampleCount, videoCount: movies.length, available, runs: runs.map(run => {
     const samples: EvaluationSample[] = run.samples.map(sample => ({ id: sample.id, movieId: sample.movieId, movieTitle: titles.get(sample.movieId), exampleId: sample.exampleId, exampleVersion: sample.exampleVersion,
-      startSeconds: sample.startSeconds, endSeconds: sample.endSeconds, labels: exampleLabels.parse(sample.labels), status: sample.status, tags: sample.tags ? frameTagsSchema.parse(sample.tags) : null }));
+      startSeconds: sample.startSeconds, endSeconds: sample.endSeconds, labels: exampleLabels.parse(sample.labels), status: sample.status, tags: sample.tags ? frameTagsSchema.parse(sample.tags) : null, hasEvidence: sample._count.frames === 3 && sample.diagnostics !== null }));
     return { id: run.id, model: run.model, status: run.status, errorCode: run.errorCode, createdAt: run.createdAt.toISOString(), completedAt: run.completedAt?.toISOString() ?? null,
       jobRun: run.jobRun, threshold: run.threshold, sampleCount: samples.length, samples: run.id === selected?.id ? samples : [], summary: summarizeEvaluation(samples, run.threshold), videoCount: new Set(samples.map(sample => sample.movieId)).size };
   }) };

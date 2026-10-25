@@ -1,5 +1,6 @@
 import { frameTagsSchema, normalizedCategoryName, VideoAnalysisError, type FrameTags } from './contracts';
 import { classificationInstructions } from './profile';
+import type { ClassificationDiagnostics } from './diagnostics';
 
 export function analysisModelUrl() {
   const url = new URL(process.env.VIDEO_ANALYSIS_URL || 'http://video-model:8080');
@@ -82,10 +83,14 @@ export async function translateCategoryName(name: string, signal?: AbortSignal) 
 }
 
 export async function classifyVideoFrames(frames: Buffer[], categories: string[], signal?: AbortSignal): Promise<FrameTags> {
+  return (await classifyVideoFramesWithDiagnostics(frames, categories, signal)).tags;
+}
+
+export async function classifyVideoFramesWithDiagnostics(frames: Buffer[], categories: string[], signal?: AbortSignal): Promise<{ tags: FrameTags; diagnostics: ClassificationDiagnostics }> {
   // Discover first without vocabulary: showing existing labels anchors small models
   // on those labels and prevents otherwise valid new categories from emerging.
   const discovered = await requestVideoTags(frames, 'Independently discover up to five specific, visually supported category labels for this segment. No predefined category list is supplied. Describe distinct observable aspects rather than only one broad genre. Do not invent labels to fill a quota.', signal);
-  if (categories.length === 0) return discovered;
+  if (categories.length === 0) return { tags: discovered, diagnostics: { schemaVersion: 1, discovered, matched: null, matchingVocabulary: [], selectionLimit: 5 } };
   signal?.throwIfAborted();
   const vocabulary = categories.slice(0, 64);
   const matched = await requestVideoTags(frames, `Match this segment against the existing category vocabulary (JSON): ${JSON.stringify(vocabulary)}. Return only exact names from this list that are visually supported, up to five. This is a separate matching step; return tags=[] if none apply.`, signal);
@@ -105,5 +110,5 @@ export async function classifyVideoFrames(frames: Buffer[], categories: string[]
   const existingTags = byScore.filter(tag => known.has(normalizedCategoryName(tag.name)));
   const newLimit = existingTags.length ? 4 : 5;
   const tags = [...newTags.slice(0, newLimit), ...existingTags].slice(0, 5);
-  return { tags, uncertain: discovered.uncertain && matched.uncertain };
+  return { tags: { tags, uncertain: discovered.uncertain && matched.uncertain }, diagnostics: { schemaVersion: 1, discovered, matched, matchingVocabulary: vocabulary, selectionLimit: 5 } };
 }

@@ -4,7 +4,7 @@ import { MIN_CATEGORY_SCORE } from '@/lib/video-analysis/profile';
 
 export const MAX_EVALUATION_SAMPLES = 500;
 export type Counts = { tp: number; fp: number; fn: number; tn: number };
-export type EvaluationSample = { id: string; movieId: string; movieTitle?: string; exampleId: string; exampleVersion: number; startSeconds: number; endSeconds: number; labels: ExampleLabel[]; status: string; tags: FrameTags | null };
+export type EvaluationSample = { id: string; movieId: string; movieTitle?: string; exampleId: string; exampleVersion: number; startSeconds: number; endSeconds: number; labels: ExampleLabel[]; status: string; tags: FrameTags | null; hasEvidence?: boolean };
 export type Outcome = 'tp' | 'fp' | 'fn' | 'tn';
 export function samplePositions(start: number, end: number) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) throw new Error('INVALID_TIME_RANGE');

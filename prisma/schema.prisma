@@ -469,9 +469,24 @@ model VideoEvaluationSample {
   labels            Json
   status            String          @default("PENDING")
   tags              Json?
+  diagnostics       Json?
+  inspection        Json?
+  inspectionVersion Int             @default(0)
+  frames            VideoEvaluationFrame[]
   evaluation        VideoEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
 
   @@unique([evaluationId, exampleId])
+}
+
+model VideoEvaluationFrame {
+  sampleId  String
+  index     Int
+  atSeconds Float
+  sha256    String
+  jpeg      Bytes
+  sample    VideoEvaluationSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+
+  @@id([sampleId, index])
 }
 
 model VideoExample {

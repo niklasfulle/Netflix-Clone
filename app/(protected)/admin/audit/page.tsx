@@ -53,6 +53,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'category.import': 'Imported categories',
   'video.analysis.submit': 'Requested video analysis',
   'video.evaluation.submit': 'Started segment comparison',
+  'video.evaluation.inspect': 'Reviewed comparison frames',
   'video.analysis.review': 'Reviewed video categories',
   'video.example.create': 'Created video example',
   'video.example.update': 'Updated video example',

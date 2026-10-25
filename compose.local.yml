@@ -30,7 +30,8 @@ x-app: &app
     MOVIE_FOLDER: /movies
     SERIES_FOLDER: /series
     VIDEO_ANALYSIS_ENABLED: 'true'
-    VIDEO_ANALYSIS_URL: http://video-model:8080
+    VIDEO_ANALYSIS_URL: ${LOCAL_VIDEO_ANALYSIS_URL:-http://video-model:8080}
+    VIDEO_ANALYSIS_MODEL_ID: ${LOCAL_VIDEO_ANALYSIS_MODEL_ID:-}
   volumes:
     - movies:/movies
     - series:/series

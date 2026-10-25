@@ -37,6 +37,35 @@ video belong to one dataset group. Future tuning and validation must use
 different videos to avoid misleading improvements caused by overlapping data.
 The initial dataset is a diagnostic baseline, not evidence of general accuracy.
 
+## Inspecting disagreements
+
+Expand a sample to inspect the exact three JPEG images sent to the model,
+their timestamps and the parsed responses for discovery, vocabulary matching
+and final selection. Images are stored transactionally with predictions in a
+separate database table, with a SHA-256 digest and a one-MiB limit per frame.
+The existing local database volume retains them; no public image folder or
+additional media volume is used. They are included in database backups.
+Images are fetched on demand through administrator-only, non-cacheable routes.
+Deleting an evaluation cascades to its evidence. No model prompts are retained.
+
+Older runs without stored frames are explicitly marked as unavailable. The
+application never regenerates a historical image and claims it was the
+original input. Start a new comparison to collect evidence for those samples.
+
+For each reviewed category, an administrator can save whether it is visible
+in the captured images, independently of the original segment judgment.
+Version checks prevent concurrent reviews from overwriting one another.
+Visibility reviews do not change ground truth, assignments or evaluation
+metrics. They help distinguish sampling misses from recognition problems.
+An absent category marked visible is flagged as a judgment conflict.
+
+Diagnostic hints distinguish low-confidence final predictions, categories
+dropped during selection, model abstention and names outside the matching
+vocabulary. No semantic synonym match or definitive visual cause is invented.
+A threshold slider previews the selected sample's metrics using its saved
+final predictions. It never changes the inference settings or historical
+metrics, and cannot recover predictions removed before final selection.
+
 For the local Docker stack, rebuild the shared app image, apply the additive
 schema and queue changes through the `init` service without seeding, then
 recreate `app` and `jobs-worker`. Existing media and database volumes are kept.

@@ -1,10 +1,20 @@
 /** @jest-environment node */
-import { analysisModelAvailable, analysisModelUrl, classifyVideoFrames, translateCategoryName } from '../model';
+import { analysisModelAvailable, analysisModelUrl, classifyVideoFrames, classifyVideoFramesWithDiagnostics, translateCategoryName } from '../model';
 import { aggregateCategorySuggestions } from '../contracts';
 
 const previousUrl = process.env.VIDEO_ANALYSIS_URL;
 const previousEnabled = process.env.VIDEO_ANALYSIS_ENABLED;
 const originalFetch = globalThis.fetch;
+it('retains separate parsed model passes even when final selection drops a known category', async () => {
+  globalThis.fetch = jest.fn();
+  const discovered = { tags: ['Nature', 'City', 'Sea', 'Forest', 'Mountains'].map(name => ({ name, nameEn: name, confidence: 0.9 })), uncertain: false };
+  const matched = { tags: ['Known1', 'Known2', 'Known3', 'Known4', 'Known5'].map(name => ({ name, nameEn: name, confidence: 0.8 })), uncertain: false };
+  jest.mocked(fetch).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify(discovered) } }] })).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify(matched) } }] }));
+  const result = await classifyVideoFramesWithDiagnostics([], matched.tags.map(tag => tag.name));
+  expect(result.diagnostics).toEqual({ schemaVersion: 1, discovered, matched, matchingVocabulary: matched.tags.map(tag => tag.name), selectionLimit: 5 });
+  expect(result.tags.tags).toHaveLength(5);
+  expect(result.tags.tags.find(tag => tag.name === 'Known5')).toBeUndefined();
+});
 beforeEach(() => { process.env.VIDEO_ANALYSIS_URL = 'http://video-model:8080'; process.env.VIDEO_ANALYSIS_ENABLED = 'true'; globalThis.fetch = jest.fn(); });
 afterAll(() => { globalThis.fetch = originalFetch; if (previousUrl === undefined) delete process.env.VIDEO_ANALYSIS_URL; else process.env.VIDEO_ANALYSIS_URL = previousUrl; if (previousEnabled === undefined) delete process.env.VIDEO_ANALYSIS_ENABLED; else process.env.VIDEO_ANALYSIS_ENABLED = previousEnabled; });
 
