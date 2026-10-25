@@ -1,5 +1,6 @@
 .git
 .local-private
+output/playwright
 **/video-examples-*.json
 **/categories-export*.json
 .github

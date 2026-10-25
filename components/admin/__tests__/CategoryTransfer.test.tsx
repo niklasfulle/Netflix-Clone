@@ -11,9 +11,10 @@ function view() { return render(<CategoryTransfer categories={categories} disabl
 test('previews both languages and requires explicit confirmation before importing', async () => {
   view();
   fireEvent.change(screen.getByLabelText('Import categories'), { target: { files: [fileFor(document)] } });
-  expect(await screen.findByText(/Import preview/)).toHaveTextContent('New categories: 1');
+  expect(await screen.findByRole('region', { name: 'Import preview' })).toHaveTextContent(/New categories\s*1/);
   expect(fetch).not.toHaveBeenCalled();
-  expect(screen.getByText('DE: Stadt · EN: City')).toBeInTheDocument();
+  expect(screen.getByRole('cell', { name: 'Stadt' })).toBeInTheDocument();
+  expect(screen.getByRole('cell', { name: 'City' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Confirm category import' }));
   await waitFor(() => expect(imported).toHaveBeenCalledTimes(1));
   expect(fetch).toHaveBeenCalledWith('/api/categories/import', expect.objectContaining({ method: 'POST', body: JSON.stringify(document) }));
@@ -45,4 +46,21 @@ test('exports both names without internal IDs or assignment counts', async () =>
     expect(JSON.parse(text)).toEqual({ schemaVersion: 1, categories: [{ name: 'Natur', nameEn: 'Nature' }] });
     expect(filename).toBe('categories-export.json');
   } finally { await new Promise(resolve => setTimeout(resolve, 1100)); click.mockRestore(); Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: oldCreate }); Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: oldRevoke }); }
+});
+
+test('accepts a dropped file and shows its name before confirmation', async () => {
+  view();
+  fireEvent.drop(screen.getByRole('button', { name: /Choose a JSON file/ }), { dataTransfer: { files: [fileFor(document)] } });
+  expect(await screen.findByRole('region', { name: 'Import preview' })).toBeInTheDocument();
+  expect(screen.getByText('categories-export.json')).toBeInTheDocument();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+test('rejects multiple dropped files without keeping an earlier import ready', async () => {
+  view();
+  fireEvent.drop(screen.getByRole('button', { name: /Choose a JSON file/ }), { dataTransfer: { files: [fileFor(document)] } });
+  await screen.findByRole('region', { name: 'Import preview' });
+  fireEvent.drop(screen.getByRole('button', { name: /Choose another file/ }), { dataTransfer: { files: [fileFor(document), fileFor(document)] } });
+  expect(await screen.findByRole('alert')).toHaveTextContent('Choose one JSON file.');
+  expect(screen.queryByRole('button', { name: 'Confirm category import' })).not.toBeInTheDocument();
 });

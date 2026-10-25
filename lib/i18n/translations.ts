@@ -4,6 +4,16 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'Transfer your global category catalog between installations.': 'Übertrage deinen globalen Kategorienkatalog zwischen Installationen.',
+  'Download all categories with their German and English names.': 'Lade alle Kategorien mit ihren deutschen und englischen Namen herunter.',
+  'Choose a file and review the changes before importing.': 'Wähle eine Datei und prüfe die Änderungen vor dem Import.',
+  'Choose a JSON file': 'JSON-Datei auswählen',
+  'Choose another file': 'Andere Datei auswählen',
+  'Reading category file...': 'Kategoriedatei wird gelesen …',
+  'Or drop it here': 'Oder hierher ziehen',
+  'Up to 1 MB': 'Bis zu 1 MB',
+  'Choose one JSON file.': 'Wähle genau eine JSON-Datei aus.',
+  'Showing the first 20 categories.': 'Die ersten 20 Kategorien werden angezeigt.',
   'Import and export categories': 'Kategorien importieren und exportieren',
   'Export categories': 'Kategorien exportieren',
   'Import categories': 'Kategorien importieren',
