@@ -1,10 +1,12 @@
 import { analysisSampleTimes, type FrameTags, type Observation } from './contracts';
 import { ANALYSIS_FRAME_OFFSET_SECONDS } from './profile';
+import type { SamplingProfileId } from './sampling';
 
 export type IndexedObservation = Observation & { index: number };
 
 export async function analyzeVideoSegments(input: {
   duration: number;
+  samplingProfile?: SamplingProfileId;
   previous: IndexedObservation[];
   capture(seconds: number): Promise<Buffer>;
   classify(frames: Buffer[]): Promise<FrameTags>;
@@ -12,7 +14,7 @@ export async function analyzeVideoSegments(input: {
   save(observation: IndexedObservation, processed: number, total: number): Promise<void>;
   progress(processed: number, total: number): Promise<void>;
 }) {
-  const times = analysisSampleTimes(input.duration);
+  const times = analysisSampleTimes(input.duration, input.samplingProfile);
   const observations = new Map(input.previous.map(observation => [observation.index, observation]));
   await input.progress(observations.size, times.length);
   for (let index = 0; index < times.length; index++) {

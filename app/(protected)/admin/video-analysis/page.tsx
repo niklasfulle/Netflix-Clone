@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { VideoAnalysisReview, analysisActive, analysisErrorKey, analysisStatus, type AnalysisSummary } from '@/components/admin/VideoAnalysisReview';
 import fetcher from '@/lib/fetcher';
+import { type SamplingMode } from '@/lib/video-analysis/sampling';
 
 type Item = { id: string; title: string; type: string; duration: string; videoAnalyses: AnalysisSummary[] };
 type ResponseData = { items: Item[]; totalPages: number; model: { enabled: boolean; available: boolean; name: string } };
@@ -20,6 +21,7 @@ export default function VideoAnalysisPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [samplingMode, setSamplingMode] = useState<SamplingMode>('THOROUGH');
   useEffect(() => { const timer = setTimeout(() => { setSearch(input.trim()); setPage(1); }, 300); return () => clearTimeout(timer); }, [input]);
   const { data, error: loadError, mutate } = useSWR<ResponseData>(`/api/admin/video-analysis?search=${encodeURIComponent(search)}&page=${page}`, fetcher, { refreshInterval: 3000 });
 
@@ -42,6 +44,8 @@ export default function VideoAnalysisPage() {
       <output className={data?.model.available ? 'text-sm text-emerald-300' : 'text-sm text-amber-300'}>{t(data?.model.available ? 'Model service ready' : 'The analysis model service is not ready.')}</output>
       {data && !data.model.available && <p className="text-sm text-zinc-400">{t(data.model.enabled ? 'Check the configured model service and its network connection.' : 'Video analysis is not configured.')}</p>}
       <p className="text-xs leading-5 text-zinc-400">{t('One GPU job runs at a time. Completed analyses are saved; you can explicitly request a new analysis. New categories are only created when you accept them.')}</p>
+      <label className="block pt-2 text-sm font-medium text-zinc-200">{t('Whole-video sampling')}<select value={samplingMode} disabled={pending} onChange={event => setSamplingMode(event.target.value as SamplingMode)} className="mt-2 min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white sm:max-w-lg"><option value="THOROUGH">{t('Thorough: every 5 seconds, up to 720 segments')}</option><option value="STANDARD">{t('Standard: every 20 seconds, up to 120 segments')}</option></select></label>
+      <p className="text-xs leading-5 text-zinc-400">{t('More segments take longer. Three frames per segment are processed together. Long videos are sampled evenly across the full duration when the limit is reached. Resuming keeps the saved sampling profile; marked-example comparisons are unchanged.')}</p>
     </section>
     <label className="block text-sm text-zinc-300">{t('Search videos')}<input type="search" value={input} onChange={event => setInput(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white" /></label>
     {(error || loadError) && <p role="alert" className="text-red-300">{error || t('Analysis results could not be loaded.')}</p>}
@@ -58,13 +62,14 @@ export default function VideoAnalysisPage() {
           <div className="flex flex-wrap gap-2">
             <Link href={`/admin/video-analysis/${encodeURIComponent(movie.id)}/examples`} className="inline-flex min-h-10 items-center rounded-md border border-zinc-600 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800">{t('Mark video segments')}</Link>
             {analysis?.jobRun && ['FAILED', 'DEAD_LETTER'].includes(status) && <Button type="button" disabled={pending || !data.model.available} onClick={() => { void request(`/api/admin/jobs/${analysis.jobRun!.id}`, 'POST'); }}>{t('Resume analysis')}</Button>}
-            <Button type="button" disabled={pending || active || !data.model.available} onClick={() => { void request('/api/admin/video-analysis', 'POST', { movieId: movie.id, force: Boolean(analysis) }); }} className="bg-red-600 text-white hover:bg-red-500">{t(analysis ? 'Analyze again' : 'Analyze video')}</Button>
+            <Button type="button" disabled={pending || active || !data.model.available} onClick={() => { void request('/api/admin/video-analysis', 'POST', { movieId: movie.id, force: Boolean(analysis), samplingMode }); }} className="bg-red-600 text-white hover:bg-red-500">{t(analysis ? 'Analyze again' : 'Analyze video')}</Button>
             {analysis?.jobRun && active && <Button type="button" disabled={pending || status === 'CANCEL_REQUESTED'} onClick={() => { void request(`/api/admin/jobs/${analysis.jobRun!.id}`, 'DELETE'); }}>{t('Cancel')}</Button>}
             {analysis && !active && <Button type="button" onClick={() => setExpanded(current => current === movie.id ? null : movie.id)}>{t('Review suggestions')}</Button>}
           </div>
         </div>
         {analysis && <div className="mt-4 text-sm text-zinc-300">
           <output>{t(active ? 'Analysis in progress' : finishedLabel)} · {analysis.processedCount}/{analysis.sampleCount} {t('video segments')}</output>
+          <p className="mt-1 text-xs text-zinc-400">{t(analysis.samplingProfile === 'thorough-v1' ? 'Thorough analysis' : 'Standard analysis')}</p>
           {active && <progress aria-label={t('Analysis progress')} value={analysis.jobRun?.progress ?? 0} max={100} className="mt-3 block h-2 w-full accent-red-500" />}
           {analysis.errorCode && <p className="mt-2 text-red-300">{t(analysisErrorKey(analysis.errorCode))}</p>}
         </div>}

@@ -8,7 +8,7 @@ import fetcher from '@/lib/fetcher';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { categoryLabel } from '@/lib/category-label';
 
-export type AnalysisSummary = { id: string; status: string; processedCount: number; sampleCount: number; errorCode: string | null; jobRun: { id: string; status: string; progress: number } | null };
+export type AnalysisSummary = { id: string; status: string; samplingProfile?: string; processedCount: number; sampleCount: number; errorCode: string | null; jobRun: { id: string; status: string; progress: number } | null };
 export type AnalysisSuggestion = { id: string; name: string; nameEn?: string; confidence: number; evidence: number[]; state: string; categoryId: string | null; category: { name: string; nameEn?: string } | null };
 type Detail = AnalysisSummary & { suggestions: AnalysisSuggestion[] };
 
@@ -27,6 +27,7 @@ const errors: Record<string, TranslationKey> = {
   ANALYSIS_CANCELLED: 'Analysis cancelled.',
   MISSING_CATEGORY_TRANSLATION: 'Both category languages are required. Start a new analysis.',
   ANALYSIS_PROFILE_CHANGED: 'Analysis settings have changed. Start a new analysis.',
+  INVALID_SAMPLING_PROFILE: 'The sampling profile is unavailable. Start a new analysis.',
 };
 export function analysisErrorKey(code?: string | null): TranslationKey { return errors[code ?? ''] ?? 'Video analysis could not be completed.'; }
 export function analysisStatus(analysis: Pick<AnalysisSummary, 'status' | 'jobRun'>) { return analysis.jobRun?.status ?? analysis.status; }

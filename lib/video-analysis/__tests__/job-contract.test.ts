@@ -10,6 +10,8 @@ const submission = {
 test('accepts a bounded video analysis job and its result', () => {
   expect(parseJobSubmission(submission)).toEqual(submission);
   expect(parseJobResult({ analysisId: 'analysis-id', suggestionCount: 2, sampleCount: 6, status: 'READY' })).toMatchObject({ status: 'READY' });
+  expect(parseJobResult({ analysisId: 'analysis-id', suggestionCount: 2, sampleCount: 720, status: 'READY' })).toMatchObject({ sampleCount: 720 });
+  expect(() => parseJobResult({ analysisId: 'analysis-id', suggestionCount: 2, sampleCount: 721, status: 'READY' })).toThrow();
 });
 test('rejects mismatched content ownership, non-admin execution and oversized results', () => {
   expect(() => parseJobSubmission({ ...submission, target: { type: 'content', id: 'other-movie' } })).toThrow();

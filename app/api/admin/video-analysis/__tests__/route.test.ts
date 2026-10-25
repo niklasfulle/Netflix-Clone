@@ -41,8 +41,15 @@ test('rejects invalid inputs without submitting or mutating categories', async (
 test('queues the requested video and audits its analysis identifier', async () => {
   jest.mocked(submitVideoAnalysis).mockResolvedValue({ analysisId: 'analysis', jobRunId: 'job', duplicate: false });
   expect((await POST(request({ movieId: 'movie', force: true }))).status).toBe(202);
-  expect(submitVideoAnalysis).toHaveBeenCalledWith('movie', 'admin', true);
+  expect(submitVideoAnalysis).toHaveBeenCalledWith('movie', 'admin', true, 'THOROUGH');
   expect(audit.succeeded).toHaveBeenCalledWith({ target: { type: 'video_analysis', id: 'analysis' }, metadata: { duplicate: false } });
+});
+test('persists an explicitly chosen standard mode and rejects unknown sampling modes', async () => {
+  jest.mocked(submitVideoAnalysis).mockResolvedValue({ analysisId: 'analysis', jobRunId: 'job', duplicate: false });
+  expect((await POST(request({ movieId: 'movie', samplingMode: 'STANDARD' }))).status).toBe(202);
+  expect(submitVideoAnalysis).toHaveBeenCalledWith('movie', 'admin', undefined, 'STANDARD');
+  expect((await POST(request({ movieId: 'movie', samplingMode: 'UNBOUNDED' }))).status).toBe(400);
+  expect(submitVideoAnalysis).toHaveBeenCalledTimes(1);
 });
 test('returns bounded pages and model availability without making an analysis', async () => {
   jest.mocked(db.movie.findMany).mockResolvedValue([]);

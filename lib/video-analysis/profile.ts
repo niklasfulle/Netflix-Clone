@@ -1,5 +1,6 @@
 // Inference profile; changing it must also change VIDEO_ANALYSIS_MODEL so cached
 // analyses cannot silently mix sampling and classification policies.
+// Legacy standard interval; immutable whole-video grids live in sampling.ts.
 export const ANALYSIS_INTERVAL_SECONDS = 20;
 export const ANALYSIS_FRAME_OFFSET_SECONDS = 2;
 export const ANALYSIS_FRAME_SIZE = 768;

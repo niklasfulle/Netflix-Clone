@@ -78,3 +78,24 @@ by both services at runtime. Never copy a private file into an image or Git.
 See [Mac setup](../video-model-macos.md) for the native Mac server.
 This change prepares live deployments; it does not configure a provider or
 deploy to a live host automatically.
+
+## Whole-video sampling
+
+New whole-video analyses default to **Thorough**, with a target interval of
+five seconds, at least twelve segments and a maximum of 720. The optional
+**Standard** profile retains the original twenty-second interval, at least six
+segments and a maximum of 120. Each model call still receives at most three
+images. A 20-minute video therefore uses 240 rather than 60 segments. Once a
+limit is reached, segments remain evenly distributed across the entire video;
+the displayed interval is a target rather than a guarantee for very long videos.
+
+Denser sampling increases inference time and, for metered external services,
+request costs. It improves temporal coverage but does not guarantee better
+classification. Suggested categories still require administrator review.
+
+The selected sampling profile is stored on each analysis and contributes to
+its cache key. Existing records migrate to `standard-v1`, preserving their
+original temporal grid when resumed. Changing the selection affects newly
+submitted analyses only. Profile parameters are immutable; future policy
+changes require a new profile ID. Marked examples, their three-frame evidence,
+evaluation metrics and model identities are unaffected.

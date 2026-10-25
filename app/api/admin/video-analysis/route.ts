@@ -6,9 +6,10 @@ import { submitVideoAnalysis } from '@/lib/video-analysis/service';
 import { analysisModelAvailable, videoAnalysisEnabled } from '@/lib/video-analysis/model';
 import { VideoAnalysisError } from '@/lib/video-analysis/contracts';
 import { analysisModelConfiguration } from '@/lib/video-analysis/configuration';
+import { samplingModeSchema } from '@/lib/video-analysis/sampling';
 
 export const dynamic = 'force-dynamic';
-const input = z.object({ movieId: z.string().min(1).max(191), force: z.boolean().optional() }).strict();
+const input = z.object({ movieId: z.string().min(1).max(191), force: z.boolean().optional(), samplingMode: samplingModeSchema.default('THOROUGH') }).strict();
 const query = z.object({ movieId: z.string().min(1).max(191).optional(), search: z.string().trim().max(120).default(''), page: z.coerce.number().int().min(1).max(100000).default(1) });
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'private, no-store' } });
 
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     const [items, total, available] = await Promise.all([
       db.movie.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * 20, take: 20, select: {
         id: true, title: true, type: true, duration: true, videoUrl: true,
-        videoAnalyses: { orderBy: { createdAt: 'desc' }, take: 1, select: { id: true, status: true, sampleCount: true, processedCount: true, errorCode: true,
+        videoAnalyses: { orderBy: { createdAt: 'desc' }, take: 1, select: { id: true, status: true, samplingProfile: true, sampleCount: true, processedCount: true, errorCode: true,
           jobRun: { select: { id: true, status: true, progress: true } } } },
       } }), db.movie.count({ where }), analysisModelAvailable(),
     ]);
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
   const parsed = input.safeParse(await request.json().catch(() => null));
   if (!parsed.success) { await audit.failed(); return json({ error: 'INVALID_INPUT' }, 400); }
   try {
-    const result = await submitVideoAnalysis(parsed.data.movieId, actor.id, parsed.data.force);
+    const result = await submitVideoAnalysis(parsed.data.movieId, actor.id, parsed.data.force, parsed.data.samplingMode);
     await audit.succeeded({ target: { type: 'video_analysis', id: result.analysisId }, metadata: { duplicate: result.duplicate } });
     return json(result, 202);
   } catch (error) {

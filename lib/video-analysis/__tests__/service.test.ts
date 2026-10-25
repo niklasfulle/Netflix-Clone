@@ -38,6 +38,15 @@ it('queues analysis without creating categories or assigning anything automatica
   expect(result.analysisId).toBe('analysis-123');
   expect(backgroundJobSubmission.submit).toHaveBeenCalledWith(expect.objectContaining({ name: 'video.categories.analyze', payload: { analysisId: 'analysis-123', contentId: 'movie-1' } }));
   expect(db.category.upsert).not.toHaveBeenCalled();
+  expect(db.videoAnalysis.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ samplingProfile: 'thorough-v1' }) }));
+});
+it('keeps sampling profiles in separate caches and persists the choice per run', async () => {
+  await submitVideoAnalysis('movie-1', 'admin-123', false, 'STANDARD');
+  await submitVideoAnalysis('movie-1', 'admin-123', false, 'THOROUGH');
+  const calls = jest.mocked(db.videoAnalysis.upsert).mock.calls;
+  expect(calls[0][0].where.cacheKey).not.toBe(calls[1][0].where.cacheKey);
+  expect(calls[0][0].create.samplingProfile).toBe('standard-v1');
+  expect(calls[1][0].create.samplingProfile).toBe('thorough-v1');
 });
 
 it('reuses completed analyses even after the queue record has been retained away', async () => {

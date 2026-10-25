@@ -6,17 +6,22 @@ import { VideoAnalysisError } from './contracts';
 import { currentAnalysisProfileId } from './runtime-profile';
 import { analysisModelAvailable, videoAnalysisEnabled } from './model';
 import { inspectAnalysisSource } from './source';
+import { SAMPLING_PROFILES, samplingModeSchema, type SamplingMode } from './sampling';
 
-export async function submitVideoAnalysis(movieId: string, actorUserId: string, force = false) {
+export async function submitVideoAnalysis(movieId: string, actorUserId: string, force = false, samplingMode: SamplingMode = 'THOROUGH') {
   if (!videoAnalysisEnabled()) throw new VideoAnalysisError('ANALYSIS_DISABLED', true);
+  if (!samplingModeSchema.safeParse(samplingMode).success) throw new VideoAnalysisError('INVALID_SAMPLING_PROFILE', true);
+  const samplingProfile = SAMPLING_PROFILES[samplingMode].id;
   if (!await analysisModelAvailable()) throw new VideoAnalysisError('MODEL_UNAVAILABLE');
   const movie = await db.movie.findUnique({ where: { id: movieId }, select: { id: true, type: true, videoUrl: true } });
   if (!movie) throw new VideoAnalysisError('VIDEO_NOT_FOUND', true);
   const source = await inspectAnalysisSource(movie);
   const model = currentAnalysisProfileId();
-  const cacheKey = createHash('sha256').update(JSON.stringify([movie.id, source.fingerprint, model, force ? randomUUID() : 'cached'])).digest('hex');
+  const cacheParts = [movie.id, source.fingerprint, model, force ? randomUUID() : 'cached'];
+  if (samplingProfile !== 'standard-v1') cacheParts.push(samplingProfile);
+  const cacheKey = createHash('sha256').update(JSON.stringify(cacheParts)).digest('hex');
   const analysis = await db.videoAnalysis.upsert({ where: { cacheKey }, update: {}, create: {
-    movieId, requestedById: actorUserId, cacheKey, sourceFingerprint: source.fingerprint, model,
+    movieId, requestedById: actorUserId, cacheKey, sourceFingerprint: source.fingerprint, model, samplingProfile,
   } });
   if (analysis.jobRunId || analysis.status === 'SUCCEEDED') return { analysisId: analysis.id, jobRunId: analysis.jobRunId, duplicate: true };
   try {

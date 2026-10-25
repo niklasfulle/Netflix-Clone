@@ -7,6 +7,7 @@ import { currentAnalysisProfileId } from './runtime-profile';
 import { classifyVideoFrames, videoAnalysisEnabled } from './model';
 import { analyzeVideoSegments } from './runner';
 import { captureAnalysisFrame, inspectAnalysisSource } from './source';
+import { samplingProfileSchema } from './sampling';
 
 export async function runVideoAnalysis(payload: { analysisId: string; contentId: string }, context: {
   jobRunId: string;
@@ -34,17 +35,20 @@ export async function runVideoAnalysis(payload: { analysisId: string; contentId:
   timer.unref();
   try {
     if (analysis.model !== currentAnalysisProfileId()) throw new VideoAnalysisError('ANALYSIS_PROFILE_CHANGED', true);
+    const parsedSampling = samplingProfileSchema.safeParse(analysis.samplingProfile ?? 'standard-v1');
+    if (!parsedSampling.success) throw new VideoAnalysisError('INVALID_SAMPLING_PROFILE', true);
+    const samplingProfile = parsedSampling.data;
     await checkpoint();
     const source = await inspectAnalysisSource(analysis.movie);
     if (source.fingerprint !== analysis.sourceFingerprint) throw new VideoAnalysisError('VIDEO_CHANGED', true);
     const probe = await createFfprobe()(source.filePath, 15_000);
     const duration = probe.durationSeconds ?? 0;
-    const times = analysisSampleTimes(duration);
+    const times = analysisSampleTimes(duration, samplingProfile);
     const previous = analysis.samples.map(sample => ({ index: sample.index, atSeconds: sample.atSeconds, tags: frameTagsSchema.parse(sample.tags) }));
     const vocabulary = await db.category.findMany({ select: { id: true, name: true, nameEn: true }, orderBy: { name: 'asc' } });
     await db.videoAnalysis.update({ where: { id: analysis.id }, data: { jobRunId: context.jobRunId, status: 'RUNNING', errorCode: null, durationSeconds: duration, sampleCount: times.length, processedCount: previous.length } });
     const observations = await analyzeVideoSegments({
-      duration, previous, checkpoint,
+      duration, samplingProfile, previous, checkpoint,
       capture: seconds => captureAnalysisFrame(source.filePath, seconds, signal),
       classify: frames => classifyVideoFrames(frames, vocabulary.map(category => category.name), signal),
       async save(observation, processed) {

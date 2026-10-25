@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Ganze Videos werden wahlweise gründlich mit einem Zielabstand von fünf Sekunden und bis zu 720 Ausschnitten analysiert; das bisherige Standardprofil bleibt verfügbar, wird je Lauf gespeichert und beim Fortsetzen beibehalten, während markierte Stellen und Vergleichsläufe unverändert bleiben
+
 - Lokale und Live-Umgebungen unterstützen externe Bildmodelldienste mit konfigurierbarem Endpunkt, Modellnamen, API-Schlüssel, Healthcheck, Zeitlimits und JSON-Ausgabeformat; App und Worker teilen eine geschützte Hostkonfiguration und Modellwechsel erhalten getrennte Laufkennungen
 
 - Ein vorbereitetes Startskript lädt ein geprüftes 8B-Bildmodell für Apple-Silicon-Macs; die lokale Anwendung unterstützt einen konfigurierbaren Modelldienst und getrennte Modellkennungen für spätere Vergleiche

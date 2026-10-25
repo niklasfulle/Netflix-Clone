@@ -4,6 +4,13 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'Whole-video sampling': 'Abtastung ganzer Videos',
+  'Thorough: every 5 seconds, up to 720 segments': 'Gründlich: alle 5 Sekunden, bis zu 720 Ausschnitte',
+  'Standard: every 20 seconds, up to 120 segments': 'Standard: alle 20 Sekunden, bis zu 120 Ausschnitte',
+  'More segments take longer. Three frames per segment are processed together. Long videos are sampled evenly across the full duration when the limit is reached. Resuming keeps the saved sampling profile; marked-example comparisons are unchanged.': 'Mehr Ausschnitte verlängern die Analyse. Pro Ausschnitt werden drei Bilder gemeinsam verarbeitet. Ist das Limit erreicht, werden die Ausschnitte gleichmäßig über das ganze Video verteilt. Beim Fortsetzen bleibt das gespeicherte Abtastprofil erhalten; Vergleiche markierter Stellen bleiben unverändert.',
+  'Thorough analysis': 'Gründliche Analyse',
+  'Standard analysis': 'Standardanalyse',
+  'The sampling profile is unavailable. Start a new analysis.': 'Das Abtastprofil ist nicht verfügbar. Starte eine neue Analyse.',
   'The analysis model service is not ready.': 'Der Modelldienst für die Analyse ist nicht bereit.',
   'Model service ready': 'Modelldienst bereit',
   'Check the configured model service and its network connection.': 'Prüfe den konfigurierten Modelldienst und seine Netzwerkverbindung.',

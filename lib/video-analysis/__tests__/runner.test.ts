@@ -12,6 +12,25 @@ it('samples the entire timeline and bounds long-video work', () => {
   expect(() => analysisSampleTimes(Number.NaN)).toThrow();
   expect(() => analysisSampleTimes(0)).toThrow();
 });
+it('samples four times as often for ordinary videos and bounds thorough long-video work', () => {
+  expect(analysisSampleTimes(1200, 'thorough-v1')).toHaveLength(240);
+  expect(analysisSampleTimes(1200, 'standard-v1')).toHaveLength(60);
+  const long = analysisSampleTimes(8 * 3600, 'thorough-v1');
+  expect(long).toHaveLength(720);
+  expect(long[0]).toBeGreaterThan(0);
+  expect(long[719]).toBeGreaterThan(7.9 * 3600);
+  expect(long[719]).toBeLessThan(8 * 3600);
+});
+it('finds a brief event missed by the sparse grid without increasing images per request', async () => {
+  const run = async (samplingProfile: 'standard-v1' | 'thorough-v1') => {
+    const classify = jest.fn(async (frames: Buffer[]) => ({ tags: frames.some(frame => Math.abs(Number(frame.toString()) - 17.5) < 0.1) ? [{ name: 'Natur', confidence: 0.95 }] : [], uncertain: false }));
+    const result = await analyzeVideoSegments({ duration: 120, samplingProfile, previous: [], capture: async seconds => Buffer.from(String(seconds)), classify, checkpoint: async () => {}, save: async () => {}, progress: async () => {} });
+    expect(classify.mock.calls.every(([frames]) => frames.length <= 3)).toBe(true);
+    return aggregateCategorySuggestions(result, [{ id: 'nature', name: 'Natur' }]);
+  };
+  expect(await run('standard-v1')).toHaveLength(0);
+  expect(await run('thorough-v1')).toEqual([expect.objectContaining({ categoryId: 'nature' })]);
+});
 
 it('merges category names, preserves known IDs and collects only observed evidence', () => {
   const output = aggregateCategorySuggestions([

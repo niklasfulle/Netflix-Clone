@@ -16,7 +16,7 @@ export async function GET(_request: Request, context: Context) {
   try {
     const { analysisId } = await context.params;
     const analysis = await db.videoAnalysis.findUnique({ where: { id: analysisId }, select: {
-      id: true, status: true, model: true, sampleCount: true, processedCount: true, durationSeconds: true, errorCode: true, completedAt: true,
+      id: true, status: true, model: true, samplingProfile: true, sampleCount: true, processedCount: true, durationSeconds: true, errorCode: true, completedAt: true,
       jobRun: { select: { id: true, status: true, progress: true } },
       suggestions: { orderBy: { confidence: 'desc' }, select: { id: true, name: true, nameEn: true, confidence: true, evidence: true, state: true, categoryId: true, category: { select: { name: true, nameEn: true } } } },
     } });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_ANALYSIS_SAMPLES } from '@/lib/video-analysis/sampling';
 
 export const JOB_NAMES = {
   videoEvaluation: 'video.examples.evaluate',
@@ -252,7 +253,7 @@ const backupRetentionResult = z.object({
 
 const jobResult = z.union([
   z.object({ evaluationId: boundedIdentifier, processedCount: z.number().int().min(0).max(500), skippedCount: z.number().int().min(0).max(500), status: z.literal('EVALUATED') }).strict(),
-  z.object({ analysisId: boundedIdentifier, suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(120), status: z.literal('READY') }).strict(),
+  z.object({ analysisId: boundedIdentifier, suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(MAX_ANALYSIS_SAMPLES), status: z.literal('READY') }).strict(),
   mediaIntegrityScanResult,
   backupVerificationResult,
   backupCreationResult,

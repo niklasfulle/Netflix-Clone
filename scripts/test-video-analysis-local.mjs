@@ -42,7 +42,7 @@ const prisma = new PrismaClient();
     jobId = submitted.jobRunId;
     console.log('Synthetic video queued');
     let job;
-    for (let attempt = 0; attempt < 150; attempt++) {
+    for (let attempt = 0; attempt < 300; attempt++) {
       job = await prisma.jobRun.findUnique({ where: { id: jobId } });
       if (['SUCCEEDED', 'FAILED', 'DEAD_LETTER', 'CANCELLED'].includes(job.status)) break;
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -50,8 +50,9 @@ const prisma = new PrismaClient();
     const analysis = await prisma.videoAnalysis.findUnique({ where: { id: submitted.analysisId }, include: { samples: true, suggestions: true } });
     console.log(JSON.stringify({ job: job.status, errorCode: job.errorCode, analysis: analysis.status, analysisError: analysis.errorCode, processed: analysis.processedCount, samples: analysis.samples.length, suggestions: analysis.suggestions.length }));
     assert.equal(job.status, 'SUCCEEDED');
-    assert.equal(analysis.samples.length, 6);
-    assert.equal(analysis.processedCount, 6);
+    assert.equal(analysis.samples.length, 12);
+    assert.equal(analysis.samplingProfile, 'thorough-v1');
+    assert.equal(analysis.processedCount, 12);
     assert(analysis.samples.every(sample => Array.isArray(sample.tags.tags) && typeof sample.tags.uncertain === 'boolean' && sample.tags.tags.every(tag => tag.name && tag.nameEn)));
     const cached = await module.exports.submitVideoAnalysis(movie.id, admin.id);
     assert(cached.duplicate && cached.analysisId === analysis.id);
@@ -66,7 +67,7 @@ const prisma = new PrismaClient();
     assert.equal((await prisma.category.findUnique({ where: { id: categoryId } })).nameEn, name);
     assert(await prisma.movieCategory.findUnique({ where: { movieId_categoryId: { movieId: movie.id, categoryId } } }));
     assert.equal((await module.exports.reviewVideoSuggestions(analysis.id, [suggestion.id], 'ACCEPT')).changed, 0);
-    console.log('PASS: real GPU queue, six persisted samples, cache reuse, explicit category creation and assignment, idempotent acceptance');
+    console.log('PASS: real GPU queue, twelve thorough-profile samples, cache reuse, explicit category creation and assignment, idempotent acceptance');
   } finally {
     // Never remove an active job's input; retain the fixture for diagnosis on timeout.
     const job = jobId ? await prisma.jobRun.findUnique({ where: { id: jobId }, select: { status: true } }) : null;
@@ -83,7 +84,7 @@ const prisma = new PrismaClient();
 
 try {
   process.stdout.write(execFileSync('docker', ['compose', '--env-file', '.env.docker.local', '-f', 'compose.local.yml', 'exec', '-T', 'app', 'node', '-'], {
-    input: `${bundle.outputFiles[0].text}\n${check}`, encoding: 'utf8', timeout: 200_000, maxBuffer: 1024 * 1024,
+    input: `${bundle.outputFiles[0].text}\n${check}`, encoding: 'utf8', timeout: 350_000, maxBuffer: 1024 * 1024,
   }));
 } catch (error) {
   if (error.stdout) process.stdout.write(error.stdout);

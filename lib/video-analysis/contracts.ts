@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { ANALYSIS_INTERVAL_SECONDS, MIN_CATEGORY_SCORE, SINGLE_SEGMENT_NEW_CATEGORY_SCORE } from './profile';
+import { MIN_CATEGORY_SCORE, SINGLE_SEGMENT_NEW_CATEGORY_SCORE } from './profile';
+import { SAMPLING_PROFILES, type SamplingProfileId } from './sampling';
+export { MAX_ANALYSIS_SAMPLES } from './sampling';
 
 export const VIDEO_ANALYSIS_MODEL = 'qwen3-vl-4b-q4km-1cd86afb-catalog-v5';
-export const MAX_ANALYSIS_SAMPLES = 120;
 export const normalizedCategoryName = (name: string) => name.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase();
 
 export class VideoAnalysisError extends Error {
@@ -24,9 +25,11 @@ export const frameTagsSchema = z.object({
 export type FrameTags = z.infer<typeof frameTagsSchema>;
 export type Observation = { atSeconds: number; tags: FrameTags };
 
-export function analysisSampleTimes(duration: number): number[] {
+export function analysisSampleTimes(duration: number, profileId: SamplingProfileId = 'standard-v1'): number[] {
   if (!Number.isFinite(duration) || duration <= 0 || duration > 24 * 3600) throw new VideoAnalysisError('INVALID_VIDEO_DURATION', true);
-  const count = Math.min(MAX_ANALYSIS_SAMPLES, Math.max(6, Math.ceil(duration / ANALYSIS_INTERVAL_SECONDS)));
+  const profile = Object.values(SAMPLING_PROFILES).find(candidate => candidate.id === profileId);
+  if (!profile) throw new VideoAnalysisError('INVALID_SAMPLING_PROFILE', true);
+  const count = Math.min(profile.maxSamples, Math.max(profile.minSamples, Math.ceil(duration / profile.intervalSeconds)));
   return Array.from({ length: count }, (_, index) => (index + 0.5) * duration / count);
 }
 
