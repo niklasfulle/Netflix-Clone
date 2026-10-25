@@ -50,6 +50,7 @@ const ACTION_LABELS: Record<AdminAuditAction, TranslationKey> = {
   'category.create': 'Created category',
   'category.update': 'Updated category',
   'category.delete': 'Deleted category',
+  'category.import': 'Imported categories',
   'video.analysis.submit': 'Requested video analysis',
   'video.analysis.review': 'Reviewed video categories',
   'video.example.create': 'Created video example',

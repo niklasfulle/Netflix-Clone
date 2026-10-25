@@ -5,7 +5,7 @@ const localConfig = '.env.video-analysis.local';
 if (process.argv.includes('--require-local-config') && !existsSync(localConfig)) throw Error('Local privacy configuration is required before pushing.');
 if (existsSync(localConfig)) process.loadEnvFile(localConfig);
 const files = execFileSync('git', ['ls-files', '--cached', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
-const isLocalOnlyPath = file => file.startsWith('.local-private/') || /(^|\/)video-examples-[^/]*\.json$/.test(file) || (/(^|\/)\.env(?:[._]|$)/.test(file) && !file.endsWith('.example'));
+const isLocalOnlyPath = file => file.startsWith('.local-private/') || /(^|\/)(video-examples-[^/]*|categories-export[^/]*)\.json$/.test(file) || (/(^|\/)\.env(?:[._]|$)/.test(file) && !file.endsWith('.example'));
 const forbiddenFiles = files.filter(isLocalOnlyPath);
 if (forbiddenFiles.length) {
   console.error('Local-only files are tracked:', forbiddenFiles.join(', '));

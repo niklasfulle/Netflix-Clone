@@ -8,6 +8,7 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useCategories } from '@/hooks/useCategories';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { categoryLabel } from '@/lib/category-label';
+import { CategoryTransfer } from '@/components/admin/CategoryTransfer';
 
 const CATEGORY_ERROR_MESSAGES: readonly TranslationKey[] = [
   'This category already exists.',
@@ -59,6 +60,7 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       <AdminPageHeader title={t('Categories')} description={t('Create categories and assign multiple categories to movies and series.')} />
+      <CategoryTransfer categories={categories} disabled={pending || isLoading || Boolean(loadError)} onBusyChange={setPending} onImported={async () => { await refresh(undefined, { throwOnError: false }); }} />
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 sm:p-6">
         <h2 className="mb-4 flex items-center gap-2 font-semibold"><Tags aria-hidden="true" className="h-5 w-5 text-red-400" />{t('Create category')}</h2>
         <form onSubmit={event => { event.preventDefault(); void changeCategory('POST', { name, nameEn }); }} className="flex flex-col gap-3 sm:flex-row sm:items-end">

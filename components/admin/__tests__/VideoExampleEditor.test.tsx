@@ -66,3 +66,46 @@ test('requires confirmation and sends the saved version when deleting an example
   expect(await screen.findByText('Example deleted.')).toBeInTheDocument();
   expect(fetch).toHaveBeenCalledWith('/api/admin/video-examples', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ id: 'example', version: 3 }) }));
 });
+
+test('explains an unmatched category search and allows creating and rating a category before saving', async () => {
+  jest.mocked(fetch)
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'outdoor', name: 'Außenaufnahme', nameEn: 'Outdoor scene' }) } as Response)
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'example', version: 1 }) } as Response);
+  openEditor();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search categories' }), { target: { value: 'Outdoor scene' } });
+  expect(screen.getByText('No categories found.')).toBeInTheDocument();
+  expect(screen.getByText('Searching does not select or create a category.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save example' })).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Category name (German)'), { target: { value: 'Außenaufnahme' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create category' }));
+  expect(await screen.findByText('Category created and marked as present.')).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Category verdict: Outdoor scene' })).toHaveValue('PRESENT');
+  expect(screen.getByRole('button', { name: 'Save example' })).toBeEnabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Save example' }));
+  expect(await screen.findByText('Example saved.')).toBeInTheDocument();
+  expect(fetch).toHaveBeenNthCalledWith(1, '/api/categories', expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Außenaufnahme', nameEn: 'Outdoor scene' }) }));
+  const [, options] = jest.mocked(fetch).mock.calls[1];
+  expect(JSON.parse(options!.body as string).labels).toEqual([{ categoryId: 'outdoor', verdict: 'PRESENT' }]);
+});
+
+test('retains entered category names and keeps saving disabled when category creation fails', async () => {
+  jest.mocked(fetch).mockResolvedValue({ ok: false, json: async () => ({ error: { message: 'This category already exists.' } }) } as Response);
+  openEditor();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search categories' }), { target: { value: 'Outdoor scene' } });
+  fireEvent.change(screen.getByLabelText('Category name (German)'), { target: { value: 'Außenaufnahme' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create category' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('This category already exists.');
+  expect(screen.getByLabelText('Category name (German)')).toHaveValue('Außenaufnahme');
+  expect(screen.getByRole('button', { name: 'Save example' })).toBeDisabled();
+});
+
+test('keeps an explicitly negative verdict when creating a new category', async () => {
+  jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => ({ id: 'outdoor', name: 'Außenaufnahme', nameEn: 'Outdoor scene' }) } as Response);
+  openEditor();
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search categories' }), { target: { value: 'Outdoor scene' } });
+  fireEvent.change(screen.getByLabelText('Category name (German)'), { target: { value: 'Außenaufnahme' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Category verdict' }), { target: { value: 'ABSENT' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create category' }));
+  expect(await screen.findByText('Category created and rated.')).toBeInTheDocument();
+  expect(screen.getByRole('combobox', { name: 'Category verdict: Outdoor scene' })).toHaveValue('ABSENT');
+});

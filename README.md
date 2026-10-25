@@ -211,6 +211,17 @@ Kategorien haben einen deutschen Namen (`name`) und einen englischen Namen
 (`nameEn`) unter derselben ID. Beide Namen sind beim Anlegen und Bearbeiten
 erforderlich. Auswahl und Inhaltsdetails verwenden die Sprache der Oberfläche;
 in der Verwaltung und bei KI-Vorschlägen lassen sich beide Namen prüfen.
+Die Kategorienverwaltung bietet einen JSON-Export beider Namen sowie einen
+Import mit Vorschau und ausdrücklicher Bestätigung. Der Import akzeptiert bis
+zu 1000 Kategorien und 1 MB, ergänzt neue Namen und aktualisiert vorhandene
+Einträge anhand des normalisierten deutschen Namens. Bestehende IDs und
+Inhaltszuordnungen bleiben erhalten; es werden keine Kategorien gelöscht.
+Doppelte Namen oder fehlende Sprachfassungen werden zurückgewiesen. Exportdateien
+mit dem Namen `categories-export*.json` bleiben außerhalb von Git und Docker.
+Beim Markieren von Videostellen filtert das Suchfeld nur die Kategorien. Fehlt
+ein Treffer, kann eine zweisprachige Kategorie direkt angelegt und bewertet
+werden. Vor dem Speichern muss mindestens eine Kategorie ausdrücklich bewertet
+sein; die Auswahl bleibt auch bei einer anderen Suche sichtbar.
 Die Analyse erzeugt beide Sprachfassungen zusammen. Bereits vorhandene lokale
 Kategorien und offene Vorschläge mit fehlender Übersetzung lassen sich nach
 dem Schema-Update über das lokale Modell ergänzen, ohne ihre IDs oder

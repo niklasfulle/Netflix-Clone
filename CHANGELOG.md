@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Die Kategorienverwaltung exportiert deutsche und englische Namen als JSON und importiert sie mit Vorschau, Bestätigung und begrenzter Dateigröße; vorhandene IDs und Zuordnungen bleiben erhalten, doppelte Namen werden abgelehnt
+- Die Abschnittsbewertung erklärt leere Suchergebnisse und fehlende Bewertungen; neue Kategorien lassen sich direkt zweisprachig anlegen und bewerten, sodass der Speicherablauf vollständig in der Ansicht möglich ist
 - Eine Bewertungsansicht markiert Videostellen mit Start- und Endzeit und speichert positive, negative und unsichere Kategoriebewertungen; Abschnitte lassen sich bearbeiten, löschen, wiederholt abspielen und ohne Mediendateien exportieren
 - Katalog-spezifische Modellvorgaben werden aus einer ignorierten lokalen Env-Datei geladen; lokale Daten und Sicherungen bleiben außerhalb von Git und Docker-Images
 - Ein auf den Videokatalog abgestimmtes Analyseprofil prüft mehr zeitlichen Kontext und größere Vorschaubilder; strengere Evidenzregeln, Mindestwerte und wiederholte Fundstellen begrenzen unbelegte neue Vorschläge, während vorhandene Treffer bei neuen Vorschlägen sichtbar bleiben

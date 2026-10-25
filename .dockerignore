@@ -1,6 +1,7 @@
 .git
 .local-private
 **/video-examples-*.json
+**/categories-export*.json
 .github
 .next
 node_modules

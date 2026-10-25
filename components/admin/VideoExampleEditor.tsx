@@ -10,6 +10,8 @@ import { PlayerButton } from '@/components/player/PlayerControls';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { useCategories } from '@/hooks/useCategories';
 import { categoryLabel } from '@/lib/category-label';
+import type { CategorySummary } from '@/lib/category-validation';
+import { InlineCategoryCreator } from '@/components/admin/InlineCategoryCreator';
 import fetcher from '@/lib/fetcher';
 import { formatExampleTime, parseExampleTime, type ExampleVerdict, type VideoExampleDto, type VideoExamplesDto } from '@/lib/video-examples/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
@@ -28,7 +30,9 @@ const verdictKeys: Record<ExampleVerdict, TranslationKey> = {
 export function VideoExampleEditor({ movieId }: Readonly<{ movieId: string }>) {
   const { t, locale } = useLanguage();
   const { data, error: loadError, mutate } = useSWR<VideoExamplesDto>(`/api/admin/video-examples?movieId=${encodeURIComponent(movieId)}`, fetcher);
-  const { categories, error: categoriesError } = useCategories();
+  const { categories, error: categoriesError, isLoading: categoriesLoading, refresh: refreshCategories } = useCategories();
+  const [createdCategories, setCreatedCategories] = useState<CategorySummary[]>([]);
+  const [creatingCategory, setCreatingCategory] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
   const [originalFingerprint, setOriginalFingerprint] = useState('');
   const requestId = useRef('');
@@ -116,7 +120,7 @@ export function VideoExampleEditor({ movieId }: Readonly<{ movieId: string }>) {
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `video-examples-${movieId}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const available = [...categories];
+  const available = [...categories, ...createdCategories.filter(created => !categories.some(category => category.id === created.id))];
   for (const label of editing?.labels ?? []) if (!available.some(category => category.id === label.categoryId)) available.push({ id: label.categoryId, name: label.name, nameEn: label.nameEn, contentCount: 0 });
   const visibleCategories = available.filter(category => `${category.name} ${category.nameEn ?? ''}`.toLowerCase().includes(search.trim().toLowerCase()));
 
@@ -162,11 +166,23 @@ export function VideoExampleEditor({ movieId }: Readonly<{ movieId: string }>) {
         <div className="flex flex-wrap items-center gap-4"><Button type="button" disabled={!ready || !validRange} onClick={() => { seek(start); setPreviewing(true); void play(); }}>{t('Play selection')}</Button><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={loop} onChange={event => setLoop(event.target.checked)} />{t('Loop selection')}</label></div>
         {!validRange && <p className="text-sm text-amber-300">{t('Time range must be within the video.')}</p>}
         <p className="text-sm text-zinc-400">{t('Unrated categories are not negative examples.')}</p>
-        <label className="block text-sm">{t('Search categories')}<input type="search" value={search} onChange={event => setSearch(event.target.value)} className="mt-2 h-10 w-full rounded border border-zinc-700 bg-zinc-950 px-3" /></label>
+        <label className="block text-sm">{t('Search categories')}<input type="search" value={search} disabled={pending || creatingCategory} onChange={event => setSearch(event.target.value)} className="mt-2 h-10 w-full rounded border border-zinc-700 bg-zinc-950 px-3" /></label>
+        <p className="text-xs text-zinc-400">{t('Searching does not select or create a category.')}</p>
+        {categoriesLoading && <output className="block text-sm text-zinc-400">{t('Loading categories...')}</output>}
+        {!categoriesLoading && !categoriesError && visibleCategories.length === 0 && <p className="text-sm text-amber-300">{t('No categories found.')}</p>}
+        {!categoriesLoading && !categoriesError && visibleCategories.length === 0 && search.trim() && <InlineCategoryCreator key={`${locale}:${search.trim()}`} suggestedName={search.trim()} disabled={pending} onBusyChange={setCreatingCategory} onCreated={async (category, verdict) => {
+          setCreatedCategories(current => [...current.filter(value => value.id !== category.id), category]);
+          setLabels(current => ({ ...current, [category.id]: verdict })); setSearch(''); setFailure('');
+          setNotice(t(verdict === 'PRESENT' ? 'Category created and marked as present.' : 'Category created and rated.'));
+          await refreshCategories(undefined, { throwOnError: false });
+        }} />}
         <div className="max-h-80 space-y-2 overflow-y-auto">{visibleCategories.map(category => <label key={category.id} className="flex flex-wrap items-center justify-between gap-3 rounded border border-zinc-700 p-3 text-sm"><span>{categoryLabel(category, locale)}</span><select aria-label={`${t('Category verdict')}: ${categoryLabel(category, locale)}`} disabled={pending} value={labels[category.id] ?? ''} onChange={event => setLabels(current => { const next = { ...current }; if (event.target.value) next[category.id] = event.target.value as ExampleVerdict; else delete next[category.id]; return next; })} className="h-10 rounded border border-zinc-600 bg-zinc-950 px-2"><option value="">{t('Not rated')}</option>{(Object.keys(verdictKeys) as ExampleVerdict[]).map(verdict => <option key={verdict} value={verdict}>{t(verdictKeys[verdict])}</option>)}</select></label>)}</div>
         {!available.length && <Link href="/admin/categories" className="block text-sm underline">{t('Manage categories')}</Link>}
+        <button type="button" disabled={pending || creatingCategory || categoriesLoading} onClick={() => { void refreshCategories(undefined, { throwOnError: false }); }} className="text-xs text-zinc-300 underline disabled:opacity-50">{t('Refresh categories')}</button>
+        {Object.keys(labels).length > 0 && <div className="space-y-2"><p className="text-sm font-medium">{t('Rated categories')}: {Object.keys(labels).length}</p><ul aria-label={t('Rated categories')} className="flex flex-wrap gap-2">{Object.entries(labels).map(([id, verdict]) => { const category = available.find(value => value.id === id); return category ? <li key={id} className="rounded border border-zinc-600 px-2 py-1 text-xs">{categoryLabel(category, locale)} · {t(verdictKeys[verdict])}</li> : null; })}</ul></div>}
         <label className="block text-sm">{t('Segment note')}<textarea value={note} maxLength={500} disabled={pending} onChange={event => setNote(event.target.value)} className="mt-2 min-h-20 w-full rounded border border-zinc-700 bg-zinc-950 p-3" /></label>
-        <div className="flex flex-wrap gap-3"><Button type="button" disabled={pending || !validRange || !Object.keys(labels).length || sourceChanged || Boolean(loadError || categoriesError) || Boolean(editing?.stale)} onClick={() => { void save(); }} className="bg-red-600 text-white hover:bg-red-500">{t(editing ? 'Update example' : 'Save example')}</Button><Button type="button" disabled={pending} onClick={resetDraft}>{t('Clear selection')}</Button></div>
+        {!Object.keys(labels).length && <p role="status" className="text-sm text-amber-300">{t('Select at least one category verdict.')}</p>}
+        <div className="flex flex-wrap gap-3"><Button type="button" disabled={pending || creatingCategory || categoriesLoading || !validRange || !Object.keys(labels).length || sourceChanged || Boolean(loadError || categoriesError) || Boolean(editing?.stale)} onClick={() => { void save(); }} className="bg-red-600 text-white hover:bg-red-500">{t(editing ? 'Update example' : 'Save example')}</Button><Button type="button" disabled={pending || creatingCategory} onClick={resetDraft}>{t('Clear selection')}</Button></div>
       </section>
       <section className="space-y-3 rounded-xl border border-zinc-800 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{t('Saved examples')} ({data.examples.length})</h2><Button type="button" disabled={!data.examples.some(example => !example.stale) || sourceChanged} onClick={exportExamples}>{t('Export examples')}</Button></div>
