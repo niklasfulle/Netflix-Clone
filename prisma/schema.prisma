@@ -290,6 +290,7 @@ model AdminAuditEvent {
 model JobRun {
   id                String       @id @default(cuid())
   videoAnalysis     VideoAnalysis?
+  videoEvaluation   VideoEvaluation?
   jobType           String
   contractVersion   Int
   idempotencyKey    String
@@ -436,6 +437,41 @@ model Category {
   updatedAt      DateTime        @default(now()) @updatedAt
   movies         MovieCategory[]
   suggestions    VideoCategorySuggestion[]
+}
+
+model VideoEvaluation {
+  id            String                @id @default(cuid())
+  requestId     String                @unique
+  requestedById String
+  jobRunId      String?               @unique
+  model         String
+  vocabulary    Json
+  threshold     Float                 @default(0.65)
+  status        String                @default("QUEUED")
+  errorCode     String?
+  createdAt     DateTime              @default(now())
+  completedAt   DateTime?
+  jobRun        JobRun?               @relation(fields: [jobRunId], references: [id], onDelete: SetNull)
+  samples       VideoEvaluationSample[]
+
+  @@index([createdAt])
+}
+
+model VideoEvaluationSample {
+  id                String          @id @default(cuid())
+  evaluationId      String
+  exampleId         String
+  exampleVersion    Int
+  movieId           String
+  sourceFingerprint String
+  startSeconds      Float
+  endSeconds        Float
+  labels            Json
+  status            String          @default("PENDING")
+  tags              Json?
+  evaluation        VideoEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, exampleId])
 }
 
 model VideoExample {

@@ -27,7 +27,7 @@ const errors: Record<string, TranslationKey> = {
   ANALYSIS_PROFILE_CHANGED: 'Analysis settings have changed. Start a new analysis.',
 };
 export function analysisErrorKey(code?: string | null): TranslationKey { return errors[code ?? ''] ?? 'Video analysis could not be completed.'; }
-export function analysisStatus(analysis: AnalysisSummary) { return analysis.jobRun?.status ?? analysis.status; }
+export function analysisStatus(analysis: Pick<AnalysisSummary, 'status' | 'jobRun'>) { return analysis.jobRun?.status ?? analysis.status; }
 export function analysisActive(status: string) { return ['QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(status); }
 
 function evidenceTime(seconds: number) {

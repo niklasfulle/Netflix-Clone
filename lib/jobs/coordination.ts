@@ -22,6 +22,7 @@ const coordinationSnapshot = z.object({
   progressMessage: z.string().trim().min(1).max(160).optional(),
   attemptCount: z.number().int().min(0).max(100).optional(),
   result: z.union([
+    z.object({ evaluationId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/), processedCount: z.number().int().min(0).max(500), skippedCount: z.number().int().min(0).max(500), status: z.literal('EVALUATED') }).strict(),
     z.object({ analysisId: z.string().min(8).max(128), suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(120), status: z.literal('READY') }).strict(),
     z.object({
       scanRunId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/),

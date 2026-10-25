@@ -15,6 +15,7 @@ export const ADMIN_AUDIT_ACTIONS = [
   'category.delete',
   'category.import',
   'video.analysis.submit',
+  'video.evaluation.submit',
   'video.analysis.review',
   'video.example.create',
   'video.example.update',
@@ -42,6 +43,7 @@ export type AdminAuditTargetType =
   | 'actor_source'
   | 'category'
   | 'video_analysis'
+  | 'video_evaluation'
   | 'video_example'
   | 'user'
   | 'backup'
@@ -129,6 +131,7 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'category.delete': new Set(),
   'category.import': new Set(['createdCount', 'updatedCount', 'unchangedCount']),
   'video.analysis.submit': new Set(['duplicate']),
+  'video.evaluation.submit': new Set(['duplicate']),
   'video.analysis.review': new Set(['acceptedCount', 'rejectedCount']),
   'video.example.create': new Set(['labelCount']),
   'video.example.update': new Set(['labelCount']),

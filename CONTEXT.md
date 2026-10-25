@@ -74,6 +74,10 @@ _Avoid_: Imported filmography, verified credit, automatic content source
 
 ## Background operations
 
+**Video Evaluation**:
+A comparison of model predictions for marked video segments against a fixed set of explicit category judgments. Uncertain and unreviewed categories are excluded from scoring.
+_Avoid_: Training run, automatic learning
+
 **Weekly Job Schedule**:
 An administrator-owned recurring plan for one database backup or complete Media Scan Run on selected weekdays at one local time and time zone.
 _Avoid_: Cron job, server timer

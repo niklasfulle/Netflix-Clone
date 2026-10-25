@@ -43,6 +43,7 @@ const TARGET_TYPES = new Set<AdminAuditTargetType>([
   'actor',
   'category',
   'video_analysis',
+  'video_evaluation',
   'video_example',
   'user',
   'backup',

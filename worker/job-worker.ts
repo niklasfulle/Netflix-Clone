@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { mediaIntegrityScanner } from '@/lib/media-integrity';
 import { db } from '@/lib/db';
 import { runVideoAnalysis } from '@/lib/video-analysis/handler';
+import { runVideoEvaluation } from '@/lib/video-evaluation/handler';
 import { VideoAnalysisError } from '@/lib/video-analysis/contracts';
 import {
   readBackupVerificationStatus,
@@ -142,6 +143,11 @@ async function processJobs(jobs: WorkerDelivery[]) {
       },
       runs,
       handlers: {
+        async videoEvaluation(payload, context) {
+          return operationalLeases.execute({ operation: 'media.analyze', targetId: 'video-analysis:gpu', ttlMs: 5 * 60_000 }, lease => runVideoEvaluation(payload, {
+            ...context, actorUserId: job.data.actor.userId, jobRunId: job.data.jobRunId, assertLease: lease.assertCurrent,
+          }));
+        },
         async videoAnalysis(payload, context) {
           return operationalLeases.execute({ operation: 'media.analyze', targetId: 'video-analysis:gpu', ttlMs: 5 * 60_000 }, lease => runVideoAnalysis(payload, {
             ...context, actorUserId: job.data.actor.userId, jobRunId: job.data.jobRunId, assertLease: lease.assertCurrent,
@@ -218,6 +224,7 @@ async function processScheduleTicks(jobs: ScheduleDelivery[]) {
 
 async function registerWork() {
   const requiredQueues = [
+    JOB_NAMES.videoEvaluation,
     JOB_NAMES.videoAnalysis,
     JOB_NAMES.mediaIntegrityScan,
     JOB_NAMES.backupVerification,
@@ -232,6 +239,7 @@ async function registerWork() {
   }
 
   await Promise.all([
+    boss.work<QueuedJob, unknown, typeof workOptions>(JOB_NAMES.videoEvaluation, workOptions, processJobs),
     boss.work<QueuedJob, unknown, typeof workOptions>(JOB_NAMES.videoAnalysis, workOptions, processJobs),
     boss.work<QueuedJob, unknown, typeof workOptions>(
       JOB_NAMES.mediaIntegrityScan,

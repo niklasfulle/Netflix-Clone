@@ -125,7 +125,7 @@ export function VideoExampleEditor({ movieId }: Readonly<{ movieId: string }>) {
   const visibleCategories = available.filter(category => `${category.name} ${category.nameEn ?? ''}`.toLowerCase().includes(search.trim().toLowerCase()));
 
   return <div className="space-y-6">
-    <AdminPageHeader title={t('Video examples')} description={data?.movie.title ?? t('Loading...')} actions={<Link href="/admin/video-analysis" className="text-sm text-zinc-300 underline">{t('Video analysis')}</Link>} />
+    <AdminPageHeader title={t('Video examples')} description={data?.movie.title ?? t('Loading...')} actions={<div className="flex flex-wrap gap-4"><Link href="/admin/video-analysis/evaluation" className="text-sm text-red-300 underline">{t('Compare marked segments')}</Link><Link href="/admin/video-analysis" className="text-sm text-zinc-300 underline">{t('Video analysis')}</Link></div>} />
     {(failure || loadError || categoriesError || sourceChanged) && <div role="alert" className="rounded-lg border border-red-500/40 p-4 text-red-200">{failure || t(sourceChanged ? 'Source video changed. Reload this page.' : 'Examples could not be loaded.')}<Button type="button" className="ml-3" onClick={() => location.reload()}>{t('Reload')}</Button></div>}
     {notice && <output className="block text-emerald-300">{notice}</output>}
     {!data && !loadError && <output>{t('Loading...')}</output>}
@@ -188,7 +188,7 @@ export function VideoExampleEditor({ movieId }: Readonly<{ movieId: string }>) {
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{t('Saved examples')} ({data.examples.length})</h2><Button type="button" disabled={!data.examples.some(example => !example.stale) || sourceChanged} onClick={exportExamples}>{t('Export examples')}</Button></div>
         <p className="text-xs text-zinc-400">{t('Keep all examples from one video in the same dataset group. Uncertain labels require review before training.')}</p>
         {!data.examples.length && <p className="text-sm text-zinc-400">{t('No video examples yet.')}</p>}
-        {data.examples.map(example => <article key={example.id} className="space-y-3 rounded-lg border border-zinc-700 p-4">
+        {data.examples.map(example => <article key={example.id} id={`example-${example.id}`} className="scroll-mt-24 space-y-3 rounded-lg border border-zinc-700 p-4 target:border-red-400">
           <p className="font-mono text-sm">{formatExampleTime(example.startSeconds)} – {formatExampleTime(example.endSeconds)}</p>
           {example.stale && <p className="text-sm text-amber-300">{t('This example belongs to an older video file.')}</p>}
           <ul className="flex flex-wrap gap-2">{example.labels.map(label => <li key={label.categoryId} className={`rounded px-2 py-1 text-xs ${label.verdict === 'PRESENT' ? 'bg-emerald-900 text-emerald-100' : label.verdict === 'ABSENT' ? 'bg-red-950 text-red-200' : 'bg-amber-950 text-amber-200'}`}>{categoryLabel(label, locale)} · {t(verdictKeys[label.verdict])}</li>)}</ul>

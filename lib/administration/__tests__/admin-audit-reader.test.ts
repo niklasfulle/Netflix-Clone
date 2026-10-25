@@ -9,6 +9,13 @@ function createRepository(): jest.Mocked<AdminAuditReadRepository> {
 }
 
 describe('administrator audit reader', () => {
+  it('keeps the evaluation target and action when filtering comparison audit events', async () => {
+    const repository = createRepository();
+    repository.search.mockResolvedValue({ events: [], total: 0 });
+    const reader = createAdminAuditReader({ repository, resolveActor: async () => ({ userId: 'admin-1', role: 'ADMIN' }) });
+    await reader.search({ action: 'video.evaluation.submit', targetType: 'video_evaluation' });
+    expect(repository.search).toHaveBeenCalledWith(expect.objectContaining({ action: 'video.evaluation.submit', targetType: 'video_evaluation' }));
+  });
   it('normalizes filters and pagination before searching', async () => {
     const repository = createRepository();
     repository.search.mockResolvedValue({ events: [], total: 0 });

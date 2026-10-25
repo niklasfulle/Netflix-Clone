@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Ein lokaler Vergleichslauf prüft markierte Videostellen gegen gespeicherte Kategoriebewertungen, zeigt Fortschritt und Ergebnisse pro Kategorie und hält Bewertungen, Modellprofil und Konfidenzschwelle je Lauf fest; unsichere Angaben bleiben unbewertet und veränderte Quellen werden übersprungen
+
 - Der Import-/Export-Bereich für globale Kategorien bietet getrennte Karten, eine gestaltete Dateiauswahl mit Drag-and-drop und eine übersichtliche Vorschau mit Kennzahlen und zweisprachiger Tabelle für Desktop und Mobilgeräte
 - Die Kategorienverwaltung exportiert deutsche und englische Namen als JSON und importiert sie mit Vorschau, Bestätigung und begrenzter Dateigröße; vorhandene IDs und Zuordnungen bleiben erhalten, doppelte Namen werden abgelehnt
 - Die Abschnittsbewertung erklärt leere Suchergebnisse und fehlende Bewertungen; neue Kategorien lassen sich direkt zweisprachig anlegen und bewerten, sodass der Speicherablauf vollständig in der Ansicht möglich ist

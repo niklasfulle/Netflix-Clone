@@ -37,6 +37,7 @@ export default function VideoAnalysisPage() {
 
   return <div className="space-y-6">
     <AdminPageHeader title={t('Video analysis')} description={t('Analyze videos locally and collect category suggestions with evidence.')} actions={<Link href="/admin/categories" className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-white">{t('Manage categories')}</Link>} />
+    <Link href="/admin/video-analysis/evaluation" className="inline-flex min-h-11 items-center rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-200 hover:bg-red-500/20">{t('Compare marked segments')}</Link>
     <section className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
       <output className={data?.model.available ? 'text-sm text-emerald-300' : 'text-sm text-amber-300'}>{t(data?.model.available ? 'Local model ready' : 'The local analysis model is not ready.')}</output>
       {data && !data.model.available && <p className="text-sm text-zinc-400">{t(data.model.enabled ? 'Start the local GPU service to analyze videos.' : 'Video analysis is not configured.')}</p>}

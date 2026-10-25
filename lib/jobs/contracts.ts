@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const JOB_NAMES = {
+  videoEvaluation: 'video.examples.evaluate',
+  videoEvaluationDeadLetter: 'video.examples.evaluate.dead',
   videoAnalysis: 'video.categories.analyze',
   videoAnalysisDeadLetter: 'video.categories.analyze.dead',
   mediaIntegrityScan: 'media.integrity.scan',
@@ -154,7 +156,16 @@ const videoAnalysisFields = {
 };
 const matchingVideoAnalysis = (value: { payload: { contentId: string }; target: { id: string } }) => value.payload.contentId === value.target.id;
 const videoAnalysisSubmission = z.object(videoAnalysisFields).strict().refine(matchingVideoAnalysis);
+const videoEvaluationFields = {
+  name: z.literal(JOB_NAMES.videoEvaluation), version: z.literal(1),
+  payload: z.object({ evaluationId: boundedIdentifier }).strict(),
+  actor: z.object({ userId: boundedIdentifier, role: z.literal('ADMIN') }).strict(),
+  target: z.object({ type: z.literal('video_evaluation'), id: boundedIdentifier }).strict(),
+  idempotencyKey: boundedIdentifier, correlationId: boundedIdentifier,
+};
+const matchingEvaluation = (value: { payload: { evaluationId: string }; target: { id: string } }) => value.payload.evaluationId === value.target.id;
 const jobSubmission = z.union([
+  z.object(videoEvaluationFields).strict().refine(matchingEvaluation),
   videoAnalysisSubmission,
   mediaIntegrityScanSubmission,
   backupVerificationSubmission,
@@ -195,6 +206,7 @@ const queuedBackupRetentionJob = z.object({
 });
 
 const queuedJobs = z.union([
+  z.object({ ...videoEvaluationFields, jobRunId: boundedIdentifier, acceptedAt: z.iso.datetime({ offset: true }) }).strict().refine(matchingEvaluation),
   z.object({ ...videoAnalysisFields, jobRunId: boundedIdentifier, acceptedAt: z.iso.datetime({ offset: true }) }).strict().refine(matchingVideoAnalysis),
   queuedJob,
   queuedBackupVerificationJob,
@@ -239,6 +251,7 @@ const backupRetentionResult = z.object({
 }).strict();
 
 const jobResult = z.union([
+  z.object({ evaluationId: boundedIdentifier, processedCount: z.number().int().min(0).max(500), skippedCount: z.number().int().min(0).max(500), status: z.literal('EVALUATED') }).strict(),
   z.object({ analysisId: boundedIdentifier, suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(120), status: z.literal('READY') }).strict(),
   mediaIntegrityScanResult,
   backupVerificationResult,
