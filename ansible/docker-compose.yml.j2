@@ -5,6 +5,8 @@ services:
     env_file:
       - /root/netflix-secrets/app.env
       - /root/netflix-secrets/redis-app.env
+      - path: /root/netflix-secrets/video-analysis.env
+        required: false
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
       DEPLOYMENT_STATUS_APPROVED_PEERS: {{ ('production' if deployment_environment == 'staging' else 'staging') | quote }}
@@ -80,6 +82,8 @@ services:
     env_file:
       - /root/netflix-secrets/app.env
       - /root/netflix-secrets/redis-app.env
+      - path: /root/netflix-secrets/video-analysis.env
+        required: false
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
     depends_on:

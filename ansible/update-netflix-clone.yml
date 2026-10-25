@@ -405,6 +405,25 @@
       loop_control:
         label: "{{ item.path }}"
 
+    - name: Inspect optional external model configuration
+      stat:
+        path: /root/netflix-secrets/video-analysis.env
+      register: video_analysis_env
+      no_log: true
+
+    - name: Validate protected external model configuration
+      assert:
+        that:
+          - >-
+            not video_analysis_env.stat.exists or
+            (video_analysis_env.stat.isreg and
+            not video_analysis_env.stat.islnk and
+            video_analysis_env.stat.uid == 0 and
+            video_analysis_env.stat.gid == 0 and
+            video_analysis_env.stat.mode == '0600')
+        fail_msg: External model configuration must be a root-owned regular 0600 file.
+      no_log: true
+
     - name: Verify protected Redis credential files
       assert:
         that:

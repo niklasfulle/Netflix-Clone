@@ -73,7 +73,7 @@ class RedisComposeContractTests(unittest.TestCase):
             pathlib.PurePath(item["path"]).name
             for item in self.compose["services"]["app"]["env_file"]
         }
-        self.assertEqual({"app.env", "redis-app.env"}, env_files)
+        self.assertEqual({"app.env", "redis-app.env", "video-analysis.env"}, env_files)
         self.assertNotIn("REDIS_URL", self.compose["services"]["app"]["environment"])
 
 

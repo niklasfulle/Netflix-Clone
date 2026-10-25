@@ -77,7 +77,7 @@ it('uses only the configured endpoint and bounded inline images', async () => {
   expect(body.response_format.type).toBe('json_schema');
 });
 
-it.each(['file:///tmp/model', 'http://name:password@video-model:8080', 'http://video-model:8080/other'])('rejects invalid model configuration: %s', url => {
+it.each(['file:///tmp/model', 'http://name:password@video-model:8080', 'http://video-model:8080/?token=value', 'http://video-model:8080/#fragment'])('rejects invalid model configuration: %s', url => {
   process.env.VIDEO_ANALYSIS_URL = url;
   expect(() => analysisModelUrl()).toThrow();
 });

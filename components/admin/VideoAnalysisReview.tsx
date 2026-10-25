@@ -13,7 +13,9 @@ export type AnalysisSuggestion = { id: string; name: string; nameEn?: string; co
 type Detail = AnalysisSummary & { suggestions: AnalysisSuggestion[] };
 
 const errors: Record<string, TranslationKey> = {
-  MODEL_UNAVAILABLE: 'The local analysis model is not ready.',
+  MODEL_UNAVAILABLE: 'The analysis model service is not ready.',
+  INVALID_MODEL_CONFIGURATION: 'The model service configuration is invalid.',
+  MODEL_ACCESS_DENIED: 'The model service denied access. Check its API credentials.',
   ANALYSIS_DISABLED: 'Video analysis is not configured.',
   VIDEO_CHANGED: 'The video has changed. Start a new analysis.',
   VIDEO_NOT_FOUND: 'The video file could not be found.',

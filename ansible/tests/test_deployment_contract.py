@@ -150,7 +150,8 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('postgres_backup_image: "postgres:18-alpine"', playbook)
         self.assertIn('- "{{ postgres_backup_image }}"', playbook)
         self.assertIn("BACKUP_PATH=/backups/pre-{{ app_version }}.dump", playbook)
-        self.assertNotIn("no_log: true", playbook)
+        migration_tasks = playbook[migrate:start]
+        self.assertNotIn("no_log: true", migration_tasks)
         self.assertIn("schema=*", backup_script)
         self.assertIn("pg_dump", backup_script)
         self.assertIn("pg_restore --list", backup_script)
@@ -265,7 +266,7 @@ class DeploymentContractTests(unittest.TestCase):
         )
         self.assertLess(
             playbook.index("Verify deployed container in system metrics"),
-            playbook.index("Remove dangling Docker layers after successful start"),
+            playbook.index("Remove unused Docker images after successful start"),
         )
 
     def test_deployment_forces_a_fresh_monitor_snapshot_after_health_checks(self):

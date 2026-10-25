@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Lokale und Live-Umgebungen unterstützen externe Bildmodelldienste mit konfigurierbarem Endpunkt, Modellnamen, API-Schlüssel, Healthcheck, Zeitlimits und JSON-Ausgabeformat; App und Worker teilen eine geschützte Hostkonfiguration und Modellwechsel erhalten getrennte Laufkennungen
+
 - Ein vorbereitetes Startskript lädt ein geprüftes 8B-Bildmodell für Apple-Silicon-Macs; die lokale Anwendung unterstützt einen konfigurierbaren Modelldienst und getrennte Modellkennungen für spätere Vergleiche
 
 - Die lokale Fehleransicht speichert tatsächlich analysierte Einzelbilder und getrennte Modellantworten, erklärt mögliche Ursachen von Abweichungen und erlaubt versionierte Sichtbarkeitsbewertungen sowie eine unverbindliche Vorschau der Konfidenzschwelle; Originalbewertungen und historische Ergebnisse bleiben erhalten

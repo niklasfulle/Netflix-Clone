@@ -48,6 +48,11 @@ Remove the two entries and recreate both services to return to the PC model.
 The application sends requests to one endpoint at a time; this does not pool
 the two machines' memory or implement a simultaneous benchmark.
 
+The same connection mechanism is available in staging and production through
+a protected host environment file. See
+[external model services](operations/video-analysis-models.md) for API keys,
+request model names, reverse-proxy API roots and configurable readiness checks.
+
 For an initial comparison, keep the judgments, prompt, interval selection,
 image resolution and confidence threshold fixed, then compare run metrics and
 completion times. Use stored original images for a later controlled replay

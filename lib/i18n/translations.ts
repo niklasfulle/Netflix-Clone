@@ -4,6 +4,11 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'The analysis model service is not ready.': 'Der Modelldienst für die Analyse ist nicht bereit.',
+  'Model service ready': 'Modelldienst bereit',
+  'Check the configured model service and its network connection.': 'Prüfe den konfigurierten Modelldienst und seine Netzwerkverbindung.',
+  'The model service configuration is invalid.': 'Die Konfiguration des Modelldienstes ist ungültig.',
+  'The model service denied access. Check its API credentials.': 'Der Modelldienst hat den Zugriff verweigert. Prüfe seine API-Zugangsdaten.',
   'Reviewed comparison frames': 'Vergleichsbilder bewertet',
   'Show disagreements only': 'Nur Abweichungen anzeigen',
   'Original analyzed frames': 'Tatsächlich analysierte Bilder',

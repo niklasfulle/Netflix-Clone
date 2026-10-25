@@ -4,7 +4,8 @@ import { db } from '@/lib/db';
 import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 import { submitVideoAnalysis } from '@/lib/video-analysis/service';
 import { analysisModelAvailable, videoAnalysisEnabled } from '@/lib/video-analysis/model';
-import { VideoAnalysisError, VIDEO_ANALYSIS_MODEL } from '@/lib/video-analysis/contracts';
+import { VideoAnalysisError } from '@/lib/video-analysis/contracts';
+import { analysisModelConfiguration } from '@/lib/video-analysis/configuration';
 
 export const dynamic = 'force-dynamic';
 const input = z.object({ movieId: z.string().min(1).max(191), force: z.boolean().optional() }).strict();
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
           jobRun: { select: { id: true, status: true, progress: true } } } },
       } }), db.movie.count({ where }), analysisModelAvailable(),
     ]);
-    return json({ items, total, totalPages: Math.ceil(total / 20), model: { enabled: videoAnalysisEnabled(), available, name: VIDEO_ANALYSIS_MODEL } });
+    return json({ items, total, totalPages: Math.ceil(total / 20), model: { enabled: videoAnalysisEnabled(), available, name: analysisModelConfiguration().model } });
   } catch { return json({ error: 'ANALYSIS_UNAVAILABLE' }, 503); }
 }
 

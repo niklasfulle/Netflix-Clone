@@ -164,3 +164,13 @@ ansible-playbook -i hosts update-netflix-clone.yml --tags runtime_permissions
 ```
 
 Der Task setzt `/movies`, `/series` und die beiden `temp`-Verzeichnisse auf UID/GID `10001`. Vorhandene temporäre Chunk-Dateien werden rekursiv korrigiert; die großen Medienverzeichnisse selbst werden nicht rekursiv verändert.
+
+### Externe Modelldienste für die Videoanalyse
+
+App und Worker laden optional dieselbe geschützte Hostdatei
+`/root/netflix-secrets/video-analysis.env`. Sie muss root gehören und Modus
+`0600` haben; das Deployment überschreibt ihren Inhalt nicht. Die neutrale
+Vorlage liegt unter `templates/video-analysis.env.example`. Endpunkt,
+Modellname, API-Schlüssel und Healthcheck lassen sich getrennt pro Umgebung
+konfigurieren. Danach werden App und Worker neu erstellt, ohne Seeding.
+Details: [Externe Modelldienste](../docs/operations/video-analysis-models.md).
