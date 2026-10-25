@@ -22,6 +22,10 @@ test('legacy evaluations cannot pretend regenerated images are original evidence
   jest.mocked(db.videoEvaluationSample.findFirst).mockResolvedValue({ ...sample, frames: [], diagnostics: null } as never);
   await expect(readEvaluationEvidence('evaluation-123', 'sample-123')).rejects.toMatchObject({ code: 'EVIDENCE_UNAVAILABLE' });
 });
+test('new catalog-only traces remain readable alongside historical discovery traces', async () => {
+  jest.mocked(db.videoEvaluationSample.findFirst).mockResolvedValue({ ...sample, diagnostics: { schemaVersion: 2, passes: [{ vocabulary: ['Natur'], result: tags }], matchingVocabulary: ['Natur'], selectionLimit: 5 } } as never);
+  expect(await readEvaluationEvidence('evaluation-123', 'sample-123')).toMatchObject({ diagnostics: { schemaVersion: 2 }, outcomes: [expect.objectContaining({ reason: 'NOT_RETURNED' })] });
+});
 test('serves only persisted bytes from the selected run and rejects corrupted images', async () => {
   jest.mocked(db.videoEvaluationFrame.findFirst).mockResolvedValue({ jpeg, sha256: createHash('sha256').update(jpeg).digest('hex') } as never);
   expect(await readEvaluationFrame('evaluation-123', 'sample-123', 1)).toEqual(jpeg);

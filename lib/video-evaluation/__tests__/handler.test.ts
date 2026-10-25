@@ -28,7 +28,7 @@ test('captures only inside the marked interval and saves predictions without pas
   const result = await runVideoEvaluation({ evaluationId: 'evaluation' }, context);
   expect(result).toMatchObject({ processedCount: 1, skippedCount: 0, status: 'EVALUATED' });
   expect(jest.mocked(captureAnalysisFrame).mock.calls.map(call => call[1])).toEqual([31, 33, 35]);
-  expect(classifyVideoFramesWithDiagnostics).toHaveBeenCalledWith(expect.any(Array), ['Natur'], expect.any(AbortSignal));
+  expect(classifyVideoFramesWithDiagnostics).toHaveBeenCalledWith(expect.any(Array), [{ id: 'nature', name: 'Natur', nameEn: 'Nature' }], expect.any(AbortSignal));
   expect(db.videoEvaluationSample.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED', tags: expect.any(Object) }) }));
   const data = jest.mocked(db.videoEvaluationSample.update).mock.calls[0][0].data;
   expect(data.frames).toEqual({ deleteMany: {}, create: [31, 33, 35].map((atSeconds, index) => ({ index, atSeconds, jpeg: Buffer.from('frame'), sha256: createHash('sha256').update(Buffer.from('frame')).digest('hex') })) });

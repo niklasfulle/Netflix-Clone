@@ -4,6 +4,11 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'One analysis job runs at a time. Only existing categories are matched; the model cannot create categories. Completed analyses are saved and can be explicitly repeated.': 'Es läuft jeweils ein Analyseauftrag. Das Modell gleicht ausschließlich vorhandene Kategorien ab und legt keine neuen an. Abgeschlossene Analysen werden gespeichert und können gezielt wiederholt werden.',
+  'This category no longer exists. Start a new analysis.': 'Diese Kategorie ist nicht mehr vorhanden. Starte eine neue Analyse.',
+  'Create categories before analyzing videos.': 'Lege vor der Videoanalyse Kategorien an.',
+  'Video analysis supports up to 1024 existing categories.': 'Die Videoanalyse unterstützt bis zu 1024 vorhandene Kategorien.',
+  'Catalog matching and final selection are shown separately. New runs only match existing categories; older runs may also contain historical discovery responses.': 'Katalogabgleich und endgültige Auswahl werden getrennt angezeigt. Neue Läufe verwenden ausschließlich vorhandene Kategorien; ältere Läufe können historische Antworten der freien Erkennung enthalten.',
   'Whole-video sampling': 'Abtastung ganzer Videos',
   'Thorough: every 5 seconds, up to 720 segments': 'Gründlich: alle 5 Sekunden, bis zu 720 Ausschnitte',
   'Standard: every 20 seconds, up to 120 segments': 'Standard: alle 20 Sekunden, bis zu 120 Ausschnitte',

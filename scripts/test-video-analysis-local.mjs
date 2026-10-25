@@ -23,7 +23,7 @@ const prisma = new PrismaClient();
   assert.equal(process.env.DEPLOYMENT_ENVIRONMENT, 'local');
   const marker = 'analysis-check-' + randomUUID();
   const file = '/movies/' + marker + '.mp4';
-  let movie, jobId, categoryId;
+  let movie, jobId, categoryId, unmatchedName;
   try {
     const admin = await prisma.user.findFirst({ where: { role: 'ADMIN', isBlocked: false }, select: { id: true } });
     assert(admin, 'Local administrator required');
@@ -59,21 +59,28 @@ const prisma = new PrismaClient();
     // The model may legitimately return no categories for a neutral test pattern.
     // A controlled suggestion tests the explicit review independently of its labels.
     const name = 'QA Videoanalyse ' + randomUUID();
-    const suggestion = await prisma.videoCategorySuggestion.create({ data: { analysisId: analysis.id, name, nameEn: name, normalizedName: name.toLowerCase(), confidence: 0.9, evidence: [1] } });
+    categoryId = (await prisma.category.create({ data: { name, nameEn: name, normalizedName: name.toLowerCase() } })).id;
+    unmatchedName = 'QA unmatched ' + randomUUID();
+    const unmatched = await prisma.videoCategorySuggestion.create({ data: { analysisId: analysis.id, name: unmatchedName, nameEn: unmatchedName, normalizedName: unmatchedName.toLowerCase(), confidence: 0.99, evidence: [1] } });
+    await assert.rejects(module.exports.reviewVideoSuggestions(analysis.id, [unmatched.id], 'ACCEPT'), error => error.code === 'CATEGORY_NOT_AVAILABLE');
+    assert.equal(await prisma.category.findUnique({ where: { normalizedName: unmatchedName.toLowerCase() } }), null);
+    const categoryCount = await prisma.category.count({ where: { id: categoryId } });
+    const suggestion = await prisma.videoCategorySuggestion.create({ data: { analysisId: analysis.id, name, nameEn: name, normalizedName: name.toLowerCase(), categoryId, confidence: 0.9, evidence: [1] } });
     assert.equal(await prisma.movieCategory.count({ where: { movieId: movie.id } }), 0);
     const accepted = await module.exports.reviewVideoSuggestions(analysis.id, [suggestion.id], 'ACCEPT');
     assert.equal(accepted.changed, 1);
-    categoryId = (await prisma.category.findUnique({ where: { normalizedName: name.toLowerCase() } })).id;
+    assert.equal(await prisma.category.count({ where: { id: categoryId } }), categoryCount);
     assert.equal((await prisma.category.findUnique({ where: { id: categoryId } })).nameEn, name);
     assert(await prisma.movieCategory.findUnique({ where: { movieId_categoryId: { movieId: movie.id, categoryId } } }));
     assert.equal((await module.exports.reviewVideoSuggestions(analysis.id, [suggestion.id], 'ACCEPT')).changed, 0);
-    console.log('PASS: real GPU queue, twelve thorough-profile samples, cache reuse, explicit category creation and assignment, idempotent acceptance');
+    console.log('PASS: real GPU queue, twelve thorough-profile samples, cache reuse, explicit existing-category assignment without creation, idempotent acceptance');
   } finally {
     // Never remove an active job's input; retain the fixture for diagnosis on timeout.
     const job = jobId ? await prisma.jobRun.findUnique({ where: { id: jobId }, select: { status: true } }) : null;
     if (!job || !['QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(job.status)) {
       if (movie) await prisma.movie.delete({ where: { id: movie.id } });
       if (categoryId) await prisma.category.delete({ where: { id: categoryId } });
+      if (unmatchedName) await prisma.category.deleteMany({ where: { normalizedName: unmatchedName.toLowerCase() } });
       if (jobId) await prisma.jobRun.delete({ where: { id: jobId } });
       await rm(file, { force: true });
     } else console.log('Fixture retained because its job is still active');

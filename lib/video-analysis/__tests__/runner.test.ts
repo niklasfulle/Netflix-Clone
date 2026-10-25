@@ -40,8 +40,7 @@ it('merges category names, preserves known IDs and collects only observed eviden
   ], [{ id: 'known', name: 'Documentary' }]);
   expect(output[0]).toEqual(expect.objectContaining({ categoryId: 'known', name: 'Documentary', evidence: [5, 35] }));
   expect(output[0].confidence).toBeCloseTo(0.75);
-  expect(output[1]).toEqual(expect.objectContaining({ name: 'Outdoor', categoryId: null, evidence: [35] }));
-  expect(output).toHaveLength(2);
+  expect(output).toHaveLength(1);
 });
 
 it('rejects malformed, excessive or unbounded model tags', () => {
@@ -78,7 +77,7 @@ it('does not advance progress beyond a sample that failed to persist', async () 
   expect(progress).toHaveBeenCalledTimes(1);
 });
 
-it('retains corroborated discoveries and strong isolated evidence while rejecting weak isolated guesses', () => {
+it('rejects all unknown names regardless of score or repeated evidence', () => {
   const observation = (atSeconds: number, name: string, confidence: number) => ({ atSeconds, tags: { tags: [{ name, confidence }], uncertain: false } });
   const output = aggregateCategorySuggestions([
     observation(10, 'Weak guess', 0.6), observation(10, 'Single guess', 0.8),
@@ -86,6 +85,6 @@ it('retains corroborated discoveries and strong isolated evidence while rejectin
     observation(10, 'Strong discovery', 0.95), observation(10, 'Known', 0.7),
     observation(10, 'Duplicate timestamp', 0.8), observation(10, 'Duplicate timestamp', 0.8),
   ], [{ id: 'known-id', name: 'Known' }]);
-  expect(output.map(value => value.name).sort()).toEqual(['Known', 'Repeated discovery', 'Strong discovery']);
+  expect(output.map(value => value.name)).toEqual(['Known']);
   expect(analysisSampleTimes(1200)).toHaveLength(60);
 });

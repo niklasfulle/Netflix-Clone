@@ -60,7 +60,7 @@ export async function runVideoEvaluation(payload: { evaluationId: string }, cont
             frames.push(frame);
             evidence.push({ index, atSeconds: Number(position.toFixed(3)), sha256: createHash('sha256').update(frame).digest('hex'), jpeg: frame });
           }
-          ({ tags, diagnostics } = await classifyVideoFramesWithDiagnostics(frames, vocabulary.map(category => category.name), signal));
+          ({ tags, diagnostics } = await classifyVideoFramesWithDiagnostics(frames, vocabulary, signal));
           const current = await db.movie.findUnique({ where: { id: sample.movieId }, select: { type: true, videoUrl: true } });
           if (!current || (await inspectAnalysisSource(current)).fingerprint !== sample.sourceFingerprint) { status = 'STALE'; tags = undefined; diagnostics = undefined; evidence = []; }
         }

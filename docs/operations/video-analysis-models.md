@@ -99,3 +99,28 @@ original temporal grid when resumed. Changing the selection affects newly
 submitted analyses only. Profile parameters are immutable; future policy
 changes require a new profile ID. Marked examples, their three-frame evidence,
 evaluation metrics and model identities are unaffected.
+
+## Existing categories only
+
+Video inference matches only the existing category catalog. It does not run
+independent discovery or create new categories. A catalog must exist before a
+whole-video analysis or evaluation can be submitted. Metadata translation for
+manually maintained categories remains a separate operation.
+
+Catalogs are deduplicated and processed in bounded groups of at most 32 names
+with a 4096-character input budget per group; all groups are checked rather
+than truncating the vocabulary at 64 names. Up to 1024 categories are supported.
+Each pass returns up to five labels, with the five strongest accepted catalog
+matches retained for a segment. Large catalogs therefore require more requests.
+
+Structured-output enums constrain category names, and server-side validation
+also rejects unknown names for JSON-object services. Accepted names and English
+translations come from the catalog. Aggregation additionally requires existing
+category IDs. Accepting a suggestion only links that existing category; it
+cannot create a category, including for historical free suggestions.
+
+The catalog contributes to whole-video cache identity. The changed inference
+policy uses a new model profile, so older partial discovery runs require a fresh
+analysis. Historical completed evaluations and their original diagnostics stay
+readable. New evaluation diagnostics use schema version 2 with catalog-match
+passes; schema version 1 remains available for history.

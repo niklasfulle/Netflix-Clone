@@ -16,7 +16,8 @@ export function diagnoseSample(labels: ExampleLabel[], tags: FrameTags, trace: C
     const aliases = new Set([label.name, label.nameEn].filter(Boolean).map(normalizedCategoryName));
     const matches = (tag: FrameTags['tags'][number]) => [tag.name, tag.nameEn].filter(Boolean).some(name => aliases.has(normalizedCategoryName(name!)));
     const final = tags.tags.filter(matches);
-    const raw = [trace.discovered, trace.matched].filter((pass): pass is FrameTags => pass !== null).flatMap(pass => pass.tags.filter(matches).map(tag => ({ ...tag, uncertain: pass.uncertain })));
+    const results = trace.schemaVersion === 1 ? [trace.discovered, trace.matched].filter((pass): pass is FrameTags => pass !== null) : trace.passes.map(pass => pass.result);
+    const raw = results.flatMap(pass => pass.tags.filter(matches).map(tag => ({ ...tag, uncertain: pass.uncertain })));
     const visibility = judgments.find(judgment => judgment.categoryId === label.categoryId)?.visibility ?? 'UNCERTAIN';
     let reason: DiagnosticReason = 'CORRECT';
     if (label.outcome === 'fn' || label.outcome === 'fp') {

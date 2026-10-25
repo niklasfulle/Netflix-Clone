@@ -50,7 +50,7 @@ export async function runVideoAnalysis(payload: { analysisId: string; contentId:
     const observations = await analyzeVideoSegments({
       duration, samplingProfile, previous, checkpoint,
       capture: seconds => captureAnalysisFrame(source.filePath, seconds, signal),
-      classify: frames => classifyVideoFrames(frames, vocabulary.map(category => category.name), signal),
+      classify: frames => classifyVideoFrames(frames, vocabulary, signal),
       async save(observation, processed) {
         await db.$transaction([
           db.videoAnalysisSample.upsert({ where: { analysisId_index: { analysisId: analysis.id, index: observation.index } },

@@ -18,7 +18,7 @@ export async function GET(_request: Request, context: Context) {
     const analysis = await db.videoAnalysis.findUnique({ where: { id: analysisId }, select: {
       id: true, status: true, model: true, samplingProfile: true, sampleCount: true, processedCount: true, durationSeconds: true, errorCode: true, completedAt: true,
       jobRun: { select: { id: true, status: true, progress: true } },
-      suggestions: { orderBy: { confidence: 'desc' }, select: { id: true, name: true, nameEn: true, confidence: true, evidence: true, state: true, categoryId: true, category: { select: { name: true, nameEn: true } } } },
+      suggestions: { where: { categoryId: { not: null } }, orderBy: { confidence: 'desc' }, select: { id: true, name: true, nameEn: true, confidence: true, evidence: true, state: true, categoryId: true, category: { select: { name: true, nameEn: true } } } },
     } });
     return analysis ? json(analysis) : json({ error: 'ANALYSIS_NOT_FOUND' }, 404);
   } catch { return json({ error: 'ANALYSIS_UNAVAILABLE' }, 503); }

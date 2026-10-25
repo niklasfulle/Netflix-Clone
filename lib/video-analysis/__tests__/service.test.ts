@@ -1,5 +1,5 @@
 /** @jest-environment node */
-jest.mock('@/lib/db', () => ({ db: { movie: { findUnique: jest.fn() }, videoAnalysis: { upsert: jest.fn(), update: jest.fn(), updateMany: jest.fn() }, category: { upsert: jest.fn() }, $transaction: jest.fn() } }));
+jest.mock('@/lib/db', () => ({ db: { movie: { findUnique: jest.fn() }, videoAnalysis: { upsert: jest.fn(), update: jest.fn(), updateMany: jest.fn() }, category: { findMany: jest.fn(), upsert: jest.fn() }, $transaction: jest.fn() } }));
 jest.mock('@/lib/jobs/runtime', () => ({ backgroundJobSubmission: { submit: jest.fn() } }));
 jest.mock('../model', () => ({ analysisModelAvailable: jest.fn(), videoAnalysisEnabled: jest.fn() }));
 jest.mock('../source', () => ({ inspectAnalysisSource: jest.fn() }));
@@ -23,12 +23,14 @@ beforeEach(() => {
   jest.mocked(analysisModelAvailable).mockResolvedValue(true);
   jest.mocked(inspectAnalysisSource).mockResolvedValue({ filePath: '/movies/test.mp4', fingerprint: 'fingerprint' });
   jest.mocked(db.movie.findUnique).mockResolvedValue({ id: 'movie-1', type: 'Movie', videoUrl: 'test.mp4' } as never);
+  jest.mocked(db.category.findMany).mockResolvedValue([{ id: 'existing-category', name: 'Outdoor', nameEn: 'Outdoors' }] as never);
   jest.mocked(db.videoAnalysis.upsert).mockResolvedValue({ id: 'analysis-123', requestedById: 'admin-123', status: 'QUEUED', jobRunId: null } as never);
   jest.mocked(backgroundJobSubmission.submit).mockResolvedValue({ id: 'job-12345', queueJobId: 'queue-123', status: 'QUEUED', duplicate: false, correlationId: 'correlation' });
   (db.$transaction as jest.Mock).mockImplementation((callback) => callback(transaction));
   transaction.videoAnalysis.findUnique.mockResolvedValue({ id: 'analysis-123', movieId: 'movie-1', sourceFingerprint: 'fingerprint', status: 'SUCCEEDED', jobRun: { status: 'SUCCEEDED' } });
   transaction.movie.findUnique.mockResolvedValue({ id: 'movie-1', type: 'Movie', videoUrl: 'test.mp4' });
-  transaction.videoCategorySuggestion.findMany.mockResolvedValue([{ id: 'suggestion', name: 'Outdoor', nameEn: 'Outdoors', normalizedName: 'outdoor', state: 'PENDING', categoryId: null }]);
+  transaction.videoCategorySuggestion.findMany.mockResolvedValue([{ id: 'suggestion', name: 'Outdoor', nameEn: 'Outdoors', normalizedName: 'outdoor', state: 'PENDING', categoryId: 'existing-category' }]);
+  transaction.category.findUnique.mockResolvedValue({ id: 'existing-category', name: 'Outdoor', nameEn: 'Outdoors' });
   transaction.category.upsert.mockResolvedValue({ id: 'new-category' });
   transaction.movieCategory.count.mockResolvedValue(2);
 });
@@ -72,10 +74,10 @@ it('does not queue work when the model is unavailable', async () => {
 
 it('merges approved categories into existing assignments and records approval', async () => {
   expect(await reviewVideoSuggestions('analysis-123', ['suggestion'], 'ACCEPT')).toEqual({ changed: 1, movieId: 'movie-1' });
-  expect(transaction.category.upsert).toHaveBeenCalledWith({ where: { normalizedName: 'outdoor' }, update: {}, create: { name: 'Outdoor', nameEn: 'Outdoors', normalizedName: 'outdoor' } });
-  expect(transaction.movieCategory.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { movieId: 'movie-1', categoryId: 'new-category' } }));
+  expect(transaction.category.upsert).not.toHaveBeenCalled();
+  expect(transaction.movieCategory.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { movieId: 'movie-1', categoryId: 'existing-category' } }));
   expect(transaction.movieCategory.deleteMany).not.toHaveBeenCalled();
-  expect(transaction.videoCategorySuggestion.update).toHaveBeenCalledWith({ where: { id: 'suggestion' }, data: { state: 'ACCEPTED', categoryId: 'new-category' } });
+  expect(transaction.videoCategorySuggestion.update).toHaveBeenCalledWith({ where: { id: 'suggestion' }, data: { state: 'ACCEPTED', categoryId: 'existing-category' } });
 });
 
 it('keeps renamed existing categories linked by their stable IDs', async () => {
@@ -84,6 +86,22 @@ it('keeps renamed existing categories linked by their stable IDs', async () => {
   await reviewVideoSuggestions('analysis-123', ['suggestion'], 'ACCEPT');
   expect(transaction.category.upsert).not.toHaveBeenCalled();
   expect(transaction.movieCategory.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { movieId: 'movie-1', categoryId: 'existing' } }));
+});
+it('never creates categories from historical free suggestions or deleted catalog entries', async () => {
+  transaction.videoCategorySuggestion.findMany.mockResolvedValue([{ id: 'suggestion', name: 'New name', normalizedName: 'new name', nameEn: 'New name', state: 'PENDING', categoryId: null }]);
+  await expect(reviewVideoSuggestions('analysis-123', ['suggestion'], 'ACCEPT')).rejects.toHaveProperty('code', 'CATEGORY_NOT_AVAILABLE');
+  expect(transaction.category.upsert).not.toHaveBeenCalled();
+  transaction.videoCategorySuggestion.findMany.mockResolvedValue([{ id: 'suggestion', state: 'PENDING', categoryId: 'deleted' }]);
+  transaction.category.findUnique.mockResolvedValue(null);
+  await expect(reviewVideoSuggestions('analysis-123', ['suggestion'], 'ACCEPT')).rejects.toHaveProperty('code', 'CATEGORY_NOT_AVAILABLE');
+});
+it('invalidates cached analyses when the existing catalog changes and skips empty catalogs', async () => {
+  await submitVideoAnalysis('movie-1', 'admin-123');
+  jest.mocked(db.category.findMany).mockResolvedValue([{ id: 'other', name: 'Natur', nameEn: 'Nature' }] as never);
+  await submitVideoAnalysis('movie-1', 'admin-123');
+  expect(jest.mocked(db.videoAnalysis.upsert).mock.calls[0][0].where.cacheKey).not.toBe(jest.mocked(db.videoAnalysis.upsert).mock.calls[1][0].where.cacheKey);
+  jest.mocked(db.category.findMany).mockResolvedValue([]);
+  await expect(submitVideoAnalysis('movie-1', 'admin-123')).rejects.toHaveProperty('code', 'NO_ANALYSIS_CATEGORIES');
 });
 
 it('rejects suggestions without creating categories and makes repeated reviews idempotent', async () => {

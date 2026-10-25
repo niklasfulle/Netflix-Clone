@@ -28,6 +28,9 @@ const errors: Record<string, TranslationKey> = {
   MISSING_CATEGORY_TRANSLATION: 'Both category languages are required. Start a new analysis.',
   ANALYSIS_PROFILE_CHANGED: 'Analysis settings have changed. Start a new analysis.',
   INVALID_SAMPLING_PROFILE: 'The sampling profile is unavailable. Start a new analysis.',
+  CATEGORY_NOT_AVAILABLE: 'This category no longer exists. Start a new analysis.',
+  NO_ANALYSIS_CATEGORIES: 'Create categories before analyzing videos.',
+  TOO_MANY_ANALYSIS_CATEGORIES: 'Video analysis supports up to 1024 existing categories.',
 };
 export function analysisErrorKey(code?: string | null): TranslationKey { return errors[code ?? ''] ?? 'Video analysis could not be completed.'; }
 export function analysisStatus(analysis: Pick<AnalysisSummary, 'status' | 'jobRun'>) { return analysis.jobRun?.status ?? analysis.status; }
@@ -49,6 +52,7 @@ export function VideoAnalysisReview({ analysisId, movieId, onReviewed }: Readonl
   const video = useRef<HTMLVideoElement>(null);
   const requestedTime = useRef(0);
   const ready = data && analysisStatus(data) === 'SUCCEEDED';
+  const existingSuggestions = (data?.suggestions ?? []).filter(suggestion => suggestion.categoryId && suggestion.category);
 
   function viewEvidence(seconds: number) {
     requestedTime.current = seconds;
@@ -83,15 +87,15 @@ export function VideoAnalysisReview({ analysisId, movieId, onReviewed }: Readonl
         </video>
         <Button type="button" onClick={() => setShowVideo(false)}>{t('Close preview')}</Button>
       </div>}
-      {ready && data.suggestions.length === 0 && <p className="text-sm text-zinc-300">{t('No usable category suggestions were found.')}</p>}
-      {ready && data.suggestions.length > 0 && <>
-        <Button type="button" disabled={pending} onClick={() => setSelected(data.suggestions.filter(item => item.state === 'PENDING').map(item => item.id))}>{t('Select all suggestions')}</Button>
+      {ready && existingSuggestions.length === 0 && <p className="text-sm text-zinc-300">{t('No usable category suggestions were found.')}</p>}
+      {ready && existingSuggestions.length > 0 && <>
+        <Button type="button" disabled={pending} onClick={() => setSelected(existingSuggestions.filter(item => item.state === 'PENDING').map(item => item.id))}>{t('Select all suggestions')}</Button>
         <ul className="space-y-3">
-          {data.suggestions.map(suggestion => <li key={suggestion.id} className="rounded-lg border border-zinc-700 p-3">
+          {existingSuggestions.map(suggestion => <li key={suggestion.id} className="rounded-lg border border-zinc-700 p-3">
             <label className="flex items-center gap-3 text-sm text-white">
               <input type="checkbox" disabled={pending || suggestion.state !== 'PENDING'} checked={selected.includes(suggestion.id)} onChange={event => setSelected(current => event.target.checked ? [...current, suggestion.id] : current.filter(id => id !== suggestion.id))} />
               <span className="font-medium">{categoryLabel(suggestion.category ?? suggestion, locale)}</span>
-              <span className="text-xs text-zinc-400">{suggestion.categoryId ? t('Existing category') : t('New category suggestion')}</span>
+              <span className="text-xs text-zinc-400">{t('Existing category')}</span>
               <span className="ml-auto text-xs text-zinc-400">{t('Model score')}: {Math.round(suggestion.confidence * 100)}%</span>
             </label>
             <p className="mt-2 text-xs text-zinc-400">DE: {suggestion.category?.name ?? suggestion.name} · EN: {suggestion.category?.nameEn || suggestion.nameEn || '—'}</p>

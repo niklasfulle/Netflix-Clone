@@ -40,8 +40,9 @@ The initial dataset is a diagnostic baseline, not evidence of general accuracy.
 ## Inspecting disagreements
 
 Expand a sample to inspect the exact three JPEG images sent to the model,
-their timestamps and the parsed responses for discovery, vocabulary matching
-and final selection. Images are stored transactionally with predictions in a
+their timestamps and the parsed responses for catalog matching and final
+selection. Historical runs can also retain their old discovery responses.
+Images are stored transactionally with predictions in a
 separate database table, with a SHA-256 digest and a one-MiB limit per frame.
 The existing local database volume retains them; no public image folder or
 additional media volume is used. They are included in database backups.

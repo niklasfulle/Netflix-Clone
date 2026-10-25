@@ -27,3 +27,9 @@ test('saves only the independent visibility review with its concurrency version'
   await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/admin/video-evaluations/evaluation-123/samples/sample-123', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ version: 2, judgments: [{ categoryId: 'nature', visibility: 'NOT_VISIBLE' }] }) })));
   await waitFor(() => expect(screen.getByText('Frame review saved.')).toBeInTheDocument());
 });
+test('catalog-only traces show matching passes without a discovery section', () => {
+  jest.mocked(useSWR).mockReturnValue({ data: { ...evidence, diagnostics: { schemaVersion: 2, passes: [{ vocabulary: ['Natur', 'Stadt'], result: tags }], matchingVocabulary: ['Natur', 'Stadt'], selectionLimit: 5 } }, mutate: refresh } as never);
+  render(<VideoEvaluationEvidence evaluationId="evaluation-123" sampleId="sample-123" />);
+  expect(screen.queryByText('Independent discovery')).not.toBeInTheDocument();
+  expect(screen.getByText('Existing category matching')).toBeInTheDocument();
+});

@@ -5,123 +5,80 @@ import { aggregateCategorySuggestions } from '../contracts';
 const previousUrl = process.env.VIDEO_ANALYSIS_URL;
 const previousEnabled = process.env.VIDEO_ANALYSIS_ENABLED;
 const originalFetch = globalThis.fetch;
-it('retains separate parsed model passes even when final selection drops a known category', async () => {
-  globalThis.fetch = jest.fn();
-  const discovered = { tags: ['Nature', 'City', 'Sea', 'Forest', 'Mountains'].map(name => ({ name, nameEn: name, confidence: 0.9 })), uncertain: false };
-  const matched = { tags: ['Known1', 'Known2', 'Known3', 'Known4', 'Known5'].map(name => ({ name, nameEn: name, confidence: 0.8 })), uncertain: false };
-  jest.mocked(fetch).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify(discovered) } }] })).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify(matched) } }] }));
-  const result = await classifyVideoFramesWithDiagnostics([], matched.tags.map(tag => tag.name));
-  expect(result.diagnostics).toEqual({ schemaVersion: 1, discovered, matched, matchingVocabulary: matched.tags.map(tag => tag.name), selectionLimit: 5 });
-  expect(result.tags.tags).toHaveLength(5);
-  expect(result.tags.tags.find(tag => tag.name === 'Known5')).toBeUndefined();
-});
+const response = (tags: Array<{ name: string; nameEn?: string; confidence: number }>, uncertain = false) => Response.json({ choices: [{ message: { content: JSON.stringify({ tags, uncertain }) } }] });
 beforeEach(() => { process.env.VIDEO_ANALYSIS_URL = 'http://video-model:8080'; process.env.VIDEO_ANALYSIS_ENABLED = 'true'; globalThis.fetch = jest.fn(); });
 afterAll(() => { globalThis.fetch = originalFetch; if (previousUrl === undefined) delete process.env.VIDEO_ANALYSIS_URL; else process.env.VIDEO_ANALYSIS_URL = previousUrl; if (previousEnabled === undefined) delete process.env.VIDEO_ANALYSIS_ENABLED; else process.env.VIDEO_ANALYSIS_ENABLED = previousEnabled; });
 
-it('discovers new visual categories independently of existing vocabulary and keeps them through aggregation', async () => {
-  jest.mocked(fetch).mockImplementation(async (_url, options) => {
-    const body = JSON.parse(options!.body as string);
-    const prompt = JSON.stringify(body.messages);
-    const name = prompt.includes('KnownCategory') ? 'KnownCategory' : 'Außenaufnahme';
-    return Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [{ name, nameEn: name, confidence: 0.9 }], uncertain: false }) } }] });
-  });
-  const tags = await classifyVideoFrames([Buffer.from('neutral-scene')], ['KnownCategory']);
-  const suggestions = aggregateCategorySuggestions([{ atSeconds: 10, tags }], [{ id: 'known', name: 'KnownCategory' }]);
-  expect(suggestions).toEqual(expect.arrayContaining([
-    expect.objectContaining({ name: 'Außenaufnahme', categoryId: null }),
-    expect.objectContaining({ name: 'KnownCategory', categoryId: 'known' }),
-  ]));
-  const firstPrompt = JSON.stringify(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string).messages);
-  expect(firstPrompt).not.toContain('KnownCategory');
-});
-
-it('preserves discoveries when existing-category matching is uncertain and excludes invented matches', async () => {
-  const response = (tags: Array<{ name: string; nameEn: string; confidence: number }>, uncertain = false) => Response.json({ choices: [{ message: { content: JSON.stringify({ tags, uncertain }) } }] });
-  jest.mocked(fetch)
-    .mockResolvedValueOnce(response([{ name: 'Außenaufnahme', nameEn: 'Außenaufnahme', confidence: 0.9 }]))
-    .mockResolvedValueOnce(response([{ name: 'Unbelegter Begriff', nameEn: 'Unbelegter Begriff', confidence: 0.95 }]));
-  expect(await classifyVideoFrames([], ['Known'])).toEqual({ tags: [{ name: 'Außenaufnahme', nameEn: 'Außenaufnahme', confidence: 0.9 }], uncertain: false });
-  jest.mocked(fetch)
-    .mockResolvedValueOnce(response([{ name: 'Außenaufnahme', nameEn: 'Außenaufnahme', confidence: 0.9 }]))
-    .mockResolvedValueOnce(response([], true));
-  expect((await classifyVideoFrames([], ['Known'])).tags[0].name).toBe('Außenaufnahme');
-});
-
-it('keeps new discoveries ahead of existing matches within the five-label limit', async () => {
-  const tags = ['One', 'Two', 'Three', 'Four', 'Five'].map(name => ({ name, nameEn: name, confidence: 0.99 }));
-  jest.mocked(fetch)
-    .mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [{ name: 'Außenaufnahme', nameEn: 'Außenaufnahme', confidence: 0.7 }], uncertain: false }) } }] }))
-    .mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags, uncertain: false }) } }] }));
-  const result = await classifyVideoFrames([], tags.map(tag => tag.name));
-  expect(result.tags).toHaveLength(5);
-  expect(result.tags[0].name).toBe('Außenaufnahme');
-});
-
-it('does not reuse the old matching step when discovery fails and skips matching without vocabulary', async () => {
-  jest.mocked(fetch).mockResolvedValueOnce(new Response('unavailable', { status: 503 }));
-  await expect(classifyVideoFrames([], ['Known'])).rejects.toHaveProperty('code', 'MODEL_UNAVAILABLE');
+it('matches existing names in one pass, rejects invented categories and preserves canonical translations', async () => {
+  jest.mocked(fetch).mockResolvedValue(response([{ name: 'Natur', nameEn: 'Invented translation', confidence: 0.9 }, { name: 'New category', nameEn: 'New category', confidence: 0.99 }]));
+  const result = await classifyVideoFramesWithDiagnostics([Buffer.from('neutral-scene')], [{ name: 'Natur', nameEn: 'Nature' }]);
+  expect(result.tags).toEqual({ tags: [{ name: 'Natur', nameEn: 'Nature', confidence: 0.9 }], uncertain: false });
   expect(fetch).toHaveBeenCalledTimes(1);
-  jest.mocked(fetch).mockClear().mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [], uncertain: true }) } }] }));
+  expect(result.diagnostics).toMatchObject({ schemaVersion: 2, matchingVocabulary: ['Natur'], selectionLimit: 5 });
+  const body = JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string);
+  expect(body.messages[1].content[0].text).toContain('ONLY these existing categories');
+  expect(body.response_format.json_schema.schema.properties.tags.items.properties.name.enum).toEqual(['Natur']);
+  expect(body.response_format.json_schema.schema.properties.tags.items.properties.nameEn.enum).toEqual(['Nature']);
+});
+it('never requests discovery or inference without an existing vocabulary', async () => {
   expect(await classifyVideoFrames([], [])).toEqual({ tags: [], uncertain: true });
+  expect(fetch).not.toHaveBeenCalled();
+});
+it('never accepts a suggestion from an uncertain model response', async () => {
+  jest.mocked(fetch).mockResolvedValue(response([{ name: 'Natur', nameEn: 'Nature', confidence: 0.99 }], true));
+  expect(await classifyVideoFrames([], ['Natur'])).toEqual({ tags: [], uncertain: true });
+});
+it('checks categories beyond the old 64-name boundary in bounded passes', async () => {
+  const vocabulary = Array.from({ length: 70 }, (_, index) => 'Category' + index);
+  jest.mocked(fetch).mockResolvedValueOnce(response([])).mockResolvedValueOnce(response([])).mockResolvedValueOnce(response([{ name: 'Category69', nameEn: 'Category69', confidence: 0.9 }]));
+  const result = await classifyVideoFramesWithDiagnostics([], vocabulary);
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(result.tags.tags).toEqual([{ name: 'Category69', nameEn: 'Category69', confidence: 0.9 }]);
+  expect(result.diagnostics.matchingVocabulary).toHaveLength(70);
+});
+it('does not make oversized or duplicate catalog requests', async () => {
+  jest.mocked(fetch).mockResolvedValue(response([]));
+  await classifyVideoFrames([], ['Natur', ' natur ']);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await expect(classifyVideoFrames([], Array.from({ length: 1025 }, (_, index) => 'Category' + index))).rejects.toHaveProperty('code', 'TOO_MANY_ANALYSIS_CATEGORIES');
   expect(fetch).toHaveBeenCalledTimes(1);
 });
-
+it('filters invented names during aggregation even if a caller bypasses the model filter', () => {
+  const tags = { tags: [{ name: 'Unknown', nameEn: 'Unknown', confidence: 1 }, { name: 'Natur', nameEn: 'Wrong', confidence: 0.9 }], uncertain: false };
+  expect(aggregateCategorySuggestions([{ atSeconds: 1, tags }], [{ id: 'nature', name: 'Natur', nameEn: 'Nature' }])).toEqual([expect.objectContaining({ categoryId: 'nature', name: 'Natur', nameEn: 'Nature' })]);
+  expect(aggregateCategorySuggestions([{ atSeconds: 1, tags }], [])).toEqual([]);
+});
 it('uses only the configured endpoint and bounded inline images', async () => {
-  jest.mocked(fetch).mockImplementation(async () => Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [{ name: 'Testbild', nameEn: 'Testbild', confidence: 0.9 }], uncertain: false }) } }] }));
-  expect(await classifyVideoFrames([Buffer.from('image')], ['Known'])).toEqual({ tags: [{ name: 'Testbild', nameEn: 'Testbild', confidence: 0.9 }], uncertain: false });
+  jest.mocked(fetch).mockResolvedValue(response([{ name: 'Natur', nameEn: 'Nature', confidence: 0.9 }]));
+  await classifyVideoFrames([Buffer.from('image')], [{ name: 'Natur', nameEn: 'Nature' }]);
   const [url, options] = jest.mocked(fetch).mock.calls[0];
   expect(url).toBe('http://video-model:8080/v1/chat/completions');
   const body = JSON.parse(options!.body as string);
   expect(body.max_tokens).toBe(768);
   expect(body.messages[1].content[1].image_url.url).toMatch(/^data:image\/jpeg;base64,/);
-  expect(body.response_format.type).toBe('json_schema');
 });
-
 it.each(['file:///tmp/model', 'http://name:password@video-model:8080', 'http://video-model:8080/?token=value', 'http://video-model:8080/#fragment'])('rejects invalid model configuration: %s', url => {
-  process.env.VIDEO_ANALYSIS_URL = url;
-  expect(() => analysisModelUrl()).toThrow();
+  process.env.VIDEO_ANALYSIS_URL = url; expect(() => analysisModelUrl()).toThrow();
 });
-
 it.each([{}, { choices: [{ message: { content: 'not JSON' } }] }, { choices: [{ message: { content: JSON.stringify({ tags: [{ name: 'x', nameEn: 'x', confidence: 5 }], uncertain: false }) } }] }])('rejects unusable model output without exposing raw responses', async output => {
   jest.mocked(fetch).mockResolvedValue(Response.json(output));
-  await expect(classifyVideoFrames([], [])).rejects.toHaveProperty('code', 'MODEL_RESPONSE_INVALID');
+  await expect(classifyVideoFrames([], ['Natur'])).rejects.toHaveProperty('code', 'MODEL_RESPONSE_INVALID');
 });
-
-it('bounds the model response size and handles server outages', async () => {
+it('bounds response size, handles outages and does not retry in a discovery mode', async () => {
   jest.mocked(fetch).mockResolvedValueOnce(new Response('x'.repeat(65537))).mockResolvedValueOnce(new Response('private server details', { status: 503 }));
-  await expect(classifyVideoFrames([], [])).rejects.toHaveProperty('code', 'MODEL_RESPONSE_INVALID');
-  await expect(classifyVideoFrames([], [])).rejects.toHaveProperty('code', 'MODEL_UNAVAILABLE');
+  await expect(classifyVideoFrames([], ['Natur'])).rejects.toHaveProperty('code', 'MODEL_RESPONSE_INVALID');
+  await expect(classifyVideoFrames([], ['Natur'])).rejects.toHaveProperty('code', 'MODEL_UNAVAILABLE');
+  expect(fetch).toHaveBeenCalledTimes(2);
 });
-
-it('reports unavailable models and skips network requests when disabled', async () => {
-  jest.mocked(fetch).mockRejectedValue(new Error('offline'));
-  expect(await analysisModelAvailable()).toBe(false);
-  jest.mocked(fetch).mockClear();
-  process.env.VIDEO_ANALYSIS_ENABLED = 'false';
-  expect(await analysisModelAvailable()).toBe(false);
-  expect(fetch).not.toHaveBeenCalled();
+it('reports unavailable models and skips readiness requests when disabled', async () => {
+  jest.mocked(fetch).mockRejectedValue(new Error('offline')); expect(await analysisModelAvailable()).toBe(false);
+  jest.mocked(fetch).mockClear(); process.env.VIDEO_ANALYSIS_ENABLED = 'false';
+  expect(await analysisModelAvailable()).toBe(false); expect(fetch).not.toHaveBeenCalled();
 });
-
-it('requires an English translation in newly generated suggestions', async () => {
-  jest.mocked(fetch).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [{ name: 'Außenaufnahme', confidence: 0.9 }], uncertain: false }) } }] }));
-  await expect(classifyVideoFrames([], [])).rejects.toHaveProperty('code', 'MODEL_RESPONSE_INVALID');
-});
-
-it('translates existing metadata into equivalent German and English names without images', async () => {
-  jest.mocked(fetch).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [{ name: 'Außenaufnahme', nameEn: 'Outdoor scene', confidence: 1 }], uncertain: false }) } }] }));
+it('retains explicit metadata translation separately from video classification', async () => {
+  jest.mocked(fetch).mockResolvedValue(response([{ name: 'Außenaufnahme', nameEn: 'Outdoor scene', confidence: 1 }]));
   expect(await translateCategoryName('Outdoor scene')).toEqual({ name: 'Außenaufnahme', nameEn: 'Outdoor scene' });
   const body = JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string);
   expect(body.messages[1].content).toHaveLength(1);
-  const aggregated = aggregateCategorySuggestions([{ atSeconds: 12, tags: { tags: [{ name: 'Außenaufnahme', nameEn: 'Outdoor scene', confidence: 0.9 }], uncertain: false } }], []);
-  expect(aggregated[0]).toMatchObject({ name: 'Außenaufnahme', nameEn: 'Outdoor scene', categoryId: null });
-});
-
-it('does not let five discoveries displace a supported existing category', async () => {
-  const newTags = ['A', 'B', 'C', 'D', 'E'].map(name => ({ name, nameEn: name, confidence: 0.95 }));
-  const response = (tags: typeof newTags) => Response.json({ choices: [{ message: { content: JSON.stringify({ tags, uncertain: false }) } }] });
-  jest.mocked(fetch).mockResolvedValueOnce(response(newTags)).mockResolvedValueOnce(response([{ name: 'Known', nameEn: 'Known', confidence: 0.9 }]));
-  const result = await classifyVideoFrames([], ['Known']);
-  expect(result.tags).toHaveLength(5);
-  expect(result.tags.filter(tag => tag.name === 'Known')).toHaveLength(1);
-  expect(result.tags.filter(tag => tag.name !== 'Known')).toHaveLength(4);
+  expect(body.response_format.json_schema.schema.properties.tags.items.properties.name.enum).toBeUndefined();
 });

@@ -21,7 +21,7 @@ test('uses the configured model and bearer authorization for inference and readi
   process.env.VIDEO_ANALYSIS_HEALTH_PATH = '/v1/models';
   jest.mocked(fetch).mockResolvedValueOnce(new Response('{}')).mockResolvedValueOnce(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [], uncertain: true }) } }] }));
   expect(await analysisModelAvailable()).toBe(true);
-  await classifyVideoFrames([Buffer.from('neutral-frame')], []);
+  await classifyVideoFrames([Buffer.from('neutral-frame')], [{ name: 'Natur', nameEn: 'Nature' }]);
   expect(fetch).toHaveBeenNthCalledWith(1, 'https://models.example.invalid/v1/models', expect.objectContaining({ headers: { Authorization: 'Bearer fixture-only' }, redirect: 'error', cache: 'no-store' }));
   const [url, options] = jest.mocked(fetch).mock.calls[1];
   expect(url).toBe('https://models.example.invalid/v1/chat/completions');
@@ -31,13 +31,13 @@ test('uses the configured model and bearer authorization for inference and readi
 test('supports JSON-object providers while validating returned data with the same schema', async () => {
   process.env.VIDEO_ANALYSIS_RESPONSE_FORMAT = 'json_object';
   jest.mocked(fetch).mockResolvedValue(Response.json({ choices: [{ message: { content: JSON.stringify({ tags: [], uncertain: true }) } }] }));
-  await classifyVideoFrames([], []);
+  await classifyVideoFrames([], ['Natur']);
   expect(JSON.parse(jest.mocked(fetch).mock.calls[0][1]!.body as string).response_format).toEqual({ type: 'json_object' });
 });
 test('access errors are permanent and never expose provider response details or credentials', async () => {
   process.env.VIDEO_ANALYSIS_API_KEY = ['fixture', 'only'].join('-');
   jest.mocked(fetch).mockResolvedValue(new Response('private provider details', { status: 401 }));
-  await expect(classifyVideoFrames([], [])).rejects.toMatchObject({ code: 'MODEL_ACCESS_DENIED', permanent: true, message: 'MODEL_ACCESS_DENIED' });
+  await expect(classifyVideoFrames([], ['Natur'])).rejects.toMatchObject({ code: 'MODEL_ACCESS_DENIED', permanent: true, message: 'MODEL_ACCESS_DENIED' });
 });
 test('model and endpoint changes invalidate profiles; credentials and timeouts do not', () => {
   const baseline = currentAnalysisProfileId();

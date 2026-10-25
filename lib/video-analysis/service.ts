@@ -7,6 +7,7 @@ import { currentAnalysisProfileId } from './runtime-profile';
 import { analysisModelAvailable, videoAnalysisEnabled } from './model';
 import { inspectAnalysisSource } from './source';
 import { SAMPLING_PROFILES, samplingModeSchema, type SamplingMode } from './sampling';
+import { prepareVocabulary } from './vocabulary';
 
 export async function submitVideoAnalysis(movieId: string, actorUserId: string, force = false, samplingMode: SamplingMode = 'THOROUGH') {
   if (!videoAnalysisEnabled()) throw new VideoAnalysisError('ANALYSIS_DISABLED', true);
@@ -15,9 +16,12 @@ export async function submitVideoAnalysis(movieId: string, actorUserId: string, 
   if (!await analysisModelAvailable()) throw new VideoAnalysisError('MODEL_UNAVAILABLE');
   const movie = await db.movie.findUnique({ where: { id: movieId }, select: { id: true, type: true, videoUrl: true } });
   if (!movie) throw new VideoAnalysisError('VIDEO_NOT_FOUND', true);
+  const categories = await db.category.findMany({ select: { id: true, name: true, nameEn: true }, orderBy: { id: 'asc' } });
+  if (prepareVocabulary(categories).length === 0) throw new VideoAnalysisError('NO_ANALYSIS_CATEGORIES', true);
   const source = await inspectAnalysisSource(movie);
   const model = currentAnalysisProfileId();
-  const cacheParts = [movie.id, source.fingerprint, model, force ? randomUUID() : 'cached'];
+  const catalogFingerprint = createHash('sha256').update(JSON.stringify(categories)).digest('hex');
+  const cacheParts = [movie.id, source.fingerprint, model, force ? randomUUID() : 'cached', catalogFingerprint];
   if (samplingProfile !== 'standard-v1') cacheParts.push(samplingProfile);
   const cacheKey = createHash('sha256').update(JSON.stringify(cacheParts)).digest('hex');
   const analysis = await db.videoAnalysis.upsert({ where: { cacheKey }, update: {}, create: {
@@ -53,9 +57,8 @@ export async function reviewVideoSuggestions(analysisId: string, ids: string[], 
     for (const suggestion of suggestions) {
       if (suggestion.state !== 'PENDING') continue;
       if (action === 'ACCEPT') {
-        let category = suggestion.categoryId ? await transaction.category.findUnique({ where: { id: suggestion.categoryId } }) : null;
-        if (!category && !suggestion.nameEn?.trim()) throw new VideoAnalysisError('MISSING_CATEGORY_TRANSLATION', true);
-        category ??= await transaction.category.upsert({ where: { normalizedName: suggestion.normalizedName }, update: {}, create: { name: suggestion.name, nameEn: suggestion.nameEn, normalizedName: suggestion.normalizedName } });
+        const category = suggestion.categoryId ? await transaction.category.findUnique({ where: { id: suggestion.categoryId } }) : null;
+        if (!category) throw new VideoAnalysisError('CATEGORY_NOT_AVAILABLE', true);
         const linked = await transaction.movieCategory.findUnique({ where: { movieId_categoryId: { movieId: movie.id, categoryId: category.id } } });
         if (!linked && await transaction.movieCategory.count({ where: { movieId: movie.id } }) >= 50) throw new VideoAnalysisError('TOO_MANY_CATEGORIES', true);
         await transaction.movieCategory.upsert({ where: { movieId_categoryId: { movieId: movie.id, categoryId: category.id } }, update: {}, create: { movieId: movie.id, categoryId: category.id } });

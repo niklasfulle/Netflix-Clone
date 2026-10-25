@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Die Videoanalyse verwendet ausschließlich vorhandene Kategorien, prüft auch größere Kataloge in Gruppen und verwirft unbekannte Modellantworten; weder neue Analysen noch das Bestätigen alter freier Vorschläge können Kategorien anlegen, während historische Diagnoseansichten erhalten bleiben
+
 - Ganze Videos werden wahlweise gründlich mit einem Zielabstand von fünf Sekunden und bis zu 720 Ausschnitten analysiert; das bisherige Standardprofil bleibt verfügbar, wird je Lauf gespeichert und beim Fortsetzen beibehalten, während markierte Stellen und Vergleichsläufe unverändert bleiben
 
 - Lokale und Live-Umgebungen unterstützen externe Bildmodelldienste mit konfigurierbarem Endpunkt, Modellnamen, API-Schlüssel, Healthcheck, Zeitlimits und JSON-Ausgabeformat; App und Worker teilen eine geschützte Hostkonfiguration und Modellwechsel erhalten getrennte Laufkennungen

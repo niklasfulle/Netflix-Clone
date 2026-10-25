@@ -29,7 +29,7 @@ test('connects to an authenticated external-style vision API through a real HTTP
     process.env.VIDEO_ANALYSIS_HEALTH_PATH = '/inference/v1/models';
     process.env.VIDEO_ANALYSIS_RESPONSE_FORMAT = 'json_schema';
     expect(await analysisModelAvailable()).toBe(true);
-    expect(await classifyVideoFrames([Buffer.from('neutral-frame')], [])).toMatchObject({ uncertain: false, tags: [{ name: 'Natur', nameEn: 'Nature' }] });
+    expect(await classifyVideoFrames([Buffer.from('neutral-frame')], [{ name: 'Natur', nameEn: 'Nature' }])).toMatchObject({ uncertain: false, tags: [{ name: 'Natur', nameEn: 'Nature' }] });
     expect(received).toHaveLength(2);
     expect(received[1]).toMatchObject({ path: '/inference/v1/chat/completions', authorized: true, body: { model: 'vision-test', response_format: { type: 'json_schema' } } });
   } finally {

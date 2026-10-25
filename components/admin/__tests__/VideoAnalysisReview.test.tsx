@@ -10,7 +10,8 @@ const data = {
   id: 'analysis', status: 'SUCCEEDED', processedCount: 6, sampleCount: 6, errorCode: null,
   jobRun: { id: 'job', status: 'SUCCEEDED', progress: 100 },
   suggestions: [
-    { id: 'new', name: 'Testbild', confidence: 0.9, evidence: [12.5], state: 'PENDING', categoryId: null, category: null },
+    { id: 'candidate', name: 'Testbild', confidence: 0.9, evidence: [12.5], state: 'PENDING', categoryId: 'nature', category: { name: 'Testbild' } },
+    { id: 'historical-new', name: 'Free category', confidence: 0.99, evidence: [15], state: 'PENDING', categoryId: null, category: null },
     { id: 'existing', name: 'Old name', confidence: 0.8, evidence: [31], state: 'ACCEPTED', categoryId: 'category', category: { name: 'Renamed category' } },
   ],
 };
@@ -20,10 +21,11 @@ beforeEach(() => {
   jest.mocked(useSWR).mockReturnValue({ data, mutate: refresh } as never);
   globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ changed: 1 }) });
 });
-test('distinguishes new and existing categories without loading the video automatically', () => {
+test('only shows existing categories and hides historical free suggestions', () => {
   const { container } = view();
-  expect(screen.getByText('New category suggestion')).toBeInTheDocument();
-  expect(screen.getByText('Existing category')).toBeInTheDocument();
+  expect(screen.queryByText('New category suggestion')).not.toBeInTheDocument();
+  expect(screen.queryByText('Free category')).not.toBeInTheDocument();
+  expect(screen.getAllByText('Existing category')).toHaveLength(2);
   expect(screen.getByText('Renamed category')).toBeInTheDocument();
   expect(container.querySelector('video')).toBeNull();
   expect(screen.getByRole('button', { name: 'Accept and assign categories' })).toBeDisabled();
@@ -34,7 +36,7 @@ test.each(['Accept and assign categories', 'Reject suggestions'])('submits only 
   fireEvent.click(screen.getByRole('button', { name: 'Select all suggestions' }));
   fireEvent.click(screen.getByRole('button', { name: button }));
   await waitFor(() => expect(onReviewed).toHaveBeenCalledTimes(1));
-  expect(globalThis.fetch).toHaveBeenCalledWith('/api/admin/video-analysis/analysis', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ ids: ['new'], action: button.startsWith('Accept') ? 'ACCEPT' : 'REJECT' }) }));
+  expect(globalThis.fetch).toHaveBeenCalledWith('/api/admin/video-analysis/analysis', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ ids: ['candidate'], action: button.startsWith('Accept') ? 'ACCEPT' : 'REJECT' }) }));
   expect(mutate).toHaveBeenCalledWith('/api/categories', undefined, expect.anything());
 });
 test('opens evidence at the selected time only after an explicit click', () => {

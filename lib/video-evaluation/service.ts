@@ -7,6 +7,7 @@ import { currentAnalysisProfileId } from '@/lib/video-analysis/runtime-profile';
 import { analysisModelAvailable, videoAnalysisEnabled } from '@/lib/video-analysis/model';
 import { exampleLabels } from '@/lib/video-examples/validation';
 import { MIN_CATEGORY_SCORE } from '@/lib/video-analysis/profile';
+import { prepareVocabulary } from '@/lib/video-analysis/vocabulary';
 import { MAX_EVALUATION_SAMPLES, summarizeEvaluation, type EvaluationSample } from './metrics';
 
 export async function submitVideoEvaluation(requestId: string, actorUserId: string) {
@@ -21,6 +22,7 @@ export async function submitVideoEvaluation(requestId: string, actorUserId: stri
       const eligible = examples.map(example => ({ ...example, labels: exampleLabels.parse(example.labels) })).filter(example => example.labels.some(label => label.verdict !== 'UNCERTAIN'));
       if (!eligible.length) throw new VideoAnalysisError('NO_REVIEWED_EXAMPLES', true);
       const vocabulary = await transaction.category.findMany({ select: { id: true, name: true, nameEn: true }, orderBy: { name: 'asc' } });
+      if (!prepareVocabulary(vocabulary).length) throw new VideoAnalysisError('NO_ANALYSIS_CATEGORIES', true);
       return transaction.videoEvaluation.upsert({ where: { requestId }, update: {}, create: {
         requestId, requestedById: actorUserId, model: currentAnalysisProfileId(), vocabulary, threshold: MIN_CATEGORY_SCORE,
         samples: { create: eligible.map(example => ({ exampleId: example.id, exampleVersion: example.version, movieId: example.movieId,

@@ -24,3 +24,7 @@ test('flags a contradictory absent judgment without changing it', () => {
   const results = diagnoseSample([{ ...label, verdict: 'ABSENT' }], { tags: [tag], uncertain: false }, trace, 0.65, [{ categoryId: 'nature', visibility: 'VISIBLE' }]);
   expect(results[0]).toMatchObject({ reason: 'JUDGMENT_CONFLICT', outcome: 'fp', verdict: 'ABSENT' });
 });
+test('reads catalog-only traces without requiring a discovery pass', () => {
+  const catalogTrace: ClassificationDiagnostics = { schemaVersion: 2, passes: [{ vocabulary: ['Natur'], result: { tags: [tag], uncertain: false } }], matchingVocabulary: ['Natur'], selectionLimit: 5 };
+  expect(diagnoseSample([label], empty, catalogTrace, 0.65)[0].reason).toBe('SELECTION');
+});
