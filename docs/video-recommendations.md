@@ -9,6 +9,10 @@ ends. The manual categorization player does not request recommendations.
 Thumbnail elements are mounted with eager loading while the recommendation panel
 is hidden. At completion, the existing panel and image elements are revealed.
 No recommendation request or new image elements are initiated by the ended event.
+The completion view uses up to 1600 pixels of content width, larger responsive
+cards, image badges and a two-row desktop grid that adapts to the available
+height. Short viewports can scroll; phones keep two columns. Styling changes do
+not replace the preloaded image elements.
 A slow or unavailable network can still prevent preparation from finishing;
 failure leaves a usable end screen and existing playlist controls.
 
