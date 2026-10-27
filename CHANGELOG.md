@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Kategorie-Zeitabschnitte überlagern sich in einer gemeinsamen Spur über die volle Breite der Player-Zeitleiste; ein stabiler Farbcode pro Kategorie, eine Legende und Hover-Hinweise mit Namen und Zeitbereichen unterscheiden auch überlappende Kategorien
+
 - Der Videoanalyse-Modus dient der manuellen Kategorisierung: zufällige Filme und Serien ohne Kategorien, getrennte Zuordnungen für ganze Videos und Zeitabschnitte sowie Speichern, Abschließen und Überspringen ohne Modellanbindung
 - Kategorie-Zeitabschnitte erscheinen als benannte, anklickbare Bereiche im Player; Zeitgrenzen, gleichzeitige Änderungen und Administratorrechte werden serverseitig geprüft, während der manuelle Modus keine Aufrufe oder Wiedergabefortschritte speichert
 

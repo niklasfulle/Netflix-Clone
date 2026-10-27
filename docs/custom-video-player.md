@@ -8,7 +8,13 @@ authentifizierten Video-Streaming-Routen und benötigt keinen externen Playerdie
 
 - Manuell zugeordnete Videokategorien werden bei den Steuerelementen angezeigt.
   Kategorie-Zeitabschnitte erscheinen mit Namen als Bereiche in zusätzlichen
-  Timeline-Spuren. Ein Klick springt zum Start; der aktuell zutreffende Bereich
+  gemeinsamen Timeline-Spur über die volle Breite der Wiedergabe-Zeitleiste.
+  Kategorien erhalten unterschiedliche Farben mit passender Legende;
+  überlappende Bereiche werden transparent übereinandergelegt.
+  Die Farbe folgt der stabilen Kategorie-ID und bleibt bei Umbenennungen und
+  in anderen Videos gleich. Hover-Hinweise zeigen alle Kategorien und Zeitbereiche
+  an der jeweiligen Position; Tastaturfokus zeigt dieselben Informationen.
+  Ein Klick springt zum Start; der aktuell zutreffende Bereich
   wird hervorgehoben. Das gilt auch beim Wechsel des aktiven Playlist-Titels.
   Im manuellen Kategorisierungsmodus speichert der Player keinen persönlichen
   Fortschritt und zählt keine Aufrufe.
