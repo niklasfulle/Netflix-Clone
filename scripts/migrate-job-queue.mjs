@@ -1,4 +1,6 @@
 import { PgBoss } from 'pg-boss';
+import { readFile } from 'node:fs/promises';
+import pg from 'pg';
 
 const connectionString = process.env.POSTGRESQL_URL;
 if (!connectionString) throw new Error('POSTGRESQL_URL is required for job queue migration');
@@ -14,9 +16,15 @@ const boss = new PgBoss({
 
 await boss.start();
 try {
+  // Retire withdrawn jobs without dropping their private historical data.
+  const retirement = new pg.Client({ connectionString });
+  await retirement.connect();
+  try {
+    await retirement.query(await readFile(new URL('../prisma/retire-video-jobs.sql', import.meta.url), 'utf8'));
+  } finally {
+    await retirement.end();
+  }
   const queueDefinitions = [
-    { name: 'video.examples.evaluate', deadLetter: 'video.examples.evaluate.dead', expireInSeconds: 6 * 60 * 60 },
-    { name: 'video.categories.analyze', deadLetter: 'video.categories.analyze.dead', expireInSeconds: 6 * 60 * 60 },
     {
       name: 'media.integrity.scan',
       deadLetter: 'media.integrity.scan.dead',

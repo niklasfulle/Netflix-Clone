@@ -5,9 +5,6 @@ x-app: &app
   build:
     context: .
     dockerfile: dockerfile
-  env_file:
-    - path: .env.video-analysis.local
-      required: false
   environment:
     POSTGRESQL_URL: postgresql://netflix:${LOCAL_DATABASE_PASSWORD:?Generate .env.docker.local first}@database:5432/netflix_local
     AUTH_SECRET: ${LOCAL_AUTH_SECRET:?Generate .env.docker.local first}
@@ -29,54 +26,12 @@ x-app: &app
     NEXT_PUBLIC_GENRE: Action,Comedy,Drama,Thriller,Animation,Documentary
     MOVIE_FOLDER: /movies
     SERIES_FOLDER: /series
-    VIDEO_ANALYSIS_ENABLED: 'true'
-    VIDEO_ANALYSIS_URL: ${LOCAL_VIDEO_ANALYSIS_URL:-http://video-model:8080}
-    VIDEO_ANALYSIS_MODEL_ID: ${LOCAL_VIDEO_ANALYSIS_MODEL_ID:-}
-    VIDEO_ANALYSIS_MODEL: ${LOCAL_VIDEO_ANALYSIS_MODEL:-video-category-model}
-    VIDEO_ANALYSIS_HEALTH_PATH: ${LOCAL_VIDEO_ANALYSIS_HEALTH_PATH:-/health}
   volumes:
     - movies:/movies
     - series:/series
     - logs:/netflix-clone/logs
 
 services:
-  video-model-download:
-    image: node:22-slim
-    profiles: [analysis]
-    command: [node, /setup/download-video-model.mjs]
-    volumes:
-      - video-models:/models
-      - ./scripts/download-video-model.mjs:/setup/download-video-model.mjs:ro
-    restart: 'no'
-
-  video-model:
-    image: ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:5ecd56612f9737eed738c0f07190f0122df8746c214c2bbb1783ba1bfcc01e49
-    profiles: [analysis]
-    user: '10001:10001'
-    command: [--model, /models/Qwen3VL-4B-Instruct-Q4_K_M.gguf, --mmproj, /models/mmproj-Qwen3VL-4B-Instruct-Q8_0.gguf, --alias, video-category-model, --host, 0.0.0.0, --port, '8080', --ctx-size, '8192', --cache-ram, '256', --parallel, '1', --n-gpu-layers, '99', --batch-size, '128', --ubatch-size, '128', --image-max-tokens, '1024', --flash-attn, 'on', --cache-type-k, q8_0, --cache-type-v, q8_0, --no-webui]
-    depends_on:
-      video-model-download:
-        condition: service_completed_successfully
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    volumes:
-      - video-models:/models:ro
-    shm_size: 1g
-    mem_limit: 6g
-    security_opt: [no-new-privileges:true]
-    cap_drop: [ALL]
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-    restart: unless-stopped
-
   database:
     image: postgres:17-alpine
     environment:
@@ -214,7 +169,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  video-models:
   database:
   movies:
   series:

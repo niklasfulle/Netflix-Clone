@@ -19,7 +19,6 @@ const statuses = [
 ] as const;
 
 const jobTypes = [
-  'video.categories.analyze',
   'media.integrity.scan',
   'backup.verification.request',
   'backup.retention.cleanup',
@@ -211,8 +210,9 @@ type JobCardProps = Readonly<{
 
 function JobCard({ job, pendingAction, onAction, locale, t }: JobCardProps) {
   const pending = pendingAction === job.id;
-  const cancellable = job.status === 'QUEUED' || job.status === 'RUNNING';
-  const retryable = job.status === 'FAILED' || job.status === 'DEAD_LETTER';
+  const supported = jobTypes.some(type => type === job.jobType) || job.jobType === 'backup.creation.request';
+  const cancellable = supported && (job.status === 'QUEUED' || job.status === 'RUNNING');
+  const retryable = supported && (job.status === 'FAILED' || job.status === 'DEAD_LETTER');
   return (
     <article className="min-w-0 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

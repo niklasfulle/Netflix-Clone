@@ -70,6 +70,8 @@ it("marks the active admin area and exposes all destinations", () => {
   expect(screen.getAllByRole("link", { name: "System Logs" }).length).toBeGreaterThan(0);
   expect(screen.getAllByRole("link", { name: "Audit Log" })[0]).toHaveAttribute("href", "/admin/audit");
   expect(screen.getAllByRole("link", { name: "Media Health" })[0]).toHaveAttribute("href", "/admin/media-health");
+  expect(screen.getAllByRole("link", { name: "Categories" })[0]).toHaveAttribute("href", "/admin/categories");
+  expect(screen.queryByRole("link", { name: "Video analysis" })).not.toBeInTheDocument();
   expect(screen.getAllByRole("group", { name: "Language" })).toHaveLength(2);
 });
 

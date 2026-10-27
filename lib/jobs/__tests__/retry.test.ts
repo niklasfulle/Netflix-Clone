@@ -49,6 +49,14 @@ function databaseWith(status: Parameters<typeof retryCandidate>[0]) {
 }
 
 describe('background job retry', () => {
+  it.each(['FAILED', 'QUEUED'] as const)('does not republish or accept a withdrawn job in %s state', async status => {
+    const { database, findUnique, updateMany } = databaseWith(status);
+    findUnique.mockResolvedValue({ ...retryCandidate(status), jobType: 'video.categories.analyze', payload: { analysisId: 'analysis-123', contentId: 'movie-123' }, targetType: 'content', targetId: 'movie-123' });
+    const publisher = { send: jest.fn() };
+    await expect(createJobRetryService({ database, publisher }).retry('job-run-123', admin)).rejects.toBeInstanceOf(JobRetryNotAllowedError);
+    expect(publisher.send).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+  });
   it('retries through the transactional queue database with fresh runtime ids and timestamps', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-10-23T12:00:00Z'));
     try {

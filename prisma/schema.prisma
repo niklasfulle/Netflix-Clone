@@ -439,6 +439,8 @@ model Category {
   suggestions    VideoCategorySuggestion[]
 }
 
+// Legacy storage only: the model-based analysis feature and its APIs were removed.
+// Keep these tables and relations to preserve existing private data and migration history.
 model VideoEvaluation {
   id            String                @id @default(cuid())
   requestId     String                @unique

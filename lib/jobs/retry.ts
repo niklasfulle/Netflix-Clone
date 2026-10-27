@@ -87,6 +87,20 @@ export function createJobRetryService({
           select: retrySelection,
         });
         if (!record) throw new JobRunNotFoundError();
+        let submission;
+        try {
+          submission = parseJobSubmission({
+            name: record.jobType,
+            version: record.contractVersion,
+            payload: record.payload,
+            actor: { userId: record.actorUserId, role: record.actorRole },
+            target: { type: record.targetType, id: record.targetId },
+            idempotencyKey: record.idempotencyKey,
+            correlationId: record.correlationId,
+          });
+        } catch {
+          throw new JobRetryNotAllowedError();
+        }
         if (['QUEUED', 'RUNNING', 'CANCEL_REQUESTED'].includes(record.status)) {
           return { ...record, duplicate: true };
         }
@@ -94,15 +108,6 @@ export function createJobRetryService({
           throw new JobRetryNotAllowedError();
         }
 
-        const submission = parseJobSubmission({
-          name: record.jobType,
-          version: record.contractVersion,
-          payload: record.payload,
-          actor: { userId: record.actorUserId, role: record.actorRole },
-          target: { type: record.targetType, id: record.targetId },
-          idempotencyKey: record.idempotencyKey,
-          correlationId: record.correlationId,
-        });
         const acceptedAt = now();
         const queueJobId = createQueueJobId();
         const envelope: QueuedJob = {

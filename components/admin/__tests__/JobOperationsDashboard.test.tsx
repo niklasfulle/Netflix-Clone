@@ -92,6 +92,14 @@ describe('job operations dashboard', () => {
     ));
   });
 
+  it('keeps withdrawn job history visible without offering another analysis', async () => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ ...responseBody, items: [{ ...responseBody.items[0], jobType: 'video.categories.analyze' }] }) });
+    renderDashboard();
+    expect(await screen.findByRole('heading', { name: 'video.categories.analyze' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry job job-run-123' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'video.categories.analyze' })).not.toBeInTheDocument();
+  });
+
   it('applies status filters and clears cursor history', async () => {
     renderDashboard();
     fireEvent.change(await screen.findByLabelText('Job status'), { target: { value: 'FAILED' } });

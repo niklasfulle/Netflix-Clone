@@ -3,6 +3,17 @@
 import { MAX_JOB_AGE_MS, parseQueuedJob, parseJobSubmission } from '@/lib/jobs/contracts';
 
 describe('background job contracts', () => {
+  it.each(['video.categories.analyze', 'video.examples.evaluate'])('rejects the withdrawn %s job contract', name => {
+    const submission = {
+      name, version: 1,
+      payload: name === 'video.categories.analyze' ? { analysisId: 'analysis-123', contentId: 'movie-123' } : { evaluationId: 'evaluation-123' },
+      actor: { userId: 'admin-user-123', role: 'ADMIN' },
+      target: name === 'video.categories.analyze' ? { type: 'content', id: 'movie-123' } : { type: 'video_evaluation', id: 'evaluation-123' },
+      idempotencyKey: 'withdrawn-request-123', correlationId: 'correlation-123',
+    };
+    expect(() => parseJobSubmission(submission)).toThrow();
+    expect(() => parseQueuedJob({ ...submission, jobRunId: 'job-run-123', acceptedAt: new Date().toISOString() })).toThrow();
+  });
   it('rejects a missing queue envelope before attempting execution', () => {
     expect(() => parseQueuedJob(undefined)).toThrow('Job envelope exceeds the allowed size');
   });

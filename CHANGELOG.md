@@ -8,29 +8,9 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
-- Die Videoanalyse verwendet ausschließlich vorhandene Kategorien, prüft auch größere Kataloge in Gruppen und verwirft unbekannte Modellantworten; weder neue Analysen noch das Bestätigen alter freier Vorschläge können Kategorien anlegen, während historische Diagnoseansichten erhalten bleiben
-
-- Ganze Videos werden wahlweise gründlich mit einem Zielabstand von fünf Sekunden und bis zu 720 Ausschnitten analysiert; das bisherige Standardprofil bleibt verfügbar, wird je Lauf gespeichert und beim Fortsetzen beibehalten, während markierte Stellen und Vergleichsläufe unverändert bleiben
-
-- Lokale und Live-Umgebungen unterstützen externe Bildmodelldienste mit konfigurierbarem Endpunkt, Modellnamen, API-Schlüssel, Healthcheck, Zeitlimits und JSON-Ausgabeformat; App und Worker teilen eine geschützte Hostkonfiguration und Modellwechsel erhalten getrennte Laufkennungen
-
-- Ein vorbereitetes Startskript lädt ein geprüftes 8B-Bildmodell für Apple-Silicon-Macs; die lokale Anwendung unterstützt einen konfigurierbaren Modelldienst und getrennte Modellkennungen für spätere Vergleiche
-
-- Die lokale Fehleransicht speichert tatsächlich analysierte Einzelbilder und getrennte Modellantworten, erklärt mögliche Ursachen von Abweichungen und erlaubt versionierte Sichtbarkeitsbewertungen sowie eine unverbindliche Vorschau der Konfidenzschwelle; Originalbewertungen und historische Ergebnisse bleiben erhalten
-
-- Ein lokaler Vergleichslauf prüft markierte Videostellen gegen gespeicherte Kategoriebewertungen, zeigt Fortschritt und Ergebnisse pro Kategorie und hält Bewertungen, Modellprofil und Konfidenzschwelle je Lauf fest; unsichere Angaben bleiben unbewertet und veränderte Quellen werden übersprungen
-
+- KI-Videoanalyse einschließlich Modellserver, externer Modellanbindung, automatischer Übersetzung, Analyseaufträgen, Vergleichsläufen und Beispielmarkierung vollständig aus der Anwendung entfernt; bestehende Medien, manuelle Kategorien, Zuordnungen und historische Daten bleiben erhalten
 - Der Import-/Export-Bereich für globale Kategorien bietet getrennte Karten, eine gestaltete Dateiauswahl mit Drag-and-drop und eine übersichtliche Vorschau mit Kennzahlen und zweisprachiger Tabelle für Desktop und Mobilgeräte
 - Die Kategorienverwaltung exportiert deutsche und englische Namen als JSON und importiert sie mit Vorschau, Bestätigung und begrenzter Dateigröße; vorhandene IDs und Zuordnungen bleiben erhalten, doppelte Namen werden abgelehnt
-- Die Abschnittsbewertung erklärt leere Suchergebnisse und fehlende Bewertungen; neue Kategorien lassen sich direkt zweisprachig anlegen und bewerten, sodass der Speicherablauf vollständig in der Ansicht möglich ist
-- Eine Bewertungsansicht markiert Videostellen mit Start- und Endzeit und speichert positive, negative und unsichere Kategoriebewertungen; Abschnitte lassen sich bearbeiten, löschen, wiederholt abspielen und ohne Mediendateien exportieren
-- Katalog-spezifische Modellvorgaben werden aus einer ignorierten lokalen Env-Datei geladen; lokale Daten und Sicherungen bleiben außerhalb von Git und Docker-Images
-- Ein auf den Videokatalog abgestimmtes Analyseprofil prüft mehr zeitlichen Kontext und größere Vorschaubilder; strengere Evidenzregeln, Mindestwerte und wiederholte Fundstellen begrenzen unbelegte neue Vorschläge, während vorhandene Treffer bei neuen Vorschlägen sichtbar bleiben
-- Der lokale Modellserver nutzt einen begrenzten RAM-Cache und mehr Bild- und Kontext-Token; veraltete Teilanalysen werden bei Profilwechsel nicht mit neuen Einstellungen vermischt
-- Kategorien und KI-Vorschläge erhalten deutsche und englische Namen unter einer gemeinsamen ID; Verwaltung, Auswahl und Inhaltsdetails berücksichtigen die gewählte Sprache, und neue Kategorien benötigen beide Namen
-- Die Videoanalyse entdeckt Kategorien jetzt zuerst ohne Vorgaben und gleicht vorhandene Kategorien anschließend separat ab; dadurch verdrängen bestehende Kategorien keine neuen Vorschläge mehr, und erneute Analysen verwenden eine neue Analyseversion
-- Eine lokale GPU-Videoanalyse sammelt Vorschläge für vorhandene und neue Kategorien; Administratoren prüfen Fundstellen mit Zeitstempeln und übernehmen oder verwerfen Vorschläge ausdrücklich, wobei neue Kategorien erst bei der Übernahme entstehen
-- Die Analyse nutzt ein lokales Qwen3-VL-Modell mit optionalem Docker-Compose-Profil für NVIDIA-GPUs; Fortschritt, Abbrechen, Wiederaufnahme und zwischengespeicherte Teilergebnisse sind in die Hintergrundjobs integriert
 - Eine eigene Kategorienverwaltung ermöglicht das Anlegen, Umbenennen und bestätigte Löschen frei definierter Kategorien; Filme und Serien können mehrere Kategorien erhalten, die beim Bearbeiten erhalten bleiben und in den Inhaltsdetails angezeigt werden
 
 ## 1.14.1

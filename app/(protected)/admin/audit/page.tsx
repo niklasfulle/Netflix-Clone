@@ -160,8 +160,6 @@ function targetHref(event: AuditEvent) {
     content: `/admin/movies/${id}/edit`,
     actor: '/admin/actors',
     category: '/admin/categories',
-    video_analysis: '/admin/video-analysis',
-    video_example: '/admin/video-analysis',
     user: '/admin/users',
     backup: '/admin/backups',
     media_scan: '/admin/system',

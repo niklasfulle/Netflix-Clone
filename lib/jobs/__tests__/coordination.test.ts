@@ -35,13 +35,6 @@ function durableRepository(): jest.Mocked<JobExecutionRepository> {
 }
 
 describe('background job Redis coordination', () => {
-  it('publishes thorough analysis results above the legacy 120-segment bound', async () => {
-    const set = jest.fn().mockResolvedValue({ status: 'ok', value: true, latencyMs: 0 });
-    const runtime = { key: () => 'coordination-fixture', set, get: jest.fn() } as unknown as Pick<RedisRuntime, 'key' | 'get' | 'set'>;
-    const coordination = createRedisJobCoordination(runtime);
-    await coordination.publish('analysis-job-123', { status: 'SUCCEEDED', result: { analysisId: 'analysis-id', sampleCount: 720, suggestionCount: 1, status: 'READY' }, updatedAt: new Date('2026-10-25T12:00:00Z') });
-    expect(set).toHaveBeenCalledWith('coordination-fixture', expect.objectContaining({ result: expect.objectContaining({ sampleCount: 720 }) }), expect.any(Object));
-  });
   it('does not publish a running snapshot for a job that has already succeeded', async () => {
     const durable = durableRepository();
     durable.claim.mockResolvedValue('SUCCEEDED');

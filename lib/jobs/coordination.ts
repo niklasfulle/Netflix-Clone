@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { MAX_ANALYSIS_SAMPLES } from '@/lib/video-analysis/sampling';
 
 import type { JobProgress, JobResult } from '@/lib/jobs/contracts';
 import type { JobExecutionRepository } from '@/lib/jobs/worker';
@@ -23,8 +22,6 @@ const coordinationSnapshot = z.object({
   progressMessage: z.string().trim().min(1).max(160).optional(),
   attemptCount: z.number().int().min(0).max(100).optional(),
   result: z.union([
-    z.object({ evaluationId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/), processedCount: z.number().int().min(0).max(500), skippedCount: z.number().int().min(0).max(500), status: z.literal('EVALUATED') }).strict(),
-    z.object({ analysisId: z.string().min(8).max(128), suggestionCount: z.number().int().min(0).max(40), sampleCount: z.number().int().min(1).max(MAX_ANALYSIS_SAMPLES), status: z.literal('READY') }).strict(),
     z.object({
       scanRunId: z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/),
       contentCount: z.number().int().nonnegative().max(1_000_000),

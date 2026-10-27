@@ -117,8 +117,6 @@ function acceptance(record: JobRunRecord, duplicate: boolean): JobAcceptance {
 }
 
 function deadLetterName(jobName: JobSubmission['name']): string {
-  if (jobName === JOB_NAMES.videoEvaluation) return JOB_NAMES.videoEvaluationDeadLetter;
-  if (jobName === JOB_NAMES.videoAnalysis) return JOB_NAMES.videoAnalysisDeadLetter;
   if (jobName === JOB_NAMES.backupVerification) {
     return JOB_NAMES.backupVerificationDeadLetter;
   }
@@ -142,11 +140,10 @@ export function jobQueueOptions({
   singletonKey: string;
   database: QueueSendOptions['db'];
 }): QueueSendOptions {
-  let expireInSeconds = jobName === JOB_NAMES.backupCreation ? 30 * 60 : 15 * 60;
-  if (jobName === JOB_NAMES.videoAnalysis || jobName === JOB_NAMES.videoEvaluation) expireInSeconds = 6 * 60 * 60;
+  const expireInSeconds = jobName === JOB_NAMES.backupCreation ? 30 * 60 : 15 * 60;
   return {
     id: queueJobId,
-    retryLimit: jobName === JOB_NAMES.videoAnalysis ? 1 : 3,
+    retryLimit: 3,
     retryDelay: 5,
     retryBackoff: true,
     retryDelayMax: 60,

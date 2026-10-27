@@ -37,7 +37,6 @@ const navigation: { label: TranslationKey; href: string; icon: typeof LayoutDash
   { label: "New Content", href: "/admin/movies/new", icon: PlusCircle },
   { label: "Actors", href: "/admin/actors", icon: UserRoundSearch },
   { label: "Categories", href: "/admin/categories", icon: Tags },
-  { label: "Video analysis", href: "/admin/video-analysis", icon: ScanSearch },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Analytics", href: "/admin/statistics", icon: BarChart3 },
   { label: "System", href: "/admin/system", icon: ServerCog },
