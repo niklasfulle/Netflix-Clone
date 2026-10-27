@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import { ArrowLeft, Check, ListVideo, LoaderCircle, Play, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import type { Ref, RefObject } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import useMovie from '@/hooks/movies/useMovie';
 import { usePlayback } from './usePlayback';
@@ -15,9 +15,13 @@ interface PlayerProps {
   playlistTitle?: string;
   startTime?: number;
   onBack: () => void;
+  mode?: 'watch' | 'categorize';
+  playbackRef?: Ref<PlayerHandle>;
+  onPositionChange?: (time: number, duration: number) => void;
 }
+export type PlayerHandle = { seek: (seconds: number) => void };
 
-export default function VideoPlayer({ items, playlistTitle, startTime, onBack }: Readonly<PlayerProps>) {
+export default function VideoPlayer({ items, playlistTitle, startTime, onBack, mode = 'watch', playbackRef, onPositionChange }: Readonly<PlayerProps>) {
   const { t } = useLanguage();
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState(items[0]?.id);
@@ -43,8 +47,9 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack }:
   if (!current) return null;
 
   return (
-    <div ref={rootRef} className="relative h-dvh w-full overflow-hidden bg-black text-white">
+    <div ref={rootRef} className={`relative w-full overflow-hidden bg-black text-white ${mode === 'categorize' ? 'rounded-2xl border border-zinc-800' : 'h-dvh'}`}>
       <PlaybackSession key={current.id} item={current} items={items} index={index} playlistTitle={playlistTitle}
+        mode={mode} playbackRef={playbackRef} onPositionChange={onPositionChange}
         rootRef={rootRef} startTime={startTime} queueOpen={queueOpen} setQueueOpen={setQueueOpen}
         autoplay={autoplay} setAutoplay={value => {
           setAutoplay(value); if (!value) setCountdown(null);
@@ -68,6 +73,9 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack }:
 }
 
 interface SessionProps {
+  mode: 'watch' | 'categorize';
+  playbackRef?: Ref<PlayerHandle>;
+  onPositionChange?: (time: number, duration: number) => void;
   item: PlayerItem;
   items: PlayerItem[];
   index: number;
@@ -85,17 +93,20 @@ interface SessionProps {
   onBack: () => void;
 }
 
-function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef, queueOpen, setQueueOpen,
+function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef, queueOpen, setQueueOpen, mode, playbackRef, onPositionChange,
   autoplay, setAutoplay, countdown, cancelCountdown, onEnded, choose, onBack }: Readonly<SessionProps>) {
   const { t } = useLanguage();
-  const { data: details, error: detailsError } = useMovie(item.watchTime === undefined ? item.id : undefined);
+  const { data: details, error: detailsError } = useMovie(mode === 'watch' ? item.id : undefined);
   let loadedTime: number | undefined;
   if (details) loadedTime = details.watchTime ?? 0;
   else if (detailsError) loadedTime = 0;
-  const resumeTime = startTime ?? item.watchTime ?? loadedTime;
+  const resumeTime = mode === 'categorize' ? 0 : startTime ?? item.watchTime ?? loadedTime;
   const regionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const p = usePlayback(item.id, videoRef, resumeTime);
+  const p = usePlayback(item.id, videoRef, resumeTime, mode === 'watch');
+  useImperativeHandle(playbackRef, () => ({ seek: p.seek }), [p.seek]);
+  useEffect(() => { onPositionChange?.(p.time, p.duration); }, [p.time, p.duration, onPositionChange]);
+  const displayItem = { ...item, categories: item.categories ?? details?.categories, categorySegments: item.categorySegments ?? details?.categorySegments };
   const [visible, setVisible] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [pipAvailable, setPipAvailable] = useState(false);
@@ -172,12 +183,21 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   });
 
   const showControls = visible || !p.playing || queueOpen || p.error || countdown !== null;
+  if (mode === 'categorize') return <section ref={regionRef} aria-label={t('Video player')} className="flex w-full flex-col">
+    <div className="relative aspect-video max-h-[65vh] w-full bg-black">
+      <PlaybackSurface item={item} autoPlay={false} p={p} videoRef={videoRef} onEnded={onEnded} cancelCountdown={cancelCountdown} toggleFullscreen={toggleFullscreen} />
+    </div>
+    <div className="border-t border-zinc-800 bg-zinc-950 p-3 sm:p-4">
+      {notice && <output className="mb-2 block text-sm text-amber-300">{notice}</output>}
+      <PlayerControls playback={p} categories={displayItem.categories} segments={displayItem.categorySegments} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
+    </div>
+  </section>;
   return (
     <section ref={regionRef} aria-label={t('Video player')}
       onPointerMove={wakeControls} onPointerDown={wakeControls} onFocusCapture={wakeControls}
       className={`relative h-full w-full outline-none ${showControls ? '' : 'cursor-none'}`}>
-      <PlaybackSurface item={item} p={p} videoRef={videoRef} onEnded={onEnded} cancelCountdown={cancelCountdown} toggleFullscreen={toggleFullscreen} />
-      <PlaybackChrome item={item} p={p} items={items} index={index} playlistTitle={playlistTitle} showControls={Boolean(showControls)}
+      <PlaybackSurface item={item} autoPlay={mode === 'watch'} p={p} videoRef={videoRef} onEnded={onEnded} cancelCountdown={cancelCountdown} toggleFullscreen={toggleFullscreen} />
+      <PlaybackChrome item={displayItem} p={p} items={items} index={index} playlistTitle={playlistTitle} showControls={Boolean(showControls)}
         headerRef={headerRef} controlsRef={controlsRef} onBack={onBack} queueOpen={queueOpen} setQueueOpen={setQueueOpen}
         notice={notice} countdown={countdown} previous={previous} next={next} fullscreen={fullscreen}
         toggleFullscreen={toggleFullscreen} pipAvailable={pipAvailable} togglePip={togglePip} />
@@ -212,7 +232,8 @@ function PlaylistQueue({ items, activeId, playlistTitle, autoplay, setAutoplay, 
   );
 }
 
-function PlaybackSurface({ item, p, videoRef, onEnded, cancelCountdown, toggleFullscreen }: Readonly<{
+function PlaybackSurface({ item, p, videoRef, onEnded, cancelCountdown, toggleFullscreen, autoPlay }: Readonly<{
+  autoPlay: boolean;
   item: PlayerItem;
   p: ReturnType<typeof usePlayback>;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -222,7 +243,7 @@ function PlaybackSurface({ item, p, videoRef, onEnded, cancelCountdown, toggleFu
 }>) {
   const { t } = useLanguage();
   return <>
-      <video id="videoElement" ref={videoRef} autoPlay muted={p.muted} playsInline preload="metadata" poster={item.thumbnailUrl}
+      <video id="videoElement" ref={videoRef} autoPlay={autoPlay} muted={p.muted} playsInline preload="metadata" poster={item.thumbnailUrl}
         aria-label={item.title} className="h-full w-full object-contain" {...p.events}
         onEnded={() => { p.events.onEnded(); onEnded(); }}>
         <source src={`/api/video/${encodeURIComponent(item.id)}`} type="video/mp4" onError={p.events.onError} />
@@ -266,7 +287,7 @@ function PlaybackChrome({ item, p, items, index, playlistTitle, showControls, he
       <div ref={controlsRef} inert={!showControls} className={`absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/85 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-20 transition-opacity sm:px-6 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
         {(notice || p.progressError) && <output className="mb-3 block text-sm text-amber-300">{notice || t('Progress could not be saved. Playback can continue.')}</output>}
         {p.ended && countdown === null && <output className="mb-3 block text-sm text-zinc-300">{t('Playback finished.')}</output>}
-        <PlayerControls playback={p} previous={previous} next={next} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
+        <PlayerControls playback={p} categories={item.categories} segments={item.categorySegments} previous={previous} next={next} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
         <p className="mt-2 hidden text-xs text-zinc-500 lg:block">{t('Space / K: play or pause · ← →: seek · M: mute · F: fullscreen · N / P: next or previous')}</p>
       </div>
   </>;

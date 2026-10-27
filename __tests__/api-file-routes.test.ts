@@ -214,7 +214,7 @@ describe('file and remaining API routes', () => {
     mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
     mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
     mockedDb.movie.findUnique.mockResolvedValue({
-      id: 'movie1', actors: [{ actor: { id: 'actor1', name: 'Actor' } }],
+      id: 'movie1', status: 'PUBLISHED', actors: [{ actor: { id: 'actor1', name: 'Actor' } }],
     });
     mockedDb.movieWatchTime.findFirst.mockResolvedValue({ time: 42 });
 

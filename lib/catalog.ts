@@ -23,6 +23,7 @@ export type CatalogCardDto = {
 
 export type CatalogItemDto = CatalogCardDto & {
   videoUrl?: string;
+  categorySegments?: import('@/lib/manual-categorization/types').CategorySegment[];
 };
 
 export const catalogThumbnailUrl = (movieId: string) =>

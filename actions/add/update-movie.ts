@@ -106,6 +106,7 @@ export const updateMovie = async (
       await transaction.movie.update({
         where: { id: movieId },
         data: {
+            categoryReviewVersion: { increment: 1 },
           title: movieName,
           description: movieDescripton,
           type: movieType,

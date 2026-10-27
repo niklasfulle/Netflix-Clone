@@ -43,6 +43,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       where: { id: movieId },
       include: {
         categories: { include: { category: true } },
+        categorySegments: { orderBy: { startSeconds: 'asc' }, select: { categoryId: true, startSeconds: true, endSeconds: true, category: { select: { id: true, name: true, nameEn: true } } } },
         actors: {
           include: {
             actor: true
@@ -55,6 +56,8 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       logBackendAction('api_movies_movieid_not_found', { userId: user.id, movieId }, 'error');
       return Response.json(null, { status: 404 }) 
     }
+
+    if (movie.status !== 'PUBLISHED' && user.role !== 'ADMIN') return Response.json(null, { status: 404 });
 
     // Collect all actor objects and IDs
     const actorObjs = movie.actors.map(ma => ({ id: ma.actor.id, name: ma.actor.name }));

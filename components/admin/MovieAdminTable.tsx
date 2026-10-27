@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, FilePenLine } from "lucide-react";
+import { Eye, FilePenLine, Tags } from "lucide-react";
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export type AdminMovie = {
   id: string;
@@ -25,6 +26,12 @@ const statusStyles = {
 };
 
 const statusLabels = { PUBLISHED: "Veröffentlicht", DRAFT: "Entwurf", ARCHIVED: "Archiviert" };
+
+function CategorizeLink({ id, title }: Readonly<{ id: string; title: string }>) {
+  const { t } = useLanguage();
+  const label = `${t('Categorize video')}: ${title}`;
+  return <Link href={`/admin/video-analysis?movieId=${encodeURIComponent(id)}`} aria-label={label} title={label} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white"><Tags className="h-4 w-4" /></Link>;
+}
 
 export default function MovieAdminTable({
   items,
@@ -117,6 +124,7 @@ export default function MovieAdminTable({
                     <Link href={`/watch/${item.id}`} aria-label={`${item.title} ansehen`} title={`${item.title} ansehen`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <Eye className="h-4 w-4" />
                     </Link>
+                      {item.status !== 'ARCHIVED' && <CategorizeLink id={item.id} title={item.title} />}
                     <Link href={`/admin/movies/${item.id}/edit`} aria-label={`${item.title} bearbeiten`} title={`${item.title} bearbeiten`} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-700 hover:text-white">
                       <FilePenLine className="h-4 w-4" />
                     </Link>

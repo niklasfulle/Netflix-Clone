@@ -3,6 +3,8 @@ export interface PlayerItem {
   title: string;
   thumbnailUrl?: string;
   watchTime?: number;
+  categories?: import('@/lib/manual-categorization/types').CategoryName[];
+  categorySegments?: import('@/lib/manual-categorization/types').CategorySegment[];
   captions?: ReadonlyArray<{ src: string; language: string; label: string; default?: boolean }>;
 }
 

@@ -5,6 +5,9 @@ import type { ReactNode } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { formatMediaTime } from './types';
 import type { usePlayback } from './usePlayback';
+import { CategoryTimeline } from './CategoryTimeline';
+import type { CategoryName, CategorySegment } from '@/lib/manual-categorization/types';
+import { categoryLabel } from '@/lib/category-label';
 
 export function PlayerButton({ label, children, onClick, disabled = false, pressed }: Readonly<{
   label: string; children: ReactNode; onClick: () => void; disabled?: boolean; pressed?: boolean;
@@ -21,12 +24,16 @@ interface Props {
   toggleFullscreen: () => void;
   pipAvailable: boolean;
   togglePip: () => void;
+  categories?: CategoryName[];
+  segments?: CategorySegment[];
 }
 
-export default function PlayerControls({ playback: p, previous, next, fullscreen, toggleFullscreen, pipAvailable, togglePip }: Readonly<Props>) {
-  const { t } = useLanguage();
+export default function PlayerControls({ playback: p, previous, next, fullscreen, toggleFullscreen, pipAvailable, togglePip, categories = [], segments = [] }: Readonly<Props>) {
+  const { t, locale } = useLanguage();
   return (
     <div className="space-y-2">
+      {categories.length > 0 && <div aria-label={t('Video categories')} className="flex max-h-16 flex-wrap gap-1 overflow-y-auto">{categories.map(category => <span key={category.id} className="rounded bg-white/10 px-2 py-1 text-xs text-zinc-200">{categoryLabel(category, locale)}</span>)}</div>}
+      <CategoryTimeline segments={segments} duration={p.duration} time={p.time} onSeek={second => { p.seek(second); p.commitProgress(); }} />
       <div className="relative flex h-7 items-center">
         <div aria-hidden="true" className="absolute inset-x-0 h-1 rounded-full bg-white/20">
           <div className="h-full rounded-full bg-white/35" style={{ width: `${p.duration ? Math.min(100, p.buffered / p.duration * 100) : 0}%` }} />

@@ -186,6 +186,16 @@ Die Kategorienverwaltung bietet JSON-Export und Import mit Vorschau und
 Bestätigung. Bestehende IDs und Inhaltszuordnungen bleiben beim Import erhalten;
 es werden keine Kategorien gelöscht.
 
+Unter **Administration → Videoanalyse** lassen sich zufällig ausgewählte Filme
+und Serien ohne Kategorien manuell bearbeiten. Videokategorien gelten für den
+ganzen Inhalt; Kategorie-Zeitabschnitte besitzen Start- und Endzeit und erscheinen
+als anklickbare Bereiche im Player. **Speichern und nächstes Video** schließt die
+Prüfung ab, auch wenn keine Kategorie passt. **Überspringen** lädt einen anderen
+offenen Inhalt. Vorhandene Zuordnungen lassen sich über das Kategorie-Symbol in
+der Inhaltsverwaltung wieder öffnen. Der manuelle Player verändert weder
+Aufrufzahlen noch persönlichen Wiedergabefortschritt.
+Details: [Manuelle Kategorisierung](docs/manual-categorization.md).
+
 Die KI-gestützte Videoanalyse einschließlich Modellserver, externer
 Modellanbindung, automatischer Übersetzung, Vergleichsläufen und der
 Beispielmarkierung wurde entfernt. Es werden keine Bilder mehr für eine

@@ -68,6 +68,18 @@ _Avoid_: Copied favorites, manually maintained favorites playlist
 
 ## Content catalog
 
+**Video Category Assignment**:
+A category manually assigned to an entire Content item, independently of any time range.
+_Avoid_: Timeline category, model prediction
+
+**Category Segment**:
+A category manually assigned to a start-inclusive, end-exclusive time range within one Content item. The same category can have multiple ranges and can also apply to the whole item.
+_Avoid_: Training example, automatically detected scene
+
+**Categorization Review**:
+An administrator's explicit completion of manual category review for a Content item, including a decision that no category applies.
+_Avoid_: Model evaluation, automatic learning
+
 **Actor Source**:
 An external page manually linked to an Actor as a reference for checking that person's film and series credits.
 _Avoid_: Imported filmography, verified credit, automatic content source

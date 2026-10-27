@@ -69,6 +69,32 @@ it('does not render an unusable player for an empty queue', () => {
   expect(container).toBeEmptyDOMElement();
 });
 
+it('shows interval categories and seeks to them during regular playback', () => {
+  const category = { id: 'forest', name: 'Wald', nameEn: 'Forest' };
+  const { container } = mount({ items: [{ ...items[0], categories: [category], categorySegments: [{ categoryId: 'forest', category, startSeconds: 10, endSeconds: 20 }] }], startTime: 0 });
+  const video = ready(container);
+  const segment = screen.getByRole('button', { name: 'Forest · 00:00:10.000 – 00:00:20.000' });
+  fireEvent.click(segment);
+  expect(video.currentTime).toBe(10);
+  expect(segment).toHaveAttribute('aria-current', 'true');
+  fireEvent.change(screen.getByRole('slider', { name: 'Seek' }), { target: { value: '20' } });
+  expect(segment).not.toHaveAttribute('aria-current');
+});
+
+it('does not record views or watch progress while manually categorizing', async () => {
+  const position = jest.fn();
+  const { container, unmount } = mount({ mode: 'categorize', onPositionChange: position });
+  const video = ready(container);
+  expect(video.autoplay).toBe(false);
+  video.currentTime = 35;
+  fireEvent.timeUpdate(video); fireEvent.pause(video);
+  expect(position).toHaveBeenLastCalledWith(35, 120);
+  unmount();
+  await act(async () => undefined);
+  expect(addMovieView).not.toHaveBeenCalled();
+  expect(updateWatchTime).not.toHaveBeenCalled();
+});
+
 it('lets a viewer seek, skip and change volume using the custom controls', async () => {
   const { container } = mount({ startTime: 0 });
   const video = ready(container);

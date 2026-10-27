@@ -10,7 +10,7 @@ import { updateWatchTime } from '@/actions/watch/update-watch-time';
 import { getWatchProgressSaveSecond } from '@/lib/watch-progress-save';
 
 // Each mounted playback session owns exactly one video and its progress writes.
-export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElement | null>, resumeTime?: number) {
+export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElement | null>, resumeTime?: number, recordProgress = true) {
   const { mutate } = useSWRConfig();
   const restored = useRef(false);
   const lastSaved = useRef(-1);
@@ -30,7 +30,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
   const [progressError, setProgressError] = useState(false);
 
   const saveProgress = useCallback((video: HTMLVideoElement | null, force = true) => {
-    if (!video || video.readyState < 1 || !Number.isFinite(video.currentTime)) return;
+    if (!recordProgress || !video || video.readyState < 1 || !Number.isFinite(video.currentTime)) return;
     const second = force ? Math.round(video.currentTime) : getWatchProgressSaveSecond(video.currentTime, lastSaved.current);
     if (second === null || second === lastSaved.current) return;
     lastSaved.current = second;
@@ -45,7 +45,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
           current => current ? { ...current, watchTime: second } : current, { revalidate: false });
       }
     }).catch(() => { reportFailure(true); lastSaved.current = -1; });
-  }, [movieId, mutate]);
+  }, [movieId, mutate, recordProgress]);
 
   const restore = useCallback(() => {
     const video = videoRef.current;
@@ -74,8 +74,10 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
     setVolume(video.volume);
     setMuted(video.muted);
     setRate(video.playbackRate);
-    void Promise.resolve(addMovieView({ movieId })).catch(() => undefined);
-    void Promise.resolve(addToWatchlist({ movieId })).catch(() => undefined);
+    if (recordProgress) {
+      void Promise.resolve(addMovieView({ movieId })).catch(() => undefined);
+      void Promise.resolve(addToWatchlist({ movieId })).catch(() => undefined);
+    }
     const hidden = () => { if (document.visibilityState === 'hidden') saveProgress(video); };
     const leaving = () => saveProgress(video);
     document.addEventListener('visibilitychange', hidden);
@@ -85,7 +87,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
       document.removeEventListener('visibilitychange', hidden);
       window.removeEventListener('pagehide', leaving);
     };
-  }, [movieId, saveProgress, videoRef]);
+  }, [movieId, saveProgress, videoRef, recordProgress]);
 
   const play = async () => {
     const video = videoRef.current;

@@ -8,6 +8,9 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Der Videoanalyse-Modus dient der manuellen Kategorisierung: zufällige Filme und Serien ohne Kategorien, getrennte Zuordnungen für ganze Videos und Zeitabschnitte sowie Speichern, Abschließen und Überspringen ohne Modellanbindung
+- Kategorie-Zeitabschnitte erscheinen als benannte, anklickbare Bereiche im Player; Zeitgrenzen, gleichzeitige Änderungen und Administratorrechte werden serverseitig geprüft, während der manuelle Modus keine Aufrufe oder Wiedergabefortschritte speichert
+
 - KI-Videoanalyse einschließlich Modellserver, externer Modellanbindung, automatischer Übersetzung, Analyseaufträgen, Vergleichsläufen und Beispielmarkierung vollständig aus der Anwendung entfernt; bestehende Medien, manuelle Kategorien, Zuordnungen und historische Daten bleiben erhalten
 - Der Import-/Export-Bereich für globale Kategorien bietet getrennte Karten, eine gestaltete Dateiauswahl mit Drag-and-drop und eine übersichtliche Vorschau mit Kennzahlen und zweisprachiger Tabelle für Desktop und Mobilgeräte
 - Die Kategorienverwaltung exportiert deutsche und englische Namen als JSON und importiert sie mit Vorschau, Bestätigung und begrenzter Dateigröße; vorhandene IDs und Zuordnungen bleiben erhalten, doppelte Namen werden abgelehnt

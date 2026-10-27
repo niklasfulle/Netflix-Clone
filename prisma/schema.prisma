@@ -409,6 +409,9 @@ model Movie {
   updatedAt       DateTime         @default(now()) @updatedAt
   actors          MovieActor[]
   categories      MovieCategory[]
+  categorySegments MovieCategorySegment[]
+  categoryReviewVersion Int @default(0)
+  categoryReviewedAt DateTime?
   videoAnalyses   VideoAnalysis[]
   videoExamples   VideoExample[]
   watchlists      Watchlist[]
@@ -417,6 +420,7 @@ model Movie {
   views           MovieView[]
 
   @@index([type, status])
+  @@index([status, categoryReviewedAt])
   @@index([createdAt])
 }
 
@@ -436,6 +440,7 @@ model Category {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
   movies         MovieCategory[]
+  segments       MovieCategorySegment[]
   suggestions    VideoCategorySuggestion[]
 }
 
@@ -558,6 +563,21 @@ model VideoCategorySuggestion {
   category       Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@unique([analysisId, normalizedName])
+  @@index([categoryId])
+}
+
+model MovieCategorySegment {
+  id           String   @id @default(cuid())
+  movieId      String
+  categoryId   String
+  startSeconds Float
+  endSeconds   Float
+  createdAt    DateTime @default(now())
+  movie        Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([movieId, categoryId, startSeconds, endSeconds], map: "MovieCategorySegment_range_key")
+  @@index([movieId, startSeconds])
   @@index([categoryId])
 }
 

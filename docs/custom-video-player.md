@@ -6,6 +6,13 @@ authentifizierten Video-Streaming-Routen und benötigt keinen externen Playerdie
 
 ## Bedienung
 
+- Manuell zugeordnete Videokategorien werden bei den Steuerelementen angezeigt.
+  Kategorie-Zeitabschnitte erscheinen mit Namen als Bereiche in zusätzlichen
+  Timeline-Spuren. Ein Klick springt zum Start; der aktuell zutreffende Bereich
+  wird hervorgehoben. Das gilt auch beim Wechsel des aktiven Playlist-Titels.
+  Im manuellen Kategorisierungsmodus speichert der Player keinen persönlichen
+  Fortschritt und zählt keine Aufrufe.
+
 - Titel und Playlistname stehen über dem Video. Bei Playlists wird zusätzlich
   die Position in der Warteschlange angezeigt.
 - Play/Pause, Zeitleiste mit Zeitangaben und Pufferanzeige, Zehn-Sekunden-Sprünge,
