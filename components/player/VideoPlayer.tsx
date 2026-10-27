@@ -9,6 +9,16 @@ import useMovie from '@/hooks/movies/useMovie';
 import { usePlayback } from './usePlayback';
 import PlayerControls, { PlayerButton } from './PlayerControls';
 import type { PlayerItem } from './types';
+import { categoryLabel } from '@/lib/category-label';
+import type { CategoryName } from '@/lib/manual-categorization/types';
+
+function VideoCategoryBadges({ categories = [] }: Readonly<{ categories?: CategoryName[] }>) {
+  const { t, locale } = useLanguage();
+  if (!categories.length) return null;
+  return <div aria-label={t('Video categories')} className="flex max-h-20 flex-wrap justify-end gap-1 overflow-y-auto">
+    {categories.map(category => <span key={category.id} className="max-w-full break-words rounded-md border border-white/10 bg-black/65 px-2 py-1 text-xs font-medium text-zinc-100 backdrop-blur">{categoryLabel(category, locale)}</span>)}
+  </div>;
+}
 
 interface PlayerProps {
   items: PlayerItem[];
@@ -186,10 +196,11 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   if (mode === 'categorize') return <section ref={regionRef} aria-label={t('Video player')} className="flex w-full flex-col">
     <div className="relative aspect-video max-h-[65vh] w-full bg-black">
       <PlaybackSurface item={item} autoPlay={false} p={p} videoRef={videoRef} onEnded={onEnded} cancelCountdown={cancelCountdown} toggleFullscreen={toggleFullscreen} />
+      <div className="absolute right-3 top-3 z-20 max-w-[50%]"><VideoCategoryBadges categories={displayItem.categories} /></div>
     </div>
     <div className="border-t border-zinc-800 bg-zinc-950 p-3 sm:p-4">
       {notice && <output className="mb-2 block text-sm text-amber-300">{notice}</output>}
-      <PlayerControls playback={p} categories={displayItem.categories} segments={displayItem.categorySegments} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
+      <PlayerControls playback={p} showCategoryLegend segments={displayItem.categorySegments} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
     </div>
   </section>;
   return (
@@ -282,12 +293,15 @@ function PlaybackChrome({ item, p, items, index, playlistTitle, showControls, he
           <p className="mb-1 truncate text-xs font-medium uppercase tracking-widest text-zinc-400">{playlistTitle || t('Now playing')}{items.length > 1 ? ` · ${index + 1} / ${items.length}` : ''}</p>
           <h1 className="line-clamp-2 text-base font-semibold leading-snug sm:text-2xl" title={item.title}>{item.title}</h1>
         </div>
-        {playlistTitle && <PlayerButton label={t('Playlist')} onClick={() => setQueueOpen(!queueOpen)} pressed={queueOpen}><ListVideo /></PlayerButton>}
+        {(playlistTitle || item.categories?.length) ? <div className="ml-auto flex max-w-[45%] flex-col items-end gap-2">
+          <VideoCategoryBadges categories={item.categories} />
+          {playlistTitle && <PlayerButton label={t('Playlist')} onClick={() => setQueueOpen(!queueOpen)} pressed={queueOpen}><ListVideo /></PlayerButton>}
+        </div> : null}
       </header>
       <div ref={controlsRef} inert={!showControls} className={`absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/85 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-20 transition-opacity sm:px-6 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
         {(notice || p.progressError) && <output className="mb-3 block text-sm text-amber-300">{notice || t('Progress could not be saved. Playback can continue.')}</output>}
         {p.ended && countdown === null && <output className="mb-3 block text-sm text-zinc-300">{t('Playback finished.')}</output>}
-        <PlayerControls playback={p} categories={item.categories} segments={item.categorySegments} previous={previous} next={next} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
+        <PlayerControls playback={p} segments={item.categorySegments} previous={previous} next={next} fullscreen={fullscreen} toggleFullscreen={() => { void toggleFullscreen(); }} pipAvailable={pipAvailable} togglePip={() => { void togglePip(); }} />
         <p className="mt-2 hidden text-xs text-zinc-500 lg:block">{t('Space / K: play or pause · ← →: seek · M: mute · F: fullscreen · N / P: next or previous')}</p>
       </div>
   </>;

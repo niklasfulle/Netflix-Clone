@@ -16,8 +16,8 @@ it('overlays all intervals in the same full-width track with proportional time p
   const track = screen.getByRole('group', { name: 'Timeline categories' });
   const ranges = within(track).getAllByRole('button');
   expect(ranges).toHaveLength(2);
-  expect(ranges[0].parentElement).toBe(track);
-  expect(ranges[1].parentElement).toBe(track);
+  expect(ranges[0].parentElement).toBe(ranges[1].parentElement);
+  expect(track).toContainElement(ranges[0].parentElement);
   expect(ranges[0]).toHaveStyle({ left: '10%', width: '30%' });
   expect(ranges[1]).toHaveStyle({ left: '20%', width: '30%' });
   expect(ranges[0].style.backgroundColor).not.toBe(ranges[1].style.backgroundColor);
@@ -33,7 +33,7 @@ it('keeps category colors across ordering, renamed labels and a different video 
   expect(categoryTimelineColor('forest')).not.toBe(categoryTimelineColor('city'));
 });
 
-it('shows all overlapping categories and their ranges on hover and hides them when leaving', () => {
+it('shows overlapping category names without timestamps on hover and hides them when leaving', () => {
   render(view());
   const track = screen.getByRole('group', { name: 'Timeline categories' });
   jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({ left: 0, width: 100 } as DOMRect);
@@ -41,7 +41,7 @@ it('shows all overlapping categories and their ranges on hover and hides them wh
   const tooltip = screen.getByRole('tooltip');
   expect(within(tooltip).getByText('Forest')).toBeInTheDocument();
   expect(within(tooltip).getByText('City')).toBeInTheDocument();
-  expect(tooltip).toHaveTextContent('00:00:10.000 – 00:00:40.000');
+  expect(tooltip).not.toHaveTextContent('00:00:10.000');
   fireEvent.mouseMove(track, { clientX: 50 });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   fireEvent.mouseMove(track, { clientX: 25 });

@@ -69,11 +69,29 @@ it('does not render an unusable player for an empty queue', () => {
   expect(container).toBeEmptyDOMElement();
 });
 
+it('does not offer an ineffective volume slider when the browser ignores media volume changes', () => {
+  const original = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
+  Object.defineProperty(HTMLMediaElement.prototype, 'volume', { configurable: true, get: () => 1, set: () => undefined });
+  try {
+    mount();
+    expect(screen.queryByRole('slider', { name: 'Volume' })).not.toBeInTheDocument();
+    expect(screen.getByText('Use device volume buttons')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
+  } finally {
+    if (original) Object.defineProperty(HTMLMediaElement.prototype, 'volume', original);
+  }
+});
+
 it('shows interval categories and seeks to them during regular playback', () => {
   const category = { id: 'forest', name: 'Wald', nameEn: 'Forest' };
   const { container } = mount({ items: [{ ...items[0], categories: [category], categorySegments: [{ categoryId: 'forest', category, startSeconds: 10, endSeconds: 20 }] }], startTime: 0 });
   const video = ready(container);
   const segment = screen.getByRole('button', { name: 'Forest · 00:00:10.000 – 00:00:20.000' });
+  const timeline = screen.getByRole('region', { name: 'Timeline categories' });
+  expect(within(timeline).getByRole('slider', { name: 'Seek' })).toBeInTheDocument();
+  expect(within(timeline).queryByRole('list')).not.toBeInTheDocument();
+  const badges = screen.getByLabelText('Video categories');
+  expect(badges.closest('header')).not.toBeNull();
   fireEvent.click(segment);
   expect(video.currentTime).toBe(10);
   expect(segment).toHaveAttribute('aria-current', 'true');

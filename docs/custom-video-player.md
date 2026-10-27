@@ -6,14 +6,17 @@ authentifizierten Video-Streaming-Routen und benötigt keinen externen Playerdie
 
 ## Bedienung
 
-- Manuell zugeordnete Videokategorien werden bei den Steuerelementen angezeigt.
+- Manuell zugeordnete Videokategorien werden oben rechts im Player angezeigt.
   Kategorie-Zeitabschnitte erscheinen mit Namen als Bereiche in zusätzlichen
   gemeinsamen Timeline-Spur über die volle Breite der Wiedergabe-Zeitleiste.
   Kategorien erhalten unterschiedliche Farben mit passender Legende;
   überlappende Bereiche werden transparent übereinandergelegt.
   Die Farbe folgt der stabilen Kategorie-ID und bleibt bei Umbenennungen und
-  in anderen Videos gleich. Hover-Hinweise zeigen alle Kategorien und Zeitbereiche
+  in anderen Videos gleich. Hover-Hinweise zeigen die Namen aller Kategorien
   an der jeweiligen Position; Tastaturfokus zeigt dieselben Informationen.
+  Im normalen Player liegen die farbigen Bereiche direkt im Fortschrittsregler;
+  eine zusätzliche Legende entfällt. Im manuellen Modus bleibt die Legende zur
+  Orientierung beim Bearbeiten sichtbar.
   Ein Klick springt zum Start; der aktuell zutreffende Bereich
   wird hervorgehoben. Das gilt auch beim Wechsel des aktiven Playlist-Titels.
   Im manuellen Kategorisierungsmodus speichert der Player keinen persönlichen
@@ -50,6 +53,13 @@ Auswahllisten werden nicht von Player-Tastenkürzeln überschrieben.
 | Escape | Playlist-Seitenleiste schließen |
 
 ## Gespeicherte Einstellungen und Fortschritt
+
+Die Lautstärkeregelung wird anhand der tatsächlich verfügbaren Browserfunktion
+angezeigt und auch auf unterstützten Mobilbrowsern angeboten. iPhone Safari
+ignoriert Zuweisungen an die Medienlautstärke: Dort bleibt Stumm/Ton verfügbar,
+während ein Hinweis auf die Gerätetasten beziehungsweise das Kontrollzentrum
+die Systemlautstärke erklärt. Es wird kein wirkungsloser Prozentregler angezeigt.
+Siehe [Apples Hinweise zu iOS](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/Using_HTML5_Audio_Video/Device-SpecificConsiderations/Device-SpecificConsiderations.html).
 
 Lautstärke, Stummschaltung, Geschwindigkeit und Playlist-Autoplay werden lokal
 im Browser gespeichert. Ohne verfügbaren Browserspeicher funktioniert die

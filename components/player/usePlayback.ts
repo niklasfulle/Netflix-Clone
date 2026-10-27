@@ -21,6 +21,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [volumeControlSupported, setVolumeControlSupported] = useState(true);
   const [muted, setMuted] = useState(false);
   const [rate, setRate] = useState(1);
   const [waiting, setWaiting] = useState(true);
@@ -63,6 +64,10 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    // iOS Safari leaves media volume at 1 even after a successful assignment.
+    const volumeProbe = document.createElement('video');
+    try { volumeProbe.volume = 0.5; setVolumeControlSupported(Math.abs(volumeProbe.volume - 0.5) < 0.01); }
+    catch { setVolumeControlSupported(false); }
     try {
       const savedVolume = localStorage.getItem('videoVolume');
       const savedMuted = localStorage.getItem('videoMuted');
@@ -108,7 +113,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
     setEnded(false);
   };
   const changeVolume = (value: number) => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !volumeControlSupported) return;
     videoRef.current.volume = Math.min(1, Math.max(0, value));
     videoRef.current.muted = value === 0;
   };
@@ -167,6 +172,6 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
       try { localStorage.setItem('videoPlaybackRate', String(videoRef.current.playbackRate)); } catch { /* Optional preference. */ }
     },
   };
-  return { playing, time, duration, buffered, volume, muted, rate, waiting, ready, ended, error, progressError,
+  return { playing, time, duration, buffered, volume, volumeControlSupported, muted, rate, waiting, ready, ended, error, progressError,
     togglePlay, play, seek, changeVolume, toggleMute, changeRate, retry, commitProgress: () => saveProgress(videoRef.current), events };
 }

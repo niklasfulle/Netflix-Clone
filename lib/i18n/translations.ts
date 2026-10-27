@@ -4,6 +4,8 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'Use device volume buttons': 'Lautstärke über Gerätetasten',
+  'Use device volume buttons or Control Center.': 'Nutze die Lautstärketasten deines Geräts oder das Kontrollzentrum.',
   'A title can have at most 50 categories.': 'Ein Inhalt kann höchstens 50 Kategorien erhalten.',
   "Categorize videos manually. Assign categories to the whole video or to specific time intervals.": "Erfasse Kategorien von Hand: für das ganze Video oder für einzelne Zeitabschnitte.",
   "Categories changed elsewhere. Reload this video before saving.": "Die Kategorien wurden zwischenzeitlich geändert. Lade das Video vor dem Speichern neu.",
