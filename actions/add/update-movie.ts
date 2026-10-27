@@ -159,7 +159,7 @@ export const updateMovie = async (
         'videoUrl',
         'thumbnailUrl',
         'actors',
-        ...(movieCategories !== undefined ? ['categories'] : []),
+        ...(movieCategories ? ['categories'] : []),
       ],
     },
   });

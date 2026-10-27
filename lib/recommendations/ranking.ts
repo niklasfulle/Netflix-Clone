@@ -55,13 +55,18 @@ export function rankRecommendations<T extends RecommendationCandidate>(
 
   // Prefer two titles with the very same source actor where that pair exists.
   // If only individual matches exist, use the available shared-actor titles.
-  const pairs = [...sourceActors].sort().map(actorId => scored.filter(entry => entry.actors.has(actorId)).sort(compare(priority)).slice(0, 2)).filter(pair => pair.length === 2);
+  const pairs = [...sourceActors].sort((a, b) => a.localeCompare(b)).map(actorId => scored.filter(entry => entry.actors.has(actorId)).sort(compare(priority)).slice(0, 2)).filter(pair => pair.length === 2);
   pairs.sort((a, b) => priority(b[0]) + priority(b[1]) - priority(a[0]) - priority(a[1]) || compare(priority)(a[0], b[0]) || compare(priority)(a[1], b[1]));
   const preferred = pairs[0] ?? scored.filter(entry => entry.actorScore > 0).sort(compare(priority)).slice(0, 2);
   const selected = new Set(preferred.map(entry => entry.item.id));
   const remaining = scored.filter(entry => !selected.has(entry.item.id)).sort(compare(regular));
   return [
     ...preferred.map(entry => ({ item: entry.item, reason: 'same-actor' as const })),
-    ...remaining.map(entry => ({ item: entry.item, reason: (entry.categoryScore > 0 ? 'similar-categories' : entry.actorScore > 0 ? 'same-actor' : 'more-to-watch') as RecommendationReason })),
+    ...remaining.map(entry => {
+      let reason: RecommendationReason = 'more-to-watch';
+      if (entry.categoryScore > 0) reason = 'similar-categories';
+      else if (entry.actorScore > 0) reason = 'same-actor';
+      return { item: entry.item, reason };
+    }),
   ].slice(0, RECOMMENDATION_COUNT);
 }

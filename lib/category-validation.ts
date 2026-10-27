@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const categoryName = z.string()
-  .transform((name) => name.normalize('NFKC').trim().replace(/\s+/g, ' '))
+  .transform((name) => name.normalize('NFKC').trim().replaceAll(/\s+/g, ' '))
   .pipe(z.string().min(1).max(80));
 
 export const CategoryCreateSchema = z.object({ name: categoryName, nameEn: categoryName }).strict();

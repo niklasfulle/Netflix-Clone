@@ -51,7 +51,7 @@ export async function saveCategorization(value: CategorizationInput) {
     let duration: number | null;
     try { duration = (await createFfprobe()(path)).durationSeconds; }
     catch { throw new CategorizationError('VIDEO_UNAVAILABLE'); }
-    if (!duration || input.segments.some(segment => segment.endSeconds > duration!)) throw new CategorizationError('INVALID_RANGE');
+    if (duration === null || input.segments.some(segment => segment.endSeconds > duration)) throw new CategorizationError('INVALID_RANGE');
   }
   try {
     await db.$transaction(async transaction => {

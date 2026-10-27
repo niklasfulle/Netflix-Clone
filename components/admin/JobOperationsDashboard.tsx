@@ -18,7 +18,7 @@ const statuses = [
   'DEAD_LETTER',
 ] as const;
 
-const jobTypes = [
+const jobTypes: string[] = [
   'media.integrity.scan',
   'backup.verification.request',
   'backup.retention.cleanup',
@@ -210,7 +210,7 @@ type JobCardProps = Readonly<{
 
 function JobCard({ job, pendingAction, onAction, locale, t }: JobCardProps) {
   const pending = pendingAction === job.id;
-  const supported = jobTypes.some(type => type === job.jobType) || job.jobType === 'backup.creation.request';
+  const supported = jobTypes.includes(job.jobType) || job.jobType === 'backup.creation.request';
   const cancellable = supported && (job.status === 'QUEUED' || job.status === 'RUNNING');
   const retryable = supported && (job.status === 'FAILED' || job.status === 'DEAD_LETTER');
   return (

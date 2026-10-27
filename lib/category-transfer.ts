@@ -15,7 +15,7 @@ export const CategoryImportSchema = z.object({
 export type CategoryImportDocument = z.infer<typeof CategoryImportSchema>;
 
 export function categoryImportPreview(document: CategoryImportDocument, existing: Pick<CategorySummary, 'name' | 'nameEn'>[]) {
-  const current = new Map(existing.map(category => [category.name.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase(), category]));
+  const current = new Map(existing.map(category => [category.name.normalize('NFKC').trim().replaceAll(/\s+/g, ' ').toLowerCase(), category]));
   const counts = { created: 0, updated: 0, unchanged: 0, total: document.categories.length };
   for (const category of document.categories) {
     const old = current.get(category.name.toLowerCase());

@@ -247,12 +247,14 @@ function PlaybackSurface({ item, p, videoRef, onEnded, cancelCountdown, toggleFu
   toggleFullscreen: () => Promise<void>;
 }>) {
   const { t } = useLanguage();
+  const primaryCaption = item.captions?.[0];
   return <>
       <video id="videoElement" ref={videoRef} autoPlay={autoPlay} muted={p.muted} playsInline preload="metadata" poster={item.thumbnailUrl}
         aria-label={item.title} className="h-full w-full object-contain" {...p.events}
         onEnded={() => { p.events.onEnded(); onEnded(); }}>
         <source src={`/api/video/${encodeURIComponent(item.id)}`} type="video/mp4" onError={p.events.onError} />
-        {item.captions?.map(track => <track key={track.src} kind="captions" src={track.src} srcLang={track.language} label={track.label} default={track.default} />)}
+        <track kind="captions" src={primaryCaption?.src} srcLang={primaryCaption?.language} label={primaryCaption?.label} default={primaryCaption?.default} />
+        {item.captions?.slice(1).map(track => <track key={track.src} kind="captions" src={track.src} srcLang={track.language} label={track.label} default={track.default} />)}
       </video>
       {!p.error && (
         <button type="button" aria-label={t(p.playing ? 'Pause video' : 'Play video')} onClick={() => { cancelCountdown(); p.togglePlay(); }}

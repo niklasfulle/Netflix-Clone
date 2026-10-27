@@ -6,7 +6,12 @@ import { categorizationInput, categorizationQuery } from '@/lib/manual-categoriz
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
 function failure(error: unknown) {
-  if (error instanceof CategorizationError) return json({ error: error.code }, error.code === 'CONFLICT' ? 409 : error.code === 'NOT_FOUND' ? 404 : 422);
+  if (error instanceof CategorizationError) {
+    let status = 422;
+    if (error.code === 'CONFLICT') status = 409;
+    else if (error.code === 'NOT_FOUND') status = 404;
+    return json({ error: error.code }, status);
+  }
   return json({ error: 'SAVE_FAILED' }, 500);
 }
 export async function GET(request: Request) {
@@ -20,7 +25,13 @@ export async function POST(request: Request) {
   try {
     if (!await isCurrentUserAdmin()) { await audit.denied(); return json({ error: 'FORBIDDEN' }, 403); }
     let body: unknown;
-    try { const text = await request.text(); if (Buffer.byteLength(text) > 65536) return json({ error: 'INVALID_INPUT' }, 413); body = JSON.parse(text); }
+    try {
+      const text = await request.text();
+      if (Buffer.byteLength(text) > 65536) {
+        return json({ error: 'INVALID_INPUT' }, 413);
+      }
+      body = JSON.parse(text);
+    }
     catch { return json({ error: 'INVALID_INPUT' }, 400); }
     const parsed = categorizationInput.safeParse(body);
     if (!parsed.success) return json({ error: 'INVALID_INPUT' }, 400);

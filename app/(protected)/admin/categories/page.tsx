@@ -48,8 +48,8 @@ export default function CategoriesPage() {
       setDeleting(null);
       setNotice(t(method === 'DELETE' ? 'Category deleted.' : 'Category saved.'));
       await refresh(undefined, { throwOnError: false });
-    } catch (failure) {
-      const knownMessage = failure instanceof Error && CATEGORY_ERROR_MESSAGES.find(message => message === failure.message);
+    } catch (error_) {
+      const knownMessage = error_ instanceof Error && CATEGORY_ERROR_MESSAGES.find(message => message === error_.message);
       setError(t(knownMessage || 'Category could not be saved.'));
     } finally {
       setPending(false);

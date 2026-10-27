@@ -32,6 +32,9 @@ export function CategoryTransfer({ categories, disabled, onImported, onBusyChang
   const [dragging, setDragging] = useState(false);
   const locked = disabled || pending || reading;
   const exportable = categories.length > 0 && categories.every(category => category.nameEn?.trim());
+  let fileSelectionLabel: TranslationKey = 'Choose a JSON file';
+  if (document) fileSelectionLabel = 'Choose another file';
+  if (reading) fileSelectionLabel = 'Reading category file...';
   function exportFile() {
     if (!exportable) return;
     const data = { schemaVersion: 1, categories: categories.map(({ name, nameEn }) => ({ name, nameEn })) };
@@ -101,7 +104,7 @@ export function CategoryTransfer({ categories, disabled, onImported, onBusyChang
           }}
           className={`group flex min-h-40 w-full flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:cursor-not-allowed disabled:opacity-50 ${dragging ? 'border-red-400 bg-red-500/10' : 'border-zinc-700 bg-zinc-900/50 hover:border-red-400/60 hover:bg-zinc-800/60'}`}>
           {reading ? <LoaderCircle aria-hidden="true" className="mb-1 h-6 w-6 animate-spin text-red-400" /> : <FileJson aria-hidden="true" className="mb-1 h-6 w-6 text-zinc-500 transition-colors group-hover:text-red-400" />}
-          <span className="text-sm font-medium text-zinc-100">{t(reading ? 'Reading category file...' : document ? 'Choose another file' : 'Choose a JSON file')}</span>
+      <span className="text-sm font-medium text-zinc-100">{t(fileSelectionLabel)}</span>
           <span className="text-xs leading-5 text-zinc-500">{t('Or drop it here')} · JSON · {t('Up to 1 MB')}</span>
         </button>
         {fileName && <p className="mt-3 flex min-w-0 items-center gap-2 text-xs text-zinc-400"><CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-emerald-400" /><span className="truncate" title={fileName}>{fileName}</span></p>}

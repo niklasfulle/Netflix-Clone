@@ -19,6 +19,32 @@ interface MultiSelectProps {
   otherOptionsLabel?: string;
 }
 
+interface OptionGroup {
+  key: string;
+  label: string | null;
+  options: Option[];
+}
+
+function toggleOption(value: string, selected: string[], onChange: (value: string[]) => void) {
+  onChange(selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value]);
+}
+
+function OptionGroup({ group, value, onChange }: Readonly<{
+  group: OptionGroup;
+  value: string[];
+  onChange: (value: string[]) => void;
+}>) {
+  if (!group.options.length) return null;
+  return <div>
+    {group.label && <p className="border-b border-zinc-800 px-2 pb-1 pt-3 text-xs font-semibold text-zinc-400">{group.label}</p>}
+    {group.options.map(opt => <label key={opt.value} className={`flex cursor-pointer items-center px-2 py-2 text-sm text-white hover:bg-zinc-700 ${value.includes(opt.value) ? 'bg-red-700/40' : ''}`}>
+      <input type="checkbox" checked={value.includes(opt.value)} onChange={() => toggleOption(opt.value, value, onChange)} className="mr-2 accent-red-600" />
+      {opt.label}
+      {value.includes(opt.value) && <Check className="ml-auto h-4 w-4 text-red-500" />}
+    </label>)}
+  </div>;
+}
+
 export const MultiSelect: React.FC<MultiSelectProps> = ({
   options,
   value,
@@ -53,7 +79,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     .map(id => options.find(option => option.value === id))
     .filter((option): option is Option => option !== undefined);
   const recentIds = new Set(recentOptions.map(option => option.value));
-  const groups = recentOptions.length > 0 ? [
+  const groups: OptionGroup[] = recentOptions.length > 0 ? [
     { key: "recent", label: t("Recently used"), options: recentOptions },
     { key: "other", label: otherOptionsLabel ?? t("All options"), options: filtered.filter(option => !recentIds.has(option.value)) },
   ] : [{ key: "all", label: null, options: filtered }];
@@ -114,32 +140,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             {filtered.length === 0 && (
               <div className="p-2 text-gray-400 text-sm">{t("No options")}</div>
             )}
-            {groups.map(group => group.options.length > 0 && (
-              <div key={group.key}>
-                {group.label && <p className="border-b border-zinc-800 px-2 pb-1 pt-3 text-xs font-semibold text-zinc-400">{group.label}</p>}
-                {group.options.map(opt => (
-              <label
-                key={opt.value}
-                className={`flex cursor-pointer items-center px-2 py-2 text-sm text-white hover:bg-zinc-700 ${value.includes(opt.value) ? "bg-red-700/40" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={value.includes(opt.value)}
-                  onChange={() => {
-                    if (value.includes(opt.value)) {
-                      onChange(value.filter(v => v !== opt.value));
-                    } else {
-                      onChange([...value, opt.value]);
-                    }
-                  }}
-                  className="mr-2 accent-red-600"
-                />
-                {opt.label}
-                {value.includes(opt.value) && <Check className="w-4 h-4 ml-auto text-red-500" />}
-              </label>
-                ))}
-              </div>
-            ))}
+            {groups.map(group => <OptionGroup key={group.key} group={group} value={value} onChange={onChange} />)}
           </div>
         </div>
       )}

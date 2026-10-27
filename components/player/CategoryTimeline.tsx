@@ -9,7 +9,7 @@ import { formatCategoryTime } from '@/lib/manual-categorization/types';
 export function categoryTimelineColor(id: string): string {
   // Identity, rather than label, ordering or the other visible categories, owns the color.
   let hash = 2166136261;
-  for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
+  for (const character of id) hash = Math.imul(hash ^ (character.codePointAt(0) ?? 0), 16777619) >>> 0;
   return `hsl(${hash % 36000 / 100} 78% 62%)`;
 }
 
@@ -44,7 +44,7 @@ export function CategoryTimeline({ segments, duration, time, onSeek, showLegend 
       </ul>
     </div>}
     <div className="relative w-full">
-    <div role="group" aria-label={t('Timeline categories')} className={`relative w-full ${seekControl ? 'h-8' : 'h-6'}`}
+    <fieldset className={`relative w-full border-0 p-0 ${seekControl ? 'h-8' : 'h-6'}`}
       onMouseMove={event => {
         const bounds = event.currentTarget.getBoundingClientRect();
         const inset = seekControl ? 8 : 0;
@@ -52,6 +52,7 @@ export function CategoryTimeline({ segments, duration, time, onSeek, showLegend 
         const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left - inset) / (bounds.width - 2 * inset)));
         setHover({ ratio, seconds: ratio * duration });
       }} onMouseLeave={() => setHover(null)}>
+      <legend className="sr-only">{t('Timeline categories')}</legend>
       <div className={seekControl ? 'absolute inset-x-2 top-1/2 h-2 -translate-y-1/2 rounded-full bg-white/20' : 'relative h-full w-full rounded bg-white/10'}>
       {seekControl && <>
         <div aria-hidden="true" className="absolute inset-y-0 left-0 rounded-full bg-white/20" style={{ width: `${percent(buffered)}%` }} />
@@ -71,7 +72,7 @@ export function CategoryTimeline({ segments, duration, time, onSeek, showLegend 
       {!seekControl && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 z-30 w-px bg-white" style={{ left: `${percent(time)}%` }} />}
       </div>
       {seekControl}
-    </div>
+    </fieldset>
     {tooltipRanges.length > 0 && <div id={tooltipId} role="tooltip" className="pointer-events-none absolute bottom-full z-50 mb-2 w-max rounded-xl border border-zinc-600 bg-zinc-950/95 p-3 text-xs text-white shadow-xl"
       style={{ ...(anchor >= 0.5 ? { right: `${(1 - anchor) * 100}%` } : { left: `${anchor * 100}%` }), maxWidth: `min(20rem, ${(anchor >= 0.5 ? anchor : 1 - anchor) * 100}%)` }}>
       <ul className="space-y-2">{tooltipCategories.map(category => <li key={category.id} className="flex items-start gap-2">

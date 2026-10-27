@@ -295,7 +295,7 @@ it('keeps long video titles available and updates them when switching playlist e
   expect(document.title).toBe(`${secondTitle} · Netflix`);
 });
 
-it('renders supplied caption sources and leaves videos without captions free of empty tracks', () => {
+it('renders supplied caption sources and keeps a direct empty track when captions are absent', () => {
   const { container } = mount({ items: [
     { ...items[0], captions: [{ src: '/captions/one.de.vtt', language: 'de', label: 'Deutsch', default: true }] },
     items[1],
@@ -307,7 +307,9 @@ it('renders supplied caption sources and leaves videos without captions free of 
   expect(track).toHaveAttribute('label', 'Deutsch');
   expect(track).toHaveAttribute('default');
   fireEvent.click(screen.getByRole('button', { name: 'Next video' }));
-  expect(container.querySelector('track')).toBeNull();
+  const emptyTrack = container.querySelector('track');
+  expect(emptyTrack).toHaveAttribute('kind', 'captions');
+  expect(emptyTrack).not.toHaveAttribute('src');
 });
 
 it('restores progress after metadata and keeps volume, mute and playback speed preferences', () => {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const localConfig = '.env.video-analysis.local';
-if (process.argv.includes('--require-local-config') && !existsSync(localConfig)) throw Error('Local privacy configuration is required before pushing.');
+if (process.argv.includes('--require-local-config') && !existsSync(localConfig)) throw new Error('Local privacy configuration is required before pushing.');
 if (existsSync(localConfig)) process.loadEnvFile(localConfig);
 const files = execFileSync('git', ['ls-files', '--cached', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
 const isLocalOnlyPath = file => file.startsWith('.local-private/') || /(^|\/)(video-examples-[^/]*|categories-export[^/]*)\.json$/.test(file) || (/(^|\/)\.env(?:[._]|$)/.test(file) && !file.endsWith('.example'));
@@ -12,7 +12,7 @@ if (forbiddenFiles.length) {
   process.exit(1);
 }
 const terms = JSON.parse(process.env.VIDEO_ANALYSIS_PRIVATE_TERMS || '[]');
-if (!Array.isArray(terms) || terms.some(term => typeof term !== 'string' || !term.trim() || /[\r\n]/.test(term))) throw Error('Invalid local privacy configuration');
+if (!Array.isArray(terms) || terms.some(term => typeof term !== 'string' || !term.trim() || /[\r\n]/.test(term))) throw new Error('Invalid local privacy configuration');
 if (terms.length) {
   const checkTree = (ref) => {
     try {
