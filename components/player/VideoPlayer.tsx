@@ -7,6 +7,8 @@ import type { Ref, RefObject } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import useMovie from '@/hooks/movies/useMovie';
 import { usePlayback } from './usePlayback';
+import { useRecommendations } from './useRecommendations';
+import { EndRecommendations } from './EndRecommendations';
 import PlayerControls, { PlayerButton } from './PlayerControls';
 import type { PlayerItem } from './types';
 import { categoryLabel } from '@/lib/category-label';
@@ -32,7 +34,6 @@ interface PlayerProps {
 export type PlayerHandle = { seek: (seconds: number) => void };
 
 export default function VideoPlayer({ items, playlistTitle, startTime, onBack, mode = 'watch', playbackRef, onPositionChange }: Readonly<PlayerProps>) {
-  const { t } = useLanguage();
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState(items[0]?.id);
   const [queueOpen, setQueueOpen] = useState(false);
@@ -66,18 +67,8 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack, m
           try { localStorage.setItem('playerAutoplayNext', String(value)); } catch { /* Optional preference. */ }
         }}
         countdown={countdown} cancelCountdown={() => setCountdown(null)}
-        onEnded={() => { if (autoplay && next) setCountdown(5); }}
+        onEnded={() => { if (mode === 'watch' && autoplay && next) setCountdown(5); }}
         choose={choose} onBack={onBack} />
-      {countdown !== null && next && (
-        <section aria-label={t('Up next')} className="absolute bottom-48 left-4 right-4 z-30 rounded-2xl border border-white/15 bg-zinc-950/95 p-4 shadow-xl sm:bottom-36 sm:left-auto sm:right-6 sm:w-96">
-          <output className="block text-xs font-semibold uppercase tracking-widest text-red-400">{t('Up next')} · {countdown}s</output>
-          <h2 className="my-2 line-clamp-2 font-semibold">{next.title}</h2>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => choose(next.id)} className="min-h-11 flex-1 rounded-lg bg-red-600 px-4 font-semibold hover:bg-red-500">{t('Play now')}</button>
-            <button type="button" onClick={() => setCountdown(null)} className="min-h-11 rounded-lg bg-white/10 px-4 hover:bg-white/20">{t('Cancel')}</button>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -114,6 +105,7 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   const regionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const p = usePlayback(item.id, videoRef, resumeTime, mode === 'watch');
+  const recommendations = useRecommendations(item.id, p.time, p.duration, mode === 'watch');
   useImperativeHandle(playbackRef, () => ({ seek: p.seek }), [p.seek]);
   useEffect(() => { onPositionChange?.(p.time, p.duration); }, [p.time, p.duration, onPositionChange]);
   const displayItem = { ...item, categories: item.categories ?? details?.categories, categorySegments: item.categorySegments ?? details?.categorySegments };
@@ -212,6 +204,8 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
         headerRef={headerRef} controlsRef={controlsRef} onBack={onBack} queueOpen={queueOpen} setQueueOpen={setQueueOpen}
         notice={notice} countdown={countdown} previous={previous} next={next} fullscreen={fullscreen}
         toggleFullscreen={toggleFullscreen} pipAvailable={pipAvailable} togglePip={togglePip} />
+      <EndRecommendations items={recommendations} visible={p.ended} countdown={countdown} next={items[index + 1]}
+        onNext={() => next?.()} onCancel={cancelCountdown} onSelect={() => { p.commitProgress(); cancelCountdown(); }} />
       {queueOpen && <PlaylistQueue items={items} activeId={item.id} playlistTitle={playlistTitle} autoplay={autoplay} setAutoplay={setAutoplay} setQueueOpen={setQueueOpen} selectItem={selectItem} />}
     </section>
   );

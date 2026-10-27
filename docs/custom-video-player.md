@@ -6,6 +6,12 @@ authentifizierten Video-Streaming-Routen und benötigt keinen externen Playerdie
 
 ## Bedienung
 
+- Zwei Minuten vor dem Ende werden sechs passende Folgevideos und deren Bilder
+  im Hintergrund vorbereitet; bei kurzen Videos startet das nach dem Laden der
+  Videolänge. Am Ende erscheinen die vorbereiteten Karten. Die ersten beiden
+  Plätze bevorzugen gemeinsame Darsteller, die weiteren gemeinsame Kategorien.
+  Einzelheiten und spätere Gewichtungsanpassungen: [Videovorschläge](video-recommendations.md).
+
 - Manuell zugeordnete Videokategorien werden oben rechts im Player angezeigt.
   Kategorie-Zeitabschnitte erscheinen mit Namen als Bereiche in zusätzlichen
   gemeinsamen Timeline-Spur über die volle Breite der Wiedergabe-Zeitleiste.

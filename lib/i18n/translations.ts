@@ -4,6 +4,11 @@ export const DEFAULT_LOCALE: Locale = 'en';
 export const LOCALE_STORAGE_KEY = 'netflix-locale';
 
 export const germanTranslations = {
+  'Recommended videos': 'Videovorschläge',
+  'More to watch': 'Das könnte dir gefallen',
+  'Shared cast': 'Gleiche Darsteller',
+  'Similar categories': 'Ähnliche Kategorien',
+  'No further suggestions are available.': 'Keine weiteren Vorschläge verfügbar.',
   'Use device volume buttons': 'Lautstärke über Gerätetasten',
   'Use device volume buttons or Control Center.': 'Nutze die Lautstärketasten deines Geräts oder das Kontrollzentrum.',
   'A title can have at most 50 categories.': 'Ein Inhalt kann höchstens 50 Kategorien erhalten.',

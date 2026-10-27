@@ -8,6 +8,8 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Am Videoende erscheinen bis zu sechs Vorschläge anhand gemeinsamer Video- und Zeitabschnitt-Kategorien; zwei bevorzugte Plätze berücksichtigen gemeinsame Darsteller, sofern passende veröffentlichte Titel verfügbar sind. Auswahl und Vorschaubilder werden zwei Minuten vor Ende im Hintergrund vorbereitet und bleiben für den Durchlauf festgelegt
+
 - Der normale Player verbindet Kategorie-Zeitabschnitte direkt mit dem Fortschrittsregler, blendet die Legende aus und zeigt Videokategorien oben rechts; Hover-Hinweise zeigen Kategorienamen ohne Zeitangaben. Safari-Geräte ohne regelbare Medienlautstärke erhalten einen Hinweis auf Gerätetasten statt eines wirkungslosen Reglers, während unterstützte Mobilbrowser einen sichtbaren Lautstärkeregler erhalten
 
 - Kategorie-Zeitabschnitte überlagern sich in einer gemeinsamen Spur über die volle Breite der Player-Zeitleiste; ein stabiler Farbcode pro Kategorie und Hover-Hinweise mit Kategorienamen unterscheiden auch überlappende Kategorien
