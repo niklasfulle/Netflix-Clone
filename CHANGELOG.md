@@ -8,6 +8,15 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Normaler Videoplayer und manueller Kategorisierungsplayer speichern Lautstärke, Stummschaltung und Wiedergabegeschwindigkeit getrennt; bestehende Einstellungen bleiben dem normalen Player zugeordnet, und Änderungen im Analysemodus beeinflussen ihn nicht
+
+- Die Inhaltsübersicht zeigt die Anzahl unterschiedlicher Kategorien je Film oder Serie mit getrennter Angabe globaler und Timeline-Kategorien; mehrfach genutzte Kategorien zählen insgesamt nur einmal, und der CSV-Export enthält die Gesamtzahl
+- Kategorien erhalten dauerhafte Farben aus einer kontrastreichen Palette; in der Verwaltung sind Palette und freie Farbauswahl verfügbar. Die gespeicherten Farben werden ausschließlich in der Player-Timeline verwendet, während Kategorie-Badges ohne Farbpunkte erscheinen. Export und Import übernehmen Farben und unterstützen ältere Dateien ohne Farbwerte
+- Die Adminübersicht zeigt Kategorieabdeckung und die aktuellen Gewichte des Empfehlungsalgorithmus in einer ausgewogenen Anordnung; „Zuletzt hinzugefügt“ umfasst sechs Inhalte
+- Billboard-Titel erhalten ausreichend Zeilenhöhe für vollständige Buchstaben; Beschreibungen werden nicht mehr durch eine zu kleine feste Höhe abgeschnitten
+- Gültige Videos mit zusätzlichen Timecode- oder Metadatenspuren ohne Codec-Namen lassen sich kategorisieren, ohne dass die Laufzeitprüfung das Speichern fälschlich ablehnt
+- Das Sonar-Skript unterstützt direkte JavaScript-Einstiegspunkte für Scanner und Jest und erkennt unter Windows inkompatible native Abhängigkeiten mit einer verständlichen Installationsanleitung
+
 - Die Endansicht nutzt größere Videokarten und mehr Bildschirmbreite, zeigt Vorschlagsgründe als dezente Bild-Badges und bietet eine klarere Überschrift sowie Play-Hervorhebung bei Hover und Tastaturfokus
 
 - Am Videoende erscheinen bis zu sechs Vorschläge anhand gemeinsamer Video- und Zeitabschnitt-Kategorien; zwei bevorzugte Plätze berücksichtigen gemeinsame Darsteller, sofern passende veröffentlichte Titel verfügbar sind. Auswahl und Vorschaubilder werden zwei Minuten vor Ende im Hintergrund vorbereitet und bleiben für den Durchlauf festgelegt
@@ -16,10 +25,11 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 - Kategorie-Zeitabschnitte überlagern sich in einer gemeinsamen Spur über die volle Breite der Player-Zeitleiste; ein stabiler Farbcode pro Kategorie und Hover-Hinweise mit Kategorienamen unterscheiden auch überlappende Kategorien
 
-- Der Videoanalyse-Modus dient der manuellen Kategorisierung: zufällige Filme und Serien ohne Kategorien, getrennte Zuordnungen für ganze Videos und Zeitabschnitte sowie Speichern, Abschließen und Überspringen ohne Modellanbindung
+- Der Videoanalyse-Modus dient der manuellen Kategorisierung: zufällige Filme und Serien ohne Kategorien, getrennte Zuordnungen für ganze Videos und Zeitabschnitte sowie Speichern, Abschließen und Überspringen
 - Kategorie-Zeitabschnitte erscheinen als benannte, anklickbare Bereiche im Player; Zeitgrenzen, gleichzeitige Änderungen und Administratorrechte werden serverseitig geprüft, während der manuelle Modus keine Aufrufe oder Wiedergabefortschritte speichert
 
-- KI-Videoanalyse einschließlich Modellserver, externer Modellanbindung, automatischer Übersetzung, Analyseaufträgen, Vergleichsläufen und Beispielmarkierung vollständig aus der Anwendung entfernt; bestehende Medien, manuelle Kategorien, Zuordnungen und historische Daten bleiben erhalten
+## 1.14.2
+
 - Der Import-/Export-Bereich für globale Kategorien bietet getrennte Karten, eine gestaltete Dateiauswahl mit Drag-and-drop und eine übersichtliche Vorschau mit Kennzahlen und zweisprachiger Tabelle für Desktop und Mobilgeräte
 - Die Kategorienverwaltung exportiert deutsche und englische Namen als JSON und importiert sie mit Vorschau, Bestätigung und begrenzter Dateigröße; vorhandene IDs und Zuordnungen bleiben erhalten, doppelte Namen werden abgelehnt
 - Eine eigene Kategorienverwaltung ermöglicht das Anlegen, Umbenennen und bestätigte Löschen frei definierter Kategorien; Filme und Serien können mehrere Kategorien erhalten, die beim Bearbeiten erhalten bleiben und in den Inhaltsdetails angezeigt werden
@@ -48,7 +58,7 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 - Der lokale Stack initialisiert Datenbankschema und Job-Queue vor dem App-Start; eigene Daten- und Medien-Volumes sowie installationsabhängige lokale Zugangsdaten bleiben über Neustarts erhalten
 - Ein wiederholbarer, auf die lokale Umgebung begrenzter Seed ergänzt Admin- und Benutzerkonto, Profile, 16 Filme und Serien, vier Schauspieler, Favoriten, Watchlists, Playlists und Wiedergabefortschritt, ohne bestehende Konten oder bearbeitete Inhalte zu überschreiben
 - Lokal erzeugte zwölf Sekunden lange Testvideos mit Ton ermöglichen echte Wiedergabe-, Such- und Playlist-Tests; Auth-E-Mails können im lokalen Mailpit-Postfach geöffnet werden
-- Vier mit Imagegen erzeugte Profilbilder – Fuchs, Eule, Panda und Astronaut – stehen im lokalen Seed zur Auswahl; bestehende Demo-Profile mit dem ursprünglichen Standardbild werden aktualisiert und selbst gewählte Bilder bleiben erhalten
+- Vier neue Profilbilder – Fuchs, Eule, Panda und Astronaut – stehen im lokalen Seed zur Auswahl; bestehende Demo-Profile mit dem ursprünglichen Standardbild werden aktualisiert und selbst gewählte Bilder bleiben erhalten
 - README und ergänzende Anleitungen dokumentieren lokalen Docker-Betrieb, Seeding, Profilbild-Generierung und Player-Bedienung einschließlich Tastenkürzeln und Medienvoraussetzungen
 
 ## 1.13.6

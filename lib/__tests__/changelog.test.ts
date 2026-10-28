@@ -16,12 +16,19 @@ describe('published changelog', () => {
 
     expect(entries.slice(0, 5).map(entry => entry.version)).toEqual([
       APP_VERSION,
+      '1.14.2',
       '1.14.1',
       '1.14.0',
       '1.13.6',
-      '1.13.5',
     ]);
     expect(entries.find(entry => entry.version === APP_VERSION)?.changes).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Anzahl unterschiedlicher Kategorien'),
+        expect.stringContaining('dauerhafte Farben'),
+        expect.stringContaining('manuellen Kategorisierung'),
+      ]),
+    );
+    expect(entries.find(entry => entry.version === '1.14.2')?.changes).toEqual(
       expect.arrayContaining([expect.stringContaining('Kategorienverwaltung')]),
     );
     const previousPatch = entries.find(entry => entry.version === '1.14.1')?.changes ?? [];
