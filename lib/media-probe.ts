@@ -85,10 +85,13 @@ function parseProbeOutput(stdout: string): MediaProbeResult {
     const container = boundedString(parsed.format.format_name, 200);
     const streams = parsed.streams.map((stream) => {
       const codecType = boundedString(stream.codec_type, 20);
-      const codec = boundedString(stream.codec_name, 50);
-      if (!codec) throw new MediaProbeFailure('INVALID_OUTPUT');
       const type: MediaProbeResult['streams'][number]['type'] =
         codecType === 'video' || codecType === 'audio' ? codecType : 'other';
+      // Timecode and other auxiliary streams can legitimately omit codec_name.
+      const codec = type === 'other' && codecType && stream.codec_name === undefined
+        ? 'unknown'
+        : boundedString(stream.codec_name, 50);
+      if (!codec) throw new MediaProbeFailure('INVALID_OUTPUT');
       return {
         type,
         codec,

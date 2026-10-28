@@ -33,6 +33,43 @@ describe('ffprobe adapter', () => {
   });
 
   it.each([
+    'data', 'subtitle', 'attachment',
+  ])('keeps valid duration metadata when a %s stream has no codec name', async codecType => {
+    const probe = createFfprobe({
+      run: jest.fn().mockResolvedValue({
+        stdout: JSON.stringify({
+          format: { duration: '61.25', format_name: 'mov,mp4,m4a,3gp,3g2,mj2' },
+          streams: [
+            { codec_type: 'video', codec_name: 'h264' },
+            { codec_type: codecType },
+          ],
+        }),
+      }),
+    });
+
+    await expect(probe('catalog/movie.mp4')).resolves.toEqual({
+      durationSeconds: 61.25,
+      container: 'mov,mp4,m4a,3gp,3g2,mj2',
+      streams: [{ type: 'video', codec: 'h264' }, { type: 'other', codec: 'unknown' }],
+    });
+  });
+
+  it.each([
+    { codec_type: 'video' },
+    { codec_type: 'audio' },
+    { codec_type: 'data', codec_name: 'x'.repeat(51) },
+    {},
+  ])('still rejects malformed stream metadata: %j', async stream => {
+    const probe = createFfprobe({
+      run: jest.fn().mockResolvedValue({
+        stdout: JSON.stringify({ format: { duration: '61.25' }, streams: [stream] }),
+      }),
+    });
+
+    await expect(probe('catalog/movie.mp4')).rejects.toEqual(new MediaProbeFailure('INVALID_OUTPUT'));
+  });
+
+  it.each([
     [Object.assign(new Error('timed out at C:\\private\\movie.mp4'), { killed: true }), 'TIMEOUT'],
     [new Error('failed at C:\\private\\movie.mp4'), 'EXECUTION_FAILED'],
     [Object.assign(new Error('too much output'), { code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' }), 'INVALID_OUTPUT'],

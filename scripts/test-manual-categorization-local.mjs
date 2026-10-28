@@ -23,7 +23,9 @@ const manualCheckDb = new PrismaClient();
   const file = '/movies/' + marker + '.mp4';
   let movie; const categories = [];
   try {
-    run('/usr/local/bin/ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=24', '-t', '12', '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', file]);
+    run('/usr/local/bin/ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=24', '-t', '12', '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-timecode', '00:00:00:00', file]);
+    const metadata = JSON.parse(run('/usr/local/bin/ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name', '-of', 'json', '--', file], { encoding: 'utf8' }));
+    assert(metadata.streams.some(stream => stream.codec_type === 'data' && stream.codec_name === undefined), 'Fixture must include a timecode stream without a codec name');
     movie = await manualCheckDb.movie.create({ data: { title: 'Manual timeline fixture', description: 'Neutral integration fixture', videoUrl: marker + '.mp4', thumbnailUrl: '/images/hero.jpg', type: 'Movie', genre: 'Drama', duration: '00:12', status: 'DRAFT' } });
     for (const label of ['Forest', 'City']) categories.push(await manualCheckDb.category.create({ data: { name: label + ' ' + marker, nameEn: label + ' ' + marker, normalizedName: (label + ' ' + marker).toLowerCase() } }));
     const input = { movieId: movie.id, version: 0, categoryIds: [categories[0].id], segments: [{ categoryId: categories[1].id, startSeconds: 2, endSeconds: 5 }], complete: false };
@@ -42,7 +44,7 @@ const manualCheckDb = new PrismaClient();
     const completed = await module.exports.saveCategorization({ ...input, version: 1, categoryIds: [], segments: [], complete: true });
     assert(completed.movie.completed); assert.equal(completed.movie.version, 2);
     assert.equal(await manualCheckDb.movie.count({ where: { id: movie.id, categoryReviewedAt: null } }), 0);
-    console.log('PASS: separate global and interval categories, real duration validation, optimistic conflicts, database time-range constraint, empty review completion');
+    console.log('PASS: timecode metadata, separate global and interval categories, real duration validation, optimistic conflicts, database time-range constraint, empty review completion');
   } finally {
     if (movie) {
       await manualCheckDb.movie.delete({ where: { id: movie.id } });
