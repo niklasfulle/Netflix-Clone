@@ -45,9 +45,15 @@ Danach erneut ausführen:
 "@
 }
 
+$nodeCommand = Get-Command "node" -ErrorAction SilentlyContinue
+if ($null -eq $nodeCommand) {
+    throw "Node.js wurde nicht gefunden. Installiere Node.js 22.12 oder neuer und die Projektabhängigkeiten."
+}
+
 $scannerCandidates = @(
     (Join-Path $PSScriptRoot "node_modules\.bin\sonar-scanner-npm.cmd"),
-    (Join-Path $PSScriptRoot "node_modules\.bin\sonar-scanner.cmd")
+    (Join-Path $PSScriptRoot "node_modules\.bin\sonar-scanner.cmd"),
+    (Join-Path $PSScriptRoot "node_modules\sonarqube-scanner\bin\sonar-scanner.js")
 )
 $scannerPath = $scannerCandidates |
     Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
@@ -62,19 +68,35 @@ Installiere zuerst die Projektabhängigkeiten.
 "@
 }
 
-$jestPath = Join-Path $PSScriptRoot "node_modules\.bin\jest.cmd"
-if (-not (Test-Path -LiteralPath $jestPath -PathType Leaf)) {
+$jestCandidates = @(
+    (Join-Path $PSScriptRoot "node_modules\.bin\jest.cmd"),
+    (Join-Path $PSScriptRoot "node_modules\jest\bin\jest.js")
+)
+$jestPath = $jestCandidates |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+
+if ([string]::IsNullOrWhiteSpace($jestPath)) {
     throw @"
-Jest wurde nicht gefunden:
-$jestPath
+Jest wurde nicht gefunden. Geprüfte Pfade:
+$($jestCandidates -join [Environment]::NewLine)
 
 Installiere zuerst die Projektabhängigkeiten.
 "@
 }
 
-$nodeCommand = Get-Command "node" -ErrorAction SilentlyContinue
-if ($null -eq $nodeCommand) {
-    throw "Node.js wurde nicht gefunden. Installiere zuerst die Projektabhängigkeiten."
+$resolverPath = Join-Path $PSScriptRoot "node_modules\unrs-resolver"
+& $nodeCommand.Source "-e" "try { require(process.argv[1]); } catch { process.exitCode = 1; }" $resolverPath
+if ($LASTEXITCODE -ne 0) {
+    throw @"
+Der native Jest-Modulresolver kann unter diesem Betriebssystem nicht geladen werden.
+Das kann passieren, wenn node_modules unter Linux/Docker installiert und anschließend unter Windows verwendet wurde.
+
+Installiere die Abhängigkeiten in der Umgebung, in der du Sonar startest:
+yarn install --frozen-lockfile --force
+
+Verwende getrennte node_modules-Verzeichnisse für Windows und Linux/Docker.
+"@
 }
 
 $baselineCheckScript = Join-Path $PSScriptRoot "scripts\check-baseline-browser-mapping.mjs"
@@ -91,7 +113,12 @@ if ($baselineCheckExitCode -ne 0) {
 }
 
 Write-Host "Erzeuge einen aktuellen LCOV-Coverage-Bericht ..."
-& $jestPath "--coverage" "--coverageReporters=lcov"
+if ($jestPath.EndsWith(".js", [StringComparison]::OrdinalIgnoreCase)) {
+    & $nodeCommand.Source $jestPath "--coverage" "--coverageReporters=lcov"
+}
+else {
+    & $jestPath "--coverage" "--coverageReporters=lcov"
+}
 
 $testExitCode = $LASTEXITCODE
 if ($testExitCode -ne 0) {
@@ -105,9 +132,12 @@ Write-Host "Server: $SonarHostUrl"
 $previousSonarToken = $env:SONAR_TOKEN
 try {
     $env:SONAR_TOKEN = $Token
-    & $scannerPath `
-        "-Dsonar.host.url=$SonarHostUrl" `
-        "-Dsonar.projectKey=$ProjectKey"
+    if ($scannerPath.EndsWith(".js", [StringComparison]::OrdinalIgnoreCase)) {
+        & $nodeCommand.Source $scannerPath "-Dsonar.host.url=$SonarHostUrl" "-Dsonar.projectKey=$ProjectKey"
+    }
+    else {
+        & $scannerPath "-Dsonar.host.url=$SonarHostUrl" "-Dsonar.projectKey=$ProjectKey"
+    }
 
     $scannerExitCode = $LASTEXITCODE
 
