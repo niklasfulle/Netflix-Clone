@@ -93,11 +93,14 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
         className="absolute bottom-4 md:bottom-auto md:top-[40%] ml-4 md:ml-16 max-w-[60%]"
         data-testid="billboard-content"
       >
-         <p className="w-full overflow-hidden text-ellipsis line-clamp-1 sm:line-clamp-2 font-bold text-white text-xl sm:text-2xl md:text-5xl lg:text-6xl drop-shadow-xl">
+        <p
+          className="w-full break-words overflow-hidden text-ellipsis line-clamp-1 sm:line-clamp-2 font-bold text-white text-xl leading-tight sm:text-2xl sm:leading-tight md:text-5xl md:leading-tight lg:text-6xl lg:leading-tight drop-shadow-xl"
+          title={data?.title}
+        >
           {data?.title}
         </p>
         {data?.description != "test" && (
-          <p className="mt-3 w-[90%] overflow-hidden text-ellipsis line-clamp-2 max-h-20 text-xs text-white drop-shadow-xl sm:text-sm md:mt-8 md:w-[80%] md:text-lg md:line-clamp-3 lg:w-[90%]">
+          <p className="mt-3 w-[90%] break-words overflow-hidden text-ellipsis line-clamp-2 text-xs text-white drop-shadow-xl sm:text-sm md:mt-8 md:w-[80%] md:text-lg md:line-clamp-3 lg:w-[90%]">
             {data?.description?.substring(0, 250)}
             {(data?.description?.length ?? 0) >= 140 && "..."}
           </p>
