@@ -14,6 +14,9 @@ export type AdminMovie = {
   createdAt: string;
   updatedAt: string;
   views: number;
+  categoryCount?: number;
+  globalCategoryCount?: number;
+  timelineCategoryCount?: number;
   thumbnailUrl: string;
   videoUrl?: string;
   actors?: Array<{ actor?: { name?: string }; name?: string }>;
@@ -67,7 +70,7 @@ export default function MovieAdminTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[980px] w-full text-left text-sm">
+      <table className="min-w-[1080px] w-full text-left text-sm">
         <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs uppercase tracking-wide text-zinc-500">
           <tr>
             <th className="w-12 px-4 py-3">
@@ -78,6 +81,7 @@ export default function MovieAdminTable({
             <th className="px-3 py-3">{sortableHeader("Genre", "genre")}</th>
             <th className="px-3 py-3">{sortableHeader("Status", "status")}</th>
             <th className="px-3 py-3">Darsteller</th>
+            <th className="px-3 py-3">Kategorien</th>
             <th className="px-3 py-3 text-right">Views</th>
             <th className="px-3 py-3">{sortableHeader("Aktualisiert", "updatedAt")}</th>
             <th className="w-24 px-4 py-3 text-right">Aktionen</th>
@@ -85,7 +89,7 @@ export default function MovieAdminTable({
         </thead>
         <tbody className="divide-y divide-zinc-800">
           {items.length === 0 && (
-            <tr><td colSpan={9} className="px-6 py-16 text-center text-zinc-500">Keine Inhalte für diese Filter gefunden.</td></tr>
+            <tr><td colSpan={10} className="px-6 py-16 text-center text-zinc-500">Keine Inhalte für diese Filter gefunden.</td></tr>
           )}
           {items.map((item) => {
             const actorNames = item.actors?.map((entry) => entry.actor?.name || entry.name).filter(Boolean).join(", ") || "–";
@@ -117,6 +121,10 @@ export default function MovieAdminTable({
                   </span>
                 </td>
                 <td className="max-w-[220px] truncate px-3 py-3 text-zinc-400" title={actorNames}>{actorNames}</td>
+                <td className="px-3 py-3" title="Unterschiedliche Kategorien insgesamt; mehrfach verwendete Kategorien zählen nur einmal.">
+                  <span className={`font-semibold tabular-nums ${item.categoryCount === 0 ? 'text-amber-300' : 'text-zinc-100'}`}>{item.categoryCount ?? '–'}</span>
+                  {item.categoryCount !== undefined && <p className="mt-1 whitespace-nowrap text-xs text-zinc-500">{item.globalCategoryCount ?? 0} global · {item.timelineCategoryCount ?? 0} Timeline</p>}
+                </td>
                 <td className="px-3 py-3 text-right font-medium text-zinc-200">{item.views.toLocaleString("de-DE")}</td>
                 <td className="px-3 py-3 text-zinc-400">{new Date(item.updatedAt || item.createdAt).toLocaleDateString("de-DE")}</td>
                 <td className="px-4 py-3">

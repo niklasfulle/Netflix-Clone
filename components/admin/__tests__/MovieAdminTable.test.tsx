@@ -14,6 +14,9 @@ const movie: AdminMovie = {
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-02T00:00:00.000Z",
   views: 42,
+  categoryCount: 3,
+  globalCategoryCount: 2,
+  timelineCategoryCount: 2,
   thumbnailUrl: "/thumb.jpg",
   actors: [{ actor: { name: "Ada Actor" } }],
 };
@@ -34,6 +37,9 @@ describe("MovieAdminTable", () => {
     expect(screen.getByText("Drama")).toBeInTheDocument();
     expect(screen.getByText("Veröffentlicht")).toBeInTheDocument();
     expect(screen.getByText("Ada Actor")).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Kategorien' })).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('2 global · 2 Timeline')).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /bearbeiten/i })).toHaveAttribute(
       "href",
       "/admin/movies/movie-1/edit",
@@ -51,5 +57,11 @@ describe("MovieAdminTable", () => {
   it("renders an empty state", () => {
     render(<MovieAdminTable {...baseProps} items={[]} />);
     expect(screen.getByText(/Keine Inhalte/i)).toBeInTheDocument();
+  });
+
+  it('shows zero categories for uncategorized content', () => {
+    render(<MovieAdminTable {...baseProps} items={[{ ...movie, categoryCount: 0, globalCategoryCount: 0, timelineCategoryCount: 0 }]} />);
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('0 global · 0 Timeline')).toBeInTheDocument();
   });
 });

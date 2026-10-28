@@ -82,8 +82,8 @@ export default function AdminMoviesPage() {
   };
 
   const exportCsv = () => {
-    const rows = [["Titel", "Typ", "Genre", "Status", "Views"], ...(data?.movies || []).map((item: AdminMovie) => [
-      item.title, item.type, item.genre, item.status, String(item.views),
+    const rows = [["Titel", "Typ", "Genre", "Status", "Kategorien", "Views"], ...(data?.movies || []).map((item: AdminMovie) => [
+      item.title, item.type, item.genre, item.status, String(item.categoryCount ?? 0), String(item.views),
     ])];
     const csv = rows.map((row: string[]) => row.map((value: string) => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));

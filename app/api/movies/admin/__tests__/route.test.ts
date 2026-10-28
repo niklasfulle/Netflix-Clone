@@ -8,7 +8,9 @@ jest.mock('@/lib/db', () => ({
     movie: {
       findMany: jest.fn(),
       updateMany: jest.fn(),
+      count: jest.fn(),
     },
+    movieView: { groupBy: jest.fn() },
     adminAuditEvent: { create: jest.fn() },
   },
 }));
@@ -16,7 +18,36 @@ jest.mock('@/lib/db', () => ({
 import { isCurrentUserAdmin } from '@/lib/admin-auth';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { PATCH } from '../route';
+import { GET, PATCH } from '../route';
+
+describe('administrator content category counts', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    jest.mocked(isCurrentUserAdmin).mockResolvedValue(true);
+    jest.mocked(db.movie.count).mockResolvedValue(2);
+    jest.mocked(db.movieView.groupBy).mockResolvedValue([]);
+    jest.mocked(db.movie.findMany).mockResolvedValueOnce([
+      { id: 'movie-1', categories: [{ categoryId: 'forest' }, { categoryId: 'city' }], categorySegments: [{ categoryId: 'forest' }, { categoryId: 'sea' }, { categoryId: 'sea' }] },
+      { id: 'movie-2', categories: [], categorySegments: [] },
+    ] as never).mockResolvedValueOnce([]);
+  });
+
+  it('counts distinct categories across both scopes without counting repeated intervals twice', async () => {
+    const response = await GET();
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.movies[0]).toMatchObject({ categoryCount: 3, globalCategoryCount: 2, timelineCategoryCount: 2 });
+    expect(result.movies[1]).toMatchObject({ categoryCount: 0, globalCategoryCount: 0, timelineCategoryCount: 0 });
+    expect(result.movies[0]).not.toHaveProperty('categorySegments');
+    expect(result.movies[0]).not.toHaveProperty('categories');
+  });
+
+  it('keeps category counts restricted to administrators', async () => {
+    jest.mocked(isCurrentUserAdmin).mockResolvedValue(false);
+    expect((await GET()).status).toBe(403);
+    expect(db.movie.findMany).not.toHaveBeenCalled();
+  });
+});
 
 describe('administrator content status mutations', () => {
   beforeEach(() => {

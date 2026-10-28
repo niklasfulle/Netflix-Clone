@@ -57,7 +57,11 @@ export async function GET(request: Request = new Request("http://localhost/api/m
       db.movie.findMany({
         where,
         orderBy: { [sort]: direction },
-        include: { actors: { include: { actor: true } } },
+        include: {
+          actors: { include: { actor: true } },
+          categories: { select: { categoryId: true } },
+          categorySegments: { select: { categoryId: true } },
+        },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -67,7 +71,16 @@ export async function GET(request: Request = new Request("http://localhost/api/m
 
     const viewMap = new Map(views.map((view) => [view.movieId, view._count.movieId]));
     return Response.json({
-      movies: movies.map((movie) => ({ ...movie, views: viewMap.get(movie.id) || 0 })),
+      movies: movies.map(({ categories = [], categorySegments = [], ...movie }) => {
+        const globalIds = new Set(categories.map(category => category.categoryId));
+        const timelineIds = new Set(categorySegments.map(segment => segment.categoryId));
+        return {
+          ...movie, views: viewMap.get(movie.id) || 0,
+          categoryCount: new Set([...globalIds, ...timelineIds]).size,
+          globalCategoryCount: globalIds.size,
+          timelineCategoryCount: timelineIds.size,
+        };
+      }),
       total,
       page,
       pageSize,
