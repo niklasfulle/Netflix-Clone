@@ -37,7 +37,7 @@ export function CategoryTransfer({ categories, disabled, onImported, onBusyChang
   if (reading) fileSelectionLabel = 'Reading category file...';
   function exportFile() {
     if (!exportable) return;
-    const data = { schemaVersion: 1, categories: categories.map(({ name, nameEn }) => ({ name, nameEn })) };
+    const data = { schemaVersion: 1, categories: categories.map(({ name, nameEn, color }) => ({ name, nameEn, ...(color && { color }) })) };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
     const anchor = globalThis.document.createElement('a'); anchor.href = url; anchor.download = 'categories-export.json'; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);

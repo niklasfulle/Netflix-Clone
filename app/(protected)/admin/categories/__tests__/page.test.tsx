@@ -19,18 +19,19 @@ it('creates a named category and refreshes the list', async () => {
   fireEvent.change(screen.getByLabelText('Category name (English)'), { target: { value: 'Behind Scenes' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create category' }));
   await screen.findByText('Category saved.');
-  expect(fetch).toHaveBeenCalledWith('/api/categories', expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Behind Scenes', nameEn: 'Behind Scenes' }) }));
+  expect(fetch).toHaveBeenCalledWith('/api/categories', expect.objectContaining({ method: 'POST', body: expect.stringContaining('"color":') }));
   expect(refresh).toHaveBeenCalled();
   expect(screen.getByLabelText('Category name (German)')).toHaveValue('');
 });
 
-it('renames an existing category using its ID', async () => {
+it('edits a category name and color using its stable ID', async () => {
   render(<CategoriesPage />);
-  fireEvent.click(screen.getByRole('button', { name: 'Rename category: Documentary' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit category: Documentary' }));
   fireEvent.change(screen.getAllByLabelText('Category name (German)')[1], { target: { value: 'New category name' } });
+  fireEvent.change(screen.getAllByLabelText('Custom color')[1], { target: { value: '#ff8800' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await screen.findByText('Category saved.');
-  expect(fetch).toHaveBeenCalledWith('/api/categories', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ id: 'c1', name: 'New category name', nameEn: 'Documentary' }) }));
+  expect(fetch).toHaveBeenCalledWith('/api/categories', expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ id: 'c1', name: 'New category name', nameEn: 'Documentary', color: '#FF8800' }) }));
 });
 
 it('requires confirmation before deleting a linked category', async () => {

@@ -3,7 +3,7 @@ import { CategoryTransfer } from '../CategoryTransfer';
 
 const imported = jest.fn(async () => {});
 const busy = jest.fn();
-const categories = [{ id: 'existing-id', name: 'Natur', nameEn: 'Nature', contentCount: 2 }];
+const categories = [{ id: 'existing-id', name: 'Natur', nameEn: 'Nature', color: '#38BDF8', contentCount: 2 }];
 const document = { schemaVersion: 1, categories: [{ name: 'Natur', nameEn: 'Natural world' }, { name: 'Stadt', nameEn: 'City' }] };
 function fileFor(value: unknown) { const file = new File([JSON.stringify(value)], 'categories-export.json', { type: 'application/json' }); Object.defineProperty(file, 'text', { value: async () => JSON.stringify(value) }); return file; }
 beforeEach(() => { jest.clearAllMocks(); globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ created: 1, updated: 1, unchanged: 0 }) }); });
@@ -32,7 +32,7 @@ test('cancel leaves existing categories unchanged', async () => {
   expect(screen.queryByRole('button', { name: 'Confirm category import' })).not.toBeInTheDocument();
   expect(fetch).not.toHaveBeenCalled();
 });
-test('exports both names without internal IDs or assignment counts', async () => {
+test('exports both names and the selected color without internal IDs or assignment counts', async () => {
   const createUrl = jest.fn((_blob: Blob) => 'blob:categories');
   const oldCreate = URL.createObjectURL; const oldRevoke = URL.revokeObjectURL;
   Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createUrl });
@@ -43,7 +43,7 @@ test('exports both names without internal IDs or assignment counts', async () =>
     view(); fireEvent.click(screen.getByRole('button', { name: 'Export categories' }));
     const blob = createUrl.mock.calls[0][0] as Blob;
     const text = await new Promise<string>((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.readAsText(blob); });
-    expect(JSON.parse(text)).toEqual({ schemaVersion: 1, categories: [{ name: 'Natur', nameEn: 'Nature' }] });
+    expect(JSON.parse(text)).toEqual({ schemaVersion: 1, categories: [{ name: 'Natur', nameEn: 'Nature', color: '#38BDF8' }] });
     expect(filename).toBe('categories-export.json');
   } finally { await new Promise(resolve => setTimeout(resolve, 1100)); click.mockRestore(); Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: oldCreate }); Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: oldRevoke }); }
 });

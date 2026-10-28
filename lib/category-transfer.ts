@@ -14,13 +14,13 @@ export const CategoryImportSchema = z.object({
 });
 export type CategoryImportDocument = z.infer<typeof CategoryImportSchema>;
 
-export function categoryImportPreview(document: CategoryImportDocument, existing: Pick<CategorySummary, 'name' | 'nameEn'>[]) {
+export function categoryImportPreview(document: CategoryImportDocument, existing: Pick<CategorySummary, 'name' | 'nameEn' | 'color'>[]) {
   const current = new Map(existing.map(category => [category.name.normalize('NFKC').trim().replaceAll(/\s+/g, ' ').toLowerCase(), category]));
   const counts = { created: 0, updated: 0, unchanged: 0, total: document.categories.length };
   for (const category of document.categories) {
     const old = current.get(category.name.toLowerCase());
     if (!old) counts.created++;
-    else if (old.name !== category.name || old.nameEn !== category.nameEn) counts.updated++;
+    else if (old.name !== category.name || old.nameEn !== category.nameEn || (category.color !== undefined && old.color?.toUpperCase() !== category.color)) counts.updated++;
     else counts.unchanged++;
   }
   return counts;

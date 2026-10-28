@@ -13,7 +13,7 @@ export type CatalogCardDto = {
   thumbnailUrl?: string;
   type?: string;
   genre?: string;
-  categories?: { id: string; name: string; nameEn?: string }[];
+  categories?: { id: string; name: string; nameEn?: string; color?: string | null }[];
   actor?: string;
   actors?: CatalogActorDto[];
   duration?: string;

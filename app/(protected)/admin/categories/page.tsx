@@ -9,6 +9,8 @@ import { useCategories } from '@/hooks/useCategories';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { categoryLabel } from '@/lib/category-label';
 import { CategoryTransfer } from '@/components/admin/CategoryTransfer';
+import { CategoryColorPicker } from '@/components/admin/CategoryColorPicker';
+import { categoryColor, suggestedCategoryColor } from '@/lib/category-color';
 
 const CATEGORY_ERROR_MESSAGES: readonly TranslationKey[] = [
   'This category already exists.',
@@ -21,16 +23,21 @@ export default function CategoriesPage() {
   const { categories, error: loadError, isLoading, refresh } = useCategories();
   const [name, setName] = useState('');
   const [nameEn, setNameEn] = useState('');
+  const [newColor, setNewColor] = useState<string>();
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [draftEn, setDraftEn] = useState('');
+  const [draftColor, setDraftColor] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  async function changeCategory(method: 'POST' | 'PATCH' | 'DELETE', values: { id?: string; name?: string; nameEn?: string }) {
+  const suggested = suggestedCategoryColor(categories.filter(category => category.id !== editing).map(categoryColor));
+  const color = newColor ?? suggestedCategoryColor(categories.map(categoryColor));
+
+  async function changeCategory(method: 'POST' | 'PATCH' | 'DELETE', values: { id?: string; name?: string; nameEn?: string; color?: string }) {
     if (pending) return;
     setPending(true);
     setError('');
@@ -43,7 +50,7 @@ export default function CategoriesPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error?.message || 'Category could not be saved.');
-      if (method === 'POST') { setName(''); setNameEn(''); }
+      if (method === 'POST') { setName(''); setNameEn(''); setNewColor(undefined); }
       setEditing(null);
       setDeleting(null);
       setNotice(t(method === 'DELETE' ? 'Category deleted.' : 'Category saved.'));
@@ -63,13 +70,14 @@ export default function CategoriesPage() {
       <CategoryTransfer categories={categories} disabled={pending || isLoading || Boolean(loadError)} onBusyChange={setPending} onImported={async () => { await refresh(undefined, { throwOnError: false }); }} />
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 sm:p-6">
         <h2 className="mb-4 flex items-center gap-2 font-semibold"><Tags aria-hidden="true" className="h-5 w-5 text-red-400" />{t('Create category')}</h2>
-        <form onSubmit={event => { event.preventDefault(); void changeCategory('POST', { name, nameEn }); }} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form onSubmit={event => { event.preventDefault(); void changeCategory('POST', { name, nameEn, color }); }} className="grid gap-4 sm:grid-cols-2">
           <div className="flex-1">
             <label htmlFor="new-category-name" className="mb-2 block text-sm text-zinc-300">{t('Category name (German)')}</label>
             <input id="new-category-name" value={name} onChange={event => setName(event.target.value)} required maxLength={80} disabled={pending} className="h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white focus:border-red-500 focus:outline-none" />
           </div>
           <div className="flex-1"><label htmlFor="new-category-name-en" className="mb-2 block text-sm text-zinc-300">{t('Category name (English)')}</label><input id="new-category-name-en" value={nameEn} onChange={event => setNameEn(event.target.value)} required maxLength={80} disabled={pending} className="h-11 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white focus:border-red-500 focus:outline-none" /></div>
-          <Button type="submit" disabled={pending || !name.trim() || !nameEn.trim()} className="h-11 bg-red-600 text-white hover:bg-red-500"><Plus aria-hidden="true" className="mr-2 h-4 w-4" />{t('Create category')}</Button>
+          <div className="sm:col-span-2"><CategoryColorPicker value={color} onChange={setNewColor} suggested={suggestedCategoryColor(categories.map(categoryColor))} disabled={pending} /></div>
+          <Button type="submit" disabled={pending || !name.trim() || !nameEn.trim()} className="h-11 justify-self-start bg-red-600 text-white hover:bg-red-500"><Plus aria-hidden="true" className="mr-2 h-4 w-4" />{t('Create category')}</Button>
         </form>
         {error && <p role="alert" className="mt-4 text-sm text-red-300">{error}</p>}
         {notice && <output className="mt-4 block text-sm text-emerald-300">{notice}</output>}
@@ -88,17 +96,18 @@ export default function CategoriesPage() {
           {filtered.map(category => (
             <li key={category.id} className="p-5">
               {editing === category.id ? (
-                <form onSubmit={event => { event.preventDefault(); void changeCategory('PATCH', { id: category.id, name: draft, nameEn: draftEn }); }} className="flex flex-wrap items-center gap-3">
+                <form onSubmit={event => { event.preventDefault(); void changeCategory('PATCH', { id: category.id, name: draft, nameEn: draftEn, color: draftColor }); }} className="grid gap-4 sm:grid-cols-2">
                   <label className="flex-1 text-sm text-zinc-300">{t('Category name (German)')}<input value={draft} onChange={event => setDraft(event.target.value)} required maxLength={80} disabled={pending} className="mt-2 h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white" /></label>
                   <label className="flex-1 text-sm text-zinc-300">{t('Category name (English)')}<input value={draftEn} onChange={event => setDraftEn(event.target.value)} required maxLength={80} disabled={pending} className="mt-2 h-10 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 text-white" /></label>
-                  <Button type="submit" disabled={pending || !draft.trim() || !draftEn.trim()}>{t('Save')}</Button>
-                  <Button type="button" disabled={pending} onClick={() => setEditing(null)}>{t('Cancel')}</Button>
+                  <div className="sm:col-span-2"><CategoryColorPicker value={draftColor} onChange={setDraftColor} suggested={suggested} disabled={pending} /></div>
+                  <div className="flex gap-2 sm:col-span-2"><Button type="submit" disabled={pending || !draft.trim() || !draftEn.trim()}>{t('Save')}</Button>
+                  <Button type="button" disabled={pending} onClick={() => setEditing(null)}>{t('Cancel')}</Button></div>
                 </form>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="min-w-0"><h2 className="break-words font-medium text-white">{categoryLabel(category, locale)}</h2><p className="mt-1 text-xs text-zinc-400">DE: {category.name} · EN: {category.nameEn || '—'}</p><p className="mt-1 text-xs text-zinc-400">{t('Linked titles')}: {category.contentCount}</p></div>
+                  <div className="flex min-w-0 items-start gap-3"><span aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 rounded-full border border-white/20" style={{ backgroundColor: categoryColor(category) }} /><div className="min-w-0"><h2 className="break-words font-medium text-white">{categoryLabel(category, locale)}</h2><p className="mt-1 text-xs text-zinc-400">DE: {category.name} · EN: {category.nameEn || '—'}</p><p className="mt-1 text-xs text-zinc-400">{t('Linked titles')}: {category.contentCount} <span className="ml-2 font-mono">{categoryColor(category)}</span></p></div></div>
                   <div className="flex gap-2">
-                    <Button type="button" disabled={pending} aria-label={`${t('Rename category')}: ${categoryLabel(category, locale)}`} onClick={() => { setEditing(category.id); setDraft(category.name); setDraftEn(category.nameEn ?? ''); setDeleting(null); }} className="bg-zinc-800 text-zinc-200 hover:bg-zinc-700"><Pencil aria-hidden="true" className="mr-2 h-4 w-4" />{t('Rename category')}</Button>
+                    <Button type="button" disabled={pending} aria-label={`${t('Edit category')}: ${categoryLabel(category, locale)}`} onClick={() => { setEditing(category.id); setDraft(category.name); setDraftEn(category.nameEn ?? ''); setDraftColor(categoryColor(category)); setDeleting(null); }} className="bg-zinc-800 text-zinc-200 hover:bg-zinc-700"><Pencil aria-hidden="true" className="mr-2 h-4 w-4" />{t('Edit category')}</Button>
                     <Button type="button" disabled={pending} aria-label={`${t('Delete category')}: ${categoryLabel(category, locale)}`} onClick={() => setDeleting(category.id)} className="bg-transparent text-red-300 hover:bg-red-500/10"><Trash2 aria-hidden="true" className="mr-2 h-4 w-4" />{t('Delete')}</Button>
                   </div>
                 </div>

@@ -5,12 +5,10 @@ import { useLanguage } from '@/components/providers/LanguageProvider';
 import { categoryLabel } from '@/lib/category-label';
 import type { CategorySegment } from '@/lib/manual-categorization/types';
 import { formatCategoryTime } from '@/lib/manual-categorization/types';
+import { categoryColor } from '@/lib/category-color';
 
-export function categoryTimelineColor(id: string): string {
-  // Identity, rather than label, ordering or the other visible categories, owns the color.
-  let hash = 2166136261;
-  for (const character of id) hash = Math.imul(hash ^ (character.codePointAt(0) ?? 0), 16777619) >>> 0;
-  return `hsl(${hash % 36000 / 100} 78% 62%)`;
+export function categoryTimelineColor(id: string, color?: string | null): string {
+  return categoryColor({ id, color });
 }
 
 export function CategoryTimeline({ segments, duration, time, onSeek, showLegend = true, seekControl, buffered = 0 }: Readonly<{
@@ -28,7 +26,7 @@ export function CategoryTimeline({ segments, duration, time, onSeek, showLegend 
     const group = groups.get(segment.categoryId) ?? [];
     group.push(segment); groups.set(segment.categoryId, group);
   }
-  const colors = new Map([...groups.keys()].map(id => [id, categoryTimelineColor(id)]));
+  const colors = new Map([...groups].map(([id, ranges]) => [id, categoryTimelineColor(id, ranges[0].category.color)]));
   const tooltipTime = hover?.seconds ?? focused?.startSeconds;
   const tooltipRanges = tooltipTime === undefined ? [] : segments.filter(segment => tooltipTime >= segment.startSeconds && tooltipTime < segment.endSeconds);
   const tooltipCategories = [...new Map(tooltipRanges.map(segment => [segment.categoryId, segment.category])).values()];
@@ -66,7 +64,7 @@ export function CategoryTimeline({ segments, duration, time, onSeek, showLegend 
             const label = `${categoryLabel(segment.category, locale)} · ${formatCategoryTime(start)} – ${formatCategoryTime(end)}`;
             return <button key={`${id}-${segment.startSeconds}-${segment.endSeconds}`} type="button" aria-label={label} aria-current={active ? 'true' : undefined}
               aria-describedby={tooltipRanges.includes(segment) ? tooltipId : undefined} onFocus={() => setFocused(segment)} onBlur={() => setFocused(null)}
-              onClick={() => onSeek(start)} className={`absolute min-w-px rounded border transition hover:z-10 hover:opacity-100 focus-visible:z-30 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2 ${seekControl ? '-inset-y-0.5' : 'inset-y-0.5'} ${active ? 'border-white opacity-90' : 'border-white/40 opacity-65'}`}
+              onClick={() => onSeek(start)} className={`absolute min-w-px rounded border transition hover:z-10 hover:opacity-100 focus-visible:z-30 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2 ${seekControl ? '-inset-y-0.5' : 'inset-y-0.5'} ${active ? 'border-white opacity-100' : 'border-white/60 opacity-90'}`}
               style={{ backgroundColor: colors.get(id), left: `${start / duration * 100}%`, width: `${(end - start) / duration * 100}%` }} />;
           }))}
       {!seekControl && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 z-30 w-px bg-white" style={{ left: `${percent(time)}%` }} />}

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, context: { params: Promise<Param
       where: { id: movieId },
       include: {
         categories: { include: { category: true } },
-        categorySegments: { orderBy: { startSeconds: 'asc' }, select: { categoryId: true, startSeconds: true, endSeconds: true, category: { select: { id: true, name: true, nameEn: true } } } },
+        categorySegments: { orderBy: { startSeconds: 'asc' }, select: { categoryId: true, startSeconds: true, endSeconds: true, category: { select: { id: true, name: true, nameEn: true, color: true } } } },
         actors: {
           include: {
             actor: true

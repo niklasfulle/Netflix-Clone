@@ -1,4 +1,4 @@
-export type CategoryName = { id: string; name: string; nameEn?: string };
+export type CategoryName = { id: string; name: string; nameEn?: string; color?: string | null };
 export type CategorySegment = {
   categoryId: string;
   startSeconds: number;

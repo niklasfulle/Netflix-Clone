@@ -5,6 +5,7 @@ import { adminMutationAudit } from '@/lib/admin-mutation-audit';
 import { ApiError, handleApiError } from '@/lib/api-helpers';
 import { CategoryCreateSchema, CategoryUpdateSchema } from '@/lib/category-validation';
 import { db } from '@/lib/db';
+import { suggestedCategoryColor } from '@/lib/category-color';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,9 +44,9 @@ export async function GET() {
   return runCategoryRoute(async () => {
     const categories = await db.category.findMany({
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, nameEn: true, _count: { select: { movies: true } } },
+      select: { id: true, name: true, nameEn: true, color: true, _count: { select: { movies: true } } },
     });
-    return Response.json({ categories: categories.map(({ id, name, nameEn, _count }) => ({ id, name, nameEn, contentCount: _count.movies })) }, {
+    return Response.json({ categories: categories.map(({ id, name, nameEn, color, _count }) => ({ id, name, nameEn, color, contentCount: _count.movies })) }, {
       headers: { 'Cache-Control': 'private, no-store' },
     });
   });
@@ -57,7 +58,8 @@ export async function POST(request: Request) {
     const parsed = CategoryCreateSchema.safeParse(await categoryBody(request));
     if (!parsed.success) throw new ApiError('VALIDATION_ERROR', 'Use a category name between 1 and 80 characters.');
     const { name, nameEn } = parsed.data;
-    const category = await db.category.create({ data: { name, nameEn, normalizedName: name.toLowerCase() } });
+    const color = parsed.data.color ?? suggestedCategoryColor((await db.category.findMany({ select: { color: true } })).map(category => category.color));
+    const category = await db.category.create({ data: { name, nameEn, color, normalizedName: name.toLowerCase() } });
     await audit.succeeded({ target: { type: 'category', id: category.id } });
     return Response.json(category, { status: 201 });
   }, audit);
@@ -68,9 +70,9 @@ export async function PATCH(request: Request) {
   return runCategoryRoute(async () => {
     const parsed = CategoryUpdateSchema.safeParse(await categoryBody(request));
     if (!parsed.success) throw new ApiError('VALIDATION_ERROR', 'Use a category name between 1 and 80 characters.');
-    const { id, name, nameEn } = parsed.data;
-    const category = await db.category.update({ where: { id }, data: { name, nameEn, normalizedName: name.toLowerCase() } });
-    await audit.succeeded({ target: { type: 'category', id }, metadata: { changedFields: ['name', 'nameEn'] } });
+    const { id, name, nameEn, color } = parsed.data;
+    const category = await db.category.update({ where: { id }, data: { name, nameEn, normalizedName: name.toLowerCase(), ...(color && { color }) } });
+    await audit.succeeded({ target: { type: 'category', id }, metadata: { changedFields: ['name', 'nameEn', ...(color ? ['color'] : [])] } });
     return Response.json(category);
   }, audit);
 }

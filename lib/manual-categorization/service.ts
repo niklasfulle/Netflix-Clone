@@ -29,8 +29,8 @@ export async function readCategorization(query: { movieId?: string; exclude?: st
     const movie = await transaction.movie.findFirst({
       where: { id, status: { not: 'ARCHIVED' } },
       select: { id: true, title: true, type: true, categoryReviewVersion: true, categoryReviewedAt: true,
-        categories: { select: { category: { select: { id: true, name: true, nameEn: true } } } },
-        categorySegments: { orderBy: { startSeconds: 'asc' }, select: { categoryId: true, startSeconds: true, endSeconds: true, category: { select: { id: true, name: true, nameEn: true } } } },
+        categories: { select: { category: { select: { id: true, name: true, nameEn: true, color: true } } } },
+        categorySegments: { orderBy: { startSeconds: 'asc' }, select: { categoryId: true, startSeconds: true, endSeconds: true, category: { select: { id: true, name: true, nameEn: true, color: true } } } },
       },
     });
     if (!movie) throw new CategorizationError('NOT_FOUND');

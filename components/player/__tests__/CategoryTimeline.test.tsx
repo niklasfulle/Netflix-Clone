@@ -58,3 +58,10 @@ it('provides category details through keyboard focus as well', () => {
   fireEvent.blur(range);
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
+
+it('renders a saved category color and updates it after editing', () => {
+  const { rerender } = render(view([{ ...segments[0], category: { ...forest, color: '#FF8800' } }]));
+  expect(screen.getByRole('button', { name: /Forest ·/ })).toHaveStyle({ backgroundColor: '#FF8800' });
+  rerender(view([{ ...segments[0], category: { ...forest, color: '#12AB34' } }]));
+  expect(screen.getByRole('button', { name: /Forest ·/ })).toHaveStyle({ backgroundColor: '#12AB34' });
+});

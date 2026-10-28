@@ -436,6 +436,7 @@ model Category {
   id             String          @id @default(cuid())
   name           String          @db.VarChar(80)
   nameEn         String          @default("") @db.VarChar(80)
+  color          String?         @db.VarChar(7)
   normalizedName String          @unique
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt

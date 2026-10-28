@@ -12,7 +12,7 @@ import { db } from '@/lib/db';
 import { GET, POST, PATCH, DELETE } from '../route';
 
 const request = (method: string, body: unknown) => new Request('http://localhost/api/categories', { method, body: JSON.stringify(body) });
-beforeEach(() => { jest.resetAllMocks(); jest.mocked(isCurrentUserAdmin).mockResolvedValue(true); });
+beforeEach(() => { jest.resetAllMocks(); jest.mocked(isCurrentUserAdmin).mockResolvedValue(true); jest.mocked(db.category.findMany).mockResolvedValue([]); });
 
 it.each(['GET', 'POST', 'PATCH', 'DELETE'])('requires administrator access before processing %s', async method => {
   jest.mocked(isCurrentUserAdmin).mockResolvedValue(false);
@@ -35,7 +35,7 @@ it('normalizes category names and records a successful creation', async () => {
   jest.mocked(db.category.create).mockResolvedValue({ id: 'c', name: 'Behind Scenes', nameEn: 'Behind Scenes' } as never);
   const response = await POST(request('POST', { name: '  Behind   Scenes  ', nameEn: '  Behind   Scenes  ' }));
   expect(response.status).toBe(201);
-  expect(db.category.create).toHaveBeenCalledWith({ data: { name: 'Behind Scenes', nameEn: 'Behind Scenes', normalizedName: 'behind scenes' } });
+  expect(db.category.create).toHaveBeenCalledWith({ data: { name: 'Behind Scenes', nameEn: 'Behind Scenes', normalizedName: 'behind scenes', color: '#38BDF8' } });
   expect(mockAudit.succeeded).toHaveBeenCalledWith({ target: { type: 'category', id: 'c' } });
 });
 
@@ -58,6 +58,18 @@ it('renames a category by its stable ID', async () => {
   jest.mocked(db.category.update).mockResolvedValue({ id: 'c', name: 'New name', nameEn: 'New name' } as never);
   expect((await PATCH(request('PATCH', { id: 'c', name: 'New name', nameEn: 'New name' }))).status).toBe(200);
   expect(db.category.update).toHaveBeenCalledWith({ where: { id: 'c' }, data: { name: 'New name', nameEn: 'New name', normalizedName: 'new name' } });
+});
+
+it('persists a custom color without recording its value in audit metadata', async () => {
+  jest.mocked(db.category.update).mockResolvedValue({ id: 'c', name: 'Forest', nameEn: 'Forest', color: '#12AB34' } as never);
+  expect((await PATCH(request('PATCH', { id: 'c', name: 'Forest', nameEn: 'Forest', color: '#12ab34' }))).status).toBe(200);
+  expect(db.category.update).toHaveBeenCalledWith({ where: { id: 'c' }, data: { name: 'Forest', nameEn: 'Forest', normalizedName: 'forest', color: '#12AB34' } });
+  expect(mockAudit.succeeded).toHaveBeenCalledWith({ target: { type: 'category', id: 'c' }, metadata: { changedFields: ['name', 'nameEn', 'color'] } });
+});
+
+it('rejects a malformed color before writing', async () => {
+  expect((await POST(request('POST', { name: 'Forest', nameEn: 'Forest', color: 'red' }))).status).toBe(400);
+  expect(db.category.create).not.toHaveBeenCalled();
 });
 
 it('removes only the category; movie deletion is never requested', async () => {
