@@ -10,6 +10,7 @@ import {
 } from "@/lib/administration/admin-summary-runtime";
 import { cacheTelemetryHeaders } from "@/lib/administration/summary-cache";
 import { db } from "@/lib/db";
+import { DEFAULT_RECOMMENDATION_WEIGHTS, RECOMMENDATION_COUNT } from "@/lib/recommendations/ranking";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,16 @@ const adminOverviewSchema = z.object({
     views: z.number().int().nonnegative(),
     activeProfiles: z.number().int().nonnegative(),
     errors24h: z.number().int().nonnegative(),
+    categories: z.number().int().nonnegative(),
+    globallyCategorizedContent: z.number().int().nonnegative(),
+    timelineCategorizedContent: z.number().int().nonnegative(),
+    uncategorizedContent: z.number().int().nonnegative(),
+  }).strict(),
+  recommendations: z.object({
+    count: z.number().int().positive(),
+    primaryActorWeight: z.number().nonnegative(),
+    secondaryActorWeight: z.number().nonnegative(),
+    categoryWeight: z.number().nonnegative(),
   }).strict(),
   topContent: z.array(z.object({
     id: z.string().min(1).max(191),
@@ -53,7 +64,7 @@ const adminOverviewSchema = z.object({
     status: z.string().max(64),
     createdAt: z.iso.datetime(),
     thumbnailUrl: z.string().max(4096).nullable(),
-  }).strict()).max(5),
+  }).strict()).max(6),
   recentActivity: z.array(storedLogSchema).max(6),
 }).strict();
 
@@ -107,6 +118,10 @@ export async function GET() {
     activeProfiles,
     topViewGroups,
     recentContent,
+    categories,
+    globallyCategorizedContent,
+    timelineCategorizedContent,
+    uncategorizedContent,
   ] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { isBlocked: true } }),
@@ -125,9 +140,28 @@ export async function GET() {
     }),
     db.movie.findMany({
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 6,
       select: { id: true, title: true, type: true, status: true, createdAt: true, thumbnailUrl: true },
     }),
+    db.category.count(),
+    db.movie.count({ where: {
+      status: "PUBLISHED",
+      type: { in: ["Movie", "Serie"] },
+      categories: { some: {} },
+    } }),
+    db.movie.count({ where: {
+      status: "PUBLISHED",
+      type: { in: ["Movie", "Serie"] },
+      categorySegments: { some: {} },
+    } }),
+    db.movie.count({ where: {
+      status: "PUBLISHED",
+      type: { in: ["Movie", "Serie"] },
+      NOT: [
+        { categories: { some: {} } },
+        { categorySegments: { some: {} } },
+      ],
+    } }),
   ]);
 
   const topIds = topViewGroups.map((item) => item.movieId);
@@ -151,7 +185,17 @@ export async function GET() {
   }).length;
 
       return {
-        counts: { users, blockedUsers, newUsers, actors, movies, series, newContent, views, activeProfiles, errors24h },
+        counts: {
+          users, blockedUsers, newUsers, actors, movies, series, newContent, views,
+          activeProfiles, errors24h, categories, globallyCategorizedContent,
+          timelineCategorizedContent, uncategorizedContent,
+        },
+        recommendations: {
+          count: RECOMMENDATION_COUNT,
+          primaryActorWeight: DEFAULT_RECOMMENDATION_WEIGHTS.primaryActor,
+          secondaryActorWeight: DEFAULT_RECOMMENDATION_WEIGHTS.secondaryActor,
+          categoryWeight: DEFAULT_RECOMMENDATION_WEIGHTS.category,
+        },
         topContent,
         recentContent: recentContent.map(item => ({ ...item, createdAt: item.createdAt.toISOString() })),
         recentActivity: logs.slice(0, 6),

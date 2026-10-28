@@ -10,6 +10,8 @@ import {
   Eye,
   Film,
   Plus,
+  Sparkles,
+  Tags,
   Tv,
   UserRoundSearch,
   Users,
@@ -144,24 +146,94 @@ export default function AdminHomePage() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60">
-              <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-                <h2 className="font-semibold text-white">Letzte Systemaktivität</h2>
-                <Link href="/admin/logs" className="text-sm text-red-400">Alle Logs</Link>
-              </div>
-              <div className="divide-y divide-zinc-800">
-                {data.recentActivity.length === 0 && <p className="p-5 text-sm text-zinc-500">Keine Aktivitäten vorhanden.</p>}
-                {data.recentActivity.map((entry: any, index: number) => (
-                  <div key={`${entry.timestamp}-${index}`} className="flex items-center gap-3 px-5 py-3">
-                    <span className={`h-2 w-2 rounded-full ${getActivityTone(entry.level)}`} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">{entry.action || "Unbekannte Aktivität"}</span>
-                    <time className="text-xs text-zinc-600">
-                      {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "–"}
-                    </time>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <div className="contents">
+              {data.recommendations && (
+                <>
+                  <section aria-label="Kategorien" className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="flex items-center gap-2 font-semibold text-white">
+                          <Tags aria-hidden="true" className="h-4 w-4 text-sky-400" /> Kategorien
+                        </h2>
+                        <p className="mt-1 text-sm text-zinc-400">Katalogabdeckung veröffentlichter Filme und Serien</p>
+                      </div>
+                      <Link href="/admin/categories" className="shrink-0 text-sm font-medium text-red-400 hover:text-red-300">
+                        Verwalten <ArrowRight aria-hidden="true" className="ml-1 inline h-4 w-4" />
+                      </Link>
+                    </div>
+                    <dl className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Globale Kategorien</dt>
+                        <dd className="mt-1 text-xl font-semibold text-white">{counts.categories.toLocaleString("de-DE")}</dd>
+                      </div>
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Global zugeordnet</dt>
+                        <dd className="mt-1 text-xl font-semibold text-white">{counts.globallyCategorizedContent.toLocaleString("de-DE")}</dd>
+                      </div>
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Mit Timeline-Kategorien</dt>
+                        <dd className="mt-1 text-xl font-semibold text-white">{counts.timelineCategorizedContent.toLocaleString("de-DE")}</dd>
+                      </div>
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Noch ohne Kategorien</dt>
+                        <dd className="mt-1 text-xl font-semibold text-white">{counts.uncategorizedContent.toLocaleString("de-DE")}</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section aria-label="Empfehlungsalgorithmus" className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="flex items-center gap-2 font-semibold text-white">
+                          <Sparkles aria-hidden="true" className="h-4 w-4 text-violet-400" /> Empfehlungsalgorithmus
+                        </h2>
+                        <p className="mt-1 text-sm text-zinc-400">Aktuelle regelbasierte Gewichtung</p>
+                      </div>
+                      <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2.5 py-1 text-xs font-medium text-violet-200">
+                        {data.recommendations.count} Vorschläge
+                      </span>
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-zinc-300">
+                      Globale und Timeline-Kategorien fließen gemeinsam in den Ähnlichkeitsvergleich ein. Die ersten zwei Plätze bevorzugen gemeinsame Darsteller.
+                    </p>
+                    <dl className="mt-4 grid grid-cols-3 gap-3">
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Darsteller · Top 2</dt>
+                        <dd className="mt-1 font-semibold text-white">{data.recommendations.primaryActorWeight}×</dd>
+                      </div>
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Kategorien</dt>
+                        <dd className="mt-1 font-semibold text-white">{data.recommendations.categoryWeight}×</dd>
+                      </div>
+                      <div className="rounded-xl bg-zinc-950/70 p-3">
+                        <dt className="text-xs text-zinc-500">Darsteller · weitere</dt>
+                        <dd className="mt-1 font-semibold text-white">{data.recommendations.secondaryActorWeight}×</dd>
+                      </div>
+                    </dl>
+                    <p className="mt-3 text-xs text-zinc-500">Startwerte zur späteren Abstimmung; noch keine trainierten Gewichte.</p>
+                  </section>
+                </>
+              )}
+
+              <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60">
+                <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+                  <h2 className="font-semibold text-white">Letzte Systemaktivität</h2>
+                  <Link href="/admin/logs" className="text-sm text-red-400">Alle Logs</Link>
+                </div>
+                <div className="divide-y divide-zinc-800">
+                  {data.recentActivity.length === 0 && <p className="p-5 text-sm text-zinc-500">Keine Aktivitäten vorhanden.</p>}
+                  {data.recentActivity.map((entry: any, index: number) => (
+                    <div key={`${entry.timestamp}-${index}`} className="flex items-center gap-3 px-5 py-3">
+                      <span className={`h-2 w-2 rounded-full ${getActivityTone(entry.level)}`} />
+                      <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">{entry.action || "Unbekannte Aktivität"}</span>
+                      <time className="text-xs text-zinc-600">
+                        {entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "–"}
+                      </time>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
           </div>
         </>
       )}
