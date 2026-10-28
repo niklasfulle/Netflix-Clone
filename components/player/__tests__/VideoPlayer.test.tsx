@@ -83,7 +83,7 @@ it('does not offer an ineffective volume slider when the browser ignores media v
 });
 
 it('shows interval categories and seeks to them during regular playback', () => {
-  const category = { id: 'forest', name: 'Wald', nameEn: 'Forest' };
+  const category = { id: 'forest', name: 'Wald', nameEn: 'Forest', color: '#12AB34' };
   const { container } = mount({ items: [{ ...items[0], categories: [category], categorySegments: [{ categoryId: 'forest', category, startSeconds: 10, endSeconds: 20 }] }], startTime: 0 });
   const video = ready(container);
   const segment = screen.getByRole('button', { name: 'Forest · 00:00:10.000 – 00:00:20.000' });
@@ -92,6 +92,8 @@ it('shows interval categories and seeks to them during regular playback', () => 
   expect(within(timeline).queryByRole('list')).not.toBeInTheDocument();
   const badges = screen.getByLabelText('Video categories');
   expect(badges.closest('header')).not.toBeNull();
+  expect(badges.querySelector('[style]')).toBeNull();
+  expect(segment).toHaveStyle({ backgroundColor: '#12AB34' });
   fireEvent.click(segment);
   expect(video.currentTime).toBe(10);
   expect(segment).toHaveAttribute('aria-current', 'true');
@@ -324,6 +326,46 @@ it('restores progress after metadata and keeps volume, mute and playback speed p
   fireEvent.change(screen.getByRole('combobox', { name: 'Playback speed' }), { target: { value: '2' } });
   fireEvent.rateChange(video);
   expect(localStorage.getItem('videoPlaybackRate')).toBe('2');
+});
+
+it('keeps volume, mute and speed separate when switching between watching and categorizing', () => {
+  localStorage.setItem('videoVolume', '0.4');
+  localStorage.setItem('videoMuted', 'true');
+  localStorage.setItem('videoPlaybackRate', '1.5');
+  const view = (mode: 'watch' | 'categorize') => <LanguageProvider initialLocale="en"><VideoPlayer items={[items[0]]} mode={mode} startTime={0} onBack={jest.fn()} /></LanguageProvider>;
+  const { container, rerender } = render(view('watch'));
+  let video = ready(container);
+  expect(video.volume).toBe(0.4);
+  expect(video.muted).toBe(true);
+  expect(video.playbackRate).toBe(1.5);
+
+  rerender(view('categorize'));
+  video = ready(container);
+  expect(video.volume).toBe(1);
+  expect(video.muted).toBe(false);
+  expect(video.playbackRate).toBe(1);
+  fireEvent.change(screen.getByRole('slider', { name: 'Volume' }), { target: { value: '0.2' } });
+  fireEvent.volumeChange(video);
+  fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+  fireEvent.volumeChange(video);
+  fireEvent.change(screen.getByRole('combobox', { name: 'Playback speed' }), { target: { value: '2' } });
+  fireEvent.rateChange(video);
+  expect(localStorage.getItem('videoVolume')).toBe('0.4');
+  expect(localStorage.getItem('videoPlaybackRate')).toBe('1.5');
+
+  rerender(view('watch'));
+  video = ready(container);
+  expect(video.volume).toBe(0.4);
+  expect(video.muted).toBe(true);
+  expect(video.playbackRate).toBe(1.5);
+  fireEvent.change(screen.getByRole('slider', { name: 'Volume' }), { target: { value: '0.7' } });
+  fireEvent.volumeChange(video);
+
+  rerender(view('categorize'));
+  video = ready(container);
+  expect(video.volume).toBe(0.2);
+  expect(video.muted).toBe(true);
+  expect(video.playbackRate).toBe(2);
 });
 
 it('honors an explicit restart instead of restoring saved progress', () => {

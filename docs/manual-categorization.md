@@ -3,6 +3,11 @@
 Open **Administration → Video analysis**. This mode is entirely manual and does
 not use model services, model jobs, predictions, or training examples.
 
+Volume, mute, and playback speed are stored independently from normal playback.
+Existing playback preferences stay with the regular player; the categorization
+player starts at normal speed and full volume, with sound enabled, until its own
+preferences are changed. Each mode remembers its settings across videos.
+
 The next random item is a non-archived Movie or Series file without whole-video
 categories, category intervals, or an explicitly completed categorization review.
 **Skip video** selects another eligible item where one exists. The displayed
@@ -35,6 +40,19 @@ application. No initialization or reseeding is required. Existing global
 categories and private legacy data are preserved. Runtime category names and
 assignments belong in the database; exports and fixtures containing private
 catalog data must remain outside Git and Docker images.
+
+## Category colors
+
+Category colors can be edited under **Administration → Categories → Edit category**.
+Choose a palette swatch or a custom color; the stored color is used in the player
+timeline. Category badges and selections do not display category colors. New categories prefer unused
+colors from a contrasting palette. Renaming or reordering categories does not
+change their stored color.
+
+Apply migration `20261028120000_category_colors` before deploying this feature.
+It adds an optional color and assigns persistent palette defaults to existing
+categories without changing assignments. Category exports include stored colors;
+older JSON exports remain compatible and preserve existing colors on import.
 
 Local integration check after updating the schema and containers:
 

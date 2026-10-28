@@ -8,9 +8,11 @@ import { addMovieView } from '@/actions/watch/add-movie-view';
 import { addToWatchlist } from '@/actions/watch/add-to-watchlist';
 import { updateWatchTime } from '@/actions/watch/update-watch-time';
 import { getWatchProgressSaveSecond } from '@/lib/watch-progress-save';
+import { PLAYER_PREFERENCE_KEYS, type PlayerMode } from './preferences';
 
 // Each mounted playback session owns exactly one video and its progress writes.
-export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElement | null>, resumeTime?: number, recordProgress = true) {
+export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElement | null>, resumeTime?: number, recordProgress = true, mode: PlayerMode = 'watch') {
+  const preferenceKeys = PLAYER_PREFERENCE_KEYS[mode];
   const { mutate } = useSWRConfig();
   const restored = useRef(false);
   const lastSaved = useRef(-1);
@@ -69,9 +71,9 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
     try { volumeProbe.volume = 0.5; setVolumeControlSupported(Math.abs(volumeProbe.volume - 0.5) < 0.01); }
     catch { setVolumeControlSupported(false); }
     try {
-      const savedVolume = localStorage.getItem('videoVolume');
-      const savedMuted = localStorage.getItem('videoMuted');
-      const savedRate = Number(localStorage.getItem('videoPlaybackRate'));
+      const savedVolume = localStorage.getItem(preferenceKeys.volume);
+      const savedMuted = localStorage.getItem(preferenceKeys.muted);
+      const savedRate = Number(localStorage.getItem(preferenceKeys.rate));
       if (savedVolume !== null && Number.isFinite(Number(savedVolume))) video.volume = Math.min(1, Math.max(0, Number(savedVolume)));
       video.muted = savedMuted === 'true';
       if ([0.5, 0.75, 1, 1.25, 1.5, 2].includes(savedRate)) video.playbackRate = savedRate;
@@ -92,7 +94,7 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
       document.removeEventListener('visibilitychange', hidden);
       window.removeEventListener('pagehide', leaving);
     };
-  }, [movieId, saveProgress, videoRef, recordProgress]);
+  }, [movieId, saveProgress, videoRef, recordProgress, preferenceKeys]);
 
   const play = async () => {
     const video = videoRef.current;
@@ -164,12 +166,12 @@ export function usePlayback(movieId: string, videoRef: RefObject<HTMLVideoElemen
       const video = videoRef.current;
       if (!video) return;
       setVolume(video.volume); setMuted(video.muted);
-      try { localStorage.setItem('videoVolume', String(video.volume)); localStorage.setItem('videoMuted', String(video.muted)); } catch { /* Optional preference. */ }
+      try { localStorage.setItem(preferenceKeys.volume, String(video.volume)); localStorage.setItem(preferenceKeys.muted, String(video.muted)); } catch { /* Optional preference. */ }
     },
     onRateChange: () => {
       if (!videoRef.current) return;
       setRate(videoRef.current.playbackRate);
-      try { localStorage.setItem('videoPlaybackRate', String(videoRef.current.playbackRate)); } catch { /* Optional preference. */ }
+      try { localStorage.setItem(preferenceKeys.rate, String(videoRef.current.playbackRate)); } catch { /* Optional preference. */ }
     },
   };
   return { playing, time, duration, buffered, volume, volumeControlSupported, muted, rate, waiting, ready, ended, error, progressError,

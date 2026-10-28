@@ -13,6 +13,7 @@ import PlayerControls, { PlayerButton } from './PlayerControls';
 import type { PlayerItem } from './types';
 import { categoryLabel } from '@/lib/category-label';
 import type { CategoryName } from '@/lib/manual-categorization/types';
+import { PLAYER_PREFERENCE_KEYS, type PlayerMode } from './preferences';
 
 function VideoCategoryBadges({ categories = [] }: Readonly<{ categories?: CategoryName[] }>) {
   const { t, locale } = useLanguage();
@@ -27,13 +28,14 @@ interface PlayerProps {
   playlistTitle?: string;
   startTime?: number;
   onBack: () => void;
-  mode?: 'watch' | 'categorize';
+  mode?: PlayerMode;
   playbackRef?: Ref<PlayerHandle>;
   onPositionChange?: (time: number, duration: number) => void;
 }
 export type PlayerHandle = { seek: (seconds: number) => void };
 
 export default function VideoPlayer({ items, playlistTitle, startTime, onBack, mode = 'watch', playbackRef, onPositionChange }: Readonly<PlayerProps>) {
+  const preferenceKeys = PLAYER_PREFERENCE_KEYS[mode];
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState(items[0]?.id);
   const [queueOpen, setQueueOpen] = useState(false);
@@ -44,8 +46,8 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack, m
   const next = items[index + 1];
 
   useEffect(() => {
-    try { setAutoplay(localStorage.getItem('playerAutoplayNext') !== 'false'); } catch { /* Optional preference. */ }
-  }, []);
+    try { setAutoplay(localStorage.getItem(preferenceKeys.autoplay) !== 'false'); } catch { setAutoplay(true); }
+  }, [preferenceKeys]);
 
   const choose = useCallback((id: string) => { setCountdown(null); setActiveId(id); }, []);
   useEffect(() => {
@@ -59,12 +61,12 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack, m
 
   return (
     <div ref={rootRef} className={`relative w-full overflow-hidden bg-black text-white ${mode === 'categorize' ? 'rounded-2xl border border-zinc-800' : 'h-dvh'}`}>
-      <PlaybackSession key={current.id} item={current} items={items} index={index} playlistTitle={playlistTitle}
+      <PlaybackSession key={`${mode}:${current.id}`} item={current} items={items} index={index} playlistTitle={playlistTitle}
         mode={mode} playbackRef={playbackRef} onPositionChange={onPositionChange}
         rootRef={rootRef} startTime={startTime} queueOpen={queueOpen} setQueueOpen={setQueueOpen}
         autoplay={autoplay} setAutoplay={value => {
           setAutoplay(value); if (!value) setCountdown(null);
-          try { localStorage.setItem('playerAutoplayNext', String(value)); } catch { /* Optional preference. */ }
+          try { localStorage.setItem(preferenceKeys.autoplay, String(value)); } catch { /* Optional preference. */ }
         }}
         countdown={countdown} cancelCountdown={() => setCountdown(null)}
         onEnded={() => { if (mode === 'watch' && autoplay && next) setCountdown(5); }}
@@ -74,7 +76,7 @@ export default function VideoPlayer({ items, playlistTitle, startTime, onBack, m
 }
 
 interface SessionProps {
-  mode: 'watch' | 'categorize';
+  mode: PlayerMode;
   playbackRef?: Ref<PlayerHandle>;
   onPositionChange?: (time: number, duration: number) => void;
   item: PlayerItem;
@@ -104,7 +106,7 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   const resumeTime = mode === 'categorize' ? 0 : startTime ?? item.watchTime ?? loadedTime;
   const regionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const p = usePlayback(item.id, videoRef, resumeTime, mode === 'watch');
+  const p = usePlayback(item.id, videoRef, resumeTime, mode === 'watch', mode);
   const recommendations = useRecommendations(item.id, p.time, p.duration, mode === 'watch');
   useImperativeHandle(playbackRef, () => ({ seek: p.seek }), [p.seek]);
   useEffect(() => { onPositionChange?.(p.time, p.duration); }, [p.time, p.duration, onPositionChange]);
