@@ -19,6 +19,7 @@ beforeEach(() => {
   mockedUseSWR.mockReset();
   mutate.mockReset();
   mockedUseSWR.mockReturnValue({ data: actorsData, error: undefined, isLoading: false, mutate });
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ sources: [], content: [] }) } as Response);
 });
 
 afterEach(() => {
@@ -63,6 +64,7 @@ it("shows only the first saved source as a link in the actor list", () => {
 
 it("can add two sources to the same actor in sequence", async () => {
   globalThis.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ sources: [], content: [] }) } as Response)
     .mockResolvedValueOnce({
       ok: true,
       status: 201,
@@ -80,7 +82,7 @@ it("can add two sources to the same actor in sequence", async () => {
     ["IMDb", "https://example.com/imdb"],
     ["Filmografie", "https://example.com/filmography"],
   ]) {
-    fireEvent.click(screen.getByRole("button", { name: "Quelle hinzufügen" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Quelle hinzufügen" }));
     fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: label } });
     fireEvent.change(screen.getByLabelText("URL"), { target: { value: url } });
     fireEvent.click(screen.getByRole("button", { name: "Quelle speichern" }));
@@ -99,6 +101,7 @@ it("can add two sources to the same actor in sequence", async () => {
 
 it("shows nested source API errors without crashing the actor details", async () => {
   globalThis.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ sources: [], content: [] }) } as Response)
     .mockResolvedValueOnce({
       ok: true,
       status: 201,
@@ -112,7 +115,7 @@ it("shows nested source API errors without crashing the actor details", async ()
   render(<AdminActorsPage />);
   fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
 
-  fireEvent.click(screen.getByRole("button", { name: "Quelle hinzufügen" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Quelle hinzufügen" }));
   fireEvent.change(screen.getByLabelText("Bezeichnung"), { target: { value: "IMDb" } });
   fireEvent.change(screen.getByLabelText("URL"), { target: { value: "https://example.com/imdb" } });
   fireEvent.click(screen.getByRole("button", { name: "Quelle speichern" }));
@@ -170,7 +173,8 @@ it("closes actor details with Escape and restores focus", () => {
   expect(trigger).toHaveFocus();
 });
 
-it("shows assigned content in actor details", () => {
+it("shows assigned content in actor details", async () => {
+  globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ sources: [], content: [{ id: 'm1', title: 'Katalogfilm', type: 'Movie', status: 'PUBLISHED', thumbnailUrl: '/movie.jpg' }] }) } as Response);
   mockedUseSWR.mockReturnValue({
     data: {
       actors: [{
@@ -192,7 +196,7 @@ it("shows assigned content in actor details", () => {
   });
   render(<AdminActorsPage />);
   fireEvent.click(screen.getByRole("button", { name: /Ada Actor anzeigen/i }));
-  expect(screen.getByText("Katalogfilm")).toBeInTheDocument();
+  expect(await screen.findByText("Katalogfilm")).toBeInTheDocument();
   expect(screen.getByText("Film · Veröffentlicht")).toBeInTheDocument();
 });
 

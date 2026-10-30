@@ -60,6 +60,8 @@ export default function AdminActorsPage() {
   const [dialog, setDialog] = useState<ActorDialogType | null>(null);
   const [selectedActor, setSelectedActor] = useState<Actor | null>(null);
   const [detailActor, setDetailActor] = useState<Actor | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
   const [name, setName] = useState("");
   const [targetId, setTargetId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
@@ -89,6 +91,23 @@ export default function AdminActorsPage() {
   }).toString(), [page, pageSize, search, sort, direction, orphaned]);
   const { data, error, isLoading, mutate } = useSWR(`/api/actors?${params}`, fetcher, { keepPreviousData: true });
 
+  useEffect(() => {
+    if (!detailActor?.id) return;
+    const actorId = detailActor.id;
+    const controller = new AbortController();
+    setDetailLoading(true);
+    setDetailError("");
+    fetch(`/api/actors?detail=${encodeURIComponent(actorId)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Details konnten nicht geladen werden.");
+        return response.json();
+      })
+      .then((details) => setDetailActor((current) => current?.id === actorId ? { ...current, ...details } : current))
+      .catch(() => { if (!controller.signal.aborted) setDetailError("Details konnten nicht geladen werden. Bitte versuche es erneut."); })
+      .finally(() => { if (!controller.signal.aborted) setDetailLoading(false); });
+    return () => controller.abort();
+  }, [detailActor?.id]);
+
   const openDialog = (type: ActorDialogType, actor?: Actor) => {
     editorTriggerRef.current = document.activeElement as HTMLElement | null;
     setDialog(type);
@@ -104,7 +123,8 @@ export default function AdminActorsPage() {
     setSourceLabel("");
     setSourceUrl("");
     setSourceError("");
-    setDetailActor(actor);
+    setDetailLoading(true);
+    setDetailActor({ ...actor, content: [] });
   };
 
   const submitActor = async (event: React.SyntheticEvent<HTMLFormElement>) => {
@@ -299,6 +319,9 @@ export default function AdminActorsPage() {
               </dl>
             </header>
             <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5 [scrollbar-color:#52525b_transparent] [scrollbar-width:thin] sm:px-6">
+              {detailLoading && <p role="status" className="text-sm text-zinc-400">Details werden geladen …</p>}
+              {detailError && <p role="alert" className="text-sm text-red-400">{detailError}</p>}
+              {!detailLoading && !detailError && <>
               <section aria-labelledby="actor-sources-heading">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 id="actor-sources-heading" className="font-semibold text-white">Quellen für neue Inhalte</h3>
@@ -338,6 +361,7 @@ export default function AdminActorsPage() {
                   ))}
                 </div>
               </section>
+              </>}
             </div>
           </div>
         </dialog>

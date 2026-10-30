@@ -32,6 +32,24 @@ function parsePage(value: string | null, fallback: number, max: number) {
 export async function GET(request: Request = new Request("http://localhost/api/actors")) {
   return runAdminRoute('api_actors_list', async () => {
     const { searchParams } = new URL(request.url);
+  const detailId = searchParams.get("detail");
+  if (detailId) {
+    const actor = await db.actor.findUnique({
+      where: { id: detailId },
+      select: {
+        sources: { orderBy: { createdAt: "desc" } },
+        movies: { select: { movie: { select: { id: true, title: true, type: true, status: true } } } },
+      },
+    });
+    if (!actor) throw new ApiError('NOT_FOUND', 'Actor not found.');
+    return Response.json({
+      sources: actor.sources,
+      content: actor.movies.map(({ movie }) => ({
+        ...movie,
+        thumbnailUrl: `/api/catalog/thumbnails/${encodeURIComponent(movie.id)}`,
+      })),
+    });
+  }
   const page = parsePage(searchParams.get("page"), 1, 100_000);
   const pageSize = parsePage(searchParams.get("pageSize"), 20, 100);
   const search = searchParams.get("search")?.trim() || "";
@@ -48,10 +66,10 @@ export async function GET(request: Request = new Request("http://localhost/api/a
       include: {
         movies: {
           include: {
-            movie: { select: { id: true, title: true, type: true, status: true, thumbnailUrl: true } },
+            movie: { select: { id: true, type: true } },
           },
         },
-        sources: { orderBy: { createdAt: "desc" } },
+        sources: { orderBy: { createdAt: "desc" }, take: 1 },
       },
     }),
     db.movieView.groupBy({ by: ["movieId"], _count: { movieId: true } }),
@@ -68,7 +86,6 @@ export async function GET(request: Request = new Request("http://localhost/api/a
       movieCount: content.filter((item) => item.type === "Movie").length,
       seriesCount: content.filter((item) => item.type === "Serie").length,
       views: content.reduce((sum, item) => sum + (viewsByMovie.get(item.id) || 0), 0),
-      content,
     };
   });
 

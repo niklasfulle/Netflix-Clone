@@ -68,6 +68,25 @@ describe('actors API error contract', () => {
     }));
   });
 
+  it('loads detail content separately and uses thumbnail URLs instead of embedded images', async () => {
+    mockedDb.actor.findUnique.mockResolvedValue({
+      sources: [],
+      movies: [{ movie: { id: 'movie-1', title: 'Example', type: 'Movie', status: 'PUBLISHED' } }],
+    });
+    const response = await GET(new Request('http://localhost/api/actors?detail=actor-1'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      sources: [],
+      content: [{ id: 'movie-1', title: 'Example', type: 'Movie', status: 'PUBLISHED', thumbnailUrl: '/api/catalog/thumbnails/movie-1' }],
+    });
+    expect(mockedDb.movieView.groupBy).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a missing detail actor', async () => {
+    mockedDb.actor.findUnique.mockResolvedValue(null);
+    await expectApiError(await GET(new Request('http://localhost/api/actors?detail=missing')), 404, 'NOT_FOUND');
+  });
+
   it('returns 409 for duplicate actors', async () => {
     mockedDb.actor.findFirst.mockResolvedValue({ id: 'actor1' });
     const response = await POST(new Request('http://localhost/api/actors', {
