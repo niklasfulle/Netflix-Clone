@@ -625,8 +625,7 @@ describe('FilterRowBase', () => {
         <FilterRowBase title="Test" movies={mockMovies} isLoading={false} />
       );
       const mainDiv = container.firstChild as HTMLElement;
-      expect(mainDiv.className).toMatch(/space-y-4/);
-      expect(mainDiv.className).toMatch(/md:space-y-8/);
+      expect(mainDiv.className).toMatch(/min-h-\[220px\]/);
     });
 
     test('should have responsive margin-top', () => {
@@ -644,7 +643,7 @@ describe('FilterRowBase', () => {
       );
       const mainDiv = container.firstChild as HTMLElement;
       expect(mainDiv.className).toMatch(/h-auto/);
-      expect(mainDiv.className).toMatch(/min-h-\[204px\]/);
+      expect(mainDiv.className).toMatch(/min-h-\[220px\]/);
     });
 
     test('should have correct height for scroll container', () => {

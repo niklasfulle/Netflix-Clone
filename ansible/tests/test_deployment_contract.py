@@ -79,7 +79,9 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("caddy_data:", compose)
         self.assertIn("http://{{ lan_hostname }}", caddyfile)
         self.assertNotIn("tls internal", caddyfile)
-        self.assertIn("reverse_proxy app:3000", caddyfile)
+        self.assertIn("import fallback-routes", caddyfile)
+        routes = (ROOT / "ops/fallback/routes.caddy").read_text(encoding="utf-8")
+        self.assertIn("reverse_proxy app:3000", routes)
         self.assertNotIn("Strict-Transport-Security", caddyfile)
 
         manual_compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
@@ -87,6 +89,17 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("AUTH_URL: http://${LAN_HOST:-netflix}", manual_compose)
         self.assertNotIn("https://${", manual_compose)
 
+    def test_planned_update_marker_is_scoped_to_deployment_and_always_removed(self):
+        playbook = (ROOT / "ansible/update-netflix-clone.yml").read_text(encoding="utf-8")
+        deploy = (ROOT / "deploy.ps1").read_text(encoding="utf-8")
+        self.assertIn("deployment_update_mode=true", deploy)
+        self.assertLess(playbook.index("Refresh independent reverse proxy"), playbook.index("Mark planned application update"))
+        self.assertLess(playbook.index("Mark planned application update"), playbook.index("Back up the PostgreSQL database before migration"))
+        self.assertIn("always:\n        - name: Clear planned update marker", playbook)
+        self.assertIn('path: "{{ docker_compose_path }}/maintenance/{{ item }}"\n            state: absent', playbook)
+        self.assertIn('- announcement.json', playbook)
+        self.assertLess(deploy.index('Invoke-DeploymentPlaybook -Playbook maintenance.yml -Action announce'), deploy.index('# Check if Docker is running'))
+        self.assertIn('Invoke-DeploymentPlaybook -Playbook maintenance.yml -Action clear', deploy)
     def test_deployment_rejects_an_environment_mismatch(self):
         playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")
         compose = (ROOT / "ansible" / "docker-compose.yml.j2").read_text(encoding="utf-8")

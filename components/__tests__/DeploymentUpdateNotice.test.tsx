@@ -17,6 +17,17 @@ function healthResponse(version: string, ok = true, automaticReloadEnabled = tru
 }
 
 describe('DeploymentUpdateNotice', () => {
+  it('asks before reloading after a planned maintenance announcement', async () => {
+    fetchMock.mockResolvedValue(healthResponse('1.13.0'));
+    const reloadPage = jest.fn();
+    render(<DeploymentUpdateNotice currentVersion="1.13.0" reloadPage={reloadPage} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    fireEvent(globalThis, new Event('netflix:maintenance'));
+    fetchMock.mockResolvedValue(healthResponse('1.13.1'));
+    fireEvent(document, new Event('visibilitychange'));
+    await waitFor(() => expect(screen.getByText('New version available')).toBeInTheDocument());
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
   it('checks again when the tab becomes visible and reloads only once per mount', async () => {
     const visibility = Object.getOwnPropertyDescriptor(document, 'visibilityState');
     const reloadPage = jest.fn();

@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { auth } from '@/auth';
 import DebugPanel from '@/components/DebugPanel';
 import DeploymentUpdateNotice from '@/components/DeploymentUpdateNotice';
+import MaintenanceNotice from '@/components/MaintenanceNotice';
 import EnvironmentBadge from '@/components/EnvironmentBadge';
 import { LanguageProvider } from '@/components/providers/LanguageProvider';
 import { DEFAULT_LOCALE, LOCALE_STORAGE_KEY, type Locale } from '@/lib/i18n/translations';
@@ -43,6 +44,7 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <LanguageProvider initialLocale={locale}>
             {children}
+            <MaintenanceNotice />
             <DeploymentUpdateNotice currentVersion={APP_VERSION} />
           </LanguageProvider>
           <DebugPanel adminAllowed={session?.user?.role === UserRole.ADMIN} />

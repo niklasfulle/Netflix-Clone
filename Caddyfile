@@ -2,6 +2,8 @@
   admin off
 }
 
+import /srv/fallback/routes.caddy
+
 http://{$LAN_HOST:netflix} {
   encode zstd gzip
 
@@ -11,5 +13,5 @@ http://{$LAN_HOST:netflix} {
     Referrer-Policy "strict-origin-when-cross-origin"
   }
 
-  reverse_proxy app:3000
+  import fallback-routes
 }

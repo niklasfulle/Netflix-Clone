@@ -1,5 +1,6 @@
 import { logBackendAction } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { catalogThumbnailUrl } from '@/lib/catalog';
 import {
   getUserAndProfile,
   handleApiError,
@@ -45,9 +46,6 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         title: true,
-        description: true,
-        videoUrl: true,
-        thumbnailUrl: true,
         type: true,
         genre: true,
         duration: true,
@@ -55,10 +53,26 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const watchTimes = await db.movieWatchTime.findMany({
+      where: {
+        userId: user.id,
+        profilId: profil.id,
+        movieId: { in: randomSeries.map(serie => serie.id) },
+      },
+      select: { movieId: true, time: true },
+    });
+    const watchTimeByMovie = new Map(watchTimes.map(entry => [entry.movieId, entry.time]));
+
     // Serialisiere Date-Objekte
     const serializedSeries = randomSeries.map(serie => ({
-      ...serie,
+      id: serie.id,
+      title: serie.title,
+      type: serie.type,
+      genre: serie.genre,
+      duration: serie.duration,
+      thumbnailUrl: catalogThumbnailUrl(serie.id),
       createdAt: serie.createdAt?.toISOString?.() ?? serie.createdAt,
+      watchTime: watchTimeByMovie.get(serie.id),
     }));
     logBackendAction('api_series_random_route_success', { 
       userId: user.id, 

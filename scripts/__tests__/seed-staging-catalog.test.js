@@ -14,6 +14,8 @@ const environment = {
 
 function createDatabase() {
   const transaction = {
+    $executeRawUnsafe: jest.fn(),
+    catalogDataState: { findUnique: jest.fn().mockResolvedValue(null) },
     actor: { upsert: jest.fn() },
     movie: { upsert: jest.fn() },
     movieActor: {
@@ -34,6 +36,13 @@ function createDatabase() {
 }
 
 describe('staging catalog seed', () => {
+  it('preserves an imported catalog on later deployments', async () => {
+    const { db, transaction } = createDatabase();
+    transaction.catalogDataState.findUnique.mockResolvedValue({ mode: 'production-snapshot' });
+    await expect(seedStagingCatalog({ db, environment })).resolves.toEqual({ seededActors: 0, seededMovies: 0 });
+    expect(transaction.movie.upsert).not.toHaveBeenCalled();
+    expect(transaction.actor.upsert).not.toHaveBeenCalled();
+  });
   it('defines playable movie and series records plus non-public states', () => {
     const catalog = buildStagingCatalog(environment);
 

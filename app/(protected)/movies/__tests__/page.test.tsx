@@ -63,6 +63,14 @@ describe("MoviesPage", () => {
     expect(useActorPagination).toHaveBeenCalledWith("movies");
   });
 
+  it('waits for the first actor rows before exposing pagination', () => {
+    jest.mocked(useActorPagination).mockReturnValue({
+      actors: [], actorsCount: 4, error: undefined, hasMore: true, isLoading: true, loadMore,
+    });
+    render(<MoviesPage />);
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+  });
+
   it("loads only the first actor row eagerly", () => {
     render(<MoviesPage />);
 

@@ -36,6 +36,9 @@ export default auth(async (req) => {
     return
   }
 
+  // Revoked sessions must still receive the instruction to clear their cookie.
+  if (nextUrl.pathname === '/api/maintenance') return
+
   if (sessionUser?.isBlocked || sessionUser?.isRevoked) {
     if (nextUrl.pathname === "/auth/error") return
     return Response.redirect(new URL("/auth/error?error=AccessDenied", nextUrl))

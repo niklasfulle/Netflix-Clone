@@ -7,6 +7,7 @@ services:
       - /root/netflix-secrets/redis-app.env
     environment:
       DEPLOYMENT_ENVIRONMENT: {{ deployment_environment | quote }}
+      CATALOG_TRANSFER_DIRECTORY: /catalog-transfers
       DEPLOYMENT_STATUS_APPROVED_PEERS: {{ ('production' if deployment_environment == 'staging' else 'staging') | quote }}
       AUTH_URL: {{ canonical_url | quote }}
       NEXTAUTH_URL: {{ canonical_url | quote }}
@@ -43,6 +44,7 @@ services:
       - /var/lib/netflix-deployment-status:/deployment-status:ro
       - /var/lib/netflix-backup-status:/backup-status
       - /var/lib/netflix-logs:/netflix-clone/logs
+      - /var/lib/netflix-catalog-transfers:/catalog-transfers
     logging:
       driver: json-file
       options:
@@ -189,6 +191,8 @@ services:
       - /tmp:size=32m,mode=1777
     volumes:
       - {{ docker_compose_path }}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - {{ docker_compose_path }}/fallback:/srv/fallback:ro
+      - {{ docker_compose_path }}/maintenance:/srv/maintenance:ro
       - caddy_data:/data
       - caddy_config:/config
     logging:

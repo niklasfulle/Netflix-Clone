@@ -15,6 +15,17 @@ import useInfoModal from '@/hooks/useInfoModal';
 import useContinueWatching from '@/hooks/useContinueWatching';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
+function HomeCatalogSkeleton() {
+  const { t } = useLanguage();
+  return (
+    <div>
+      <MovieList title={t('New')} data={[]} isLoading loadingCount={8} />
+      <Row title={t('Movies')} data={[]} isLoading />
+      <Row title={t('Series')} data={[]} isLoading />
+    </div>
+  );
+}
+
 export default function Home() {
   const { t } = useLanguage();
   const { isOpen, closeModal } = useInfoModal();
@@ -36,30 +47,39 @@ export default function Home() {
     data: continueWatching = [],
     isLoading: isLoadingContinueWatching,
   } = useContinueWatching();
+  const isLoadingCatalog = isLoadingNewMovieList || isLoadingNewSeriesList
+    || isLoadingMovieList || isLoadingSeriesList || isLoadingFavorites
+    || isLoadingContinueWatching;
 
   return (
     <>
       <InfoModal visible={isOpen} onClose={closeModal} playlists={playlists} />
       <Navbar />
       <Billboard />
-      <div className="pb-12 min-h-screen">
-        <MovieList
-          title={t('Continue Watching')}
-          data={continueWatching}
-          isLoading={isLoadingContinueWatching}
-        />
-        <MovieList
-          title={t('New')}
-          data={newTitles}
-          isLoading={isLoadingNewMovieList || isLoadingNewSeriesList}
-        />
-        <Row title={t('Movies')} data={movies} isLoading={isLoadingMovieList} />
-        <Row title={t('Series')} data={series} isLoading={isLoadingSeriesList} />
-        <Row
-          title={t('Favorites')}
-          data={favoriteMovies}
-          isLoading={isLoadingFavorites}
-        />
+      <div className="pb-12 min-h-screen" aria-busy={isLoadingCatalog}>
+        {isLoadingCatalog ? (
+          <HomeCatalogSkeleton />
+        ) : (
+          <>
+            <MovieList
+              title={t('Continue Watching')}
+              data={continueWatching}
+              isLoading={isLoadingContinueWatching}
+            />
+            <MovieList
+              title={t('New')}
+              data={newTitles}
+              isLoading={isLoadingNewMovieList || isLoadingNewSeriesList}
+            />
+            <Row title={t('Movies')} data={movies} isLoading={isLoadingMovieList} />
+            <Row title={t('Series')} data={series} isLoading={isLoadingSeriesList} />
+            <Row
+              title={t('Favorites')}
+              data={favoriteMovies}
+              isLoading={isLoadingFavorites}
+            />
+          </>
+        )}
       </div>
       <Footer />
     </>

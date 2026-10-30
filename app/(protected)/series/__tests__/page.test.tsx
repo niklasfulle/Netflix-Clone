@@ -17,7 +17,7 @@ jest.mock("@/hooks/useInfoModal");
 jest.mock("@/components/Footer", () => () => <footer>Footer</footer>);
 jest.mock("@/components/Navbar", () => () => <nav>Navbar</nav>);
 jest.mock("@/components/InfoModal", () => () => null);
-jest.mock("@/components/MovieList", () => ({ title, data }: { title: string; data: unknown[] }) => <div data-testid="new-items" data-count={data.length}>{title}</div>);
+jest.mock("@/components/MovieList", () => ({ title, data }: { title: string; data: { id?: string }[] }) => <div data-testid="new-items" data-count={data.length} data-ids={data.map(item => item.id).join(',')}>{title}</div>);
 jest.mock("../_components/BillboardSeries", () => () => <div>Billboard</div>);
 jest.mock("../_components/FilterRowSeries", () => ({
   title,
@@ -61,6 +61,21 @@ describe("SeriesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(loadMore).toHaveBeenCalledTimes(1);
     expect(useActorPagination).toHaveBeenCalledWith("series");
+  });
+
+  it('waits for the first actor rows before exposing pagination', () => {
+    jest.mocked(useActorPagination).mockReturnValue({
+      actors: [], actorsCount: 4, error: undefined, hasMore: true, isLoading: true, loadMore,
+    });
+    render(<SeriesPage />);
+    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument();
+  });
+
+  it('shows only the four newest series while the shared catalog can supply eight', () => {
+    jest.mocked(useNewSeriesList).mockReturnValue({ data: Array.from({ length: 8 }, (_, index) => ({ id: `series-${index}`, title: `Series ${index}` })), isLoading: false } as never);
+    render(<SeriesPage />);
+    expect(screen.getByTestId('new-items')).toHaveAttribute('data-count', '4');
+    expect(screen.getByTestId('new-items')).toHaveAttribute('data-ids', 'series-0,series-1,series-2,series-3');
   });
 
   it("loads only the first actor row eagerly", () => {

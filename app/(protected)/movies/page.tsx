@@ -49,7 +49,7 @@ const MoviesPage = () => {
         {actors.map((actor: string, index: number) => (
           <FilterRowMovies key={actor} title={actor} deferLoading={index > 0} />
         ))}
-        {hasMore && (
+        {hasMore && actors.length > 0 && (
           <div className="flex flex-row items-center justify-center w-full h-8 pt-12 pb-28">
             <button
               onClick={loadMore}

@@ -4,7 +4,7 @@ After=local-fs.target
 
 [Service]
 Type=oneshot
-EnvironmentFile=/root/netflix-secrets/app.env
+Environment=DEPLOYMENT_ENVIRONMENT={{ deployment_environment }}
 Environment=POSTGRES_BACKUP_LOCK_WAIT_SECONDS={{ postgres_backup_lock_wait_seconds }}
 Environment=POSTGRES_BACKUP_MINIMUM_COPIES={{ postgres_backup_minimum_copies }}
 Environment=POSTGRES_BACKUP_RETENTION_DAILY_DAYS={{ postgres_backup_retention_daily_days }}

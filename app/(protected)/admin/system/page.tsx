@@ -1,4 +1,6 @@
 "use client";
+import MaintenancePanel from '@/components/admin/MaintenancePanel';
+
 
 import {
   Activity,
@@ -590,6 +592,7 @@ export default function AdminSystemPage() {
           </div>
           <DeploymentStatusPanel />
           <DeploymentUpdatePolicyPanel />
+          <MaintenancePanel />
           <AlertsSection alerts={data.alerts} t={t} />
         </>
       )}

@@ -84,13 +84,28 @@ const mockUseContinueWatching = useContinueWatching as jest.MockedFunction<
 >;
 
 describe('Home Page (page.tsx)', () => {
-  it('keeps every catalog section usable while responses have no data', () => {
+  it('shows a shared initial loading state before optional sections are known', () => {
     mockUseInfoModal.mockReturnValue({ isOpen: false, closeModal: jest.fn() } as any);
     for (const hook of [mockUseNewMovieList, mockUseNewSeriesList, mockUseRandomMovieList, mockUseRandomSeriesList, mockUseFavorites, mockUseContinueWatching]) hook.mockReturnValue({ data: undefined, isLoading: true } as any);
     mockUsePlaylists.mockReturnValue({ data: undefined } as any);
     render(<Home />);
     expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Items: 0');
-    expect(screen.getByTestId('movie-list-Continue Watching')).toHaveTextContent('Items: 0');
+    expect(screen.queryByTestId('movie-list-Continue Watching')).not.toBeInTheDocument();
+    expect(screen.getByTestId('movie-list-New').closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('reveals all catalog sections together after the last optional response settles', () => {
+    for (const hook of [mockUseNewMovieList, mockUseNewSeriesList, mockUseRandomMovieList, mockUseRandomSeriesList, mockUseFavorites]) hook.mockReturnValue({ data: [], isLoading: false } as any);
+    mockUseInfoModal.mockReturnValue({ isOpen: false, closeModal: jest.fn() } as any);
+    mockUsePlaylists.mockReturnValue({ data: [] } as any);
+    mockUseContinueWatching.mockReturnValue({ data: undefined, isLoading: true } as any);
+    const { rerender } = render(<Home />);
+    expect(screen.queryByTestId('movie-list-Continue Watching')).not.toBeInTheDocument();
+    mockUseContinueWatching.mockReturnValue({ data: [{ id: 'resumed', title: 'Resume' }], isLoading: false } as any);
+    rerender(<Home />);
+    expect(screen.getByTestId('movie-list-Continue Watching')).toHaveTextContent('Items: 1');
+    expect(screen.getByTestId('row-Favorites')).toBeInTheDocument();
+    expect(screen.getByTestId('movie-list-New').closest('[aria-busy]')).toHaveAttribute('aria-busy', 'false');
   });
 
   it('sorts partially loaded titles without creation dates deterministically', () => {
@@ -445,7 +460,8 @@ describe('Home Page (page.tsx)', () => {
 
       render(<Home />);
 
-      expect(screen.getByTestId('row-Favorites')).toHaveTextContent('Loading: true');
+        expect(screen.queryByTestId('row-Favorites')).not.toBeInTheDocument();
+        expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Loading: true');
     });
   });
 
@@ -642,7 +658,7 @@ describe('Home Page (page.tsx)', () => {
       expect(screen.getByTestId('movie-list-New')).toHaveTextContent('Loading: true');
       expect(screen.getByTestId('row-Movies')).toHaveTextContent('Loading: true');
       expect(screen.getByTestId('row-Series')).toHaveTextContent('Loading: true');
-      expect(screen.getByTestId('row-Favorites')).toHaveTextContent('Loading: true');
+        expect(screen.queryByTestId('row-Favorites')).not.toBeInTheDocument();
     });
   });
 });

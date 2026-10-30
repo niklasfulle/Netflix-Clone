@@ -12,6 +12,7 @@ jest.mock("@/components/admin/DeploymentUpdatePolicyPanel", () => ({
 }));
 
 jest.mock("swr");
+jest.mock("@/components/admin/MaintenancePanel", () => () => <section>Maintenance settings</section>);
 const mockedUseSWR = useSWR as jest.Mock;
 
 const healthyOverview = {

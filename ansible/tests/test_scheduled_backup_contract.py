@@ -6,6 +6,39 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class ScheduledBackupContractTests(unittest.TestCase):
+    def test_host_backup_services_receive_the_deployment_environment(self):
+        for name in ("netflix-postgres-backup.service.j2", "netflix-backup-retention.service.j2"):
+            with self.subTest(service=name):
+                service = (ROOT / "ansible" / "templates" / name).read_text(encoding="utf-8")
+                self.assertIn("Environment=DEPLOYMENT_ENVIRONMENT={{ deployment_environment }}", service)
+                # App configuration is passed to the database container separately.
+                # EnvironmentFile would override the host's environment selection.
+                self.assertNotIn("EnvironmentFile=", service)
+
+    def test_backup_scripts_have_linux_interpreter_lines(self):
+        for name in (
+            "backup-postgres.sh",
+            "verify-postgres-backup.sh",
+            "run-postgres-backup.sh",
+            "run-postgres-backup-verification.sh",
+            "run-postgres-backup-retention.sh",
+        ):
+            with self.subTest(script=name):
+                script = (ROOT / "ansible" / "files" / name).read_bytes()
+                self.assertTrue(script.startswith(b"#!/bin/"))
+                self.assertNotIn(b"\r", script)
+
+    def test_deployment_normalizes_backup_scripts_and_recovers_failed_watchers(self):
+        playbook = (ROOT / "ansible" / "update-netflix-clone.yml").read_text(encoding="utf-8")
+        self.assertIn("Normalize installed backup scripts to Unix line endings", playbook)
+        self.assertIn("regexp: '\\r'", playbook)
+        self.assertIn("Reset failed backup units after installing their helpers", playbook)
+        self.assertIn("reset-failed", playbook)
+        self.assertLess(
+            playbook.index("Normalize installed backup scripts to Unix line endings"),
+            playbook.index("Enable on-demand PostgreSQL backup requests"),
+        )
+
     def test_manual_retention_requests_use_the_managed_backup_lock_and_hardened_service(self):
         runner = (
             ROOT / "ansible" / "files" / "run-postgres-backup-retention.sh"
@@ -48,7 +81,7 @@ class ScheduledBackupContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertIn("run-postgres-backup.sh", service)
-        self.assertIn("EnvironmentFile=/root/netflix-secrets/app.env", service)
+        self.assertIn("Environment=DEPLOYMENT_ENVIRONMENT={{ deployment_environment }}", service)
         self.assertIn("NoNewPrivileges=true", service)
         self.assertIn("ReadWritePaths=/root/netflix-database-backups", service)
         self.assertIn("OnCalendar={{ postgres_backup_schedule }} {{ postgres_backup_timezone }}", timer)

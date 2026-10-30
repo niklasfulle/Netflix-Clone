@@ -15,7 +15,7 @@ import {
   requestBackupRetention,
 } from '@/lib/backup-retention';
 import { createBackupRetentionJobHandler } from '@/lib/jobs/backup-retention-job';
-import { createBackupCreationJobHandler } from '@/lib/jobs/backup-creation-job';
+import { backupCreationLease, createBackupCreationJobHandler } from '@/lib/jobs/backup-creation-job';
 import { createBackupVerificationJobHandler } from '@/lib/jobs/backup-verification-job';
 import {
   createCoordinatedJobExecutionRepository,
@@ -33,6 +33,8 @@ import {
   type JobRunRetentionDatabase,
 } from '@/lib/jobs/retention';
 import { executeQueuedJob, PermanentJobError } from '@/lib/jobs/worker';
+import { jobFailureDetails } from '@/lib/jobs/failure-diagnostics';
+import { reportBackgroundJobFailure } from '@/lib/jobs/failure-log';
 import {
   createWorkerHeartbeat,
   type WorkerHeartbeatDatabase,
@@ -50,8 +52,7 @@ function databaseUrl(): string {
 
 function failureDetails(error: unknown) {
   return {
-    errorCode: (error instanceof Error ? error.name : 'InvalidJob').slice(0, 80),
-    errorMessage: (error instanceof Error ? error.message : 'Invalid job delivery').slice(0, 512),
+    ...jobFailureDetails(error),
     failedAt: new Date(),
   };
 }
@@ -169,11 +170,7 @@ async function processJobs(jobs: WorkerDelivery[]) {
           }, async () => backupVerificationJob(payload, context));
         },
         async backupCreation(payload, context) {
-          return operationalLeases.execute({
-            operation: 'backup.create',
-            targetId: `scheduled-backup:${payload.environment}`,
-            ttlMs: 30 * 60_000,
-          }, async () => backupCreationJob(payload, context));
+          return operationalLeases.execute(backupCreationLease(payload.environment), async () => backupCreationJob(payload, context));
         },
         async backupRetention(payload, context) {
           return operationalLeases.execute({
@@ -186,6 +183,7 @@ async function processJobs(jobs: WorkerDelivery[]) {
     });
     return { id: job.id, status: 'completed' as const, output: outcome };
   } catch (error) {
+    await reportBackgroundJobFailure({ envelope: job.data, queueJobId: job.id, attemptCount: job.retryCount + 1, deadLetter: isPermanent(error) || job.retryCount >= job.retryLimit, error });
     if (isPermanent(error)) {
       await runs.rejectDelivery(job.id, failureDetails(error));
       return { id: job.id, status: 'deadletter' as const, output: failureDetails(error) };
@@ -203,6 +201,7 @@ async function processScheduleTicks(jobs: ScheduleDelivery[]) {
       const accepted = await weeklyScheduleTick(job.data, job.id);
       return { id: job.id, status: 'completed' as const, output: accepted };
     } catch (error) {
+      await reportBackgroundJobFailure({ envelope: job.data, queueJobId: job.id, attemptCount: 1, deadLetter: false, error });
       return { id: job.id, status: 'failed' as const, output: failureDetails(error) };
     }
   }));

@@ -30,9 +30,12 @@ export default function DeploymentUpdateNotice({
   const { t } = useLanguage();
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
   const reloadTriggeredRef = useRef(false);
+  const maintenanceSeenRef = useRef(false);
 
   useEffect(() => {
     let active = true;
+    const onMaintenance = () => { maintenanceSeenRef.current = true; };
+    globalThis.addEventListener('netflix:maintenance', onMaintenance);
 
     const checkForUpdate = async () => {
       if (document.visibilityState === 'hidden') return;
@@ -59,7 +62,7 @@ export default function DeploymentUpdateNotice({
           return;
         }
 
-        if (!document.querySelector(OPEN_MODAL_SELECTOR)) {
+        if (!maintenanceSeenRef.current && !document.querySelector(OPEN_MODAL_SELECTOR)) {
           if (!reloadTriggeredRef.current) {
             reloadTriggeredRef.current = true;
             reloadPage();
@@ -83,6 +86,7 @@ export default function DeploymentUpdateNotice({
 
     return () => {
       active = false;
+      globalThis.removeEventListener('netflix:maintenance', onMaintenance);
       globalThis.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };

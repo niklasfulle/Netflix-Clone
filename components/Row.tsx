@@ -20,7 +20,7 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
   const [isMoved, setIsMoved] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
 
-  if (isEmpty(data)) {
+  if (isEmpty(data) && !isLoading) {
     return null;
   }
 
@@ -40,7 +40,7 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
   };
 
   return (
-    <div className="h-auto px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12 [content-visibility:auto] [contain-intrinsic-size:auto_240px]">
+    <div className="h-auto px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12">
       <div>
         <p className="-mb-8 font-semibold text-white text-md md:text-xl lg:text-2xl sm:mb-0">
           {title}
@@ -62,6 +62,9 @@ const Row: React.FC<RowProps> = ({ data, title, isLoading }) => {
             style={{ scrollbarWidth: 'none' }}
             className="flex items-center h-44 space-x-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain touch-pan-x md:space-x-2.5 md:overflow-x-hidden [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0"
           >
+            {isEmpty(data) && (
+              <output aria-label={message('sectionLoading', { name: title })} className="h-28 w-full animate-pulse rounded-md bg-zinc-900 md:h-36" />
+            )}
             {data.map((movie, index) => (
               <Thumbnail
                 key={movie.id ?? index}

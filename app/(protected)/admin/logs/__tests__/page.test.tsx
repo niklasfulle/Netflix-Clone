@@ -40,6 +40,15 @@ it("uses the logger's warn level and opens structured details", () => {
   expect(screen.getAllByText(/upload_slow/).length).toBeGreaterThan(0);
 });
 
+it('opens a job correlation link with the application log search already applied', () => {
+  const previous = window.location.href;
+  window.history.replaceState({}, '', '/admin/logs?search=request-correlation-123');
+  try {
+    render(<AdminLogsPage />);
+    expect(mockedUseSWR.mock.calls.at(-1)[0]).toContain('search=request-correlation-123');
+  } finally { window.history.replaceState({}, '', previous); }
+});
+
 it("switches to read-only Docker container logs", () => {
   mockedUseSWR.mockReturnValue({
     data: {
@@ -149,6 +158,50 @@ it("copies log JSON and resets the copied state", async () => {
   expect(screen.getByRole("button", { name: "Kopiert" })).toBeInTheDocument();
   act(() => jest.advanceTimersByTime(1500));
   expect(screen.getByRole("button", { name: "JSON kopieren" })).toBeInTheDocument();
+});
+
+describe('clipboard fallback', () => {
+  const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  const originalExecCommand = Object.getOwnPropertyDescriptor(document, 'execCommand');
+  afterEach(() => {
+    if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+    if (originalExecCommand) Object.defineProperty(document, 'execCommand', originalExecCommand);
+    else Reflect.deleteProperty(document, 'execCommand');
+  });
+
+  it.each(['unavailable', 'denied'])('copies inside the dialog when clipboard access is %s', async reason => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: reason === 'unavailable' ? undefined : { writeText: jest.fn().mockRejectedValue(new Error('Denied')) } });
+    const copy = jest.fn(() => {
+      const selected = document.activeElement as HTMLTextAreaElement;
+      expect(selected.closest('dialog')).toHaveAttribute('aria-label', 'Log-Details');
+      expect(selected.value).toBe(JSON.stringify(log, null, 2));
+      expect(selected.selectionEnd).toBe(selected.value.length);
+      return true;
+    });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: copy });
+    render(<AdminLogsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Anzeigen' }));
+    const button = screen.getByRole('button', { name: 'JSON kopieren' });
+    button.focus();
+    fireEvent.click(button);
+    expect(await screen.findByRole('button', { name: 'Kopiert' })).toHaveFocus();
+    expect(copy).toHaveBeenCalledWith('copy');
+    expect(screen.queryByLabelText('Kopierhilfe')).not.toBeInTheDocument();
+  });
+
+  it('offers selected JSON for manual copying when both clipboard methods fail', async () => {
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: jest.fn(() => false) });
+    render(<AdminLogsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Anzeigen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'JSON kopieren' }));
+    const json = await screen.findByRole('textbox', { name: 'JSON zum manuellen Kopieren' });
+    expect(json).toHaveValue(JSON.stringify(log, null, 2));
+    expect(json).toHaveFocus();
+    expect(screen.getByRole('alert')).toHaveTextContent('Automatisches Kopieren ist nicht verfügbar');
+    expect(screen.queryByRole('button', { name: 'Kopiert' })).not.toBeInTheDocument();
+  });
 });
 
 it("clears logs after exact confirmation", async () => {

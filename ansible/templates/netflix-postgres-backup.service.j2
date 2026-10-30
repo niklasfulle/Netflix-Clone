@@ -6,7 +6,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-EnvironmentFile=/root/netflix-secrets/app.env
+Environment=DEPLOYMENT_ENVIRONMENT={{ deployment_environment }}
 Environment=POSTGRES_BACKUP_IMAGE={{ postgres_backup_image }}
 Environment=POSTGRES_BACKUP_LOCK_WAIT_SECONDS={{ postgres_backup_lock_wait_seconds }}
 Environment=POSTGRES_BACKUP_TIMEOUT_SECONDS={{ postgres_backup_timeout_seconds }}

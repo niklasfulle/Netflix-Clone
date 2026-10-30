@@ -3,6 +3,8 @@
 output/playwright
 **/video-examples-*.json
 **/categories-export*.json
+**/catalog-snapshot-*.json
+**/catalog-snapshot-*.sql
 .github
 .next
 node_modules

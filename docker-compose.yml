@@ -185,6 +185,8 @@ services:
       - /tmp:size=32m,mode=1777
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./ops/fallback:/srv/fallback:ro
+      - ./maintenance:/srv/maintenance:ro
       - caddy_data:/data
       - caddy_config:/config
     logging:

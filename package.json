@@ -1,8 +1,9 @@
 {
   "name": "netflix",
-  "version": "1.14.3",
+  "version": "1.14.6",
   "private": true,
   "scripts": {
+    "catalog:snapshot": "node scripts/catalog-snapshot.js",
     "dev": "next dev",
     "build": "next build",
     "build:worker": "node scripts/build-job-worker.mjs",

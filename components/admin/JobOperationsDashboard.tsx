@@ -7,6 +7,7 @@ import useSWR from 'swr';
 
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import type { Locale, TranslationKey } from '@/lib/i18n/translations';
+import { jobFailureMessage } from '@/lib/jobs/failure-diagnostics';
 
 const statuses = [
   'QUEUED',
@@ -21,6 +22,7 @@ const statuses = [
 const jobTypes: string[] = [
   'media.integrity.scan',
   'backup.verification.request',
+  'backup.creation.request',
   'backup.retention.cleanup',
 ] as const;
 
@@ -209,6 +211,7 @@ type JobCardProps = Readonly<{
 }>;
 
 function JobCard({ job, pendingAction, onAction, locale, t }: JobCardProps) {
+  const failureMessage = job.failure ? jobFailureMessage(job.failure.code) : undefined;
   const pending = pendingAction === job.id;
   const supported = jobTypes.includes(job.jobType) || job.jobType === 'backup.creation.request';
   const cancellable = supported && (job.status === 'QUEUED' || job.status === 'RUNNING');
@@ -274,11 +277,15 @@ function JobCard({ job, pendingAction, onAction, locale, t }: JobCardProps) {
       {job.failure ? (
         <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-sm">
           <p className="font-mono text-xs text-red-300">{job.failure.code}</p>
-          <p className="mt-1 text-zinc-400">{job.failure.message}</p>
+          <p className="mt-1 text-zinc-400">{failureMessage ? t(failureMessage) : job.failure.message}</p>
         </div>
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
+        <span className="w-full break-all font-mono text-xs text-zinc-500">{t('Correlation ID')}: {job.correlationId}</span>
+        <Link href={`/admin/logs?search=${encodeURIComponent(job.correlationId)}`} className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200">
+          {t('Open logs')} <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        </Link>
         <Link
           href={`/admin/audit?correlationId=${encodeURIComponent(job.correlationId)}`}
           className="inline-flex items-center gap-1 text-sky-300 hover:text-sky-200"

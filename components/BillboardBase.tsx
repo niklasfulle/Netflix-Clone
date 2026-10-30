@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import BillboardInfoButton from '@/components/BillboardInfoButton';
 import BillboardPlayButton from '@/components/BillboardPlayButton';
@@ -16,7 +16,25 @@ interface BillboardBaseProps {
 const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority }) => {
   const [isDesktop, setIsDesktop] = useState(true);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [inViewport, setInViewport] = useState(true);
+  const [tabVisible, setTabVisible] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const updateVisibility = () => setTabVisible(document.visibilityState === 'visible');
+    updateVisibility();
+    document.addEventListener('visibilitychange', updateVisibility);
+    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(
+      ([entry]) => setInViewport(entry.isIntersecting),
+    );
+    if (containerRef.current) observer?.observe(containerRef.current);
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', updateVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     const checkWindowSize = () => {
@@ -34,7 +52,7 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
 
   const videoAvailable = useBillboardVideoAvailability(
     data?.id,
-    !isLoading && isDesktop,
+    !isLoading && isDesktop && inViewport && tabVisible,
   );
 
   const playVideo = (video: HTMLVideoElement) => {
@@ -43,11 +61,21 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
   };
 
   const hasPoster = Boolean(data?.thumbnailUrl);
-  const showVideo = !isLoading && isDesktop && videoAvailable && !videoFailed;
+  const showVideo = !isLoading && isDesktop && inViewport && tabVisible && videoAvailable && !videoFailed;
   const showPoster = !isLoading && hasPoster && (!showVideo || videoFailed);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!showVideo || !video) return;
+    return () => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [showVideo, data?.id]);
+
   return (
-    <div className="relative h-[56.25vw] w-full overflow-hidden">
+    <div ref={containerRef} className="relative h-[56.25vw] w-full overflow-hidden">
       {isLoading && (
         <div className="flex h-full w-full items-center justify-center bg-zinc-800">
           <svg
@@ -63,6 +91,7 @@ const BillboardBase: React.FC<BillboardBaseProps> = ({ data, isLoading, priority
       )}
       {showVideo && (
         <video
+          ref={videoRef}
           key={data?.id}
           className="absolute inset-0 h-full w-full object-cover brightness-[60%]"
           autoPlay

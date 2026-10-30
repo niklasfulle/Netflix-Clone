@@ -3,6 +3,7 @@ import type { ContentStatus, Prisma } from "@prisma/client";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { adminMutationAudit } from "@/lib/admin-mutation-audit";
 import { db } from "@/lib/db";
+import { catalogThumbnailUrl } from "@/lib/catalog";
 import { logBackendAction } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -57,8 +58,15 @@ export async function GET(request: Request = new Request("http://localhost/api/m
       db.movie.findMany({
         where,
         orderBy: { [sort]: direction },
-        include: {
-          actors: { include: { actor: true } },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          genre: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          actors: { select: { actor: { select: { name: true } } } },
           categories: { select: { categoryId: true } },
           categorySegments: { select: { categoryId: true } },
         },
@@ -75,7 +83,9 @@ export async function GET(request: Request = new Request("http://localhost/api/m
         const globalIds = new Set(categories.map(category => category.categoryId));
         const timelineIds = new Set(categorySegments.map(segment => segment.categoryId));
         return {
-          ...movie, views: viewMap.get(movie.id) || 0,
+          ...movie,
+          thumbnailUrl: catalogThumbnailUrl(movie.id),
+          views: viewMap.get(movie.id) || 0,
           categoryCount: new Set([...globalIds, ...timelineIds]).size,
           globalCategoryCount: globalIds.size,
           timelineCategoryCount: timelineIds.size,

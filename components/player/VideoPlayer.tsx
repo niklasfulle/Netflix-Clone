@@ -118,6 +118,13 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const keyboardInteraction = useRef(true);
+
+  useEffect(() => {
+    const usedKeyboard = () => { keyboardInteraction.current = true; };
+    document.addEventListener('keydown', usedKeyboard, true);
+    return () => document.removeEventListener('keydown', usedKeyboard, true);
+  }, []);
 
   const wakeControls = useCallback(() => {
     setVisible(true);
@@ -125,7 +132,13 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
     if (p.playing && !queueOpen && countdown === null && !p.error) {
       hideTimer.current = setTimeout(() => {
         const focus = document.activeElement;
-        if (!controlsRef.current?.contains(focus) && !headerRef.current?.contains(focus)) setVisible(false);
+        const focusedControl = controlsRef.current?.contains(focus) || headerRef.current?.contains(focus);
+        if (keyboardInteraction.current && focusedControl) return;
+        if (focusedControl && focus instanceof HTMLElement) {
+          focus.blur();
+          regionRef.current?.focus({ preventScroll: true });
+        }
+        setVisible(false);
       }, 3500);
     }
   }, [p.playing, p.error, queueOpen, countdown]);
@@ -133,7 +146,7 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
   useEffect(() => {
     wakeControls();
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  }, [wakeControls]);
+  }, [wakeControls, fullscreen]);
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -198,8 +211,9 @@ function PlaybackSession({ item, items, index, playlistTitle, startTime, rootRef
     </div>
   </section>;
   return (
-    <section ref={regionRef} aria-label={t('Video player')}
-      onPointerMove={wakeControls} onPointerDown={wakeControls} onFocusCapture={wakeControls}
+    <section ref={regionRef} aria-label={t('Video player')} tabIndex={-1}
+      onPointerMove={wakeControls} onPointerDown={() => { keyboardInteraction.current = false; wakeControls(); }} onFocusCapture={event => { if (event.target !== event.currentTarget) wakeControls(); }}
+      onBlurCapture={() => { if (keyboardInteraction.current) wakeControls(); }}
       className={`relative h-full w-full outline-none ${showControls ? '' : 'cursor-none'}`}>
       <PlaybackSurface item={item} autoPlay={mode === 'watch'} p={p} videoRef={videoRef} onEnded={onEnded} cancelCountdown={cancelCountdown} toggleFullscreen={toggleFullscreen} />
       <PlaybackChrome item={displayItem} p={p} items={items} index={index} playlistTitle={playlistTitle} showControls={Boolean(showControls)}

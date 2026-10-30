@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { catalogThumbnailUrl } from '@/lib/catalog';
 
-export async function GET() {
+const PAGE_SIZE = 16;
+export async function GET(request?: Request) {
   const user = await currentUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -16,13 +18,18 @@ export async function GET() {
     return NextResponse.json([], { status: 200 });
   }
 
-  // Hole die Watchlist-Einträge für das Profil
+  const rawOffset = request ? new URL(request.url).searchParams.get('offset') : null;
+  const offset = rawOffset && /^\d+$/.test(rawOffset) ? Math.min(Number(rawOffset), 100000) : 0;
   const watchlist = await db.watchlist.findMany({
     where: { profilId: profil.id },
-    include: { movie: true },
-    orderBy: { createdAt: 'desc' },
+    select: { movie: { select: { id: true, title: true, type: true, genre: true, duration: true, createdAt: true } } },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    skip: offset,
+    take: PAGE_SIZE + 1,
   });
 
-  // Gib nur die Movie-Daten zurück
-  return NextResponse.json(watchlist.map(entry => entry.movie));
+  return NextResponse.json(watchlist.slice(0, PAGE_SIZE).map(({ movie }) => ({
+    id: movie.id, title: movie.title, type: movie.type, genre: movie.genre,
+    duration: movie.duration, createdAt: movie.createdAt, thumbnailUrl: catalogThumbnailUrl(movie.id),
+  })), { headers: { 'X-Has-More': String(watchlist.length > PAGE_SIZE), 'Cache-Control': 'private, no-store' } });
 }

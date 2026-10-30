@@ -9,15 +9,16 @@ interface MovieListProps {
   data: CatalogCardDto[];
   title: string;
   isLoading: boolean;
+  loadingCount?: number;
 }
 
-const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading }) => {
+const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading, loadingCount = 4 }) => {
   const { message } = useLanguage();
   if (isEmpty(data) && !isLoading) {
     return null;
   }
   return (
-    <div className="min-h-[235px] px-4 my-6 space-y-8 md:px-12 [content-visibility:auto] [contain-intrinsic-size:auto_480px]">
+    <div className="min-h-[235px] px-4 my-6 space-y-8 md:px-12">
       <div>
         <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
           {title}
@@ -26,8 +27,12 @@ const MovieList: React.FC<MovieListProps> = ({ data, title, isLoading }) => {
           {isEmpty(data) ? (
             <output
               aria-label={message('sectionLoading', { name: title })}
-              className="col-span-2 h-48 animate-pulse rounded-lg bg-zinc-900 lg:col-span-4"
-            />
+              className="col-span-2 grid grid-cols-2 gap-2 lg:col-span-4 lg:grid-cols-4 md:gap-4"
+            >
+              {Array.from({ length: loadingCount }, (_, index) => (
+                <div key={`placeholder-${index}`} aria-hidden="true" className="h-[24vw] animate-pulse rounded-md bg-zinc-900 lg:h-[12vw]" />
+              ))}
+            </output>
           ) : (
             data.map((movie, index) => (
               <MovieCard

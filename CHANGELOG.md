@@ -8,6 +8,45 @@ jeweils im zugehörigen fachlichen Eintrag zusammengefasst.
 
 ## [current]
 
+- Die Wartungseinstellungen akzeptieren berechtigte Admin-Anfragen auch hinter Caddy anhand der konfigurierten öffentlichen Adresse; fremde Origins bleiben gesperrt
+
+- Admins können unter System einen zeitlich begrenzten Hinweistext aktivieren und Nicht-Admin-Anmeldungen sperren; beim Aktivieren werden Nicht-Admin-Sitzungen widerrufen, während Admin-Zugriff erhalten bleibt
+
+- Deployments kündigen Updates bereits vor Build und Push über ein globales Banner in geöffneten Seiten an; erst zur Installation folgt die Wartungssperre. Nach angekündigter Wartung wird eine neue Version ohne erzwungenes Neuladen angeboten, damit offene Eingaben erhalten bleiben
+
+- Caddy liefert bei Anwendungsausfällen eine unabhängige Fehlerseite mit automatischer Wiederverbindung; Deployments markieren geplante Updates und entfernen den Marker nach Abschluss oder Rollback
+
+## 1.14.5
+
+- Billboard-Videos geben ihre Medienquelle außerhalb des sichtbaren Bereichs und in inaktiven Tabs frei; beim Zurückkehren startet das Originalvideo wieder, ohne zusätzliche Vorschauclips zu erzeugen
+
+- Film- und Serienreihen zeigen den gespeicherten Wiedergabefortschritt des aktiven Profils; die Thumbnail-Leiste nutzt die volle Bildbreite und bleibt auch bei ungültigen Laufzeiten innerhalb von 0 bis 100 Prozent
+
+- Startseite und Katalogreihen erhalten stabile mobile Ladezustände ohne nachträglich einspringende persönliche Bereiche; Zufallslisten und Admin-Inhalte liefern kleinere Datensätze mit separat cachebaren Thumbnails statt eingebetteter Bilder und unnötiger Videodaten
+
+- Unter „Katalog-Transfer“ in der Administration lassen sich Snapshots erstellen, herunterladen, hochladen und vor dem Import prüfen. Ein separater Host-Dienst bereitet Ersatzmedien vor, sichert den Zielstand, importiert den Katalog und startet App und Worker mit Healthcheck neu; die Oberfläche verbindet sich danach automatisch wieder. Produktion erlaubt ausschließlich Exporte
+
+- Ein eigener Katalog-Snapshot überträgt Filme, Serien, Darsteller, zweisprachige Kategorien und Timeline-Zuordnungen aus Produktion nach Staging oder lokal; Vorschau, Zieldatenbankprüfung, private SQL-Sicherung und transaktionaler Import erhalten IDs und ersetzen Medienverweise durch neutrale Testmedien mit passender Laufzeit. Spätere Seeds erhalten den importierten Katalog
+
+## 1.14.4
+
+- Backup- und Aufbewahrungsdienste erhalten die Deployment-Umgebung ausdrücklich aus der Serverkonfiguration; sie starten auch dann korrekt, wenn die App-Konfiguration keine Umgebungskennung enthält
+
+- Der JSON-Kopierbutton in den Log-Details unterstützt Browser ohne Clipboard-API sowie verweigerte Berechtigungen mit einem Kopier-Fallback; falls automatisches Kopieren nicht möglich ist, erscheint markierter Text zum manuellen Kopieren statt eines stillen Fehlers
+
+- Das Deployment normalisiert Backup-Helfer auf Unix-Zeilenenden und gibt gesperrte Backup-Units wieder frei; Windows-Zeilenenden im Skriptkopf verursachen dadurch keinen Startfehler mit anschließendem Anfrage-Timeout mehr
+
+- Die Player-Steuerung blendet sich nach Maus- oder Touch-Bedienung auch im Vollbild wieder automatisch aus; der Fokus auf angeklickten Buttons blockiert dies nicht mehr, während die Tastaturbedienung sichtbar und zugänglich bleibt
+
+- Die direkte Zufallswiedergabe unter `/random` nutzt ebenfalls den gemeinsamen Videoplayer mit eigener Steuerung, Kategorie-Timeline, gespeicherten Einstellungen und Empfehlungen am Videoende
+
+- Geplante Backups nutzen eine zulässige, automatisch verlängerte Ausführungssperre und scheitern dadurch nicht mehr vor dem Start bei 0 Prozent Fortschritt
+- Fehlgeschlagene Hintergrundaufträge erscheinen mit Auftrags- und Korrelations-ID in Anwendungslogs und Worker-Ausgabe; die Auftragsübersicht erklärt bekannte Ursachen und verlinkt direkt auf die zugehörigen Logs
+
+- Die Serienseite zeigt unter „Neu“ nur die vier neuesten Serien; auf der Startseite bleiben die acht neuesten Filme und Serien gemeinsam sichtbar
+
+## 1.14.3
+
 - Normaler Videoplayer und manueller Kategorisierungsplayer speichern Lautstärke, Stummschaltung und Wiedergabegeschwindigkeit getrennt; bestehende Einstellungen bleiben dem normalen Player zugeordnet, und Änderungen im Analysemodus beeinflussen ihn nicht
 
 - Die Inhaltsübersicht zeigt die Anzahl unterschiedlicher Kategorien je Film oder Serie mit getrennter Angabe globaler und Timeline-Kategorien; mehrfach genutzte Kategorien zählen insgesamt nur einmal, und der CSV-Export enthält die Gesamtzahl

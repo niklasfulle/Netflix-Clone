@@ -65,6 +65,8 @@ describe('job operations dashboard', () => {
     expect(screen.getByText('admin-user-123')).toBeInTheDocument();
     expect(screen.getByText('catalog:published')).toBeInTheDocument();
     expect(screen.getByText('ScannerUnavailable')).toBeInTheDocument();
+    expect(screen.getByText('Correlation ID: request-correlation-123')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open logs' })).toHaveAttribute('href', '/admin/logs?search=request-correlation-123');
     expect(screen.getByRole('link', { name: 'Open audit event' })).toHaveAttribute(
       'href',
       '/admin/audit?correlationId=request-correlation-123',

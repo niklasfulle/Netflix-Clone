@@ -12,6 +12,18 @@ body {
   @apply h-full overflow-x-hidden bg-zinc-900;
 }
 
+html:has(.admin-scrollbar-gutter) {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body:has(.admin-scrollbar-gutter) {
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

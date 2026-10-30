@@ -29,6 +29,8 @@ yarn-error.log*
 
 # local env files
 /.local-private/
+catalog-snapshot-*.json
+catalog-snapshot-*.sql
 video-examples-*.json
 categories-export*.json
 .env.video-analysis.local

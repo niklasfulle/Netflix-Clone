@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock next/image before importing component
@@ -33,6 +33,50 @@ jest.mock('@/components/BillboardPlayButton', () => {
 import BillboardBase from '../BillboardBase';
 
 describe('BillboardBase', () => {
+  it('releases the original video when outside the viewport and restores it when visible', async () => {
+    let notify: IntersectionObserverCallback;
+    const disconnect = jest.fn();
+    const original = globalThis.IntersectionObserver;
+    globalThis.IntersectionObserver = jest.fn((callback) => {
+      notify = callback;
+      return { observe: jest.fn(), disconnect };
+    }) as unknown as typeof IntersectionObserver;
+    const pause = jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const load = jest.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    try {
+      const { container, unmount } = render(<BillboardBase data={mockData} isLoading={false} />);
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
+      const video = container.querySelector('video')!;
+      act(() => notify([{ isIntersecting: false }] as IntersectionObserverEntry[], {} as IntersectionObserver));
+      expect(container.querySelector('video')).toBeNull();
+      expect(video).not.toHaveAttribute('src');
+      expect(pause).toHaveBeenCalled();
+      expect(load).toHaveBeenCalled();
+      act(() => notify([{ isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver));
+      await waitFor(() => expect(container.querySelector('video')).toHaveAttribute('src', '/api/video/billboard/movie-1'));
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally { globalThis.IntersectionObserver = original; pause.mockRestore(); load.mockRestore(); }
+  });
+
+  it('releases media while the tab is hidden and resumes with a visible tab', async () => {
+    const pause = jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+    const load = jest.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    try {
+      const { container, unmount } = render(<BillboardBase data={mockData} isLoading={false} />);
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
+      const video = container.querySelector('video')!;
+      visibility.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      expect(container.querySelector('video')).toBeNull();
+      expect(video).not.toHaveAttribute('src');
+      visibility.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+      await waitFor(() => expect(container.querySelector('video')).toBeInTheDocument());
+      unmount();
+    } finally { visibility.mockRestore(); pause.mockRestore(); load.mockRestore(); }
+  });
   it.each(['blocked', 'legacy'] as const)('survives %s autoplay responses when media becomes playable', async mode => {
     const play = jest.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => mode === 'blocked' ? Promise.reject(new Error('Autoplay blocked')) : undefined as unknown as Promise<void>);
     try {

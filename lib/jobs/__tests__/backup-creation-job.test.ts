@@ -3,7 +3,9 @@
 import {
   BackupCreationJobError,
   createBackupCreationJobHandler,
+  backupCreationLease,
 } from '@/lib/jobs/backup-creation-job';
+import { createOperationalLeaseCoordinator } from '@/lib/operations/lease';
 
 const payload = {
   scope: 'scheduled' as const,
@@ -11,6 +13,19 @@ const payload = {
   requestId: '550e8400-e29b-41d4-a716-446655440000',
   requestedAt: '2026-08-27T08:00:00.000Z',
 };
+
+it('starts a scheduled backup through the real lease coordinator using the worker lease settings', async () => {
+  const store = {
+    acquire: jest.fn().mockImplementation(async input => ({ fencingToken: BigInt(1), expiresAt: input.expiresAt })),
+    renew: jest.fn(), isCurrent: jest.fn().mockResolvedValue(true), release: jest.fn().mockResolvedValue(true),
+  };
+  const coordinator = createOperationalLeaseCoordinator({ store });
+  const submitRequest = jest.fn().mockResolvedValue(undefined);
+  const handler = createBackupCreationJobHandler({ submitRequest, readStatus: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ requestId: payload.requestId, environment: payload.environment, backupName: 'scheduled-staging-new.dump', status: 'VERIFIED' }) });
+  await expect(coordinator.execute(backupCreationLease(payload.environment), () => handler(payload, { reportProgress: jest.fn() }))).resolves.toMatchObject({ status: 'VERIFIED' });
+  expect(submitRequest).toHaveBeenCalled();
+  expect(store.release).toHaveBeenCalled();
+});
 
 it.each([
   { pollIntervalMs: 249 }, { pollIntervalMs: 10_001 }, { pollIntervalMs: 250.5 },

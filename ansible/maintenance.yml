@@ -1,0 +1,39 @@
+---
+- name: Publish deployment announcement before building
+  hosts: netflix
+  gather_facts: false
+  vars:
+    docker_compose_path: /root/netflix-clone
+  tasks:
+    - name: Validate maintenance action and environment
+      assert:
+        that:
+          - deployment_environment in ['staging', 'production']
+          - maintenance_action in ['announce', 'clear']
+    - name: Read immutable target environment
+      slurp:
+        src: /etc/netflix-clone/environment
+      register: target_environment
+    - name: Reject mismatched deployment targets
+      assert:
+        that:
+          - (target_environment.content | b64decode | trim) == deployment_environment
+    - name: Ensure independent marker directory exists
+      file:
+        path: "{{ docker_compose_path }}/maintenance"
+        state: directory
+        mode: '0755'
+    - name: Announce impending update to open browsers
+      copy:
+        content: '{"mode":"announce","startedAt":"{{ now(utc=true).isoformat() }}"}'
+        dest: "{{ docker_compose_path }}/maintenance/announcement.json"
+        mode: '0644'
+      when: maintenance_action == 'announce'
+    - name: Clear deployment announcement and maintenance state
+      file:
+        path: "{{ docker_compose_path }}/maintenance/{{ item }}"
+        state: absent
+      loop:
+        - announcement.json
+        - updating.json
+      when: maintenance_action == 'clear'

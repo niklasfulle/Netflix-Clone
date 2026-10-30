@@ -1,9 +1,21 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useWatchlist } from '../useWatchlist';
 
 globalThis.fetch = jest.fn();
 
 describe('useWatchlist', () => {
+  it('loads further pages only on request and keeps earlier entries', async () => {
+    const first = Array.from({ length: 16 }, (_, id) => ({ id: String(id) }));
+    (globalThis.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => first, headers: { get: () => 'true' } })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: '16' }], headers: { get: () => 'false' } });
+    const { result } = renderHook(() => useWatchlist());
+    await waitFor(() => expect(result.current.hasMore).toBe(true));
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    await act(async () => result.current.loadMore());
+    expect(globalThis.fetch).toHaveBeenLastCalledWith('/api/watchlist?offset=16');
+    expect(result.current.watchlist).toHaveLength(17);
+    expect(result.current.hasMore).toBe(false);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     (globalThis.fetch as jest.Mock).mockClear();

@@ -91,6 +91,35 @@ function logDetailValue(source: LogSource, log: LogEntry) {
   return log.userId || "–";
 }
 
+async function copyLogJson(text: string, container: HTMLElement): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Clipboard permissions can be denied even when the API is available.
+  }
+
+  const previousFocus = document.activeElement;
+  const input = document.createElement('textarea');
+  input.value = text;
+  input.readOnly = true;
+  input.setAttribute('aria-label', 'Kopierhilfe');
+  input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+  container.append(input);
+  try {
+    input.focus();
+    input.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    input.remove();
+    if (previousFocus instanceof HTMLElement) previousFocus.focus();
+  }
+}
+
 export default function AdminLogsPage() {
   const [source, setSource] = useState<LogSource>("application");
   const [searchInput, setSearchInput] = useState("");
@@ -107,6 +136,8 @@ export default function AdminLogsPage() {
   const [clearOpen, setClearOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const manualCopyRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const detailDialogRef = useRef<HTMLDialogElement>(null);
   const clearDialogRef = useRef<HTMLDialogElement>(null);
@@ -115,6 +146,24 @@ export default function AdminLogsPage() {
 
   useDialogFocus(Boolean(detail), detailDialogRef, closeDetails);
   useDialogFocus(clearOpen, clearDialogRef, closeClearDialog);
+
+  useEffect(() => {
+    if (copyFailed) {
+      manualCopyRef.current?.focus();
+      manualCopyRef.current?.select();
+    }
+  }, [copyFailed]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  useEffect(() => {
+    const initialSearch = new URLSearchParams(window.location.search).get('search')?.slice(0, 191);
+    if (initialSearch) { setSearchInput(initialSearch); setSearch(initialSearch); }
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
@@ -145,10 +194,10 @@ export default function AdminLogsPage() {
   };
 
   const copyDetails = async () => {
-    if (!detail) return;
-    await navigator.clipboard.writeText(JSON.stringify(detail, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (!detail || !detailDialogRef.current) return;
+    const success = await copyLogJson(JSON.stringify(detail, null, 2), detailDialogRef.current);
+    setCopied(success);
+    setCopyFailed(!success);
   };
 
   const resetFilters = () => {
@@ -217,7 +266,7 @@ export default function AdminLogsPage() {
                       <td className="px-3 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${levelStyles[log.level || ""] || "bg-zinc-800 text-zinc-300 ring-zinc-700"}`}>{levelLabel(log.level)}</span></td>
                       <td className="px-3 py-3 font-medium text-zinc-200">{logSourceValue(source, log)}</td>
                       <td className={`${sourceDetail.detailWidth} truncate px-3 py-3 font-mono text-xs text-zinc-500`}>{logDetailValue(source, log)}</td>
-                      <td className="px-5 py-3 text-right"><button type="button" onClick={() => setDetail(log)} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700">Anzeigen</button></td>
+                      <td className="px-5 py-3 text-right"><button type="button" onClick={() => { setCopied(false); setCopyFailed(false); setDetail(log); }} className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700">Anzeigen</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -232,7 +281,10 @@ export default function AdminLogsPage() {
         <dialog ref={detailDialogRef} open className="fixed inset-0 z-50 m-0 grid h-full max-h-none w-full max-w-none place-items-center border-0 bg-black/75 p-4 text-inherit" aria-modal="true" aria-label="Log-Details">
           <div className="w-full max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             <div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-widest text-red-400">Log-Eintrag</p><h2 className="mt-2 text-xl font-bold text-white">{detail.action || "Details"}</h2></div><button type="button" onClick={() => setDetail(null)} aria-label="Details schließen" className="p-2 text-zinc-500"><X className="h-5 w-5" /></button></div>
-            <pre className="mt-5 max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-4 text-xs leading-6 text-zinc-300">{JSON.stringify(detail, null, 2)}</pre>
+            {copyFailed ? <>
+              <p role="alert" className="mt-4 text-sm text-amber-300">Automatisches Kopieren ist nicht verfügbar. Kopiere den markierten Text mit Strg+C oder über das Kontextmenü.</p>
+              <textarea ref={manualCopyRef} aria-label="JSON zum manuellen Kopieren" readOnly value={JSON.stringify(detail, null, 2)} onFocus={event => event.currentTarget.select()} className="mt-3 h-72 max-h-[55vh] w-full rounded-xl border border-zinc-800 bg-black p-4 font-mono text-xs leading-6 text-zinc-300" />
+            </> : <pre className="mt-5 max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-4 text-xs leading-6 text-zinc-300">{JSON.stringify(detail, null, 2)}</pre>}
             <button type="button" onClick={copyDetails} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200">{copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Clipboard className="h-4 w-4" />}{copied ? "Kopiert" : "JSON kopieren"}</button>
           </div>
         </dialog>

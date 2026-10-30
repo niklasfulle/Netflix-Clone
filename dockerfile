@@ -62,6 +62,8 @@ COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-staging-user
 COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-local.js ./scripts/seed-local.js
 COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/seed-local.mjs ./scripts/seed-local.mjs
 COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/migrate-job-queue.mjs ./scripts/migrate-job-queue.mjs
+COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/catalog-snapshot.js ./scripts/catalog-snapshot.js
+COPY --chown=10001:10001 --from=builder /netflix-clone/scripts/catalog-snapshot ./scripts/catalog-snapshot
 COPY --chown=10001:10001 --from=builder /netflix-clone/package.json ./package.json
 COPY --chown=10001:10001 --from=builder /netflix-clone/CHANGELOG.md ./CHANGELOG.md
 COPY --chown=10001:10001 --from=builder /netflix-clone/next.config.js ./next.config.js

@@ -1,0 +1,90 @@
+(unavailable-page) {
+  header Cache-Control "no-store"
+  header Retry-After "5"
+  header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+  root * /srv/fallback
+  rewrite * /unavailable.html
+  file_server {
+    status 503
+  }
+}
+
+(fallback-routes) {
+  handle_path /__fallback/* {
+    root * /srv/fallback
+    header Cache-Control "no-store"
+    file_server
+  }
+  handle /__maintenance {
+    header Cache-Control "no-store"
+    header Content-Type application/json
+    root * /srv/maintenance
+    @updating file /updating.json
+    @announced file /announcement.json
+    handle @updating {
+      rewrite * /updating.json
+      file_server
+    }
+    handle @announced {
+      rewrite * /announcement.json
+      file_server
+    }
+    handle {
+      respond `{"mode":"outage"}` 200
+    }
+  }
+  handle /__availability {
+    @installing file {
+      root /srv/maintenance
+      try_files /updating.json
+    }
+    respond @installing 503
+    rewrite * /api/health
+    header Cache-Control "no-store"
+    reverse_proxy app:3000
+  }
+  handle {
+    @installing {
+      not path /api/health
+      file {
+        root /srv/maintenance
+        try_files /updating.json
+      }
+    }
+    handle @installing {
+      @document header Accept *text/html*
+      handle @document {
+        import unavailable-page
+      }
+      handle {
+        header Cache-Control "no-store"
+        respond `{"error":"update_in_progress"}` 503
+      }
+    }
+    handle {
+    reverse_proxy app:3000 {
+      @unavailable status 500 502 503 504
+      handle_response @unavailable {
+        @document header Accept *text/html*
+        handle @document {
+          import unavailable-page
+        }
+        handle {
+          header Cache-Control "no-store"
+          respond `{"error":"temporarily_unavailable"}` 503
+        }
+      }
+    }
+    }
+  }
+  handle_errors {
+    @document header Accept *text/html*
+    handle @document {
+      import unavailable-page
+    }
+    handle {
+      header Cache-Control "no-store"
+      respond `{"error":"temporarily_unavailable"}` 503
+    }
+  }
+}

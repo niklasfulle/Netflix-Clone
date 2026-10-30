@@ -68,6 +68,10 @@ _Avoid_: Copied favorites, manually maintained favorites playlist
 
 ## Content catalog
 
+**Catalog Snapshot**:
+A portable copy of Content, Actors, Categories and their assignments at one point in time, without accounts or original media resources.
+_Avoid_: Database backup, production clone
+
 **End-of-video Recommendation**:
 A published Content item selected for the active video's completion screen using shared categories and actors. The selection is prepared before playback ends and remains fixed for that playback session.
 _Avoid_: Model prediction, training output

@@ -85,7 +85,7 @@ describe("WatchList Component", () => {
         </LanguageProvider>,
       );
 
-      expect(screen.getByText("Merkliste wird geladen...")).toBeInTheDocument();
+      expect(screen.getByText("Watchlist wird geladen...")).toBeInTheDocument();
     });
 
     it("should display loading message when loading is true", () => {
@@ -149,7 +149,7 @@ describe("WatchList Component", () => {
         </LanguageProvider>,
       );
 
-      expect(screen.getByText("Fehler beim Laden der Merkliste.")).toBeInTheDocument();
+      expect(screen.getByText("Fehler beim Laden der Watchlist.")).toBeInTheDocument();
     });
 
     it("should display error message when error exists", () => {
@@ -163,7 +163,7 @@ describe("WatchList Component", () => {
       expect(screen.getByText("Failed to load watchlist")).toBeInTheDocument();
     });
 
-    it("should not display content when error exists", () => {
+    it("keeps previously loaded content visible when loading another page fails", () => {
       mockUseWatchlist.mockReturnValue({
         watchlist: [{ id: "1", title: "Movie 1" }],
         loading: false,
@@ -171,7 +171,7 @@ describe("WatchList Component", () => {
       });
 
       render(<WatchList title="My Watchlist" />);
-      expect(screen.queryByText("My Watchlist")).not.toBeInTheDocument();
+      expect(screen.getByText("My Watchlist")).toBeInTheDocument();
       expect(screen.getByText("Network error")).toBeInTheDocument();
     });
 
@@ -207,7 +207,7 @@ describe("WatchList Component", () => {
       expect(screen.getByText("Second error")).toBeInTheDocument();
     });
 
-    it("should not render MovieCard components when error exists", () => {
+    it("keeps MovieCard components visible when loading another page fails", () => {
       mockUseWatchlist.mockReturnValue({
         watchlist: [{ id: "1", title: "Movie 1" }],
         loading: false,
@@ -215,7 +215,7 @@ describe("WatchList Component", () => {
       });
 
       render(<WatchList title="My Watchlist" />);
-      expect(screen.queryByTestId("movie-card-1")).not.toBeInTheDocument();
+      expect(screen.getByTestId("movie-card-1")).toBeInTheDocument();
     });
   });
 
@@ -233,7 +233,7 @@ describe("WatchList Component", () => {
         </LanguageProvider>,
       );
 
-      expect(screen.getByText("Deine Merkliste ist leer.")).toBeInTheDocument();
+      expect(screen.getByText("Deine Watchlist ist leer.")).toBeInTheDocument();
     });
 
     it("should display empty message when watchlist is empty", () => {

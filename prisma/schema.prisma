@@ -394,6 +394,13 @@ model Profil {
   movieViews      MovieView[]
 }
 
+model CatalogDataState {
+  id         String   @id @default("global")
+  mode       String   @default("demo")
+  snapshotId String?
+  importedAt DateTime?
+}
+
 model Movie {
   id              String           @id @unique @default(cuid())
   title           String
@@ -686,6 +693,16 @@ model Watchlist {
   movie  Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
 
   @@unique([profilId, movieId])
+}
+
+model MaintenancePolicy {
+  id            String   @id @default("global")
+  heading       String   @default("")
+  bannerEnabled Boolean  @default(false)
+  message       String   @default("")
+  expiresAt     DateTime?
+  loginLocked   Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
 }
 
 model DeploymentUpdatePolicy {

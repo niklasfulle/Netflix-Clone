@@ -54,12 +54,17 @@ function localCatalog(environment) {
 async function seedLocal({ db, environment = process.env }) {
   await assertLocalDatabase(db, environment);
   const accounts = localAccounts(environment);
-  const movies = localCatalog(environment);
+  let movies = [];
+  let snapshotMode = false;
   const passwordHash = await bcrypt.hash(accounts[0].password, 10);
 
   await db.$transaction(async tx => {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(6401404)');
+    const state = await tx.catalogDataState.findUnique({ where: { id: 'global' } });
+    snapshotMode = state?.mode === 'production-snapshot';
+    if (!snapshotMode) movies = localCatalog(environment);
     const actorIds = [];
-    for (const [index, name] of ['Alex Sommer', 'Mika Winter', 'Robin Berg', 'Sam Wald'].entries()) {
+    for (const [index, name] of (snapshotMode ? [] : ['Alex Sommer', 'Mika Winter', 'Robin Berg', 'Sam Wald']).entries()) {
       const id = `local-demo-actor-${index + 1}`;
       await tx.actor.upsert({ where: { id }, create: { id, name: `[LOKAL] ${name}` }, update: {} });
       actorIds.push(id);
@@ -87,7 +92,7 @@ async function seedLocal({ db, environment = process.env }) {
       const image = LOCAL_AVATARS[user.role === 'ADMIN' ? 0 : 1].url;
       await tx.profil.upsert({ where: { id: profilId }, create: {
         id: profilId, userId: user.id, name: user.name,
-        image, favoriteIds: [movies[0].id, movies[10].id],
+        image, favoriteIds: snapshotMode ? [] : [movies[0].id, movies[10].id],
       }, update: {} });
       await tx.profil.updateMany({
         where: { id: profilId, userId: user.id, OR: [
@@ -95,13 +100,13 @@ async function seedLocal({ db, environment = process.env }) {
         ] },
         data: { image },
       });
-      await tx.watchlist.upsert({ where: { profilId_movieId: { profilId, movieId: movies[1].id } },
+      if (movies[1]) await tx.watchlist.upsert({ where: { profilId_movieId: { profilId, movieId: movies[1].id } },
         create: { userId: user.id, profilId, movieId: movies[1].id }, update: {} });
       await tx.playlist.upsert({ where: { id: `${user.id}-playlist` }, create: {
         id: `${user.id}-playlist`, userId: user.id, profilId, title: 'Lokaler Filmabend',
         PlaylistEntrys: { create: movies.slice(0, 3).map((movie, order) => ({ movieId: movie.id, order })) },
       }, update: {} });
-      await tx.movieWatchTime.upsert({ where: { userId_profilId_movieId: {
+      if (movies[0]) await tx.movieWatchTime.upsert({ where: { userId_profilId_movieId: {
         userId: user.id, profilId, movieId: movies[0].id,
       } }, create: { userId: user.id, profilId, movieId: movies[0].id, time: 4 }, update: {} });
     }
@@ -110,7 +115,7 @@ async function seedLocal({ db, environment = process.env }) {
         create: avatar, update: { url: avatar.url } });
     }
   });
-  return { users: accounts.length, titles: movies.length, actors: 4 };
+  return { users: accounts.length, titles: movies.length, actors: snapshotMode ? 0 : 4 };
 }
 
 module.exports = { assertLocalDatabase, localAccounts, localCatalog, seedLocal, LOCAL_AVATARS };

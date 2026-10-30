@@ -40,6 +40,17 @@ describe('administrator content category counts', () => {
     expect(result.movies[1]).toMatchObject({ categoryCount: 0, globalCategoryCount: 0, timelineCategoryCount: 0 });
     expect(result.movies[0]).not.toHaveProperty('categorySegments');
     expect(result.movies[0]).not.toHaveProperty('categories');
+    expect(result.movies[0].thumbnailUrl).toBe('/api/catalog/thumbnails/movie-1');
+    const query = jest.mocked(db.movie.findMany).mock.calls[0][0];
+    expect(query?.select).toEqual(expect.objectContaining({
+      title: true,
+      status: true,
+      actors: { select: { actor: { select: { name: true } } } },
+    }));
+    expect(query?.select).not.toHaveProperty('thumbnailUrl');
+    expect(query?.select).not.toHaveProperty('videoUrl');
+    expect(query?.select).not.toHaveProperty('description');
+    expect(query).not.toHaveProperty('include');
   });
 
   it('keeps category counts restricted to administrators', async () => {

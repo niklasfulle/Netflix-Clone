@@ -64,102 +64,6 @@ if ($Environment -eq "Production") {
     Remove-Item -LiteralPath $stagingReceiptPath -Force
 }
 
-if (-not $SkipDocker) {
-    # Check if Docker is running
-    Write-Host "Checking Docker status..." -ForegroundColor Cyan
-    $dockerRunning = $false
-    try {
-        docker ps > $null 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            $dockerRunning = $true
-            Write-Host "Docker is running" -ForegroundColor Green
-        }
-    } catch {
-        $dockerRunning = $false
-    }
-
-    # Start Docker if not running
-    if (-not $dockerRunning) {
-        Write-Host "Docker is not running. Starting Docker Desktop..." -ForegroundColor Yellow
-        
-        # Try to start Docker Desktop
-        $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-        if (Test-Path $dockerPath) {
-            Start-Process -FilePath $dockerPath
-            
-            # Wait for Docker to start (max 60 seconds)
-            Write-Host "Waiting for Docker to start..." -ForegroundColor Yellow
-            $timeout = 60
-            $elapsed = 0
-            while ($elapsed -lt $timeout) {
-                Start-Sleep -Seconds 2
-                $elapsed += 2
-                try {
-                    docker ps > $null 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Host "Docker started successfully" -ForegroundColor Green
-                        $dockerRunning = $true
-                        break
-                    }
-                } catch {
-                    continue
-                }
-                Write-Host "." -NoNewline
-            }
-            Write-Host ""
-            
-            if (-not $dockerRunning) {
-                Write-Host "Docker failed to start within $timeout seconds" -ForegroundColor Red
-                exit 1
-            }
-        } else {
-            Write-Host "Docker Desktop not found at: $dockerPath" -ForegroundColor Red
-            Write-Host "Please install Docker Desktop or start it manually" -ForegroundColor Red
-            exit 1
-        }
-    }
-
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "Building Docker image for version: $version" -ForegroundColor Green
-    Write-Host "========================================`n" -ForegroundColor Cyan
-
-    # Build Docker image
-    Write-Host "Step 1/3: Building Docker image..." -ForegroundColor Yellow
-    docker build -t netflix-clone .
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Docker build failed!" -ForegroundColor Red
-        exit 1
-    }
-
-    # Tag Docker image with version
-    Write-Host "`nStep 2/3: Tagging Docker image..." -ForegroundColor Yellow
-    docker tag netflix-clone salkin263/netflix-clone:$version
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Docker tag failed!" -ForegroundColor Red
-        exit 1
-    }
-
-    # Push Docker image
-    Write-Host "`nStep 3/3: Pushing Docker image to registry..." -ForegroundColor Yellow
-    docker push salkin263/netflix-clone:$version
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Docker push failed!" -ForegroundColor Red
-        exit 1
-    }
-
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "Docker build and push completed successfully!" -ForegroundColor Green
-    Write-Host "========================================`n" -ForegroundColor Cyan
-} else {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "Skipping Docker build (--skip-docker flag)" -ForegroundColor Yellow
-    Write-Host "Deploying version: $version to $environmentName" -ForegroundColor Green
-    Write-Host "========================================`n" -ForegroundColor Cyan
-}
-
 # Check if Ansible is available (check WSL first, then native)
 Write-Host "Checking if Ansible is available..." -ForegroundColor Cyan
 $ansibleAvailable = $false
@@ -212,16 +116,16 @@ if ($useWSL) {
     # Convert Windows path to WSL path
     $currentPath = (Get-Location).Path
     $wslPath = $currentPath -replace '\\', '/' -replace 'C:', '/mnt/c'
-    
+
     # Always use password authentication
     Write-Host "Checking for sshpass..." -ForegroundColor Yellow
-    
+
     # Check if sshpass is installed
     $sshpassInstalled = wsl which sshpass 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Installing sshpass (required for password authentication)..." -ForegroundColor Yellow
         wsl bash -c "sudo apt-get update > /dev/null 2>&1 && sudo apt-get install -y sshpass"
-        
+
         if ($LASTEXITCODE -ne 0) {
             Write-Host "`nsshpass installation failed!" -ForegroundColor Red
             Write-Host "Please install manually: wsl sudo apt install sshpass -y" -ForegroundColor Yellow
@@ -230,10 +134,34 @@ if ($useWSL) {
         }
         Write-Host "sshpass installed successfully" -ForegroundColor Green
     }
-    
+
 }
 
 $passwordFile = $null
+$announcementPublished = $false
+
+function Invoke-DeploymentPlaybook {
+    param([string]$Playbook, [string]$Action = "clear")
+    if ($useWSL) {
+        if ($passwordFile) {
+            $wslPasswordFile = ConvertTo-WslPath -WindowsPath $passwordFile
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' $Playbook --extra-vars '@$wslPasswordFile' --extra-vars 'deployment_environment=$environmentName deployment_update_mode=true maintenance_action=$Action' --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+        } else {
+            Write-Host "`nYou will be prompted for the SSH password for the $environmentName LXC." -ForegroundColor Yellow
+            Write-Host "Enter the root password when prompted.`n" -ForegroundColor Cyan
+            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' $Playbook --extra-vars 'deployment_environment=$environmentName deployment_update_mode=true maintenance_action=$Action' --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+        }
+    } else {
+        if ($passwordFile) {
+            ansible-playbook -i $inventoryFile $Playbook --extra-vars "@$passwordFile" --extra-vars "deployment_environment=$environmentName deployment_update_mode=true maintenance_action=$Action"
+        } else {
+            ansible-playbook -i $inventoryFile $Playbook --extra-vars "deployment_environment=$environmentName deployment_update_mode=true maintenance_action=$Action" --ask-pass
+        }
+    }
+
+    if ($LASTEXITCODE -ne 0) { throw "Ansible phase $Playbook ($Action) failed." }
+}
+
 
 try {
     if ($Password) {
@@ -247,25 +175,114 @@ try {
         Write-Host "Using the password supplied via -p/-Password or NETFLIX_DEPLOY_PASSWORD." -ForegroundColor Green
     }
 
-    if ($useWSL) {
-        if ($passwordFile) {
-            $wslPasswordFile = ConvertTo-WslPath -WindowsPath $passwordFile
-            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' update.yml --extra-vars '@$wslPasswordFile' --extra-vars 'deployment_environment=$environmentName' --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
-        } else {
-            Write-Host "`nYou will be prompted for the SSH password for the $environmentName LXC." -ForegroundColor Yellow
-            Write-Host "Enter the root password when prompted.`n" -ForegroundColor Cyan
-            wsl bash -c "cd '$wslPath' && ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i '$inventoryFile' update.yml --extra-vars 'deployment_environment=$environmentName' --ask-pass --ssh-extra-args='-o PreferredAuthentications=password -o PubkeyAuthentication=no'"
+    $announcementPublished = $true
+    Invoke-DeploymentPlaybook -Playbook maintenance.yml -Action announce
+    Push-Location -Path $PSScriptRoot
+    try {
+if (-not $SkipDocker) {
+    # Check if Docker is running
+    Write-Host "Checking Docker status..." -ForegroundColor Cyan
+    $dockerRunning = $false
+    try {
+        docker ps > $null 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $dockerRunning = $true
+            Write-Host "Docker is running" -ForegroundColor Green
         }
-    } else {
-        if ($passwordFile) {
-            ansible-playbook -i $inventoryFile update.yml --extra-vars "@$passwordFile" --extra-vars "deployment_environment=$environmentName"
+    } catch {
+        $dockerRunning = $false
+    }
+
+    # Start Docker if not running
+    if (-not $dockerRunning) {
+        Write-Host "Docker is not running. Starting Docker Desktop..." -ForegroundColor Yellow
+
+        # Try to start Docker Desktop
+        $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+        if (Test-Path $dockerPath) {
+            Start-Process -FilePath $dockerPath
+
+            # Wait for Docker to start (max 60 seconds)
+            Write-Host "Waiting for Docker to start..." -ForegroundColor Yellow
+            $timeout = 60
+            $elapsed = 0
+            while ($elapsed -lt $timeout) {
+                Start-Sleep -Seconds 2
+                $elapsed += 2
+                try {
+                    docker ps > $null 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Host "Docker started successfully" -ForegroundColor Green
+                        $dockerRunning = $true
+                        break
+                    }
+                } catch {
+                    continue
+                }
+                Write-Host "." -NoNewline
+            }
+            Write-Host ""
+
+            if (-not $dockerRunning) {
+                Write-Host "Docker failed to start within $timeout seconds" -ForegroundColor Red
+                exit 1
+            }
         } else {
-            ansible-playbook -i $inventoryFile update.yml --extra-vars "deployment_environment=$environmentName" --ask-pass
+            Write-Host "Docker Desktop not found at: $dockerPath" -ForegroundColor Red
+            Write-Host "Please install Docker Desktop or start it manually" -ForegroundColor Red
+            exit 1
         }
     }
 
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "Building Docker image for version: $version" -ForegroundColor Green
+    Write-Host "========================================`n" -ForegroundColor Cyan
+
+    # Build Docker image
+    Write-Host "Step 1/3: Building Docker image..." -ForegroundColor Yellow
+    docker build -t netflix-clone .
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Docker build failed!" -ForegroundColor Red
+        exit 1
+    }
+
+    # Tag Docker image with version
+    Write-Host "`nStep 2/3: Tagging Docker image..." -ForegroundColor Yellow
+    docker tag netflix-clone salkin263/netflix-clone:$version
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Docker tag failed!" -ForegroundColor Red
+        exit 1
+    }
+
+    # Push Docker image
+    Write-Host "`nStep 3/3: Pushing Docker image to registry..." -ForegroundColor Yellow
+    docker push salkin263/netflix-clone:$version
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Docker push failed!" -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "Docker build and push completed successfully!" -ForegroundColor Green
+    Write-Host "========================================`n" -ForegroundColor Cyan
+} else {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "Skipping Docker build (--skip-docker flag)" -ForegroundColor Yellow
+    Write-Host "Deploying version: $version to $environmentName" -ForegroundColor Green
+    Write-Host "========================================`n" -ForegroundColor Cyan
+}
+
+    } finally { Pop-Location }
+    Invoke-DeploymentPlaybook -Playbook update.yml
     $ansibleExitCode = $LASTEXITCODE
 } finally {
+    if ($announcementPublished) {
+        try { Invoke-DeploymentPlaybook -Playbook maintenance.yml -Action clear }
+        catch { Write-Warning "Could not clear deployment announcement. It expires after two hours; clear it on the host if needed." }
+    }
     if ($passwordFile -and (Test-Path -LiteralPath $passwordFile)) {
         Remove-Item -LiteralPath $passwordFile -Force
     }

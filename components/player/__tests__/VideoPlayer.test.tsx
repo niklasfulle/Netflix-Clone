@@ -228,6 +228,35 @@ it('keeps playback available when picture in picture is rejected', async () => {
   expect(screen.getByRole('button', { name: 'Play' })).toBeEnabled();
 });
 
+it('hides fullscreen controls after a pointer click, but keeps controls available during keyboard navigation', () => {
+  jest.useFakeTimers();
+  capability(HTMLElement.prototype, 'requestFullscreen', jest.fn().mockResolvedValue(undefined));
+  const { container } = mount();
+  fireEvent.playing(ready(container));
+  const fullscreen = screen.getByRole('button', { name: 'Fullscreen' });
+  fireEvent.pointerDown(fullscreen);
+  act(() => fullscreen.focus());
+  fireEvent.click(fullscreen);
+  capability(document, 'fullscreenElement', container.firstChild);
+  fireEvent(document, new Event('fullscreenchange'));
+  act(() => jest.advanceTimersByTime(3500));
+  expect(container.querySelector('header')).toHaveAttribute('inert');
+  expect(fullscreen).not.toHaveFocus();
+  const region = screen.getByRole('region', { name: 'Video player' });
+  expect(region).toHaveFocus();
+  fireEvent.keyDown(region, { key: 'm' });
+  expect(container.querySelector('video')?.muted).toBe(true);
+
+  fireEvent.pointerMove(screen.getByRole('region', { name: 'Video player' }));
+  fireEvent.keyDown(document, { key: 'Tab' });
+  act(() => fullscreen.focus());
+  act(() => jest.advanceTimersByTime(3500));
+  expect(container.querySelector('header')).not.toHaveAttribute('inert');
+  act(() => fullscreen.blur());
+  act(() => jest.advanceTimersByTime(3500));
+  expect(container.querySelector('header')).toHaveAttribute('inert');
+});
+
 it('hides inactive controls and wakes them on pointer movement while preserving keyboard focus', () => {
   jest.useFakeTimers();
   const { container } = mount();
@@ -237,6 +266,7 @@ it('hides inactive controls and wakes them on pointer movement while preserving 
   expect(header).toHaveAttribute('inert');
   fireEvent.pointerMove(screen.getByRole('region', { name: 'Video player' }));
   expect(header).not.toHaveAttribute('inert');
+  fireEvent.keyDown(document, { key: 'Tab' });
   act(() => { screen.getByRole('button', { name: 'Back' }).focus(); });
   act(() => { jest.advanceTimersByTime(3500); });
   expect(header).not.toHaveAttribute('inert');

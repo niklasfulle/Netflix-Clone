@@ -28,6 +28,8 @@ export const ADMIN_AUDIT_ACTIONS = [
   'backup.restore',
   'backup.verify',
   'backup.cleanup',
+  'catalog.export',
+  'catalog.import',
   'media.scan',
   'job.cancel',
   'job.retry',
@@ -48,6 +50,7 @@ export type AdminAuditTargetType =
   | 'video_example'
   | 'user'
   | 'backup'
+  | 'catalog_snapshot'
   | 'background_job'
   | 'media_scan'
   | 'deployment'
@@ -145,6 +148,8 @@ const METADATA_KEYS: Record<AdminAuditAction, ReadonlySet<string>> = {
   'backup.restore': new Set(['verificationStatus']),
   'backup.verify': new Set(['source']),
   'backup.cleanup': new Set(['environment']),
+  'catalog.export': new Set(),
+  'catalog.import': new Set(),
   'media.scan': new Set(['scope', 'itemCount']),
   'job.cancel': new Set(['status']),
   'job.retry': new Set(['status', 'duplicate']),

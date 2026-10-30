@@ -152,10 +152,14 @@ async function seedStagingCatalog({
     throw new Error('The catalog can only be seeded into a staging database');
   }
 
-  const catalog = buildStagingCatalog(environment);
+  let catalog;
   const publishedAt = now();
 
-  await db.$transaction(async (transaction) => {
+  const imported = await db.$transaction(async (transaction) => {
+    await transaction.$executeRawUnsafe('SELECT pg_advisory_xact_lock(6401404)');
+    const state = await transaction.catalogDataState.findUnique({ where: { id: 'global' } });
+    if (state?.mode === 'production-snapshot') return true;
+    catalog = buildStagingCatalog(environment);
     for (const actor of catalog.actors) {
       await transaction.actor.upsert({
         where: { id: actor.id },
@@ -184,8 +188,8 @@ async function seedStagingCatalog({
   });
 
   return {
-    seededActors: catalog.actors.length,
-    seededMovies: catalog.movies.length,
+    seededActors: imported ? 0 : catalog.actors.length,
+    seededMovies: imported ? 0 : catalog.movies.length,
   };
 }
 

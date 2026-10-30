@@ -117,8 +117,8 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
   };
 
   return (
-    <div className="h-auto min-h-[204px] px-4 mt-2 space-y-4 md:space-y-8 lg:mt-4 md:px-12 [content-visibility:auto] [contain-intrinsic-size:auto_240px]">
-      <div className="relative z-30 flex items-center gap-3 -mb-8">
+    <div className="h-auto min-h-[220px] px-4 mt-2 md:px-12 lg:mt-4">
+      <div className="relative z-30 flex min-h-11 items-center gap-3">
         <p className="font-semibold text-white text-md md:text-xl lg:text-2xl">
           {title}
         </p>
@@ -178,7 +178,7 @@ const FilterRowBase: React.FC<FilterRowBaseProps> = ({ title, movies, isLoading 
         </div>
       )}
       {isEmpty(movies) && (
-        <output className="flex flex-row items-center justify-center w-full h-24">
+        <output className="flex flex-row items-center justify-center w-full h-44">
           <svg
             aria-hidden="true"
             className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-red-600"

@@ -450,13 +450,6 @@
         dest: /etc/systemd/system/netflix-backup-verification.path
         mode: '0644'
 
-    - name: Enable manual PostgreSQL backup verification requests
-      systemd:
-        name: netflix-backup-verification.path
-        daemon_reload: true
-        enabled: true
-        state: started
-
     - name: Install scheduled PostgreSQL backup runner
       copy:
         src: files/run-postgres-backup.sh
@@ -497,13 +490,6 @@
         group: root
         mode: '0644'
 
-    - name: Enable manual PostgreSQL backup retention requests
-      systemd:
-        name: netflix-backup-retention.path
-        daemon_reload: true
-        enabled: true
-        state: started
-
     - name: Install scheduled PostgreSQL backup service
       template:
         src: templates/netflix-postgres-backup.service.j2
@@ -528,6 +514,48 @@
         group: root
         mode: '0644'
 
+    - name: Normalize installed backup scripts to Unix line endings
+      replace:
+        path: "/usr/local/lib/netflix-deploy/{{ item }}"
+        regexp: '\r'
+        replace: ''
+      loop:
+        - backup-postgres.sh
+        - verify-postgres-backup.sh
+        - run-postgres-backup.sh
+        - run-postgres-backup-verification.sh
+        - run-postgres-backup-retention.sh
+        - manage-postgres-backups.py
+
+    - name: Reload installed backup units
+      systemd:
+        daemon_reload: true
+
+    - name: Reset failed backup units after installing their helpers
+      command:
+        argv:
+          - systemctl
+          - reset-failed
+          - netflix-postgres-backup.service
+          - netflix-postgres-backup.path
+          - netflix-backup-verification.service
+          - netflix-backup-verification.path
+          - netflix-backup-retention.service
+          - netflix-backup-retention.path
+      changed_when: false
+
+    - name: Enable manual PostgreSQL backup verification requests
+      systemd:
+        name: netflix-backup-verification.path
+        enabled: true
+        state: started
+
+    - name: Enable manual PostgreSQL backup retention requests
+      systemd:
+        name: netflix-backup-retention.path
+        enabled: true
+        state: started
+
     - name: Enable scheduled PostgreSQL backups
       systemd:
         name: netflix-postgres-backup.timer
@@ -541,6 +569,37 @@
         daemon_reload: true
         enabled: true
         state: started
+
+    - name: Ensure private catalog transfer storage exists
+      file:
+        path: /var/lib/netflix-catalog-transfers
+        state: directory
+        owner: '10001'
+        group: '10001'
+        mode: '0750'
+
+    - name: Install catalog transfer host controller
+      copy:
+        src: ../scripts/catalog-transfer-host.py
+        dest: /usr/local/lib/netflix-deploy/catalog-transfer-host.py
+        owner: root
+        group: root
+        mode: '0640'
+      register: catalog_transfer_controller
+
+    - name: Install catalog transfer host service
+      template:
+        src: templates/netflix-catalog-transfer.service.j2
+        dest: /etc/systemd/system/netflix-catalog-transfer.service
+        mode: '0644'
+      register: catalog_transfer_service
+
+    - name: Enable catalog transfers and automatic application restarts
+      systemd:
+        name: netflix-catalog-transfer.service
+        daemon_reload: true
+        enabled: true
+        state: "{{ 'restarted' if catalog_transfer_controller.changed or catalog_transfer_service.changed else 'started' }}"
 
     - name: Install staging media seed helper
       copy:
@@ -616,6 +675,19 @@
         dest: "{{ docker_compose_path }}/docker-compose.yml"
         mode: '0644'
       register: compose_file
+
+    - name: Install independent availability page
+      copy:
+        src: ../ops/fallback/
+        dest: "{{ docker_compose_path }}/fallback/"
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Ensure maintenance marker directory exists
+      file:
+        path: "{{ docker_compose_path }}/maintenance"
+        state: directory
+        mode: '0755'
 
     - name: Copy HTTP reverse-proxy configuration
       template:
@@ -789,8 +861,39 @@
         deployment_status_rollback_result: >-
           {{ 'pending' if previous_compose.stat.exists and previous_container_image.rc == 0 else 'not_possible' }}
 
+    - name: Validate independent reverse-proxy configuration before activation
+      command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - -v
+          - "{{ docker_compose_path }}/Caddyfile:/etc/caddy/Caddyfile:ro"
+          - -v
+          - "{{ docker_compose_path }}/fallback:/srv/fallback:ro"
+          - "{{ caddy_image }}"
+          - caddy
+          - validate
+          - --config
+          - /etc/caddy/Caddyfile
+          - --adapter
+          - caddyfile
+      changed_when: false
+
+    - name: Refresh independent reverse proxy before application update
+      command: docker compose up -d --no-deps --force-recreate proxy
+      args:
+        chdir: "{{ docker_compose_path }}"
+
     - name: Deploy, migrate, and verify with automatic rollback
       block:
+        - name: Mark planned application update
+          copy:
+            content: '{"mode":"update","startedAt":"{{ now(utc=true).isoformat() }}"}'
+            dest: "{{ docker_compose_path }}/maintenance/updating.json"
+            mode: '0644'
+          when: deployment_update_mode | default(true) | bool
+
         - name: Publish deployment start status
           include_tasks: tasks/publish-deployment-status.yml
           vars:
@@ -1439,6 +1542,15 @@
               Deployment of {{ app_version }} failed. Previous image
               {{ previous_container_image.stdout | default('unknown') }} was restored;
               diagnostics are in /root/netflix-deploy-failures.
+
+      always:
+        - name: Clear planned update marker after success or rollback
+          file:
+            path: "{{ docker_compose_path }}/maintenance/{{ item }}"
+            state: absent
+          loop:
+            - updating.json
+            - announcement.json
 
     - name: Remove unused Docker images after successful start
       command: docker image prune --all --force

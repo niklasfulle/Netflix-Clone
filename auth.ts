@@ -14,6 +14,7 @@ import { hasCurrentPasskeyManagementGrant } from "@/lib/passkeys"
 import { isPasskeySignInAllowed } from "@/lib/authentication/passkey-sign-in-policy"
 import { authenticationTelemetry } from "@/lib/authentication/production-telemetry"
 import { shouldObserveSessionValidation } from "@/lib/authentication/session-telemetry"
+import { maintenanceBlocksRole } from "@/lib/maintenance-policy"
 
 const adapter = withPasskeyMetadata(PrismaAdapter(db), passkeyMetadataRepository)
 
@@ -79,6 +80,7 @@ export const {
       const existingUser = await getUserById(user.id as string)
 
       if (!existingUser || await hasActiveUserBlock(existingUser)) return false
+      if (await maintenanceBlocksRole(existingUser.role)) return false
       if (account?.provider === "passkey") {
         return isPasskeySignInAllowed(
           {
@@ -160,6 +162,10 @@ export const {
           return token
         }
 
+        if (await maintenanceBlocksRole(existingUser.role)) {
+          token.isRevoked = true
+          return token
+        }
         const nowSeconds = Math.floor(Date.now() / 1000)
         const expiresAt = new Date((token.exp ?? nowSeconds + 30 * 24 * 60 * 60) * 1000)
         const sessionState = await sessionSecurity.authenticate({

@@ -32,6 +32,14 @@ function jobRun(id: string, acceptedAt: string) {
 }
 
 describe('job administration', () => {
+  it('explains a historical backup lease failure without exposing its stored error message', async () => {
+    const job = { ...jobRun('job-run-1', '2026-08-25T10:01:00.000Z'), errorCode: 'Error', errorMessage: 'Operational lease TTL must be between 5000 and 900000 milliseconds' };
+    const database = { jobRun: { findMany: jest.fn().mockResolvedValue([job]) } } as unknown as JobAdministrationDatabase;
+    const result = await createJobAdministrationService({ database }).list(admin);
+    expect(result.items[0].failure?.code).toBe('INVALID_LEASE_TTL');
+    expect(result.items[0].failure?.message).toContain('invalid lease duration');
+    expect(result.items[0]).not.toHaveProperty('errorMessage');
+  });
   it('returns a bounded, cursor-paginated list from PostgreSQL', async () => {
     const findMany = jest.fn().mockResolvedValue([
       jobRun('job-run-2', '2026-08-25T10:02:00.000Z'),

@@ -26,12 +26,34 @@ x-app: &app
     NEXT_PUBLIC_GENRE: Action,Comedy,Drama,Thriller,Animation,Documentary
     MOVIE_FOLDER: /movies
     SERIES_FOLDER: /series
+    CATALOG_TRANSFER_DIRECTORY: /catalog-transfers
+  labels:
+    com.netflix-clone.environment: local
   volumes:
     - movies:/movies
     - series:/series
     - logs:/netflix-clone/logs
+    - catalog-transfers:/catalog-transfers
 
 services:
+  catalog-transfers:
+    image: netflix-catalog-transfer-host:local
+    build:
+      context: .
+      dockerfile: docker/catalog-transfer-host.Dockerfile
+    environment:
+      CATALOG_TRANSFER_ENVIRONMENT: local
+      CATALOG_TRANSFER_STORAGE: /catalog-transfers
+      CATALOG_TRANSFER_MOUNT: netflix-local_catalog-transfers
+      CATALOG_TRANSFER_COMPOSE_FILE: /configuration/compose.local.yml
+      CATALOG_TRANSFER_ENV_FILE: /configuration/.env.docker.local
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - catalog-transfers:/catalog-transfers
+      - ./compose.local.yml:/configuration/compose.local.yml:ro
+      - ./.env.docker.local:/configuration/.env.docker.local:ro
+    restart: unless-stopped
+
   database:
     image: postgres:17-alpine
     environment:
@@ -169,6 +191,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  catalog-transfers:
   database:
   movies:
   series:

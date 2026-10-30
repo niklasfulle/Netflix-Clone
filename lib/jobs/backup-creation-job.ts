@@ -10,6 +10,11 @@ type BackupCreationPayload = {
   requestedAt: string;
 };
 
+export function backupCreationLease(environment: BackupCreationPayload['environment']) {
+  // The coordinator renews this lease while the backup is running.
+  return { operation: 'backup.create' as const, targetId: `scheduled-backup:${environment}`, ttlMs: 15 * 60_000 };
+}
+
 type BackupCreationContext = {
   signal?: AbortSignal;
   reportProgress(progress: { percent: number; message: string }): Promise<void>;

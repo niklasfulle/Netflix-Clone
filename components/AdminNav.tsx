@@ -43,6 +43,7 @@ const navigation: { label: TranslationKey; href: string; icon: typeof LayoutDash
   { label: "System", href: "/admin/system", icon: ServerCog },
   { label: "Media Health", href: "/admin/media-health", icon: ScanSearch },
   { label: "Backups", href: "/admin/backups", icon: DatabaseBackup },
+  { label: "Catalog Transfer", href: "/admin/catalog-transfers", icon: DatabaseBackup },
   { label: "Job Operations", href: "/admin/jobs", icon: ListTodo },
   { label: "System Logs", href: "/admin/logs", icon: ScrollText },
   { label: "Audit Log", href: "/admin/audit", icon: ShieldCheck },

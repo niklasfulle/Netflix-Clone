@@ -133,8 +133,8 @@ describe('Thumbnail', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
       const image = screen.getByAltText('Test Movie thumbnail');
       expect(image).toHaveClass('w-full');
-      expect(image).toHaveClass('transition');
-      expect(image).toHaveClass('cursor-pointer');
+      expect(image).toHaveClass('h-full');
+      expect(image).toHaveClass('object-cover');
       expect(image).toHaveClass('rounded-t-md');
     });
 
@@ -148,6 +148,17 @@ describe('Thumbnail', () => {
   });
 
   describe('Progress Bar Calculation', () => {
+    it.each([
+      ['02:00', 0, '0%'], ['02:00', -10, '0%'], ['02:00', 150, '100%'],
+      ['0', 60, '0%'], ['unknown', 60, '0%'], ['02:00', Number.NaN, '0%'],
+    ])('keeps the progress bar within its track for duration %s and watch time %s', (duration, watchTime, width) => {
+      const { container } = render(<Thumbnail data={{ ...defaultMockData, duration, watchTime }} isLoading={false} />);
+      expect(container.querySelector('.bg-red-600')).toHaveStyle({ width });
+    });
+    it('draws a half-watched video at exactly half the thumbnail width', () => {
+      const { container } = render(<Thumbnail data={{ ...defaultMockData, duration: '02:00', watchTime: 60 }} isLoading={false} />);
+      expect(container.querySelector('.bg-red-600')).toHaveStyle({ width: '50%' });
+    });
     it('should calculate and display progress bar when watchTime is defined', () => {
       const { container } = render(
         <Thumbnail
@@ -318,7 +329,7 @@ describe('Thumbnail', () => {
         />
       );
       const redBar = container.querySelector('[class*="bg-red-600"]') as HTMLElement;
-      expect(redBar).toHaveStyle({ width: expect.stringContaining('%') });
+      expect(redBar).toHaveStyle({ width: '0%' });
     });
 
     it('should handle very short duration', () => {
@@ -441,16 +452,17 @@ describe('Thumbnail', () => {
   });
 
   describe('CSS Classes and Styling', () => {
-    it('should have image with max width class', () => {
+    it('reserves a fixed responsive width before the image loads', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
-      const image = screen.getByAltText('Test Movie thumbnail');
-      expect(image).toHaveClass('max-w-64');
+      const button = screen.getByRole('button');
+      expect(button).toHaveClass('w-[180px]', 'md:w-[260px]', 'shrink-0');
     });
 
-    it('should have image with aspect-video class', () => {
+    it('fills its reserved height independently of image metadata', () => {
       render(<Thumbnail data={defaultMockData} isLoading={false} />);
       const image = screen.getByAltText('Test Movie thumbnail');
-      expect(image).toHaveClass('aspect-video');
+      expect(image).toHaveClass('h-full', 'w-full');
+      expect(image).toHaveAttribute('sizes', '(min-width: 768px) 260px, 180px');
     });
 
     it('should have shadow-xl on image', () => {

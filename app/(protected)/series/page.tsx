@@ -43,13 +43,13 @@ export default function SeriesPage() {
       <div className="min-h-screen">
         <MovieList
           title="New"
-          data={newSeries}
+          data={newSeries.slice(0, 4)}
           isLoading={isLoadingNewSeries}
         />
         {actors.map((actor: string, index: number) => (
           <FilterRowSeries key={actor} title={actor} deferLoading={index > 0} />
         ))}
-        {hasMore && (
+        {hasMore && actors.length > 0 && (
           <div className="flex flex-row items-center justify-center w-full h-8 pt-12 pb-28">
             <button
               onClick={loadMore}

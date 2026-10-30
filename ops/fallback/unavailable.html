@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Netflix Clone · Gleich wieder da</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#141414;color:#fafafa;font:16px/1.6 system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:24px}main{max-width:640px;width:100%;padding:clamp(28px,6vw,56px);border:1px solid #353535;border-radius:24px;background:linear-gradient(145deg,#242424,#191919);box-shadow:0 24px 80px #0005}.brand{color:#ff4545;font-weight:800;letter-spacing:.15em;font-size:13px}.status{display:inline-flex;align-items:center;gap:8px;color:#b5b5bd;font-size:14px;margin-top:32px}.dot{width:8px;height:8px;border-radius:50%;background:#ff4545}h1{font-size:clamp(28px,5vw,42px);line-height:1.2;letter-spacing:-.03em;margin:16px 0}p{color:#b5b5bd}button{margin:20px 0 12px;border:0;border-radius:10px;background:#e50914;color:white;padding:13px 22px;font:inherit;font-weight:650;cursor:pointer}button:hover{background:#f4212b}button:focus-visible{outline:3px solid white;outline-offset:4px}.hint{font-size:13px;color:#96969f}
+  </style>
+  <script src="/__fallback/status.js" defer></script>
+</head>
+<body><main>
+  <div class="brand">NETFLIX CLONE</div>
+  <div class="status"><span class="dot" aria-hidden="true"></span><span id="state">Vorübergehend nicht erreichbar</span></div>
+  <h1 id="heading">Wir sind gleich wieder da.</h1>
+  <p id="description">Die Anwendung ist gerade nicht erreichbar. Wir prüfen automatisch, wann du weiterschauen kannst.</p>
+  <button type="button" id="retry">Erneut versuchen</button>
+  <p class="hint" id="feedback" role="status">Sobald die Anwendung bereit ist, wird diese Seite automatisch neu geladen.</p>
+  <noscript><p>Bitte lade diese Seite in einigen Sekunden erneut.</p></noscript>
+</main></body></html>

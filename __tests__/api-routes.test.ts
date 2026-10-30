@@ -107,6 +107,33 @@ const json = (response: Response) => response.json();
 
 describe('API route coverage', () => {
   it.each([
+    ['movies', getRandomMovies], ['series', getRandomSeriesCollection],
+  ] as const)('includes profile-scoped watch progress in the random %s cards', async (_content, getCards) => {
+    mockedHelpers.getUserAndProfile.mockResolvedValue({
+      user: { id: 'user1' }, profil: { id: 'profile1' }, error: null,
+    } as any);
+    mockedDb.movie.findMany
+      .mockResolvedValueOnce([{ id: 'watched' }, { id: 'unwatched' }])
+      .mockResolvedValueOnce([
+        { id: 'watched', duration: '02:00' }, { id: 'unwatched', duration: '02:00' },
+      ]);
+    mockedDb.movieWatchTime.findMany.mockResolvedValue([{ movieId: 'watched', time: 30 }]);
+    const response = await getCards({ nextUrl: { searchParams: new URLSearchParams('count=2') } } as any);
+    expect(response.status).toBe(200);
+    const cards = await response.json();
+    expect(cards).toEqual([
+      expect.objectContaining({ id: 'watched', watchTime: 30 }),
+      expect.objectContaining({ id: 'unwatched' }),
+    ]);
+    expect(cards[1]).not.toHaveProperty('watchTime');
+    expect(mockedDb.movieWatchTime.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user1', profilId: 'profile1', movieId: { in: ['watched', 'unwatched'] } },
+      select: { movieId: true, time: true },
+    });
+    expect(JSON.stringify(cards)).not.toContain('videoUrl');
+    expect(JSON.stringify(cards)).not.toContain('data:image');
+  });
+  it.each([
     ['random content', getRandom], ['random movie', getRandomMovie], ['random series', getRandomSeries], ['playlists', getPlaylists],
   ] as const)('rejects anonymous %s requests before catalog access', async (_name, request) => {
     mockedCurrentUser.mockResolvedValue(undefined);
@@ -176,6 +203,7 @@ describe('API route coverage', () => {
   });
   beforeEach(() => {
     jest.resetAllMocks();
+    mockedDb.movieWatchTime.findMany.mockResolvedValue([]);
     mockedHelpers.handleApiError.mockImplementation((error: unknown) =>
       Response.json({ error: String(error) }, { status: 500 }),
     );
@@ -379,7 +407,17 @@ describe('API route coverage', () => {
     mockedDb.profil.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'profile1' });
     expect(await json(await getWatchlist())).toEqual([]);
     mockedDb.watchlist.findMany.mockResolvedValue([{ movie: { id: 'movie1' } }]);
-    expect(await json(await getWatchlist())).toEqual([{ id: 'movie1' }]);
+    expect(await json(await getWatchlist())).toEqual([{ id: 'movie1', thumbnailUrl: '/api/catalog/thumbnails/movie1' }]);
+  });
+
+  it('limits watchlist results to the active profile and reports additional pages', async () => {
+    mockedCurrentUser.mockResolvedValue({ id: 'user1' } as any);
+    mockedDb.profil.findFirst.mockResolvedValue({ id: 'profile1' });
+    mockedDb.watchlist.findMany.mockResolvedValue(Array.from({ length: 17 }, (_, i) => ({ movie: { id: `movie${i}` } })));
+    const response = await getWatchlist(new Request('http://localhost/api/watchlist?offset=16'));
+    expect(response.headers.get('X-Has-More')).toBe('true');
+    expect(await response.json()).toHaveLength(16);
+    expect(mockedDb.watchlist.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { profilId: 'profile1' }, skip: 16, take: 17 }));
   });
 
   it('returns actor statistics to admins', async () => {
@@ -461,17 +499,28 @@ describe('API route coverage', () => {
     } as any);
     mockedDb.movie.findMany
       .mockResolvedValueOnce([{ id: 'movie1' }, { id: 'movie2' }])
-      .mockResolvedValueOnce([{ id: 'movie1', createdAt: new Date('2024-01-01') }])
+      .mockResolvedValueOnce([{ id: 'movie1', createdAt: new Date('2024-01-01'), videoUrl: '/media/one.mp4', thumbnailUrl: 'data:image/png;base64,' + 'A'.repeat(100_000) }])
       .mockResolvedValueOnce([{ id: 'series1' }, { id: 'series2' }])
-      .mockResolvedValueOnce([{ id: 'series1', createdAt: new Date('2024-01-01') }]);
+      .mockResolvedValueOnce([{ id: 'series1', createdAt: new Date('2024-01-01'), videoUrl: '/media/two.mp4', thumbnailUrl: 'data:image/png;base64,' + 'A'.repeat(100_000) }]);
     const request = { nextUrl: { searchParams: new URLSearchParams('count=1') } } as any;
 
-    expect(await json(await getRandomMovies(request))).toEqual([
-      expect.objectContaining({ id: 'movie1', createdAt: '2024-01-01T00:00:00.000Z' }),
+    const movies = await json(await getRandomMovies(request));
+    const series = await json(await getRandomSeriesCollection(request));
+    expect(movies).toEqual([
+      expect.objectContaining({ id: 'movie1', createdAt: '2024-01-01T00:00:00.000Z', thumbnailUrl: '/api/catalog/thumbnails/movie1' }),
     ]);
-    expect(await json(await getRandomSeriesCollection(request))).toEqual([
-      expect.objectContaining({ id: 'series1', createdAt: '2024-01-01T00:00:00.000Z' }),
+    expect(series).toEqual([
+      expect.objectContaining({ id: 'series1', createdAt: '2024-01-01T00:00:00.000Z', thumbnailUrl: '/api/catalog/thumbnails/series1' }),
     ]);
+    const serialized = JSON.stringify([movies, series]);
+    expect(serialized).not.toContain('videoUrl');
+    expect(serialized).not.toContain('data:image');
+    expect(serialized.length).toBeLessThan(1_000);
+    for (const callIndex of [1, 3]) {
+      const query = mockedDb.movie.findMany.mock.calls[callIndex][0];
+      expect(query.select).not.toHaveProperty('thumbnailUrl');
+      expect(query.select).not.toHaveProperty('videoUrl');
+    }
   });
 
   it('returns favorites and the favorite profile', async () => {

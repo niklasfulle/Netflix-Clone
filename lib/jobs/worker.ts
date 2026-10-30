@@ -1,5 +1,6 @@
 import type { JobProgress, JobResult, QueuedJob } from '@/lib/jobs/contracts';
 import { JOB_NAMES, parseJobProgress, parseJobResult, parseQueuedJob } from '@/lib/jobs/contracts';
+import { jobFailureDetails } from '@/lib/jobs/failure-diagnostics';
 
 export type JobClaim = 'CLAIMED' | 'SUCCEEDED' | 'CANCELLED' | 'REJECTED';
 
@@ -97,12 +98,7 @@ export class PermanentJobError extends Error {
 }
 
 function failureDetails(error: unknown) {
-  const errorName = error instanceof Error ? error.name : 'UnknownError';
-  const errorMessage = error instanceof Error ? error.message : 'Background job failed';
-  return {
-    errorCode: errorName.slice(0, 80),
-    errorMessage: errorMessage.slice(0, 512),
-  };
+  return jobFailureDetails(error);
 }
 
 async function dispatchJob(

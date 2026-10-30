@@ -14,14 +14,29 @@ describe('published changelog', () => {
   it('keeps the current release and previous published releases separate', () => {
     const entries = getChangelog();
 
-    expect(entries.slice(0, 5).map(entry => entry.version)).toEqual([
+    expect(entries.slice(0, 7).map(entry => entry.version)).toEqual([
       APP_VERSION,
+      '1.14.5',
+      '1.14.4',
+      '1.14.3',
       '1.14.2',
       '1.14.1',
       '1.14.0',
-      '1.13.6',
     ]);
-    expect(entries.find(entry => entry.version === APP_VERSION)?.changes).toEqual(
+    expect(entries.find(entry => entry.version === '1.14.5')?.changes).toEqual(
+      expect.arrayContaining([expect.stringContaining('Katalog-Snapshot')]),
+    );
+    expect(entries.find(entry => entry.version === APP_VERSION)?.changes.join('\n')).toContain('Caddy');
+    expect(entries.find(entry => entry.version === APP_VERSION)?.changes.join('\n')).not.toContain('Ausführungssperre');
+    expect(entries.find(entry => entry.version === '1.14.4')?.changes).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('Ausführungssperre'),
+        expect.stringContaining('Korrelations-ID'),
+        expect.stringContaining('Vollbild'),
+        expect.stringContaining('/random'),
+      ]),
+    );
+    expect(entries.find(entry => entry.version === '1.14.3')?.changes).toEqual(
       expect.arrayContaining([
         expect.stringContaining('Anzahl unterschiedlicher Kategorien'),
         expect.stringContaining('dauerhafte Farben'),

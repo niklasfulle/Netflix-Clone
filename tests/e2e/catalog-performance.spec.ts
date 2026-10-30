@@ -6,6 +6,22 @@ const INITIAL_CATALOG_JSON_BUDGET_BYTES = 250_000;
 
 test.use({ storageState: authStatePaths.user });
 
+test('keeps both homepage random lists within their combined card JSON budget', async ({ page }) => {
+  const paths = ['/api/movies/random', '/api/series/random'];
+  const responses = paths.map((path) => page.waitForResponse((response) => (
+    new URL(response.url()).pathname === path && response.status() === 200
+  )));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const payloads = await Promise.all((await Promise.all(responses)).map((response) => response.body()));
+  expect(payloads.reduce((sum, body) => sum + body.byteLength, 0)).toBeLessThanOrEqual(50_000);
+  for (const body of payloads) {
+    expect(body.toString('utf8')).not.toContain('"videoUrl"');
+    expect(body.toString('utf8')).not.toContain('data:image');
+  }
+  await expect(page.locator('[aria-busy="false"]').first()).toBeVisible();
+});
+
 test('keeps the initial movie catalog JSON within its mobile budget', async ({
   context,
   page,

@@ -1,4 +1,5 @@
 import { JobAccessDeniedError, type JobActor } from '@/lib/jobs/control';
+import { jobFailureMessage, storedJobDiagnostic } from '@/lib/jobs/failure-diagnostics';
 
 export const JOB_ADMIN_STATUSES = [
   'QUEUED',
@@ -32,6 +33,7 @@ type StoredJobRun = {
   targetId: string;
   correlationId: string;
   errorCode: string | null;
+  errorMessage: string | null;
   acceptedAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -102,6 +104,7 @@ const jobRunSelect: Record<keyof StoredJobRun, true> = {
   targetId: true,
   correlationId: true,
   errorCode: true,
+  errorMessage: true,
   acceptedAt: true,
   startedAt: true,
   completedAt: true,
@@ -138,6 +141,7 @@ function boundedLimit(value: number | undefined): number {
 }
 
 function publicJobRun(job: StoredJobRun) {
+  const diagnostic = job.errorCode ? storedJobDiagnostic(job.errorCode, job.errorMessage) : null;
   return {
     id: job.id,
     jobType: job.jobType,
@@ -148,10 +152,10 @@ function publicJobRun(job: StoredJobRun) {
     actor: { userId: job.actorUserId, role: job.actorRole },
     target: { type: job.targetType, id: job.targetId },
     correlationId: job.correlationId,
-    failure: job.errorCode
+    failure: diagnostic
       ? {
-        code: job.errorCode,
-        message: 'Background operation failed. Review server logs using the correlation ID.',
+        code: diagnostic,
+        message: jobFailureMessage(diagnostic) ?? 'Background operation failed. Review server logs using the correlation ID.',
       }
       : null,
     acceptedAt: job.acceptedAt,
